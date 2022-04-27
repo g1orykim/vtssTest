@@ -1,0 +1,402 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <title>Network Access Server Port Statistics Help</title>
+    <link href="/lib/normal.css" rel="stylesheet" type="text/css"> <!-- For tables -->
+    <link href="/lib/help.css"   rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="/lib/dynforms.js"></script>
+    <script type="text/javascript" src="/lib/mootools-core.js"></script>
+    <script type="text/javascript" language="JavaScript">
+      window.addEvent('domready', function() {
+        $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+      });
+    </script>
+  </head>
+
+  <body>
+    <!-- Make it the same size as normal help pages. Otherwise changed to 12pt by normal.css -->
+    <h1 style="font-size: 23pt;"><a href="glossary.htm#nas" class="glossary">NAS</a> Statistics Help</h1>
+
+    <p>
+      This page provides detailed <a href="glossary.htm#nas" class="glossary">NAS</a> statistics for a specific
+      switch port
+      <span class="has_nas_mac_based">
+        running EAPOL-based <a href="glossary.htm#dot1x" class="glossary">IEEE 802.1X</a> authentication.
+        For MAC-based ports, it shows selected backend server (RADIUS Authentication Server) statistics, only
+      </span>.<br/>
+      Use the port select box to select which port details to be displayed.
+      <span class="SPOM_only">The selected port belongs to the currently selected stack unit as reflected by the table header.</span>
+    </p>
+
+    <h2 style="font-size: 16pt;">Port State</h2>
+    <dl>
+      <dt>Admin State</dt>
+      <dd>
+        The port's current administrative state. Refer to NAS <a href="help_nas.htm#admin_state">Admin State</a> for a description of possible values.
+      </dd>
+
+      <dt>Port State</dt>
+      <dd>
+        The current state of the port. Refer to NAS <a href="help_nas.htm#port_state">Port State</a> for a description of the individual states.
+      </dd>
+
+      <dt class="NAS_BACKEND_QOS">QoS Class</dt>
+      <dd class="NAS_BACKEND_QOS">
+        The QoS class assigned by the RADIUS server. The field is blank if no QoS class is assigned.
+      </dd>
+
+      <dt class="NAS_USES_VLAN">Port VLAN ID</dt>
+      <dd class="NAS_USES_VLAN">
+        The VLAN ID that NAS has put the port in. The field is blank, if the Port VLAN ID is not overridden by NAS.<br/>
+        <span class="NAS_BACKEND_VLAN">
+          If the VLAN ID is assigned by the RADIUS server, <code>"(RADIUS-assigned)"</code> is appended to the VLAN ID.
+          Read more about RADIUS-assigned VLANs <a href="help_nas.htm#backend_vlan_glbl">here</a>.<br/>
+        </span>
+        <span class="NAS_GUEST_VLAN">
+          If the port is moved to the Guest VLAN, <code>"(Guest)"</code> is appended to the VLAN ID.
+          Read more about Guest VLANs <a href="help_nas.htm#guest_vlan_glbl">here</a>.<br/>
+        </span>
+      </dd>
+    </dl>
+
+    <h2 style="font-size: 16pt;"><a name="port_counters">Port Counters</a></h2>
+    <dl>
+      <dt>EAPOL Counters</dt>
+      <dd>
+        These supplicant frame counters are available for the following <a href="help_nas.htm#admin_state">administrative states</a>:<br/>
+          &nbsp;&nbsp;&nbsp;&bull; Force Authorized<br/>
+          &nbsp;&nbsp;&nbsp;&bull; Force Unauthorized<br/>
+          &nbsp;&nbsp;&nbsp;&bull;<span class="NAS_SINGLE_OR_MULTI"> Port-based</span> 802.1X<br/>
+          <span class="has_nas_dot1x_single">&nbsp;&nbsp;&nbsp;&bull; Single 802.1X<br/></span>
+          <span class="has_nas_dot1x_multi">&nbsp;&nbsp;&nbsp;&bull; Multi 802.1X<br/></span><br/>
+
+        <table summary="802.1X EAPOL Counter Help" class="display">
+          <tbody>
+            <tr class="display_header">
+              <th colspan="4">EAPOL Counters</th>
+            </tr>
+            <tr class="display_header">
+              <th>Direction</th>
+              <th>Name</th>
+              <th>IEEE Name</th>
+              <th>Description</th>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Total</td>
+              <td>dot1xAuthEapolFramesRx</td>
+              <td>The number of valid EAPOL frames of any type that have been received by the switch.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Rx</td>
+              <td class="displaytext">Response&nbsp;ID</td>
+              <td>dot1xAuthEapolRespIdFramesRx</td>
+              <td>The number of valid EAPOL Response Identity frames that have been received by the switch.</td>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Responses</td>
+              <td>dot1xAuthEapolRespFramesRx</td>
+              <td>The number of valid EAPOL response frames (other than Response Identity frames) that have been received by the switch.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Rx</td>
+              <td class="displaytext">Start</td>
+              <td>dot1xAuthEapolStartFramesRx</td>
+              <td>The number of EAPOL Start frames that have been received by the switch.</td>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Logoff</td>
+              <td>dot1xAuthEapolLogoffFramesRx</td>
+              <td>The number of valid EAPOL Logoff frames that have been received by the switch.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Rx</td>
+              <td class="displaytext">Invalid&nbsp;Type</td>
+              <td>dot1xAuthInvalidEapolFramesRx</td>
+              <td>The number of EAPOL frames that have been received by the switch in which the frame type is not recognized.</td>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Invalid&nbsp;Length</td>
+              <td>dot1xAuthEapLengthErrorFramesRx</td>
+              <td>The number of EAPOL frames that have been received by the switch in which the Packet Body Length field is invalid.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Tx</td>
+              <td class="displaytext">Total</td>
+              <td>dot1xAuthEapolFramesTx</td>
+              <td>The number of EAPOL frames of any type that have been transmitted by the switch.</td>
+            </tr>
+            <tr class="display_even">
+              <td>Tx</td>
+              <td class="displaytext">Request ID</td>
+              <td>dot1xAuthEapolReqIdFramesTx</td>
+              <td>The number of EAPOL Request Identity frames that have been transmitted by the switch.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Tx</td>
+              <td class="displaytext">Requests</td>
+              <td>dot1xAuthEapolReqFramesTx</td>
+              <td>The number of valid EAPOL Request frames (other than Request Identity frames) that have been transmitted by the switch.</td>
+            </tr>
+          </tbody>
+        </table>
+        <br/>
+      </dd>
+
+      <dt>Backend Server Counters</dt>
+      <dd>
+        These backend (RADIUS) frame counters are available for the following <a href="help_nas.htm#admin_state">administrative states</a>:<br/>
+          &nbsp;&nbsp;&nbsp;&bull;<span class="NAS_SINGLE_OR_MULTI"> Port-based</span> 802.1X<br/>
+          <span class="has_nas_dot1x_single">&nbsp;&nbsp;&nbsp;&bull; Single 802.1X<br/></span>
+          <span class="has_nas_dot1x_multi">&nbsp;&nbsp;&nbsp;&bull; Multi 802.1X<br/></span>
+          <span class="has_nas_mac_based">&nbsp;&nbsp;&nbsp;&bull; MAC-based Auth.<br/></span><br/>
+        <table summary="NAS Backend Server Counter Help" class="display">
+          <tbody>
+            <tr class="display_header">
+              <th colspan="4">Backend Server Counters</th>
+            </tr>
+            <tr class="display_header">
+              <th>Direction</th>
+              <th>Name</th>
+              <th>IEEE Name</th>
+              <th>Description</th>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Access&nbsp;Challenges</td>
+              <td>dot1xAuthBackendAccessChallenges</td>
+              <td>
+                <span class="has_nas_mac_based"><b>802.1X-based</b>:<br/></span>
+                  Counts the number of times that the switch receives the first request from the backend server following the first response
+                  from the supplicant. Indicates that the backend server has communication with the switch.
+                <span class="has_nas_mac_based"><br/><b>MAC-based</b>:<br/>
+                  Counts all Access Challenges received from the backend server for this port (left-most table) or client (right-most table).
+                </span>
+              </td>
+            </tr>
+            <tr class="display_odd">
+              <td>Rx</td>
+              <td class="displaytext">Other&nbsp;Requests</td>
+              <td>dot1xAuthBackendOtherRequestsToSupplicant&nbsp;</td>
+              <td>
+                <span class="has_nas_mac_based"><b>802.1X-based</b>:<br/></span>
+                  Counts the number of times that the switch sends an EAP Request packet following the first to the supplicant.
+                  Indicates that the backend server chose an EAP-method.
+                <span class="has_nas_mac_based"><br/><b>MAC-based</b>:<br/>
+                  Not applicable.
+                </span>
+              </td>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Auth.&nbsp;Successes</td>
+              <td>dot1xAuthBackendAuthSuccesses</td>
+              <td><span class="has_nas_mac_based"><b>802.1X- and MAC-based</b>:<br/></span>
+                Counts the number of times that the switch receives a success indication. Indicates that the
+                supplicant<span class="has_nas_mac_based">/client</span> has successfully authenticated to the backend server.
+              </td>
+            </tr>
+            <tr class="display_odd">
+              <td>Rx</td>
+              <td class="displaytext">Auth.&nbsp;Failures</td>
+              <td>dot1xAuthBackendAuthFails</td>
+              <td><span class="has_nas_mac_based"><b>802.1X- and MAC-based</b>:<br/></span>
+                Counts the number of times that the switch receives a failure message. This indicates that the
+                supplicant<span class="has_nas_mac_based">/client</span> has not authenticated to the backend server.
+              </td>
+            </tr>
+            <tr class="display_even">
+              <td>Tx</td>
+              <td class="displaytext">Responses</td>
+              <td>dot1xAuthBackendResponses</td>
+              <td>
+                <span class="has_nas_mac_based"><b>802.1X-based:</b><br/></span>
+                Counts the number of times that the switch attempts to send a supplicant's first response packet to the backend server.
+                Indicates the switch attempted communication with the backend server. Possible retransmissions are not counted.
+                <span class="has_nas_mac_based"><br/><b>MAC-based:</b><br/>
+                Counts all the backend server packets sent from the switch towards the backend server for a given port (left-most table)
+                or client (right-most table). Possible retransmissions are not counted.
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <br/>
+      </dd>
+
+      <dt>Last Supplicant<span class="has_nas_mac_based">/Client</span> Info</dt>
+      <dd>
+        Information about the last supplicant<span class="has_nas_mac_based">/client</span> that attempted to authenticate.
+        This information is available for the following <a href="help_nas.htm#admin_state">administrative states</a>:<br/>
+          &nbsp;&nbsp;&nbsp;&bull;<span class="NAS_SINGLE_OR_MULTI"> Port-based</span> 802.1X<br/>
+          <span class="has_nas_dot1x_single">&nbsp;&nbsp;&nbsp;&bull; Single 802.1X<br/></span>
+          <span class="has_nas_dot1x_multi">&nbsp;&nbsp;&nbsp;&bull; Multi 802.1X<br/></span>
+          <span class="has_nas_mac_based">&nbsp;&nbsp;&nbsp;&bull; MAC-based Auth.<br/></span><br/>
+        <table summary="Last Supplicant Info Help" class="display">
+          <tbody>
+            <tr class="display_header">
+              <th colspan="3">Last Supplicant<span class="has_nas_mac_based">/Client</span> Info</th>
+            </tr>
+            <tr class="display_header">
+              <th>Name</th>
+              <th>IEEE Name</th>
+              <th>Description</th>
+            </tr>
+            <tr class="display_even">
+              <td class="displaytext">MAC Address</td>
+              <td>dot1xAuthLastEapolFrameSource</td>
+              <td>
+                The MAC address of the last supplicant<span class="has_nas_mac_based">/client</span>.
+              </td>
+            </tr>
+            <tr class="display_odd">
+              <td class="displaytext">VLAN ID</td>
+              <td>-</td>
+              <td>
+                The VLAN ID on which the last frame from the last supplicant<span class="has_nas_mac_based">/client</span> was received.
+              </td>
+            </tr>
+            <tr class="display_even">
+              <td class="displaytext">Version</td>
+              <td>dot1xAuthLastEapolFrameVersion</td>
+              <td>
+                <span class="has_nas_mac_based"><b>802.1X-based</b>:<br/></span>
+                The protocol version number carried in the most recently received EAPOL frame.
+                <span class="has_nas_mac_based"><br/><b>MAC-based</b>:<br/>Not applicable.</span>
+              </td>
+            </tr>
+            <tr class="display_odd">
+              <td class="displaytext">Identity</td>
+              <td>-</td>
+              <td>
+                <span class="has_nas_mac_based"><b>802.1X-based</b>:<br/></span>
+                  The user name (supplicant identity) carried in the most recently received Response Identity EAPOL frame.
+                <span class="has_nas_mac_based"><br/><b>MAC-based</b>:<br/>
+                  Not applicable.
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </dd>
+    </dl>
+
+    <h2 class="NAS_MULTI_OR_MAC_BASED" style="font-size: 16pt;">Selected Counters</h2>
+    <dl>
+      <dt class="NAS_MULTI_OR_MAC_BASED">Selected Counters</dt>
+      <dd class="NAS_MULTI_OR_MAC_BASED">
+        The Selected Counters table is visible when the port is in one of the following <a href="help_nas.htm#admin_state">administrative states</a>:<br/>
+          <span class="has_nas_dot1x_multi">&nbsp;&nbsp;&nbsp;&bull; Multi 802.1X<br/></span>
+          <span class="has_nas_mac_based">&nbsp;&nbsp;&nbsp;&bull; MAC-based Auth.<br/></span><br/>
+        The table is identical to and is placed next to the <a href="#port_counters">Port Counters</a> table,
+        and will be empty if no MAC address is currently selected.
+        To populate the table, select one of the <a href="#attached">attached MAC Addresses</a> from the table below.
+      </dd>
+    </dl>
+
+    <h2 class="NAS_MULTI_OR_MAC_BASED" style="font-size: 16pt;"><a name="attached">Attached MAC Addresses</a></h2>
+    <dl>
+      <dt class="has_nas_dot1x_multi">Identity</dt>
+      <dd class="has_nas_dot1x_multi">
+        Shows the identity of the supplicant, as received in the Response Identity EAPOL frame.<br/>
+        Clicking the link causes the supplicant's EAPOL and Backend Server counters to be shown in
+        the Selected Counters table. If no supplicants are attached, it shows <i>No supplicants attached</i>.
+        <span class="has_nas_mac_based"><br/>This column is not available for MAC-based Auth.</span>
+      </dd>
+      <dt class="NAS_MULTI_OR_MAC_BASED">MAC Address</dt>
+      <dd class="has_nas_dot1x_multi">
+        For Multi 802.1X, this column holds the MAC address of the attached supplicant.<br/>
+      </dd>
+      <dd class="has_nas_mac_based">
+        For MAC-based Auth., this column holds the MAC address of the attached client.<br/>
+        Clicking the link causes the client's Backend Server counters to be shown in the
+        Selected Counters table. If no clients are attached, it shows <i>No clients attached</i>.
+      </dd>
+      <dt class="NAS_MULTI_OR_MAC_BASED">VLAN ID</dt>
+      <dd class="NAS_MULTI_OR_MAC_BASED">
+        This column holds the VLAN ID that the corresponding client is currently secured through the
+        Port Security module.
+      </dd>
+      <dt class="NAS_MULTI_OR_MAC_BASED">State</dt>
+      <dd class="NAS_MULTI_OR_MAC_BASED">
+        The client can either be authenticated or unauthenticated. In the authenticated state,
+        it is allowed to forward frames on the port, and in the unauthenticated state, it is
+        blocked. As long as the backend server hasn't successfully authenticated the client,
+        it is unauthenticated. If an authentication fails for one or the other reason, the
+        client will remain in the unauthenticated state for
+        <a href="help_nas.htm#hold_time">Hold Time</a> seconds.
+      </dd>
+      <dt class="NAS_MULTI_OR_MAC_BASED">Last Authentication</dt>
+      <dd class="NAS_MULTI_OR_MAC_BASED">
+        Shows the date and time of the last authentication of the client (successful as well as unsuccessful).
+      </dd>
+    </dl>
+
+    <h2 style="font-size: 16pt;">Buttons</h2>
+    <dl>
+      <dd><i>The port select box determines which port is affected when clicking the buttons.</i></dd>
+
+      <dt>Auto-refresh<input type="checkbox"></dt>
+      <dd>Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</dd>
+
+      <dt><input type="button" value="Refresh"></dt>
+      <dd>Click to refresh the page immediately.</dd>
+
+      <dt><input type="button" value="Clear"></dt>
+      <dd>
+        This button is available in the following modes:<br/>
+          &nbsp;&nbsp;&nbsp;&bull; Force Authorized<br/>
+          &nbsp;&nbsp;&nbsp;&bull; Force Unauthorized<br/>
+          &nbsp;&nbsp;&nbsp;&bull;<span class="NAS_SINGLE_OR_MULTI"> Port-based</span> 802.1X<br/>
+          <span class="has_nas_dot1x_single">&nbsp;&nbsp;&nbsp;&bull; Single 802.1X<br/></span><br/>
+        Click to clear the counters for the selected port.
+      </dd>
+
+      <dt class="NAS_MULTI_OR_MAC_BASED"><input type="button" value="Clear All"></dt>
+      <dd class="NAS_MULTI_OR_MAC_BASED">
+        This button is available in the following modes:<br/>
+          <span class="has_nas_dot1x_multi">&nbsp;&nbsp;&nbsp;&bull; Multi 802.1X<br/></span>
+          <span class="has_nas_mac_based">&nbsp;&nbsp;&nbsp;&bull; MAC-based Auth.X<br/></span><br/>
+        Click to clear both the port counters and all of the attached client's counters.
+        The "Last Client" will not be cleared, however.
+      </dd>
+
+      <dt class="NAS_MULTI_OR_MAC_BASED"><input type="button" value="Clear This"></dt>
+      <dd class="NAS_MULTI_OR_MAC_BASED">
+        This button is available in the following modes:<br/>
+          <span class="has_nas_dot1x_multi">&nbsp;&nbsp;&nbsp;&bull; Multi 802.1X<br/></span>
+          <span class="has_nas_mac_based">&nbsp;&nbsp;&nbsp;&bull; MAC-based Auth.X<br/></span><br/>
+        Click to clear only the currently selected client's counters.
+      </dd>
+    </dl>
+  </body>
+</html>

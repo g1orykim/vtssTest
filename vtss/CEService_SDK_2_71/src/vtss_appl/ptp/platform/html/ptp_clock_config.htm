@@ -1,0 +1,550 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>PTP Clock's Configuration Page</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_ptp_per_clock_config.htm";
+var ptp_protocol_method = Array();
+var bool_array = Array("True", "False");
+var ptp_clock_config;
+var ptp_table_data;
+var global_clock_inst = 0;
+var clock_UcSlave_table_config;
+
+// This piece of code makes sure that a specific port can be selected
+// directly, when navigating from a hyperlink on a different page.
+var arg_idx = document.URL.indexOf('?');
+if(arg_idx != -1) {
+    var args = document.URL.substring(arg_idx+1, document.URL.length);
+    var tup = args.split('=');
+    if(tup.length == 2) {
+        if(tup[0] == 'clock_inst') {
+            global_clock_inst = parseInt(tup[1]);
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+// Restart button event handler.
+// It's made in this way because IE (6.0) doesn't work with
+// setAttribute("onclick", "on_restart_click(this)")
+//------------------------------------------------------------------------------
+var on_restart_click = function()
+{
+  // Post a new request to web.c's config/nas_reset() handler
+  var req = initXMLHTTP();
+  if(req) {
+    try {
+      var url_to_get = SpomAddSidArg(this.name);
+      req.open("GET", url_to_get, true);
+      req.send(null);
+    } catch(e) {
+      alert("Send error: " + e.toString());
+    }
+  } else {
+    alert("Failed to create request");
+  }
+}
+
+
+function processUpdate(req, ref)
+{
+    if (redirectOnError(req))
+        return;
+
+    if (req.responseText) {
+        ptp_table_data = req.responseText.split("^");
+        ptp_protocol_method =  ptp_table_data[1].split("/");
+
+        ptp_clock_config = ptp_table_data[2].split("#");
+        // create holder for accumulated tbody elements and text nodes
+        {
+            var frag = document.createDocumentFragment();
+            var tr = CreateStyledElement("tr", "config_odd");
+            var fld;
+            var elem;
+
+            // Create Local CLock Time Table
+            var time_config = ptp_clock_config[1].split("/");
+            addTextCell(tr, time_config[0], "c");
+            addTextCell(tr, time_config[1],"c");
+            var update_btn = document.createElement('input');
+            update_btn.onclick = on_restart_click;
+            update_btn.type = "button";
+            update_btn.value = " Synchronize to System Clock ";
+            update_btn.name = "/config/ptp_clock_config?clock_inst=" + global_clock_inst + "&bool=true";
+            var td = CreateTd("c");
+            addCell(tr, td, update_btn);
+            var td = CreateStyledElement("td", "c");
+            var txt = document.createTextNode("Ports Configuration");
+            var link = document.createElement("a");
+            link.href = "ptp_clock_ports_config.htm?clock_inst=" + global_clock_inst;
+            link.appendChild(txt);  // Add Text
+            td.appendChild(link);   // Add link to cell
+            tr.appendChild(td);     // Add cell to row
+            frag.appendChild(tr);
+            elem = document.getElementById("Lclock_tbody");
+            clearChildNodes(elem);
+            elem.appendChild(frag);
+
+            var form_var = document.getElementById("ptp_clock_inst");
+            addHiddenParam(form_var, "clock_inst", global_clock_inst);
+        }
+        {
+            // Create Clock Default DataSet
+            var frag = document.createDocumentFragment();
+            var tr = CreateStyledElement("tr", "config_odd");
+            var fld;
+            var elem;
+
+            var local_clock_config = ptp_clock_config[2].split("/");
+
+            addTextCell(tr, local_clock_config[0], "c");
+            addTextCell(tr, local_clock_config[1], "c");
+            addTextCell(tr, local_clock_config[2], "c");
+            addTextCell(tr, local_clock_config[3], "c");
+            addTextCell(tr, local_clock_config[4], "c");
+
+            fld = addInputCell(tr, local_clock_config[5], "c", "domain_" + global_clock_inst, 1);
+            fld.setAttribute("maxLength", 3);
+
+            addTextCell(tr, local_clock_config[6], "c");
+
+            fld = addInputCell(tr, local_clock_config[7], "c", "prio_1_" + global_clock_inst, 3);
+            fld.setAttribute("maxLength", 3);
+
+            fld = addInputCell(tr, local_clock_config[8], "c", "prio_2_" + global_clock_inst, 3);
+            fld.setAttribute("maxLength", 3);
+
+            addTextCell(tr, local_clock_config[9], "c");
+            addTextCell(tr, local_clock_config[10], "c");
+            addTextCell(tr, local_clock_config[11], "c");
+            addTextCell(tr, local_clock_config[12], "c");
+            addTextCell(tr, local_clock_config[13], "c");
+
+            frag.appendChild(tr);
+            elem = document.getElementById("CDDataSet_tbody");
+            clearChildNodes(elem);
+            elem.appendChild(frag);
+       }
+       {
+            //Clock Current Data Set
+           var frag = document.createDocumentFragment();
+           var tr = CreateStyledElement("tr", "config_odd");
+           var elem;
+           var clock_current_config = ptp_clock_config[3].split("/");
+            
+           tr.setAttribute("height", "25px"); 
+           addTextCell(tr, clock_current_config[0], "c");
+           addTextCell(tr, clock_current_config[1], "c");
+           addTextCell(tr, clock_current_config[2], "c");
+
+           frag.appendChild(tr);
+           elem = document.getElementById("CCDataSet_tbody");
+           clearChildNodes(elem);
+           elem.appendChild(frag);
+       }
+       {
+            // Create Clock parent data Set
+                var frag = document.createDocumentFragment();
+                var tr = CreateStyledElement("tr", "config_odd");
+                var fld;
+                var elem;
+                var clock_parent_config = ptp_clock_config[4].split("/"); 
+
+	        addTextCell(tr, clock_parent_config[0], "c");
+                addTextCell(tr, clock_parent_config[1], "c");
+	        addTextCell(tr, clock_parent_config[2], "c");
+	        addTextCell(tr, clock_parent_config[3], "c");
+	        addTextCell(tr, clock_parent_config[4], "c");
+	        addTextCell(tr, clock_parent_config[5], "c");
+                addTextCell(tr, clock_parent_config[6], "c");
+	        addTextCell(tr, clock_parent_config[7], "c");
+	        addTextCell(tr, clock_parent_config[8], "c");
+
+	        frag.appendChild(tr);
+	        elem = document.getElementById("CPDataSet_tbody");
+                clearChildNodes(elem);
+                elem.appendChild(frag);
+       }
+       {
+            // Clock Time Properties Data Set
+                var frag = document.createDocumentFragment();
+                var tr = CreateStyledElement("tr", "config_odd");
+                var fld;
+                var elem;
+
+                var clock_time_config = ptp_clock_config[5].split("/");
+	        fld = addInputCell(tr, clock_time_config[0], "c", "uct_offset_" + global_clock_inst,   5);
+	        fld.setAttribute("maxLength", 5);
+
+
+                addSelectCell(tr, bool_array, bool_array, clock_time_config[1], "c","valid_" + global_clock_inst);
+    
+                addSelectCell(tr, bool_array, bool_array, clock_time_config[2], "c","leap59_" + global_clock_inst);
+    
+                addSelectCell(tr, bool_array, bool_array, clock_time_config[3], "c","leap61_" + global_clock_inst);
+    
+                addSelectCell(tr, bool_array, bool_array, clock_time_config[4], "c","time_trac_" + global_clock_inst);
+    
+                addSelectCell(tr, bool_array, bool_array, clock_time_config[5], "c","freq_trac_" + global_clock_inst);
+    
+                addSelectCell(tr, bool_array, bool_array, clock_time_config[6], "c","ptp_time_scale_" + global_clock_inst);
+
+
+	        fld = addInputCell(tr, clock_time_config[7], "c", "time_source_" + global_clock_inst,  3);
+	        fld.setAttribute("maxLength", 3);
+
+	        frag.appendChild(tr);
+	        elem = document.getElementById("CTPDataSet_tbody");
+			clearChildNodes(elem);
+            elem.appendChild(frag);
+       }
+       {      
+                // Servo Parameters Table
+                var frag = document.createDocumentFragment();
+                var tr = CreateStyledElement("tr", "config_odd");
+                var fld;
+                var elem;
+                var servo_config = ptp_clock_config[6].split("/");
+
+                addSelectCell(tr, bool_array, bool_array, servo_config[0], "c","display_" + global_clock_inst);
+                addSelectCell(tr, bool_array, bool_array, servo_config[1], "c","p_enable_" + global_clock_inst);
+                addSelectCell(tr, bool_array, bool_array, servo_config[2], "c","i_enable_" + global_clock_inst);
+                addSelectCell(tr, bool_array, bool_array, servo_config[3], "c","d_enable_" + global_clock_inst);
+
+                fld = addInputCell(tr, servo_config[4], "c", "p_const_" + global_clock_inst, 4);
+	        fld.setAttribute("maxLength", 4);
+
+	        fld = addInputCell(tr, servo_config[5], "c", "i_const_" + global_clock_inst, 5);
+	        fld.setAttribute("maxLength", 5);
+
+	        fld = addInputCell(tr, servo_config[6], "c", "d_const_" + global_clock_inst, 5);
+	        fld.setAttribute("maxLength", 5);
+
+	        frag.appendChild(tr);
+	        elem = document.getElementById("Servo_tbody");
+                clearChildNodes(elem);
+                elem.appendChild(frag);
+      }
+      {
+                // filter Parameters
+                var frag = document.createDocumentFragment();
+                var tr = CreateStyledElement("tr", "config_odd");
+                var fld;
+                var elem;
+                var filter_config = ptp_clock_config[7].split("/");
+	        fld = addInputCell(tr, filter_config[0], "c", "delay_filter_" + global_clock_inst, 1);
+	        fld.setAttribute("maxLength", 1);
+
+	        fld = addInputCell(tr, filter_config[1], "c", "period_" + global_clock_inst, 5);
+	        fld.setAttribute("maxLength", 5);
+
+	        fld = addInputCell(tr, filter_config[2], "c", "dist_" + global_clock_inst, 2);
+	        fld.setAttribute("maxLength", 2);
+
+                frag.appendChild(tr);
+                elem = document.getElementById("Filter_tbody");
+                clearChildNodes(elem);
+                elem.appendChild(frag);
+       }
+       {
+                // Unicast Slave Configuration
+                var frag = document.createDocumentFragment();
+                var fld;
+                var elem;
+
+                clock_UcSlave_table_config = ptp_clock_config[8].split("|");
+                for (var i = 1; i< clock_UcSlave_table_config.length; i++) {
+                    var tr = CreateStyledElement("tr", (i % 2) ? "config_odd" : "config_even");
+                    var clock_UcSlave_config = clock_UcSlave_table_config[i-1].split("/");
+	            fld = addTextCell(tr, clock_UcSlave_config[0], "c");
+	            fld = addInputCell(tr, clock_UcSlave_config[1], "c", "uc_dura_" + global_clock_inst + "_" + (i-1), 4);
+	            fld.setAttribute("maxLength", 4);
+ 
+	            fld = addInputCell(tr, clock_UcSlave_config[2], "c", "uc_ip_" + global_clock_inst + "_" + (i-1), 15);
+	            fld.setAttribute("maxLength", 15);
+
+	            fld = addTextCell(tr, clock_UcSlave_config[3], "c");
+	            fld = addTextCell(tr, clock_UcSlave_config[4], "c");
+
+                    frag.appendChild(tr);
+                }
+                elem = document.getElementById("UcSlaveConf_tbody");
+                clearChildNodes(elem);
+                elem.appendChild(frag);
+      }
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+
+    loadXMLDoc(SpomAddSidArg("/config/ptp_clock_config?clock_inst=" + global_clock_inst), processUpdate, null);
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm(form)
+{
+var chk_error = false;
+    if (!isWithinRange("domain_" + global_clock_inst, 0, 127, "Domain")) {
+        return false;
+    }
+    if (!isWithinRange("prio_1_" + global_clock_inst, 0, 255, "Priority1")) {
+        return false;
+    }
+    if (!isWithinRange("prio_2_" + global_clock_inst, 0, 255, "Priority2")) {
+        return false;
+    }
+    if (!isWithinRange("uct_offset_" + global_clock_inst, 0, 10000, "Unicast Offset")) {
+        return false;
+    }
+    if (!isWithinRange("time_source_" + global_clock_inst, 0, 255, "Time Source")) {
+        return false;
+    }
+    if (!isWithinRange("p_const_" + global_clock_inst, 1, 1000, "P - Constant")) {
+        return false;
+    }
+    if (!isWithinRange("i_const_" + global_clock_inst, 1, 10000, "I - Constant")) {
+        return false;
+    }
+    if (!isWithinRange("d_const_" + global_clock_inst, 1, 10000, "D - Constant")) {
+        return false;
+    }
+    if (!isWithinRange("delay_filter_" + global_clock_inst, 1, 6, "Delay Filter")) {
+        return false;
+    }
+    if (!isWithinRange("period_" + global_clock_inst, 1, 10000, "Period")) {
+        return false;
+    }
+    if (!isWithinRange("dist_" + global_clock_inst, 1, 10, "Distance")) {
+        return false;
+    }
+
+    for (var i = 1; i< clock_UcSlave_table_config.length; i++) {
+       
+        var uc_dura = document.getElementById("uc_dura_" + global_clock_inst + "_" + (i-1)); 
+        if (uc_dura.value) {
+            if (!isWithinRange("uc_dura_" + global_clock_inst + "_" + (i-1) , 10, 1000, "Duration")) {
+                return false;
+            }
+        }
+        var uc_ip = document.getElementById("uc_ip_" + global_clock_inst + "_" + (i-1)); 
+        if (uc_dura.value) {
+            if (!isIpStr("uc_ip_" + global_clock_inst+ "_" + (i-1), false, "IP")) {
+                return false;
+            }
+        }    
+    }
+    return true;                // Feed the chickens and go home
+}
+
+function resetForm(form)
+{
+    form.reset();
+    updateImage();
+}
+
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+<form id= "ptp_clock_inst" method="POST" action="/config/ptp_clock_config" onsubmit = "return checkForm(this);">
+
+<h1>PTP Clock's Configuration <span id="display_sid"></span></h1>
+
+<h2 style = "height : 4px; margin-top : 1px;">Local Clock Current Time</h2>
+<table summary="Local Clock Current Time" class="config">
+ <thead id="CCDataSet_thead">
+ <thead>
+  <tr>
+   <th>PTP Time</th>
+   <th>Clock Adjustment method</th>
+   <th>Synchronize to System Clock</th>
+   <th>Ports Configuration</th>
+  </tr>
+ </thead>
+ <tbody id="Lclock_tbody">
+ </tbody>
+</table>
+
+
+<h2 style = "height : 4px; margin-top : 7px;">Clock Default DataSet</h2>
+<table summary="Clock Default DataSet" class="config">
+ <thead>
+  <tr>
+   <th>ClockId</th>
+   <th>Device Type</th>
+   <th>2 Step Flag</th>
+   <th>Ports</th>
+   <th>Clock Identity</th>
+   <th>Dom</th>
+   <th>Clock Quality</th>
+   <th>Pri1</th>
+   <th>Pri2</th>
+   <th>Protocol</th>
+   <th>One-Way</th>
+   <th>VLAN Tag Enable</th>
+   <th>VID</th>
+   <th>PCP</th>
+  </tr>
+ </thead>
+ <tbody id="CDDataSet_tbody">
+ </tbody>
+</table>
+
+
+<h2 style = "height : 4px; margin-top : 7px; width : 370px; float : left; ">Clock Current DataSet</h2>
+<h2 style = "height : 4px; margin-top : 7px;">Filter Parameters </h2>
+<table summary="Clock Current DataSet" class="config" style = "float : left; margin-right : 20px;">
+  <thead>
+  <tr>
+   <th>stpRm</th>
+   <th>Offset From Master</th>
+   <th>Mean Path Delay</th>
+  </tr>
+ </thead>
+ <tbody id="CCDataSet_tbody">
+ </tbody>
+</table>
+<table summary="Filter Parameters" class="config" style="margin-left : 20px;">
+  <thead>
+  <tr>
+   <th>DelayFilter</th>
+   <th>period</th>
+   <th>dist</th>
+  </tr>
+ </thead>
+ <tbody id="Filter_tbody">
+ </tbody>
+</table>
+
+<h2 style = "height : 4px; margin-top : 7px;">Clock Parent DataSet </h2>
+<table summary="Clock Parent DataSet" class="config">
+  <thead>
+  <tr>
+   <th>Parent Port Identity</th>
+   <th>Port</th>
+   <th>PStat</th>
+   <th>Var</th>
+   <th>ChangeRate</th>
+   <th>Grand Master Identity</th>
+   <th>Grand Master Clock Quality</th>
+   <th>Pri1</th>
+   <th>Pri2</th>
+  </tr>
+ </thead>
+ <tbody id="CPDataSet_tbody">
+ </tbody>
+</table>
+
+<h2 style = "height : 4px; margin-top : 7px;">Clock Time Properties DataSet </h2>
+<table summary="Clock Time Properties DataSet" class="config">
+  <thead>
+  <tr>
+   <th>UtcOffset</th>
+   <th>Valid</th>
+   <th>leap59</th>
+   <th>leap61</th>
+   <th>Time Trac</th>
+   <th>Freq Trac</th>
+   <th>ptp Time Scale</th>
+   <th>Time Source</th>
+  </tr>
+ </thead>
+ <tbody id="CTPDataSet_tbody">
+ </tbody>
+</table>
+
+<h2 style = "height : 4px; margin-top : 7px;">Servo Parameters </h2>
+<table summary="Servo Parameters" class="config">
+  <thead>
+  <tr>
+   <th>Display</th>
+   <th>P-enable</th>
+   <th>I-enable</th>
+   <th>D-enable</th>
+   <th>'P' constant</th>
+   <th>'I' constant</th>
+   <th>'D' constant</th>
+  </tr>
+ </thead>
+ <tbody id="Servo_tbody">
+ </tbody>
+</table>
+
+<h2 style = "height : 4px; margin-top : 7px;">Unicast Slave Configuration </h2>
+<table summary="Unicast Slave Configuration" class="config">
+  <thead>
+  <tr>
+   <th>Index</th> 
+   <th>Duration</th>
+   <th>ip_address</th>
+   <th>grant</th>
+   <th>CommState</th>
+  </tr>
+ </thead>
+ <tbody id="UcSlaveConf_tbody">
+ </tbody>
+</table>
+
+<p>
+  <input type="hidden" id="submit_sid" name="sid">
+  <input type="submit" value="Save">
+  <input type="reset"  value="Reset" onclick="resetForm(this.form);">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

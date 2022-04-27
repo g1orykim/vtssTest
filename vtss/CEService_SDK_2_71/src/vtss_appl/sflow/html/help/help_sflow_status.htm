@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse sFlow software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+    -->
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <title>sFlow Statistics Help</title>
+  <link href="/lib/help.css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="/lib/dynforms.js"></script>
+  <script type="text/javascript" src="/lib/mootools-core.js"></script>
+  <script type="text/javascript" language="JavaScript">
+    window.addEvent('domready', function() {$$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);});
+  </script>
+</head>
+<body>
+  <h1>sFlow Statistics Help</h1>
+  <p>
+    This page shows receiver and per-port <a href="glossary.htm#sflow" class="glossary">sFlow</a> statistics.
+  </p>
+
+  <h2>Receiver Statistics</h2>
+  <dl>
+    <dt>Owner</dt>
+    <dd>
+      This field shows the current owner of the sFlow configuration. It assumes one of three values as follows:<br/>
+      &bull; If sFlow is currently unconfigured/unclaimed, Owner contains <samp>&lt;none&gt;</samp>.<br/>
+      &bull; If sFlow is currently configured through Web<span class="has_cli"> or CLI</span>, Owner contains <samp>&lt;Configured through local management&gt;</samp>.<br/>
+      &bull; If sFlow is currently configured through SNMP, Owner contains a string identifying the sFlow receiver.<br/>
+    </dd>
+
+    <dt>IP Address<span class="has_dns">/Hostname</span></dt>
+    <dd>The IP address<span class="has_dns"> or hostname</span> of the sFlow receiver.</dd>
+
+    <dt>Timeout</dt>
+    <dd>The number of seconds remaining before sampling stops and the current sFlow owner is released.</dd>
+
+    <dt>Tx Successes</dt>
+    <dd>The number of UDP datagrams successfully sent to the sFlow receiver.</dd>
+
+    <dt>Tx Errors</dt>
+    <dd>
+      The number of UDP datagrams that has failed transmission.<br/>
+      The most common source of errors is invalid sFlow receiver IP<span class="has_dns">/hostname</span> configuration.
+      To diagnose, paste the receiver's IP address<span class="has_dns">/hostname</span> into the Ping Web page (Diagnostics &rarr; Ping<span class="has_ipv6">/Ping6</span>).
+    </dd>
+
+    <dt>Flow Samples</dt>
+    <dd>
+      The total number of flow samples sent to the sFlow receiver.
+    </dd>
+
+    <dt>Counter Samples</dt>
+    <dd>
+      The total number of counter samples sent to the sFlow receiver.
+    </dd>
+  </dl>
+
+  <h2>Port Statistics</h2>
+  <dl>
+    <dt>Port</dt>
+    <dd>The port number for which the following statistics applies.</dd>
+
+    <dt>Rx and Tx Flow Samples</dt>
+    <dd>
+      The number of flow samples sent to the sFlow receiver originating from this port.
+      Here, flow samples are divided into Rx and Tx flow samples, where Rx flow samples contains
+      the number of packets that were sampled upon reception (ingress) on the port and Tx flow samples
+      contains the number of packets that were sampled upon transmission (egress) on the port.<br/>
+    </dd>
+
+    <dt>Counter Samples</dt>
+    <dd>
+      The total number of counter samples sent to the sFlow receiver originating from this port.
+    </dd>
+  </dl>
+
+  <h2>Buttons</h2>
+  <p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+  <p><input type="button" value=" Refresh ">: Click to refresh the page.</p>
+  <p><input type="button" value=" Clear Receiver">: Clears the sFlow receiver counters.</p>
+  <p><input type="button" value=" Clear Ports">: Clears the per-port counters.</p>
+</body>
+</html>

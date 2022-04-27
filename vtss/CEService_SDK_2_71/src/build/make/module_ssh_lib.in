@@ -1,0 +1,257 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+DIR_ssh_lib    := $(DIR_APPL)/ssh_lib
+
+# SSH Lib's platform part just consists of some callouts from ssh's base lib.
+DIR_ssh_lib_platform := $(DIR_ssh_lib)/platform
+OBJECTS_ssh_lib_platform := ssh_lib_callout.o
+
+$(OBJECTS_ssh_lib_platform): %.o: $(DIR_ssh_lib_platform)/%.c
+	$(call compile_c, $@, $<)
+
+DIR_libtommath := $(DIR_ssh_lib)/base/libtommath
+# Our object files - prefixed to avoid filename clash
+OBJECTS_ssh_libtommath := $(addprefix ssh_libtommath_, \
+  bncore.o bn_mp_init.o bn_mp_clear.o bn_mp_exch.o bn_mp_grow.o bn_mp_shrink.o \
+  bn_mp_clamp.o bn_mp_zero.o  bn_mp_set.o bn_mp_set_int.o bn_mp_init_size.o bn_mp_copy.o \
+  bn_mp_init_copy.o bn_mp_abs.o bn_mp_neg.o bn_mp_cmp_mag.o bn_mp_cmp.o bn_mp_cmp_d.o \
+  bn_mp_rshd.o bn_mp_lshd.o bn_mp_mod_2d.o bn_mp_div_2d.o bn_mp_mul_2d.o bn_mp_div_2.o \
+  bn_mp_mul_2.o bn_s_mp_add.o bn_s_mp_sub.o bn_fast_s_mp_mul_digs.o bn_s_mp_mul_digs.o \
+  bn_fast_s_mp_mul_high_digs.o bn_s_mp_mul_high_digs.o bn_fast_s_mp_sqr.o bn_s_mp_sqr.o \
+  bn_mp_add.o bn_mp_sub.o bn_mp_karatsuba_mul.o bn_mp_mul.o bn_mp_karatsuba_sqr.o \
+  bn_mp_sqr.o bn_mp_div.o bn_mp_mod.o bn_mp_add_d.o bn_mp_sub_d.o bn_mp_mul_d.o \
+  bn_mp_div_d.o bn_mp_mod_d.o bn_mp_expt_d.o bn_mp_addmod.o bn_mp_submod.o \
+  bn_mp_mulmod.o bn_mp_sqrmod.o bn_mp_gcd.o bn_mp_lcm.o bn_fast_mp_invmod.o bn_mp_invmod.o \
+  bn_mp_reduce.o bn_mp_montgomery_setup.o bn_fast_mp_montgomery_reduce.o bn_mp_montgomery_reduce.o \
+  bn_mp_exptmod_fast.o bn_mp_exptmod.o bn_mp_2expt.o bn_mp_n_root.o bn_mp_jacobi.o bn_reverse.o \
+  bn_mp_count_bits.o bn_mp_read_unsigned_bin.o bn_mp_read_signed_bin.o bn_mp_to_unsigned_bin.o \
+  bn_mp_to_signed_bin.o bn_mp_unsigned_bin_size.o bn_mp_signed_bin_size.o  \
+  bn_mp_xor.o bn_mp_and.o bn_mp_or.o bn_mp_rand.o bn_mp_montgomery_calc_normalization.o \
+  bn_mp_prime_is_divisible.o bn_prime_tab.o bn_mp_prime_fermat.o bn_mp_prime_miller_rabin.o \
+  bn_mp_prime_is_prime.o bn_mp_prime_next_prime.o bn_mp_dr_reduce.o \
+  bn_mp_dr_is_modulus.o bn_mp_dr_setup.o bn_mp_reduce_setup.o \
+  bn_mp_toom_mul.o bn_mp_toom_sqr.o bn_mp_div_3.o bn_s_mp_exptmod.o \
+  bn_mp_reduce_2k.o bn_mp_reduce_is_2k.o bn_mp_reduce_2k_setup.o \
+  bn_mp_reduce_2k_l.o bn_mp_reduce_is_2k_l.o bn_mp_reduce_2k_setup_l.o \
+  bn_mp_radix_smap.o bn_mp_read_radix.o bn_mp_toradix.o bn_mp_radix_size.o \
+  bn_mp_fread.o bn_mp_fwrite.o bn_mp_cnt_lsb.o bn_error.o \
+  bn_mp_init_multi.o bn_mp_clear_multi.o bn_mp_exteuclid.o bn_mp_toradix_n.o \
+  bn_mp_prime_random_ex.o bn_mp_get_int.o bn_mp_sqrt.o bn_mp_is_square.o bn_mp_init_set.o \
+  bn_mp_init_set_int.o bn_mp_invmod_slow.o bn_mp_prime_rabin_miller_trials.o \
+  bn_mp_to_signed_bin_n.o bn_mp_to_unsigned_bin_n.o)
+
+TOMMATH_CFLAGS := -DDROPBEAR_ECOS -I$(DIR_ssh_lib)/base
+
+# Needed due to prefixing
+$(OBJECTS_ssh_libtommath): ssh_libtommath_%.o: $(DIR_libtommath)/%.c
+	$(call compile_c, $@, $<, $(TOMMATH_CFLAGS))
+
+INCLUDES += -I$(DIR_libtommath)
+
+# ------------------------------oOo------------------------------
+
+DIR_libtomcrypt := $(DIR_ssh_lib)/base/libtomcrypt
+
+# Our object files - prefixed to avoid filename clash
+OBJECTS_ssh_libtomcrypt_ciphers_aes := $(addprefix ssh_libtomcrypt_, \
+  aes.o)
+OBJECTS_ssh_libtomcrypt_ciphers_safer := $(addprefix ssh_libtomcrypt_, \
+  safer.o safer_tab.o saferp.o)
+OBJECTS_ssh_libtomcrypt_ciphers_twofish := $(addprefix ssh_libtomcrypt_, \
+  twofish.o twofish_tab.o)
+OBJECTS_ssh_libtomcrypt_ciphers := $(addprefix ssh_libtomcrypt_, \
+  anubis.o blowfish.o cast5.o des.o kasumi.o khazad.o kseed.o noekeon.o rc2.o rc5.o rc6.o skipjack.o xtea.o)
+
+OBJECTS_ssh_libtomcrypt_encauth_ccm := $(addprefix ssh_libtomcrypt_, \
+  ccm_memory.o ccm_test.o)
+OBJECTS_ssh_libtomcrypt_encauth_eax := $(addprefix ssh_libtomcrypt_, \
+  eax_addheader.o eax_decrypt.o eax_decrypt_verify_memory.o eax_done.o eax_encrypt.o eax_encrypt_authenticate_memory.o eax_init.o eax_test.o)
+OBJECTS_ssh_libtomcrypt_encauth_gcm := $(addprefix ssh_libtomcrypt_, \
+  gcm_add_aad.o gcm_add_iv.o gcm_done.o gcm_gf_mult.o gcm_init.o gcm_memory.o gcm_mult_h.o gcm_process.o gcm_reset.o gcm_test.o)
+OBJECTS_ssh_libtomcrypt_encauth_ocb := $(addprefix ssh_libtomcrypt_, \
+  ocb_decrypt.o ocb_decrypt_verify_memory.o ocb_done_decrypt.o ocb_done_encrypt.o ocb_encrypt.o ocb_encrypt_authenticate_memory.o ocb_init.o ocb_ntz.o ocb_shift_xor.o ocb_test.o s_ocb_done.o)
+
+OBJECTS_ssh_libtomcrypt_hashes := $(addprefix ssh_libtomcrypt_, \
+  md2.o md4.o md5.o rmd128.o rmd160.o rmd256.o rmd320.o sha1.o tiger.o)
+OBJECTS_ssh_libtomcrypt_hashes_chc := $(addprefix ssh_libtomcrypt_, \
+  chc.o)
+OBJECTS_ssh_libtomcrypt_hashes_helper := $(addprefix ssh_libtomcrypt_, \
+  hash_file.o hash_filehandle.o hash_memory.o hash_memory_multi.o)
+OBJECTS_ssh_libtomcrypt_hashes_sha2 := $(addprefix ssh_libtomcrypt_, \
+  sha256.o sha512.o)
+OBJECTS_ssh_libtomcrypt_hashes_whirl := $(addprefix ssh_libtomcrypt_, \
+  whirl.o)
+
+OBJECTS_ssh_libtomcrypt_mac_f9 := $(addprefix ssh_libtomcrypt_, \
+  f9_done.o f9_file.o f9_init.o f9_memory.o f9_memory_multi.o f9_process.o f9_test.o)
+OBJECTS_ssh_libtomcrypt_mac_hmac := $(addprefix ssh_libtomcrypt_, \
+  hmac_done.o hmac_file.o hmac_init.o hmac_memory.o hmac_memory_multi.o hmac_process.o hmac_test.o)
+OBJECTS_ssh_libtomcrypt_mac_omac := $(addprefix ssh_libtomcrypt_, \
+  omac_done.o omac_file.o omac_init.o omac_memory.o omac_memory_multi.o omac_process.o omac_test.o)
+OBJECTS_ssh_libtomcrypt_mac_pelican := $(addprefix ssh_libtomcrypt_, \
+  pelican.o pelican_memory.o pelican_test.o)
+OBJECTS_ssh_libtomcrypt_mac_pmac := $(addprefix ssh_libtomcrypt_, \
+  pmac_done.o pmac_file.o pmac_init.o pmac_memory.o pmac_memory_multi.o pmac_ntz.o pmac_process.o pmac_shift_xor.o pmac_test.o)
+OBJECTS_ssh_libtomcrypt_mac_xcbc := $(addprefix ssh_libtomcrypt_, \
+  xcbc_done.o xcbc_file.o xcbc_init.o xcbc_memory.o xcbc_memory_multi.o xcbc_process.o xcbc_test.o)
+
+OBJECTS_ssh_libtomcrypt_math := $(addprefix ssh_libtomcrypt_, \
+  gmp_desc.o ltm_desc.o multi.o rand_prime.o tfm_desc.o)
+OBJECTS_ssh_libtomcrypt_math_fp := $(addprefix ssh_libtomcrypt_, \
+  ltc_ecc_fp_mulmod.o)
+
+OBJECTS_ssh_libtomcrypt_misc := $(addprefix ssh_libtomcrypt_, \
+  burn_stack.o error_to_string.o zeromem.o)
+OBJECTS_ssh_libtomcrypt_misc_base64 := $(addprefix ssh_libtomcrypt_, \
+  base64_decode.o base64_encode.o)
+OBJECTS_ssh_libtomcrypt_misc_crypt := $(addprefix ssh_libtomcrypt_, \
+  crypt.o crypt_argchk.o crypt_cipher_descriptor.o crypt_cipher_is_valid.o crypt_find_cipher.o crypt_find_cipher_any.o crypt_find_cipher_id.o crypt_find_hash.o crypt_find_hash_any.o crypt_find_hash_id.o crypt_find_hash_oid.o crypt_find_prng.o crypt_fsa.o crypt_hash_descriptor.o crypt_hash_is_valid.o crypt_ltc_mp_descriptor.o crypt_prng_descriptor.o crypt_prng_is_valid.o crypt_register_cipher.o crypt_register_hash.o crypt_register_prng.o crypt_unregister_cipher.o crypt_unregister_hash.o crypt_unregister_prng.o)
+OBJECTS_ssh_libtomcrypt_misc_pkcs5 := $(addprefix ssh_libtomcrypt_, \
+  pkcs_5_1.o pkcs_5_2.o )
+
+OBJECTS_ssh_libtomcrypt_modes_cbc := $(addprefix ssh_libtomcrypt_, \
+  cbc_decrypt.o cbc_done.o cbc_encrypt.o cbc_getiv.o cbc_setiv.o cbc_start.o)
+OBJECTS_ssh_libtomcrypt_modes_cfb := $(addprefix ssh_libtomcrypt_, \
+  cfb_decrypt.o cfb_done.o cfb_encrypt.o cfb_getiv.o cfb_setiv.o cfb_start.o)
+OBJECTS_ssh_libtomcrypt_modes_ctr := $(addprefix ssh_libtomcrypt_, \
+  ctr_decrypt.o ctr_done.o ctr_encrypt.o ctr_getiv.o ctr_setiv.o ctr_start.o ctr_test.o)
+OBJECTS_ssh_libtomcrypt_modes_ecb := $(addprefix ssh_libtomcrypt_, \
+  ecb_decrypt.o ecb_done.o ecb_encrypt.o ecb_start.o)
+OBJECTS_ssh_libtomcrypt_modes_f8 := $(addprefix ssh_libtomcrypt_, \
+  f8_decrypt.o f8_done.o f8_encrypt.o f8_getiv.o f8_setiv.o f8_start.o f8_test_mode.o)
+OBJECTS_ssh_libtomcrypt_modes_lrw := $(addprefix ssh_libtomcrypt_, \
+  lrw_decrypt.o lrw_done.o lrw_encrypt.o lrw_getiv.o lrw_process.o lrw_setiv.o lrw_start.o lrw_test.o)
+OBJECTS_ssh_libtomcrypt_modes_ofb := $(addprefix ssh_libtomcrypt_, \
+  ofb_decrypt.o ofb_done.o ofb_encrypt.o ofb_getiv.o ofb_setiv.o ofb_start.o)
+
+OBJECTS_ssh_libtomcrypt := \
+$(OBJECTS_ssh_libtomcrypt_ciphers_aes) $(OBJECTS_ssh_libtomcrypt_ciphers_safer) $(OBJECTS_ssh_libtomcrypt_ciphers_twofish) $(OBJECTS_ssh_libtomcrypt_ciphers) \
+$(OBJECTS_ssh_libtomcrypt_encauth_ccm) $(OBJECTS_ssh_libtomcrypt_encauth_eax) $(OBJECTS_ssh_libtomcrypt_encauth_gcm) $(OBJECTS_ssh_libtomcrypt_encauth_ocb) \
+$(OBJECTS_ssh_libtomcrypt_hashes) $(OBJECTS_ssh_libtomcrypt_hashes_chc) $(OBJECTS_ssh_libtomcrypt_hashes_helper) $(OBJECTS_ssh_libtomcrypt_hashes_sha2) $(OBJECTS_ssh_libtomcrypt_hashes_whirl) \
+$(OBJECTS_ssh_libtomcrypt_mac_f9) $(OBJECTS_ssh_libtomcrypt_mac_hmac) $(OBJECTS_ssh_libtomcrypt_mac_omac) $(OBJECTS_ssh_libtomcrypt_mac_pelican) $(OBJECTS_ssh_libtomcrypt_mac_pmac) $(OBJECTS_ssh_libtomcrypt_mac_xcbc) \
+$(OBJECTS_ssh_libtomcrypt_math) $(OBJECTS_ssh_libtomcrypt_math_fp) \
+$(OBJECTS_ssh_libtomcrypt_misc) $(OBJECTS_ssh_libtomcrypt_misc_base64) $(OBJECTS_ssh_libtomcrypt_misc_crypt) $(OBJECTS_ssh_libtomcrypt_misc_pkcs5) \
+$(OBJECTS_ssh_libtomcrypt_modes_cbc) $(OBJECTS_ssh_libtomcrypt_modes_cfb) $(OBJECTS_ssh_libtomcrypt_modes_ctr) $(OBJECTS_ssh_libtomcrypt_modes_ecb) $(OBJECTS_ssh_libtomcrypt_modes_f8) $(OBJECTS_ssh_libtomcrypt_modes_lrw) $(OBJECTS_ssh_libtomcrypt_modes_ofb)
+
+TOMCRYPT_CFLAGS := -DDROPBEAR_ECOS -I$(DIR_ssh_lib)/base
+
+# Needed due to prefixing
+$(OBJECTS_ssh_libtomcrypt_ciphers_aes): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/ciphers/aes/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_ciphers_safer): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/ciphers/safer/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_ciphers_twofish): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/ciphers/twofish/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_ciphers): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/ciphers/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+
+$(OBJECTS_ssh_libtomcrypt_encauth_ccm): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/encauth/ccm/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_encauth_eax): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/encauth/eax/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_encauth_gcm): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/encauth/gcm/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_encauth_ocb): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/encauth/ocb/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+
+$(OBJECTS_ssh_libtomcrypt_hashes): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/hashes/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_hashes_chc): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/hashes/chc/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_hashes_helper): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/hashes/helper/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_hashes_sha2): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/hashes/sha2/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_hashes_whirl): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/hashes/whirl/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+
+$(OBJECTS_ssh_libtomcrypt_mac_f9): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/mac/f9/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_mac_hmac): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/mac/hmac/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_mac_omac): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/mac/omac/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_mac_pelican): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/mac/pelican/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_mac_pmac): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/mac/pmac/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_mac_xcbc): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/mac/xcbc/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+
+$(OBJECTS_ssh_libtomcrypt_math): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/math/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_math_fp): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/math/fp/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+
+$(OBJECTS_ssh_libtomcrypt_misc): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/misc/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_misc_base64): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/misc/base64/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_misc_crypt): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/misc/crypt/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_misc_pkcs5): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/misc/pkcs5/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+
+$(OBJECTS_ssh_libtomcrypt_modes_cbc): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/modes/cbc/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_modes_cfb): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/modes/cfb/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_modes_ctr): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/modes/ctr/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_modes_ecb): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/modes/ecb/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_modes_f8): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/modes/f8/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_modes_lrw): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/modes/lrw/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+$(OBJECTS_ssh_libtomcrypt_modes_ofb): ssh_libtomcrypt_%.o: $(DIR_libtomcrypt)/src/modes/ofb/%.c
+	$(call compile_c, $@, $<, $(TOMCRYPT_CFLAGS))
+
+INCLUDES += -I$(DIR_libtomcrypt)/src/headers
+
+# ------------------------------oOo------------------------------
+
+DIR_ssh_base := $(DIR_ssh_lib)/base
+
+# Module core objects
+OBJECTS_ssh_dropbear := $(addprefix ssh_dropbear_, \
+  dbutil.o buffer.o dss.o bignum.o signkey.o rsa.o random.o queue.o atomicio.o compat.o fake-rfc2553.o \
+  dropbearkey.o gendss.o genrsa.o \
+  common-session.o packet.o common-algo.o common-kex.o common-channel.o common-chansession.o termcodes.o loginrec.o tcp-accept.o listener.o process-packet.o common-runopts.o circbuffer.o \
+  svr-kex.o svr-algo.o svr-auth.o sshpty.o svr-authpasswd.o svr-authpubkey.o svr-session.o svr-service.o svr-chansession.o svr-runopts.o svr-authpam.o \
+  dropbear_ecos_localsocket.o dropbear_ecos.o)
+
+# Compiler rules
+$(OBJECTS_ssh_dropbear): ssh_dropbear_%.o: $(DIR_ssh_base)/%.c
+	$(call compile_c, $@, $<, -DDROPBEAR_ECOS)
+
+# Include files
+INCLUDES += -I$(DIR_ssh_base) -I$(DIR_ssh_lib)/include
+
+# ------------------------------oOo------------------------------
+
+OBJECTS_ssh_lib := $(OBJECTS_ssh_libtommath) $(OBJECTS_ssh_libtomcrypt) $(OBJECTS_ssh_dropbear) $(OBJECTS_ssh_lib_platform)
+

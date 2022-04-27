@@ -1,0 +1,345 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DHCP Server Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript" src="lib/deviceid.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_dhcp_server_excluded.htm";
+
+var reqObject;
+
+var excluded_frag;
+var excluded_id         = 0;
+var excluded_cnt        = 0;
+var excluded_max_cnt    = 16;
+
+var oTMode   = Array("Disabled", "Enabled");
+var oVMode   = Array(0, 1);
+
+var delete_style_width = "6em";
+var txt_style_width    = "18em";
+var input_style_width  = "8em";
+var input_max_length   = 15;
+
+function CreateRangeTableHeader( frag )
+{
+    var tr;
+
+    tr = CreateStyledElement("tr", "config_header");
+
+    addTextHeaderCell(tr, "Delete",   "hdrc");
+    addTextHeaderCell(tr, "IP Range", "hdrc");
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRangeRow( frag, id, index, values )
+{
+    var tr, td;
+
+    tr = CreateStyledElement("tr", index % 2 ? "config_even" : "config_odd");
+
+    // Delete
+    td = addCheckBoxCell(tr, 0, "c", id + "_delete_" + values[0] + "_" + values[1]);
+    td.style.width = delete_style_width;
+
+    // IP Range
+    td = addTextCell(tr, values[0] + " - " + values[1], "cl");
+    td.style.width = txt_style_width;
+
+    // Add row to fragment
+    frag.appendChild( tr );
+}
+
+function processUpdate( req, ref )
+{
+    var i, n, excluded_list, tbody;
+
+    if ( req.responseText === null ) {
+        return;
+    }
+
+    if ( reqObject != req ) {
+        reqObject = req;
+    }
+
+    //
+    //  Format: <excluded_list>
+    //      <excluded_list> : 10.1.1.1,20.1.1.1-20.2.1.1,30.1.1.1
+    //
+
+    // Excluded IP Setting
+    excluded_frag = document.createDocumentFragment();
+
+    // create header
+    CreateRangeTableHeader( excluded_frag );
+
+    // <excluded_list>
+    excluded_list = req.responseText.split(",");
+    for( i = 0, n = 0; i < excluded_list.length; i++ ) {
+        if ( excluded_list[i] ) {
+            addRangeRow(excluded_frag, "excluded", ++n, excluded_list[i].split("-"));
+        }
+    }
+    excluded_id  = 0;
+    excluded_cnt = n;
+
+    tbody = document.getElementById("excludedData");
+    clearChildNodes( tbody );
+    if ( ! tbody.appendChild(excluded_frag) ) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "");
+}
+
+function requestUpdate()
+{
+    loadXMLDoc("/config/dhcp_server_excluded", processUpdate, "");
+}
+
+function _ip_larger( ip1, ip2 ) // ip1 > ip2
+{
+    var i;
+
+    ip1 = ip1.split('.');
+    ip2 = ip2.split('.');
+
+    for ( i = 0; i < ip1.length; i++ ) {
+        if ( parseInt(ip1[i], 10) > parseInt(ip2[i], 10) ) {
+            return true;
+        }
+        if ( parseInt(ip1[i], 10) < parseInt(ip2[i], 10) ) {
+            return false;
+        }
+    }
+    return false;
+}
+
+function checkForm( form )
+{
+    var i, fld_low, fld_high, fld;
+
+    // Excluded
+    for ( i = 1; i <= excluded_max_cnt; i++ ) {
+        fld_low = document.getElementById("excluded_low_" + i);
+        if ( fld_low === null ) {
+            continue;
+        }
+
+        if ( fld_low.value !== "" ) {
+            if ( ! isIpStr("excluded_low_"+i, false, "Excluded low IP address, "+fld_low.value+",", 2) ) {
+                return false;
+            }
+        }
+
+        fld_high = document.getElementById("excluded_high_" + i);
+        if ( fld_high.value !== "" ) {
+            if ( ! isIpStr("excluded_high_"+i, false, "Excluded high IP address, "+fld_high.value+",", 2) ) {
+                return false;
+            }
+        }
+
+        if ( fld_low.value === "" && fld_high.value === "" ) {
+            continue;
+        }
+
+        if ( fld_low.value === "" && fld_high.value !== "" ) {
+            fld_low.value = fld_high.value;
+        }
+
+        if ( fld_low.value !== "" && fld_high.value === "" ) {
+            fld_high.value = fld_low.value;
+        }
+
+        if ( _ip_larger(fld_low.value, fld_high.value) ) {
+            GiveAlert("Low excluded IP "+fld_low.value+" can not be larger than high excluded IP "+fld_high.value+".", fld_low);
+            return false;
+        }
+    }
+
+    return true; // Feed the chickens and go home
+}
+
+//
+//  free index get
+//  if 0, it means no free entry
+//
+function freeIndexGet( title, id_prefix, current_cnt, max_cnt )
+{
+    var i, fld;
+
+    // check current count
+    if ( current_cnt >= max_cnt ) {
+        alert("The maximum number of " + title + " is " + max_cnt + ".");
+        return 0;
+    }
+
+    // find free index
+    for ( i = 1; i <= max_cnt; i++ ) {
+        fld = document.getElementById(id_prefix + i);
+        if ( fld === null ) {
+            break;
+        }
+    }
+
+    if ( i > max_cnt ) {
+        // no free index
+        return 0;
+    } else {
+        return i;
+    }
+}
+
+function excludedAdd()
+{
+    var tr, button, td, tbody, range_low, dash_text, range_high, button_id_prefix;
+
+    // set button ID prefix
+    button_id_prefix = "excluded_delete_button_";
+
+    // get free index
+    excluded_id = freeIndexGet("excluded IP ranges", button_id_prefix, excluded_cnt, excluded_max_cnt);
+
+    // full
+    if ( excluded_id === 0 ) {
+        return;
+    }
+
+    // increase count
+    excluded_cnt++;
+
+    // create a row
+    tr = CreateStyledElement("tr");
+
+    // Delete button
+    button = document.createElement('input');
+    button.onclick = function() {
+        excluded_cnt--;
+        clearChildNodes(tr);
+        document.getElementById('excludedData').deleteRow(tr.rowIndex);
+    };
+    button.id    = button_id_prefix + excluded_id;
+    button.type  = "button";
+    button.value = " Delete ";
+    
+    td = CreateTd("c");
+    addCell(tr, td, button);
+
+    // Range
+    td = CreateTd("cl");
+    range_low = document.createElement('input');
+    range_low.id = range_low.name = "excluded_low_" + excluded_id;
+    range_low.setAttribute("maxLength", input_max_length);
+    range_low.style.width = input_style_width;
+
+    dash_text = document.createTextNode(" - ");
+
+    range_high = document.createElement('input');
+    range_high.id = range_high.name = "excluded_high_" + excluded_id;
+    range_high.setAttribute("maxLength", input_max_length);
+    range_high.style.width = input_style_width;
+
+    td.appendChild(range_low);
+    td.appendChild(dash_text);
+    td.appendChild(range_high);
+    tr.appendChild(td);
+
+    // Add row to fragment
+    excluded_frag.appendChild( tr );
+
+    // Add Frag to table body
+    tbody = document.getElementById("excludedData");
+    if ( ! tbody.appendChild(excluded_frag) ) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/dhcp_server_excluded" onsubmit="return checkForm(this);">
+
+<h1>DHCP Server Excluded IP Configuration</h1>
+
+<h2>Excluded IP Address</h2>
+
+<table id="excludedTable" summary="DHCP Server Configuration" cellspacing="0" class="config">
+    <tbody id="excludedData">
+    </tbody>
+</table>
+
+<p>
+<!--
+    vtss_appl\web\html\lib\ajax.js changeForm() defines id's to change format
+    automatically when privilege is not met. So, we can use these id's but not
+    need to create new id by ourselves.
+-->
+<input type="button" id="addNewEntry" value="Add IP Range" onclick="excludedAdd();">
+</p>
+
+<br>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+<!--
+    When no input data and press Save button, the page will display "The webpage cannot be found"
+    because "400 Bad Request".
+    So, to avoid no any input data when no checkbox is checked and no new range is added,
+    this dummy will be sent.
+-->
+<input type="hidden" name="dummy">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

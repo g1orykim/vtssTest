@@ -1,0 +1,1223 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+#
+
+MODULE_IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+INCLUDE_BEGIN
+#include <unistd.h>
+#include "misc_api.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+
+#include "vtss_mpls_api.h"
+#include "mpls.h"
+
+#define XC_CNT      20
+#define L2_CNT      20
+
+#if 0
+// This is too funky for lint:
+static vtss_mpls_xc_idx_t xc_list[XC_CNT] = {[0 ... XC_CNT-1] = -1 };
+static vtss_mpls_l2_idx_t l2_list[L2_CNT] = {[0 ... L2_CNT-1] = -1 };
+#else
+static vtss_mpls_xc_idx_t xc_list[XC_CNT] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+static vtss_mpls_l2_idx_t l2_list[L2_CNT] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+#endif
+
+vtss_mpls_xc_idx_t xc_list_get(u32 i)
+{
+    vtss_mpls_xc_idx_t res;
+    MPLS_CRIT_ENTER();
+    res = (i < XC_CNT) ? xc_list[i] : -1;
+    MPLS_CRIT_EXIT();
+    return res;
+}
+
+void xc_list_set(u32 i, vtss_mpls_xc_idx_t n)
+{
+    MPLS_CRIT_ENTER();
+    if (i < XC_CNT) {
+        xc_list[i] = n;
+    }
+    MPLS_CRIT_EXIT();
+}
+
+vtss_mpls_l2_idx_t l2_list_get(u32 i)
+{
+    vtss_mpls_l2_idx_t res;
+    MPLS_CRIT_ENTER();
+    res = (i < L2_CNT) ? l2_list[i] : -1;
+    MPLS_CRIT_EXIT();
+    return res;
+}
+
+void l2_list_set(u32 i, vtss_mpls_l2_idx_t n)
+{
+    MPLS_CRIT_ENTER();
+    if (i < L2_CNT) {
+        l2_list[i] = n;
+    }
+    MPLS_CRIT_EXIT();
+}
+
+static const char *mac_to_str(const vtss_mac_t mac, char *buf)
+{
+    const u8 *p = &mac.addr[0];
+    (void)sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x", p[0], p[1], p[2], p[3], p[4], p[5]);
+    return buf;
+}
+
+static void pr_seg(u32 session_id, vtss_mpls_segment_idx_t idx)
+{
+    vtss_mpls_segment_t seg;
+    vtss_mpls_segment_state_t state;
+    const char *seg_state_to_s[3] = { "UNCONF", "CONF", "UP" };
+
+    if (vtss_mpls_segment_get(NULL, idx, &seg) != VTSS_RC_OK) {
+        ICLI_PRINTF("Cannot retrieve segment with API index %d\n", idx);
+    }
+    else {
+        (void) vtss_mpls_segment_state_get(NULL, idx, &state);
+        ICLI_PRINTF("%s-segment: %s, %s-LSP, L2 API idx %d, label %d/%d/%d, "
+                    "%s-assigned, server segment %d, XC API idx %d, %s",
+                    seg.is_in ? "in" : "out",
+                    seg_state_to_s[state],
+                    seg.e_lsp ? "E" : "L",
+                    seg.l2_idx, seg.label.value, seg.label.tc, seg.label.ttl,
+                    seg.upstream ? "upstream" : "downstream", seg.server_idx,
+                    seg.xc_idx, seg.pw_conf.is_pw ? "PW" : "not PW");
+        if (seg.pw_conf.is_pw  &&  seg.pw_conf.process_cw) {
+            ICLI_PRINTF(", CW 0x%08x", seg.pw_conf.cw);
+        }
+        ICLI_PRINTF("\n");
+    }
+}
+
+static void pr_l2(u32 session_id, u32 list_index)  // NOTE: Index into l2_list
+{
+    char buf[6*3+1];
+    const char *tagtype_to_str[VTSS_MPLS_TAGTYPE_STAGGED+1] = { "untagged", "C-tagged", "S-tagged" };
+    vtss_mpls_l2_idx_t idx = l2_list_get(list_index);
+    vtss_mpls_l2_t l2;
+
+    if (vtss_mpls_l2_get(NULL, idx, &l2) != VTSS_RC_OK) {
+        ICLI_PRINTF("Can't get L2 with API index %d", idx);
+    }
+    else {
+        ICLI_PRINTF("L2 %d (API index %d): port %d, peer %s, ",
+            list_index, idx, iport2uport(l2.port), mac_to_str(l2.peer_mac, buf));
+        ICLI_PRINTF("self %s, %s, VID %d\n", mac_to_str(l2.self_mac, buf),
+            tagtype_to_str[l2.tag_type], l2.vid);
+    }
+}
+
+#define TRY_CMP(op,expected,msg,...)                                \
+    do {                                                            \
+        if ((op) != (expected)) {                                   \
+            ICLI_PRINTF("%% MPLS ERROR: " msg "\n", ##__VA_ARGS__); \
+            return ICLI_RC_ERROR;                                   \
+        }                                                           \
+    } while(0)
+
+#define TRY_BOOL(op,msg) TRY_CMP((op), TRUE, msg)
+#define TRY_BOOLf(op,msg,...) TRY_CMP((op), TRUE, msg, __VA_ARGS__)
+#define TRY_RC(op,msg) TRY_CMP((op), VTSS_RC_OK, msg)
+#define TRY_RCf(op,msg,...) TRY_CMP((op), VTSS_RC_OK, msg, __VA_ARGS__)
+
+static void detach_from_servers_and_l2(vtss_mpls_segment_idx_t seg_idx)
+{
+    vtss_mpls_segment_t seg;
+    vtss_rc             rc;
+
+    if (VTSS_MPLS_IDX_IS_UNDEF(seg_idx)) {
+        return;
+    }
+
+    if (vtss_mpls_segment_get(NULL, seg_idx, &seg) != VTSS_RC_OK) {
+        T_D("Could not get seg %d", seg_idx);
+        return;
+    }
+
+    if (VTSS_MPLS_IDX_IS_DEF(seg.server_idx)) {
+        rc = vtss_mpls_segment_server_detach(NULL, seg_idx);
+        T_D("%s segment %d from server segment %d", (rc == VTSS_RC_OK ? "Detached" : "Could not detach"), seg_idx, seg.server_idx);
+    } else if (VTSS_MPLS_IDX_IS_DEF(seg.l2_idx)) {
+        rc = vtss_mpls_l2_segment_detach(NULL, seg_idx);
+        T_D("%s L2 %d from segment %d", (rc == VTSS_RC_OK ? "Detached" : "Could not detach"), seg.l2_idx, seg_idx);
+    }
+}
+
+// Not static! Called from mpls.c.
+void mpls_load_defaults_non_production(void)
+{
+    vtss_mpls_xc_t          xc;
+    vtss_mpls_xc_idx_t      xc_idx;
+    vtss_mpls_l2_idx_t      l2_idx;
+    u32                     i;
+    vtss_rc                 rc;
+
+    // Detach from all server segments and L2 entries
+    for (i = 0; i < XC_CNT; ++i) {
+        xc_idx = xc_list_get(i);
+        if (xc_idx == -1) {
+            continue;
+        }
+        if (vtss_mpls_xc_get(NULL, xc_idx, &xc) != VTSS_RC_OK) {
+            T_D("Can't get XC %d (during detach)", xc_idx);
+        }
+        detach_from_servers_and_l2(xc.in_seg_idx);
+        detach_from_servers_and_l2(xc.out_seg_idx);
+    }
+
+    // Destroy all segments, XCs
+    for (i = 0; i < XC_CNT; ++i) {
+        xc_idx = xc_list_get(i);
+        if (xc_idx == -1) {
+            continue;
+        }
+        if (vtss_mpls_xc_get(NULL, xc_idx, &xc) != VTSS_RC_OK) {
+            T_D("Can't get XC %d (during release)", xc_idx);
+        }
+        if (VTSS_MPLS_IDX_IS_DEF(xc.in_seg_idx)) {
+            rc = vtss_mpls_xc_segment_detach(NULL, xc.in_seg_idx);
+            T_D("%s in-segment %d from XC %d", (rc == VTSS_RC_OK ? "Detached" : "Could not detach"), xc.in_seg_idx, xc_idx);
+            rc = vtss_mpls_segment_free(NULL, xc.in_seg_idx);
+            T_D("%s in-segment %d", (rc == VTSS_RC_OK ? "Freed" : "Could not free"), xc.in_seg_idx);
+        }
+        if (VTSS_MPLS_IDX_IS_DEF(xc.out_seg_idx)) {
+            rc = vtss_mpls_xc_segment_detach(NULL, xc.out_seg_idx);
+            T_D("%s out-segment %d from XC %d", (rc == VTSS_RC_OK ? "Detached" : "Could not detach"), xc.out_seg_idx, xc_idx);
+            rc = vtss_mpls_segment_free(NULL, xc.out_seg_idx);
+            T_D("%s out-segment %d", (rc == VTSS_RC_OK ? "Freed" : "Could not free"), xc.out_seg_idx);
+        }
+        rc = vtss_mpls_xc_free(NULL, xc_idx);
+        T_D("%s XC %d", (rc == VTSS_RC_OK ? "Freed" : "Could not free"), xc_idx);
+        xc_list_set(i, -1);
+    }
+
+    // Destroy L2 entries
+    for (i = 0; i < L2_CNT; ++i) {
+        l2_idx = l2_list_get(i);
+        if (l2_idx == -1) {
+            continue;
+        }
+        rc = vtss_mpls_l2_free(NULL, l2_idx);
+        T_D("%s L2 %d", (rc == VTSS_RC_OK ? "Freed" : "Could not free"), l2_idx);
+        l2_list_set(i, -1);
+    }
+}
+
+FUNCTION_END
+
+!==============================================================================
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = mpls xc <uint> init { lsr | {{ ler-init | ler-term } [pw [cw]] } }
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = idx
+CMD_VAR =
+CMD_VAR = has_lsr
+CMD_VAR = has_ler_init
+CMD_VAR = has_ler_term
+CMD_VAR = has_pw
+CMD_VAR = has_cw
+
+VARIABLE_BEGIN
+    vtss_mpls_xc_type_t     type;
+    vtss_mpls_xc_t          xc;
+    vtss_mpls_xc_idx_t      xc_list_idx;
+    vtss_mpls_segment_t     seg;
+    vtss_mpls_segment_idx_t in_idx, out_idx;
+    BOOL                    alloc_in  = FALSE;
+    BOOL                    alloc_out = FALSE;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_lsr) {
+        type = VTSS_MPLS_XC_TYPE_LSR;
+        alloc_in = alloc_out = TRUE;
+    }
+    else if (has_ler_init) {
+        type = VTSS_MPLS_XC_TYPE_LER;
+        alloc_out = TRUE;
+    }
+    else if (has_ler_term) {
+        type = VTSS_MPLS_XC_TYPE_LER;
+        alloc_in = TRUE;
+    }
+    else {
+        // Should never get here
+        return ICLI_RC_ERROR;
+    }
+
+    TRY_BOOLf(idx < XC_CNT, "XC index out-of-range 0-%d", XC_CNT-1);
+    TRY_BOOLf(xc_list_get(idx) == -1, "XC %u already allocated", idx);
+    TRY_RC(vtss_mpls_xc_alloc(NULL, type, &xc_list_idx), "Can't allocate XC");
+    xc_list_set(idx, xc_list_idx);
+    ICLI_PRINTF("Allocated XC %d, API index %d\n", idx, xc_list_get(idx));
+
+    TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(idx), &xc), "Can't get XC %d", xc_list_get(idx));
+
+    if (alloc_in) {
+        TRY_RC(vtss_mpls_segment_alloc(NULL, TRUE, &in_idx), "Can't allocate in-segment");
+        TRY_RCf(vtss_mpls_segment_get(NULL, in_idx, &seg), "Can't get in-segment %d\n", in_idx);
+
+        seg.label.value        = in_idx;
+        seg.label.tc           = VTSS_MPLS_TC_VALUE_DONTCARE;
+        seg.label.ttl          = 255;
+
+        seg.pw_conf.is_pw      = has_pw;
+        seg.pw_conf.process_cw = has_cw;
+        seg.pw_conf.cw         = 0;
+
+        TRY_RCf(vtss_mpls_segment_set(NULL, in_idx, &seg), "Can't set in-segment %d", in_idx);
+        TRY_RC(vtss_mpls_xc_segment_attach(NULL, xc_list_get(idx), in_idx), "Can't attach in-segment to XC");
+    }
+
+    if (alloc_out) {
+        TRY_RC(vtss_mpls_segment_alloc(NULL, FALSE, &out_idx), "Can't allocate out-segment");
+        TRY_RCf(vtss_mpls_segment_get(NULL, out_idx, &seg), "Can't get out-segment %d", out_idx);
+
+        seg.label.value        = out_idx;
+        seg.label.tc           = 0;
+        seg.label.ttl          = 255;
+
+        seg.pw_conf.is_pw      = has_pw;
+        seg.pw_conf.process_cw = has_cw;
+        seg.pw_conf.cw         = 0x00123456;
+
+        TRY_RCf(vtss_mpls_segment_set(NULL, out_idx, &seg), "Can't set out-segment %d", out_idx);
+        TRY_RC(vtss_mpls_xc_segment_attach(NULL, xc_list_get(idx), out_idx), "Can't attach out-segment to XC");
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = no mpls xc <uint>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = idx
+
+VARIABLE_BEGIN
+    vtss_mpls_xc_t      xc;
+    vtss_mpls_segment_t seg;
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_BOOLf(idx < XC_CNT, "XC index out-of-range 0-%d", XC_CNT-1);
+    TRY_BOOLf(xc_list_get(idx) != -1, "XC %u isn't allocated", idx);
+    TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(idx), &xc), "Can't get XC %d, API index %d", idx, xc_list_get(idx));
+
+    if (VTSS_MPLS_IDX_IS_DEF(xc.in_seg_idx)) {
+        TRY_RC(vtss_mpls_segment_get(NULL, xc.in_seg_idx, &seg), "Can't get in-segment");
+        if (VTSS_MPLS_IDX_IS_DEF(seg.l2_idx)) {
+            TRY_RC(vtss_mpls_l2_segment_detach(NULL, xc.in_seg_idx), "Can't detach L2 from in-segment");
+        }
+        TRY_RC(vtss_mpls_xc_segment_detach(NULL, xc.in_seg_idx), "Can't detach in-segment from XC");
+        TRY_RCf(vtss_mpls_segment_free(NULL, xc.in_seg_idx), "Can't free in-segment %d", xc.in_seg_idx);
+    }
+    if (VTSS_MPLS_IDX_IS_DEF(xc.out_seg_idx)) {
+        TRY_RC(vtss_mpls_segment_get(NULL, xc.out_seg_idx, &seg), "Can't get out-segment");
+        if (VTSS_MPLS_IDX_IS_DEF(seg.l2_idx)) {
+            TRY_RC(vtss_mpls_l2_segment_detach(NULL, xc.out_seg_idx), "Can't detach L2 from out-segment");
+        }
+        TRY_RC(vtss_mpls_xc_segment_detach(NULL, xc.out_seg_idx), "Can't detach out-segment from XC");
+        TRY_RCf(vtss_mpls_segment_free(NULL, xc.out_seg_idx), "Can't free out-segment %d", xc.in_seg_idx);
+    }
+    TRY_RC(vtss_mpls_xc_free(NULL, xc_list_get(idx)), "Can't free XC");
+    xc_list_set(idx, -1);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = mpls l2 <uint> port <1-11> peer <mac_addr> self <mac_addr> [ { c-tag | s-tag } <vlan_id> [pcp <0-7> dei <0-1>] ]
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = idx
+CMD_VAR =
+CMD_VAR = port
+CMD_VAR =
+CMD_VAR = peer
+CMD_VAR =
+CMD_VAR = self
+CMD_VAR = has_c_tag
+CMD_VAR = has_s_tag
+CMD_VAR = vid
+CMD_VAR = has_pcp
+CMD_VAR = pcp
+CMD_VAR =
+CMD_VAR = dei
+
+VARIABLE_BEGIN
+  vtss_mpls_l2_t l2;
+  vtss_mpls_l2_idx_t l2_api_idx;
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_BOOLf(idx < L2_CNT, "L2 index out-of-range 0-%d\n", L2_CNT-1);
+    if (l2_list_get(idx) == -1) {
+        TRY_RC(vtss_mpls_l2_alloc(NULL, &l2_api_idx), "Can't allocate L2");
+        l2_list_set(idx, l2_api_idx);
+        ICLI_PRINTF("Allocated L2 %d, API index %d\n", idx, l2_list_get(idx));
+    }
+    else {
+        ICLI_PRINTF("(L2 %d has API index %d)\n", idx, l2_list_get(idx));
+    }
+
+    TRY_RCf(vtss_mpls_l2_get(NULL, l2_list_get(idx), &l2), "Can't get L2 %d", l2_list_get(idx));
+
+    l2.port = uport2iport(port);
+    l2.vid  = (has_c_tag || has_s_tag) ? vid : 0;
+    l2.pcp  = has_pcp ? pcp : 0;
+    l2.dei  = has_pcp ? (vtss_dei_t)dei : FALSE;
+    memcpy(&l2.peer_mac, &peer, sizeof(l2.peer_mac));
+    memcpy(&l2.self_mac, &self, sizeof(l2.self_mac));
+
+    if (has_c_tag) {
+        l2.tag_type = VTSS_MPLS_TAGTYPE_CTAGGED;
+    } else if (has_s_tag) {
+        l2.tag_type = VTSS_MPLS_TAGTYPE_STAGGED;
+    } else {
+        l2.tag_type = VTSS_MPLS_TAGTYPE_UNTAGGED;
+    }
+
+    TRY_RCf(vtss_mpls_l2_set(NULL, l2_list_get(idx), &l2), "Can't set L2 API idx %d", l2_list_get(idx));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = no mpls l2 <uint>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = idx
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_BOOLf(idx < L2_CNT, "L2 index out-of-range 0-%d\n", L2_CNT-1);
+    TRY_BOOLf(l2_list_get(idx) != -1, "L2 %u isn't configured", idx);
+
+    TRY_RCf(vtss_mpls_l2_free(NULL, l2_list_get(idx)), "Can't free L2 %d", l2_list_get(idx));
+    l2_list_set(idx, -1);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = mpls xc <uint> l2 { [in <uint>] [out <uint>] }*1
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = xc_idx
+CMD_VAR =
+CMD_VAR = has_in
+CMD_VAR = in_l2_idx
+CMD_VAR = has_out
+CMD_VAR = out_l2_idx
+
+VARIABLE_BEGIN
+    vtss_mpls_xc_t xc;
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_BOOLf(xc_idx < XC_CNT, "XC index out-of-range 0-%d", XC_CNT-1);
+    TRY_BOOLf(xc_list_get(xc_idx) != -1, "XC %u isn't configured", xc_idx);
+    TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(xc_idx), &xc), "Can't get XC %d, API index %d", xc_idx, xc_list_get(xc_idx));
+
+    TRY_BOOLf(!(has_in  && VTSS_MPLS_IDX_IS_UNDEF(xc.in_seg_idx)),  "XC %u doesn't have an in-segment", xc_idx);
+    TRY_BOOLf(!(has_out && VTSS_MPLS_IDX_IS_UNDEF(xc.out_seg_idx)), "XC %u doesn't have an out-segment", xc_idx);
+
+    if (has_in) {
+        TRY_RCf(vtss_mpls_l2_segment_attach(NULL, l2_list_get(in_l2_idx), xc.in_seg_idx), "Can't attach L2 API idx %d to to in-segment %d", l2_list_get(in_l2_idx), xc.in_seg_idx);
+    }
+
+    if (has_out) {
+        TRY_RCf(vtss_mpls_l2_segment_attach(NULL, l2_list_get(out_l2_idx), xc.out_seg_idx), "Can't attach L2 API idx %d to to out-segment %d", l2_list_get(out_l2_idx), xc.out_seg_idx);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = no mpls xc <uint> l2 [in] [out]
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = xc_idx
+CMD_VAR =
+CMD_VAR = has_in
+CMD_VAR = has_out
+
+VARIABLE_BEGIN
+    vtss_mpls_xc_t xc;
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_BOOLf(xc_idx < XC_CNT, "XC index out-of-range 0-%d", XC_CNT-1);
+    TRY_BOOLf(xc_list_get(xc_idx) != -1, "XC %u isn't configured", xc_idx);
+    TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(xc_idx), &xc), "Can't get XC %d, API index %d", xc_idx, xc_list_get(xc_idx));
+
+    if (!has_in && !has_out) {
+        has_in = has_out = TRUE;
+    }
+
+    if (has_in  &&  VTSS_MPLS_IDX_IS_DEF(xc.in_seg_idx)) {
+        TRY_RCf(vtss_mpls_l2_segment_detach(NULL, xc.in_seg_idx), "Can't detach L2 from in-segment %d", xc.in_seg_idx);
+    }
+
+    if (has_out  &&  VTSS_MPLS_IDX_IS_DEF(xc.out_seg_idx)) {
+        TRY_RCf(vtss_mpls_l2_segment_detach(NULL, xc.out_seg_idx), "Can't detach L2 from out-segment %d", xc.out_seg_idx);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = mpls xc <uint> label [l-lsp | e-lsp] { [in <uint> [ tc <0-7> ] [l-lsp-qos <0-7>] [tc-to-qos-map <0-7>]] [out <uint> [ tc <0-7> ] [ ttl <0-255> ] [qos-to-tc-map <0-7>]] }*1 [tc-mode {pipe | short-pipe | uniform}] [ttl-mode {pipe | short-pipe | uniform}]
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = xc_idx
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_e_lsp
+CMD_VAR = has_in
+CMD_VAR = in_label
+CMD_VAR = has_in_tc
+CMD_VAR = in_tc
+CMD_VAR = has_l_lsp_qos
+CMD_VAR = l_lsp_qos
+CMD_VAR = has_tc_to_qos_map_idx
+CMD_VAR = tc_to_qos_map_idx
+CMD_VAR = has_out
+CMD_VAR = out_label
+CMD_VAR = has_out_tc
+CMD_VAR = out_tc
+CMD_VAR = has_out_ttl
+CMD_VAR = out_ttl
+CMD_VAR = has_qos_to_tc_map_idx
+CMD_VAR = qos_to_tc_map_idx
+CMD_VAR = has_tc_mode
+CMD_VAR = has_tc_pipe
+CMD_VAR = has_tc_short_pipe
+CMD_VAR =
+CMD_VAR = has_ttl_mode
+CMD_VAR = has_ttl_pipe
+CMD_VAR = has_ttl_short_pipe
+CMD_VAR =
+
+VARIABLE_BEGIN
+    vtss_mpls_xc_t          xc;
+    vtss_mpls_segment_t     seg;
+    vtss_mpls_segment_idx_t seg_idx;
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_BOOLf(xc_idx < XC_CNT, "XC index out-of-range 0-%d", XC_CNT-1);
+    TRY_BOOLf(xc_list_get(xc_idx) != -1, "XC %u isn't configured", xc_idx);
+    TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(xc_idx), &xc), "Can't get XC %d, API index %d", xc_idx, xc_list_get(xc_idx));
+
+    TRY_BOOLf(!(has_in  && VTSS_MPLS_IDX_IS_UNDEF(xc.in_seg_idx)),  "XC %u doesn't have an in-segment", xc_idx);
+    TRY_BOOLf(!(has_out && VTSS_MPLS_IDX_IS_UNDEF(xc.out_seg_idx)), "XC %u doesn't have an out-segment", xc_idx);
+
+    if (has_in) {
+        TRY_BOOL(!(has_e_lsp  &&  has_l_lsp_qos), "Cannot set L-LSP QOS for E-LSP");
+        seg_idx = xc.in_seg_idx;
+        TRY_RCf(vtss_mpls_segment_get(NULL, seg_idx, &seg), "Can't get in-segment %d", seg_idx);
+        seg.e_lsp          = has_e_lsp;
+        seg.l_lsp_cos      = has_l_lsp_qos ? l_lsp_qos : 0;
+        seg.tc_qos_map_idx = has_tc_to_qos_map_idx ? tc_to_qos_map_idx : -1;
+        seg.label.value    = in_label;
+        seg.label.tc       = has_in_tc ? in_tc : VTSS_MPLS_TC_VALUE_DONTCARE;
+        TRY_RCf(vtss_mpls_segment_set(NULL, seg_idx, &seg), "Can't set in-segment %d", seg_idx);
+    }
+
+    if (has_out) {
+        seg_idx = xc.out_seg_idx;
+        TRY_RCf(vtss_mpls_segment_get(NULL, seg_idx, &seg), "Can't get out-segment %d", seg_idx);
+        seg.e_lsp          = has_e_lsp;
+        seg.tc_qos_map_idx = has_qos_to_tc_map_idx ? qos_to_tc_map_idx : -1;
+        seg.label.value    = out_label;
+        seg.label.tc       = has_out_tc  ? out_tc  : 0;
+        seg.label.ttl      = has_out_ttl ? out_ttl : 255;
+        TRY_RCf(vtss_mpls_segment_set(NULL, seg_idx, &seg), "Can't set out-segment %d", seg_idx);
+    }
+
+    if (has_tc_mode || has_ttl_mode) {
+        TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(xc_idx), &xc), "Can't get XC %d, API index %d", xc_idx, xc_list_get(xc_idx));
+        if (has_tc_mode) {
+            if (has_tc_pipe)
+                xc.tc_tunnel_mode = VTSS_MPLS_TUNNEL_MODE_PIPE;
+            else if (has_tc_short_pipe)
+                xc.tc_tunnel_mode = VTSS_MPLS_TUNNEL_MODE_SHORT_PIPE;
+            else
+                xc.tc_tunnel_mode = VTSS_MPLS_TUNNEL_MODE_UNIFORM;
+        }
+        if (has_ttl_mode) {
+            if (has_ttl_pipe)
+                xc.ttl_tunnel_mode = VTSS_MPLS_TUNNEL_MODE_PIPE;
+            else if (has_ttl_short_pipe)
+                xc.ttl_tunnel_mode = VTSS_MPLS_TUNNEL_MODE_SHORT_PIPE;
+            else
+                xc.ttl_tunnel_mode = VTSS_MPLS_TUNNEL_MODE_UNIFORM;
+        }
+        TRY_RCf(vtss_mpls_xc_set(NULL, xc_list_get(xc_idx), &xc), "Can't set XC %d, API index %d", xc_idx, xc_list_get(xc_idx));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = mpls xc <uint> server { [ in-xc <uint> ] [ out-xc <uint> ] }*1
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME =
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = xc_idx
+CMD_VAR =
+CMD_VAR = has_in
+CMD_VAR = in_server_xc_idx
+CMD_VAR = has_out
+CMD_VAR = out_server_xc_idx
+
+VARIABLE_BEGIN
+    vtss_mpls_xc_t xc, in_xc, out_xc;
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_BOOLf(xc_list_get(xc_idx) != -1, "XC %u isn't configured", xc_idx);
+
+    TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(xc_idx), &xc), "Can't get XC %d, API index %d", xc_idx, xc_list_get(xc_idx));
+
+    if (has_in) {
+        TRY_BOOLf(xc_list_get(in_server_xc_idx) != -1, "In: XC %u isn't configured", in_server_xc_idx);
+        TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(in_server_xc_idx),  &in_xc),  "Can't get XC %d, API index %d", in_server_xc_idx,  xc_list_get(in_server_xc_idx));
+        TRY_BOOL(!(VTSS_MPLS_IDX_IS_UNDEF(xc.in_seg_idx) || VTSS_MPLS_IDX_IS_UNDEF(in_xc.in_seg_idx)), "In: Both XCs must have in-segments");
+        TRY_RC(vtss_mpls_segment_server_attach(NULL, xc.in_seg_idx, in_xc.in_seg_idx), "In: Cannot attach to server");
+    }
+
+    if (has_out) {
+        TRY_BOOLf(xc_list_get(out_server_xc_idx) != -1, "Out: XC %u isn't configured", out_server_xc_idx);
+        TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(out_server_xc_idx), &out_xc), "Can't get XC %d, API index %d", out_server_xc_idx, xc_list_get(out_server_xc_idx));
+        TRY_BOOL(!(VTSS_MPLS_IDX_IS_UNDEF(xc.out_seg_idx) || VTSS_MPLS_IDX_IS_UNDEF(out_xc.out_seg_idx)), "Out: Both XCs must have out-segments");
+        TRY_RC(vtss_mpls_segment_server_attach(NULL, xc.out_seg_idx, out_xc.out_seg_idx), "Out: Cannot attach to server");
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = no mpls xc <uint> server { [ in ] [ out ] }*1
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = xc_idx
+CMD_VAR =
+CMD_VAR = has_in
+CMD_VAR = has_out
+
+VARIABLE_BEGIN
+    vtss_mpls_xc_t xc;
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_BOOLf(xc_idx < XC_CNT, "XC index out-of-range 0-%d", XC_CNT-1);
+    TRY_BOOLf(xc_list_get(xc_idx) != -1, "XC %u isn't configured", xc_idx);
+    TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(xc_idx), &xc), "Can't get XC %d, API index %d", xc_idx, xc_list_get(xc_idx));
+
+    if (has_in) {
+        TRY_RCf(vtss_mpls_segment_server_detach(NULL, xc.in_seg_idx), "Can't detach in-segment %d from server XC", xc.in_seg_idx);
+    }
+
+    if (has_out) {
+        TRY_RCf(vtss_mpls_segment_server_detach(NULL, xc.out_seg_idx), "Can't detach out-segment %d from server XC", xc.out_seg_idx);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = mpls evc <uint> server-xc { [in <uint> ] [out <uint> ] }*1
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME =
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = evc_idx
+CMD_VAR =
+CMD_VAR = has_in
+CMD_VAR = in_xc_idx
+CMD_VAR = has_out
+CMD_VAR = out_xc_idx
+
+VARIABLE_BEGIN
+    vtss_mpls_xc_t          in_xc, out_xc;
+    vtss_evc_conf_t         evc;
+    vtss_mpls_segment_t     seg;
+VARIABLE_END
+
+CODE_BEGIN
+    if (evc_idx < 1  &&  evc_idx > VTSS_EVCS) {
+        ICLI_PRINTF("%% EVC idx out of range; use 1-%d", VTSS_EVCS);
+        return ICLI_RC_ERROR;
+    }
+
+    TRY_RCf(vtss_evc_get(NULL, evc_idx - 1, &evc), "Can't get EVC %d", evc_idx);
+
+    if (has_in) {
+        TRY_BOOLf(xc_list_get(in_xc_idx)  != -1, "In-XC %u isn't configured", in_xc_idx);
+        TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(in_xc_idx),  &in_xc),  "Can't get in-XC %d, API index %d", in_xc_idx,  xc_list_get(in_xc_idx));
+        TRY_BOOLf(in_xc.type  == VTSS_MPLS_XC_TYPE_LER, "In-XC %d isn't an LER", in_xc_idx);
+        TRY_BOOLf(VTSS_MPLS_IDX_IS_DEF(in_xc.in_seg_idx), "In-XC %d has no in-segment", in_xc_idx);
+        TRY_RCf(vtss_mpls_segment_get(NULL, in_xc.in_seg_idx, &seg), "Cannot get in-XC segment %d", in_xc.in_seg_idx);
+        TRY_BOOL(seg.pw_conf.is_pw, "In-segment isn't a PW");
+        evc.network.mpls_tp.pw_ingress_xc = xc_list_get(in_xc_idx);
+    }
+
+    if (has_out) {
+        TRY_BOOLf(xc_list_get(out_xc_idx) != -1, "XC %u isn't configured", out_xc_idx);
+        TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(out_xc_idx), &out_xc), "Can't get out-XC %d, API index %d", out_xc_idx, xc_list_get(out_xc_idx));
+        TRY_BOOLf(out_xc.type == VTSS_MPLS_XC_TYPE_LER, "Out-XC %d isn't an LER", out_xc_idx);
+        TRY_BOOLf(VTSS_MPLS_IDX_IS_DEF(out_xc.out_seg_idx), "XC %d has no out-segment", out_xc_idx);
+        TRY_RCf(vtss_mpls_segment_get(NULL, out_xc.out_seg_idx, &seg), "Cannot get out-XC segment %d", out_xc.out_seg_idx);
+        TRY_BOOL(seg.pw_conf.is_pw, "In-segment isn't a PW");
+        evc.network.mpls_tp.pw_egress_xc = xc_list_get(out_xc_idx);
+    }
+
+    TRY_RCf(vtss_evc_add(NULL, evc_idx - 1, &evc), "Can't set EVC %d", evc_idx);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = no mpls evc <uint> server-xc { [in] [out] }
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME =
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = evc_idx
+CMD_VAR =
+CMD_VAR = has_in
+CMD_VAR = has_out
+
+VARIABLE_BEGIN
+    vtss_evc_conf_t         evc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (evc_idx < 1  &&  evc_idx > VTSS_EVCS) {
+        ICLI_PRINTF("%% EVC idx out of range; use 1-%d", VTSS_EVCS);
+        return ICLI_RC_ERROR;
+    }
+
+    TRY_RCf(vtss_evc_get(NULL, evc_idx - 1, &evc), "Can't get EVC %d", evc_idx);
+
+    if (!has_in && !has_out) {
+        has_in = has_out = TRUE;
+    }
+
+    if (has_in) {
+        VTSS_MPLS_IDX_UNDEF(evc.network.mpls_tp.pw_ingress_xc);
+    }
+
+    if (has_out) {
+        VTSS_MPLS_IDX_UNDEF(evc.network.mpls_tp.pw_egress_xc);
+    }
+
+    TRY_RCf(vtss_evc_add(NULL, evc_idx - 1, &evc), "Can't set EVC %d", evc_idx);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = mpls qos-to-tc map <1-7> {dp0 | dp1} <0-7> <0-7> <0-7> <0-7> <0-7> <0-7> <0-7> <0-7>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME =
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = map
+CMD_VAR = has_dp0
+CMD_VAR =
+CMD_VAR = tc0
+CMD_VAR = tc1
+CMD_VAR = tc2
+CMD_VAR = tc3
+CMD_VAR = tc4
+CMD_VAR = tc5
+CMD_VAR = tc6
+CMD_VAR = tc7
+
+VARIABLE_BEGIN
+    vtss_mpls_tc_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_RC(vtss_mpls_tc_conf_get(NULL, &conf), "Can't get TC config");
+    if (has_dp0) {
+        conf.qos_to_tc_map[map][0].dp0_tc = tc0;
+        conf.qos_to_tc_map[map][1].dp0_tc = tc1;
+        conf.qos_to_tc_map[map][2].dp0_tc = tc2;
+        conf.qos_to_tc_map[map][3].dp0_tc = tc3;
+        conf.qos_to_tc_map[map][4].dp0_tc = tc4;
+        conf.qos_to_tc_map[map][5].dp0_tc = tc5;
+        conf.qos_to_tc_map[map][6].dp0_tc = tc6;
+        conf.qos_to_tc_map[map][7].dp0_tc = tc7;
+    }
+    else {
+        conf.qos_to_tc_map[map][0].dp1_tc = tc0;
+        conf.qos_to_tc_map[map][1].dp1_tc = tc1;
+        conf.qos_to_tc_map[map][2].dp1_tc = tc2;
+        conf.qos_to_tc_map[map][3].dp1_tc = tc3;
+        conf.qos_to_tc_map[map][4].dp1_tc = tc4;
+        conf.qos_to_tc_map[map][5].dp1_tc = tc5;
+        conf.qos_to_tc_map[map][6].dp1_tc = tc6;
+        conf.qos_to_tc_map[map][7].dp1_tc = tc7;
+    }
+    TRY_RC(vtss_mpls_tc_conf_set(NULL, &conf), "Can't set TC config");
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = mpls tc-to-qos map <0-7> qos-dp <0-7> <0-1> <0-7> <0-1> <0-7> <0-1> <0-7> <0-1> <0-7> <0-1> <0-7> <0-1> <0-7> <0-1> <0-7> <0-1>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME =
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = map
+CMD_VAR =
+CMD_VAR = q0
+CMD_VAR = dp0
+CMD_VAR = q1
+CMD_VAR = dp1
+CMD_VAR = q2
+CMD_VAR = dp2
+CMD_VAR = q3
+CMD_VAR = dp3
+CMD_VAR = q4
+CMD_VAR = dp4
+CMD_VAR = q5
+CMD_VAR = dp5
+CMD_VAR = q6
+CMD_VAR = dp6
+CMD_VAR = q7
+CMD_VAR = dp7
+
+VARIABLE_BEGIN
+    vtss_mpls_tc_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_RC(vtss_mpls_tc_conf_get(NULL, &conf), "Can't get TC config");
+
+    conf.tc_to_qos_map[map][0].qos = q0;  conf.tc_to_qos_map[map][0].dp = dp0;
+    conf.tc_to_qos_map[map][1].qos = q1;  conf.tc_to_qos_map[map][1].dp = dp1;
+    conf.tc_to_qos_map[map][2].qos = q2;  conf.tc_to_qos_map[map][2].dp = dp2;
+    conf.tc_to_qos_map[map][3].qos = q3;  conf.tc_to_qos_map[map][3].dp = dp3;
+    conf.tc_to_qos_map[map][4].qos = q4;  conf.tc_to_qos_map[map][4].dp = dp4;
+    conf.tc_to_qos_map[map][5].qos = q5;  conf.tc_to_qos_map[map][5].dp = dp5;
+    conf.tc_to_qos_map[map][6].qos = q6;  conf.tc_to_qos_map[map][6].dp = dp6;
+    conf.tc_to_qos_map[map][7].qos = q7;  conf.tc_to_qos_map[map][7].dp = dp7;
+
+    TRY_RC(vtss_mpls_tc_conf_set(NULL, &conf), "Can't set TC config");
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = show mpls xc [<uint>]
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = xc_idx
+
+VARIABLE_BEGIN
+    const char const * xc_type_to_str[VTSS_MPLS_XC_TYPE_LER+1] = { "LSR", "LER" };
+    vtss_mpls_xc_t     xc;
+    u32                low=0, high=XC_CNT;
+
+    xc_idx = 0xffff;
+VARIABLE_END
+
+CODE_BEGIN
+    if (xc_idx != 0xffff) {
+        TRY_BOOLf(xc_idx < XC_CNT, "XC index out-of-range 0-%d", XC_CNT-1);
+        TRY_BOOLf(xc_list_get(xc_idx) != -1, "XC %u isn't configured", xc_idx);
+        low = xc_idx;
+        high = xc_idx + 1;
+    }
+
+    for (xc_idx = low; xc_idx < high; xc_idx++) {
+        if (xc_list_get(xc_idx) != -1) {
+            TRY_RCf(vtss_mpls_xc_get(NULL, xc_list_get(xc_idx), &xc), "Can't get XC %d, API index %d", xc_idx, xc_list_get(xc_idx));
+
+            ICLI_PRINTF("XC %d (API index %d): type %s, in-seg %d, out-seg %d\n",
+                xc_idx, xc_list_get(xc_idx), xc_type_to_str[xc.type], xc.in_seg_idx, xc.out_seg_idx);
+
+            if (VTSS_MPLS_IDX_IS_DEF(xc.in_seg_idx)) {
+                pr_seg(session_id, xc.in_seg_idx);
+            }
+
+            if (VTSS_MPLS_IDX_IS_DEF(xc.out_seg_idx)) {
+                pr_seg(session_id, xc.out_seg_idx);
+            }
+
+            ICLI_PRINTF("\n");
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = show mpls l2 [<uint>]
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = l2_idx
+
+VARIABLE_BEGIN
+    l2_idx = 0xffff;
+VARIABLE_END
+
+CODE_BEGIN
+    if (l2_idx == 0xffff) {
+        for (l2_idx = 0; l2_idx < L2_CNT; l2_idx++) {
+            if (l2_list_get(l2_idx) != -1) {
+                pr_l2(session_id, l2_idx);
+            }
+        }
+    }
+    else {
+        TRY_BOOLf(l2_list_get(l2_idx) != -1, "L2 %u isn't configured", l2_idx);
+        pr_l2(session_id, l2_idx);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = show mpls qos-to-tc map <0-7> [dp0] [dp1]
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+RUNTIME =
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = map
+CMD_VAR = has_dp0
+CMD_VAR = has_dp1
+
+VARIABLE_BEGIN
+    vtss_mpls_tc_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_RC(vtss_mpls_tc_conf_get(NULL, &conf), "Can't get TC config");
+
+    if (!has_dp0  &&  !has_dp1) {
+        has_dp0 = has_dp1 = TRUE;
+    }
+
+    if (has_dp0) {
+        ICLI_PRINTF("QoS-to-TC map %d for DP=0: 0=>%d 1=>%d 2=>%d 3=>%d 4=>%d "
+                    "5=>%d 6=>%d 7=>%d\n", map,
+                    conf.qos_to_tc_map[map][0].dp0_tc, conf.qos_to_tc_map[map][1].dp0_tc,
+                    conf.qos_to_tc_map[map][2].dp0_tc, conf.qos_to_tc_map[map][3].dp0_tc,
+                    conf.qos_to_tc_map[map][4].dp0_tc, conf.qos_to_tc_map[map][5].dp0_tc,
+                    conf.qos_to_tc_map[map][6].dp0_tc, conf.qos_to_tc_map[map][7].dp0_tc);
+    }
+    if (has_dp1) {
+        ICLI_PRINTF("QoS-to-TC map %d for DP=1: 0=>%d 1=>%d 2=>%d 3=>%d 4=>%d "
+                    "5=>%d 6=>%d 7=>%d\n", map,
+                    conf.qos_to_tc_map[map][0].dp1_tc, conf.qos_to_tc_map[map][1].dp1_tc,
+                    conf.qos_to_tc_map[map][2].dp1_tc, conf.qos_to_tc_map[map][3].dp1_tc,
+                    conf.qos_to_tc_map[map][4].dp1_tc, conf.qos_to_tc_map[map][5].dp1_tc,
+                    conf.qos_to_tc_map[map][6].dp1_tc, conf.qos_to_tc_map[map][7].dp1_tc);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = show mpls tc-to-qos map <0-7>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+RUNTIME =
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = map
+
+VARIABLE_BEGIN
+    vtss_mpls_tc_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    TRY_RC(vtss_mpls_tc_conf_get(NULL, &conf), "Can't get TC config");
+
+    ICLI_PRINTF("TC-to-(QoS,DP) map %d: 0=>%d,%d 1=>%d,%d 2=>%d,%d 3=>%d,%d 4=>%d,%d "
+                "5=>%d,%d 6=>%d,%d 7=>%d,%d\n", map,
+                conf.tc_to_qos_map[map][0].qos, conf.tc_to_qos_map[map][0].dp,
+                conf.tc_to_qos_map[map][1].qos, conf.tc_to_qos_map[map][1].dp,
+                conf.tc_to_qos_map[map][2].qos, conf.tc_to_qos_map[map][2].dp,
+                conf.tc_to_qos_map[map][3].qos, conf.tc_to_qos_map[map][3].dp,
+                conf.tc_to_qos_map[map][4].qos, conf.tc_to_qos_map[map][4].dp,
+                conf.tc_to_qos_map[map][5].qos, conf.tc_to_qos_map[map][5].dp,
+                conf.tc_to_qos_map[map][6].qos, conf.tc_to_qos_map[map][6].dp,
+                conf.tc_to_qos_map[map][7].qos, conf.tc_to_qos_map[map][7].dp);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_MPLS)
+
+COMMAND = show mpls evc <uint>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+RUNTIME =
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = evc_idx
+
+VARIABLE_BEGIN
+    vtss_evc_conf_t evc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (evc_idx < 1  &&  evc_idx > VTSS_EVCS) {
+        ICLI_PRINTF("%% EVC idx out of range; use 1-%d", VTSS_EVCS);
+        return ICLI_RC_ERROR;
+    }
+
+    TRY_RCf(vtss_evc_get(NULL, evc_idx - 1, &evc), "Can't get EVC %d", evc_idx);
+
+    ICLI_PRINTF("EVC %d: In XC API idx %d, Out XC API idx %d, VID %d, IVID %d\n",
+        evc_idx, evc.network.mpls_tp.pw_ingress_xc, evc.network.mpls_tp.pw_egress_xc,
+        evc.network.pb.vid, evc.network.pb.ivid);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+

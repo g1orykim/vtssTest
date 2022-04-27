@@ -1,0 +1,472 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Performance Monitor Delay Measurement Statistics</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_perf_mon_dm_statistics.htm";
+
+var timerID;
+var reqObject;
+var selectAllText = "All";
+var selectInstanceId = selectAllText, selectIntervalId = selectAllText;
+
+function pageCtrlUpdate()
+{
+    var fld_v1 = document.getElementById("selectIntervalId").value == selectAllText;
+    var fld_v2 = document.getElementById("selectInstanceId").value == selectAllText;
+    var fld = document.getElementById("pageCtrl");
+    if (!fld_v1 && fld_v2) {
+        fld.style.display = "";
+    } else {
+        fld.style.display = "none";
+    }
+}
+
+function isValidInstanceID()
+{
+    var fld = document.getElementById("selectInstanceId");
+    if (fld.value != selectAllText) {
+        if (!isWithinRange("selectInstanceId", 1, configPerfMonDMInstanceMax, "'MEP Instance'")) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function onclickInstanceChkBox()
+{
+    var fld = document.getElementById("selectInstanceId");
+    if (document.getElementById("instanceChkBox").checked) {
+        fld.disabled = "";
+        fld.value = selectInstanceId == selectAllText ? "" : selectInstanceId;
+    } else {
+        fld.disabled = "disabled";
+        fld.value = selectAllText;
+    }
+    pageCtrlUpdate();
+}
+
+function isValidIntervalID()
+{
+    var fld = document.getElementById("selectIntervalId");
+    if (fld.value != selectAllText) {
+        if (!isWithinRange("selectIntervalId", 1, 0xFFFFFFFF, "'Measurement Interval ID'")) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function onclickIntervalChkBox()
+{
+    var fld = document.getElementById("selectIntervalId");
+    if (document.getElementById("intervalChkBox").checked) {
+        fld.disabled = "";
+        fld.value = selectIntervalId == selectAllText ? "" : selectIntervalId;
+    } else {
+        fld.disabled = "disabled";
+        fld.value = selectAllText;
+    }
+    pageCtrlUpdate();
+}
+
+function CreateTableHeader(frag)
+{
+    var tr, td, i;
+    var detailChkBox = document.getElementById("detailChkBox").checked;
+    var header_row_num = 3, onewayUnit = 1, twowayUnit = 1;
+
+    if (document.getElementById("onewayUnit").checked) {
+        twowayUnit = 0;
+    } else if (document.getElementById("twowayUnit").checked) {
+        onewayUnit = 0;
+        header_row_num = 2;
+    }
+
+    // 1st
+    tr = CreateStyledElement("tr", "display_header");
+    td = addTextHeaderCell(tr, "Measurement", "hdrc", 1, header_row_num);
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("Interval ID"));
+    td = addTextHeaderCell(tr, "MEP", "hdrc", 1, header_row_num);
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("Instance"));
+    td = addTextHeaderCell(tr, "Residence", "hdrc", 1, header_row_num);
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("Port"));
+    addTextHeaderCell(tr, "Priority", "hdrc", 1, header_row_num);
+    addTextHeaderCell(tr, "Rate", "hdrc", 1, header_row_num);
+    addTextHeaderCell(tr, "Unit", "hdrc", 1, header_row_num);
+    addTextHeaderCell(tr, "TX", "hdrc", 1, header_row_num);
+    addTextHeaderCell(tr, "RX", "hdrc", 1, header_row_num);
+    if (onewayUnit) {
+        addTextHeaderCell(tr, "One-way Delay", "hdrc", 8);
+    }
+    if (twowayUnit) {
+        addTextHeaderCell(tr, "Two-way Delay", "hdrc", 4);
+    }
+    if (detailChkBox) {
+        addTextHeaderCell(tr, "MEP Details", "hdrc", 9);
+    }
+    frag.appendChild(tr);       // Add row to fragment
+
+    // 2nd Row
+    tr = CreateStyledElement("tr", "display_header");
+    --header_row_num;
+    if (onewayUnit) {
+        tr = CreateStyledElement("tr", "display_header");
+        addTextHeaderCell(tr, "Far to Near", "hdrc", 4);
+        addTextHeaderCell(tr, "Near to Far", "hdrc", 4);
+    }
+
+    // Two Way Delay
+    if (twowayUnit) {
+        addTextHeaderCell(tr, "Average", "hdrc", 1, header_row_num);
+        td = addTextHeaderCell(tr, "Average", "hdrc", 1, header_row_num);
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Delay"));
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Variation"));
+        addTextHeaderCell(tr, "Min.", "hdrc", 1, header_row_num);
+        addTextHeaderCell(tr, "Max.", "hdrc", 1, header_row_num);
+    }
+
+    // MEP details
+    if (detailChkBox) {
+        addTextHeaderCell(tr, "Domain", "hdrc", 1, header_row_num);
+        addTextHeaderCell(tr, "Direction", "hdrc", 1, header_row_num);
+        addTextHeaderCell(tr, "Level", "hdrc", 1, header_row_num);
+        td = addTextHeaderCell(tr, "Flow", "hdrc", 1, header_row_num);
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Instance"));
+        td = addTextHeaderCell(tr, "Tagged", "hdrc", 1, header_row_num);
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("VID"));
+        addTextHeaderCell(tr, "MEP ID", "hdrc", 1, header_row_num);
+        addTextHeaderCell(tr, "MAC Address", "hdrc", 1, header_row_num);
+        td = addTextHeaderCell(tr, "Peer", "hdrc", 1, header_row_num);
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("MEP ID"));
+        td = addTextHeaderCell(tr, "Peer", "hdrc", 1, header_row_num);
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("MAC Address"));
+    }
+    frag.appendChild(tr);       // Add row to fragment
+
+    // 3rd Row
+    if (onewayUnit) {
+        tr = CreateStyledElement("tr", "display_header");
+        
+        // Far to Near Delay
+        addTextHeaderCell(tr, "Average", "hdrc");
+        td = addTextHeaderCell(tr, "Average", "hdrc");
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Delay"));
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Variation"));
+        addTextHeaderCell(tr, "Min.", "hdrc");
+        addTextHeaderCell(tr, "Max.", "hdrc");
+        
+        // Near to Far Delay
+        addTextHeaderCell(tr, "Average", "hdrc");
+        td = addTextHeaderCell(tr, "Average", "hdrc");
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Delay"));
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Variation"));
+        addTextHeaderCell(tr, "Min.", "hdrc");
+        addTextHeaderCell(tr, "Max.", "hdrc");
+        frag.appendChild(tr);       // Add row to fragment
+    }
+}
+
+function addRow(index, frag, values)
+{
+/*
+    var oneway_column_num = 0, twoway_column_num = 0;
+    if (!document.getElementById("bothUnit").checked) {
+        if (!document.getElementById("onewayUnit").checked) {
+            oneway_column_num = 8;
+        }
+        if (!document.getElementById("twowayUnit").checked) {
+            twoway_column_num = 4;
+        }
+    }
+    var detail_column_num = 0;
+    if (!document.getElementById("detailChkBox").checked) {
+        detail_column_num = 9;
+    }
+
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addLink(tr, "cr", "perf_mon_sysinfo.htm?page_info_type=1&page_start_id=" + values[0] + "&page_entries_num=1", values[0]);
+    for (var idx = 1; idx < values.length - (oneway_column_num + twoway_column_num + detail_column_num); idx++) {
+        addTextCell(tr, values[idx], "cr");
+    }
+    frag.appendChild(tr);   // Add row to fragment
+*/
+
+    var idx;
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addLink(tr, "cr", "perf_mon_interval_info.htm?page_info_type=1&page_start_id=" + values[0] + "&page_entries_num=1", values[0]);
+    for (idx = 0; idx < 7; idx++) {
+        addTextCell(tr, values[idx+1], "cr");
+    }
+
+    var counter_filter = Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    if (document.getElementById("onewayUnit").checked) {
+        counter_filter = Array(0, 0, 0, 0, 0, 0, 0, 0, 9, 10, 11, 12);
+    } else if (document.getElementById("twowayUnit").checked) {
+        counter_filter = Array(1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0, 0);
+    }
+    for (idx = 0; idx < counter_filter.length; idx++) {
+        if (counter_filter[idx]) {
+            continue;
+        }
+        addTextCell(tr, values[idx+8], "cr");
+    }
+
+    if (document.getElementById("detailChkBox").checked) {
+        for (idx = 0; idx < 9; idx++) {
+            addTextCell(tr, values[idx+20], "cr");
+        }
+    }
+
+    frag.appendChild(tr);   // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format: [selected_interval_id];[selected_instance_id];
+    //         [interval_id]/[instance_id]/
+    //         [port]/[priority]/[rate]/[unit]/
+    //         [tx_count]/[rx_count]/
+    //         [oneway_F2N_average]/[oneway_F2N_variation]/[oneway_F2N_min]/[oneway_F2N_max]/
+    //         [oneway_N2F_average]/[oneway_N2F_variation]/[oneway_N2F_min]/[oneway_N2F_max]/
+    //         [twoway_F2N_average]/[twoway_F2N_variation]/[twoway_F2N_min]/[twoway_F2N_max]/
+    //         [domain]/[direction]/[level]/[flow]/[vid]/[mep_id]/[mac]/[peer_mep_id]/[peer_mac]|...
+
+    reqObject = req;
+
+    var tbl = document.createElement("table");
+    var tbl_body = document.createElement("tbody");
+    tbl.className = "display";
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    if (req.responseText) {
+        var displayData = req.responseText.split(";");
+
+        // Update selectIntervalId
+        var fld = document.getElementById("selectIntervalId");
+        selectIntervalId = fld.value = displayData[0];
+        if (selectIntervalId == selectAllText) {
+            document.getElementById("intervalChkBox").checked = false;
+            fld.disabled = "disabled";
+        } else {
+            document.getElementById("intervalChkBox").checked = true;
+            fld.disabled = "";
+        }
+
+        // Update selectInstanceId
+        fld = document.getElementById("selectInstanceId");
+        selectInstanceId = fld.value = displayData[1];
+        if (selectInstanceId == selectAllText) {
+            document.getElementById("instanceChkBox").checked = false;
+            fld.disabled = "disabled";
+        } else {
+            document.getElementById("instanceChkBox").checked = true;
+            fld.disabled = "";
+        }
+
+        // Update entry row
+        if (displayData[2]) {
+            var counterData = displayData[2].split("|");
+            for (var i = 0, j = 0; i < counterData.length; i++) {
+                if (counterData[i]) {
+                    addRow(j++, frag, counterData[i].split("/"));
+                }
+            }
+        } else {
+            tr = CreateStyledElement("tr", "notice");
+            addTextCell(tr, "No more entries", "cl", 29);
+            frag.appendChild(tr);
+        }
+    }
+
+    tbl_body.appendChild(frag);   // Add row to fragment
+    tbl.appendChild(tbl_body);
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(tbl)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    // Update page control bar
+    pageCtrlUpdate();
+
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh && autorefresh.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout("requestUpdate('refresh')", settingsRefreshInterval());
+    }
+}
+
+function checkForm()
+{
+    if (!(isValidIntervalID) || !isValidInstanceID()) {
+        return false;
+    }
+    return true;
+}
+
+function requestUpdate(ctrl_flag)
+{
+    // Format: [ctrl_flag]
+    // 0:init 1:refresh 2:firstPage 3:previousPage 4:nextPage 5:lastPage 6:deleteall
+
+    if (!checkForm()) {
+        return false;
+    }
+
+    selectInstanceId = document.getElementById("selectInstanceId").value;
+    selectIntervalId = document.getElementById("selectIntervalId").value;
+
+    var ctrl_flag_value = 0;
+    switch(ctrl_flag) {
+        case 'refresh':
+            ctrl_flag_value = 1;
+            break;
+        case 'firstPage':
+            ctrl_flag_value = 2;
+            break;
+        case 'previousPage':
+            ctrl_flag_value = 3;
+            break;
+        case 'nextPage':
+            ctrl_flag_value = 4;
+            break;
+        case 'lastPage':
+            ctrl_flag_value = 5;
+            break;
+        case 'deleteall':
+            ctrl_flag_value = 6;
+            break;
+        case 'init':
+        default:
+            ctrl_flag_value = 0;
+            break;
+    }
+
+    loadXMLDoc("/stat/perf_mon_dm_statistics?ctrl_flag=" + ctrl_flag_value + "&interval_id=" + selectIntervalId + "&instance_id=" + selectInstanceId, processUpdate, 'displayTable');
+    return true;
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate('refresh');
+    }
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate('init');">
+
+<h1>Performance Monitor Delay Measurement Statistics</h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh"  onclick="chkRefresh(this);">
+  <input type="button"   value="Refresh"    id="refresh"      onclick="requestUpdate('refresh');      this.blur();">
+  <input type="button"   value="Delete All" id="deleteall"    onclick="requestUpdate('deleteall');    this.blur();" title="Delete all entries">
+  <span id="pageCtrl" style="display:none;">
+    <input type="button"   value=" |<< "      id="firstPage"    onclick="requestUpdate('firstPage');    this.blur();" title="First Interval ID">
+    <input type="button"   value=" << "       id="previousPage" onclick="requestUpdate('previousPage'); this.blur();" title="Previous Interval ID">
+    <input type="button"   value=" >> "       id="nextPage"     onclick="requestUpdate('nextPage');     this.blur();" title="Next Interval ID">
+    <input type="button"   value=" >>| "      id="lastPage"     onclick="requestUpdate('lastPage');     this.blur();" title="Last Interval ID">
+  </span>
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<div>
+  <input type="checkbox" id="intervalChkBox" name="intervalChkBox" onchange="onclickIntervalChkBox();">
+  <label id="selectIntervalIdText" for="selectIntervalId">Measurement Interval ID</label>
+  <input type="text" id="selectIntervalId" name="selectIntervalId" maxlength="10" size="10" value="All" disabled>,
+  <input type="checkbox" id="instanceChkBox" name="instanceChkBox" onchange="onclickInstanceChkBox();">
+  <label id="selectInstanceIdText" for="selectInstanceId">MEP Instance</label>
+  <input type="text" id="selectInstanceId" name="selectInstanceId" maxlength="3" size="3" value="All" disabled>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <input type="radio" name="unit" id="onewayUnit" onclick="processUpdate(reqObject, 'displayTable');">One-way
+  <input type="radio" name="unit" id="twowayUnit" onclick="processUpdate(reqObject, 'displayTable');" checked="checked">Two-way
+  <input type="radio" name="unit" id="bothUnit"   onclick="processUpdate(reqObject, 'displayTable');">Both
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <input type="checkbox" id="detailChkBox" name="detailChkBox" onclick="processUpdate(reqObject, 'displayTable');">MEP Detailed Info.
+</div>
+&nbsp;
+
+<div id="displayTable">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

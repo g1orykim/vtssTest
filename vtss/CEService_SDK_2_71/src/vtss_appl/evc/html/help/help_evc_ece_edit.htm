@@ -1,0 +1,1013 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>ECE Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="../lib/config.js"></script>
+ <script type="text/javascript">
+function requestUpdate()
+{
+    document.getElementById('EvcIdMax').innerHTML = configEvcIdMax;
+    document.getElementById('EvcPolicerIdMax').innerHTML = configEvcPolicerIdMax;
+    document.getElementById('EvcPolicerIdMax1').innerHTML = configEvcPolicerIdMax;
+    document.getElementById('AclPolicyMax').innerHTML = configPolicyMax;
+    document.getElementById('QosClassMax').innerHTML = configQosClassMax;
+    document.getElementById('QosClassMax1').innerHTML = configQosClassMax;
+}
+ </script>
+</head>
+
+<body onload="requestUpdate();">
+<h1>ECE Configuration Help</h1>
+<p>This page displays current <a href="glossary.htm#ECE" class="glossary">ECE</a> configurations. The settings can also be configured here.</p>
+
+<h2>UNI Ports</h2>
+<dl>
+ <dd>
+ The list of User Network Interfaces for the ECE.
+ </dd>
+</dl>
+
+<h2>UNI Matching</h2>
+<dl>
+ <dt class="has_arch_serval">Lookup</dt>
+ <dd class="has_arch_serval">
+ The looup type for matching the ECE.
+ The allowed values are:
+ <br><samp>Basic</samp>: First lookup for basic classification.
+ <br><samp>Advanced</samp>: Second lookup for advanced classification.
+ </dd>
+
+ <dt>Tag Type</dt>
+ <dd>
+ The tag type for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: The ECE will match both tagged and untagged frames.
+ <br><samp>Untagged</samp>: The ECE will match untagged frames only.
+ <br><samp>C-Tagged</samp>: The ECE will match custom tagged frames only.
+ <br><samp>S-Tagged</samp>: The ECE will match service tagged frames only.
+ <br><samp>Tagged</samp>: The ECE will match tagged frames only.
+ </dd>
+
+ <dt><a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a> Filter</dt>
+ <dd>
+ The <a href="glossary.htm#vlan" class="glossary">VLAN</a> ID filter for matching the ECE. It only significant if tag type 'Tagged' is selected.
+ The possible values are:
+ <br><samp>Any</samp>: No VLAN ID filter is specified. (VLAN ID filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific VLAN ID value with this ECE, choose this value. A field for entering a specific value appears.
+ <br><samp>Range</samp>: If you want to filter a specific VLAN ID range filter with this ECE, choose this value. A field for entering a range appears.
+ </dd>
+
+ <dt>VLAN ID Value</dt>
+ <dd>
+ When "Specific" is selected for the VLAN ID filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt>VLAN ID Range</dt>
+ <dd>
+ When "Range" is selected for the VLAN ID filter, you can enter a specific range.
+ The allowed range is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt><a href="glossary.htm#PCP" class="glossary">PCP</a></dt>
+ <dd>
+ The PCP value for matching the ECE. It only significant if tag type 'Tagged' is selected.
+ The possible values are:
+ <br><samp>Any</samp>: The ECE will match any PCP value.
+ <br><samp>Specific</samp>: The ECE will match a specific PCP in the range <samp>0</samp> through <samp>7</samp>.
+ <br><samp>Range</samp>: The ECE will match PCP values in the selected range <samp>0-1</samp>, <samp>2-3</samp>, <samp>4-5</samp>, <samp>6-7</samp>, <samp>0-3</samp> or <samp>4-7</samp>.
+ </dd>
+
+ <dt><a href="glossary.htm#DEI" class="glossary">DEI</a></dt>
+ <dd>
+ The DEI value for matching the ECE. It only significant if tag type 'Tagged' is selected.
+ The allowed value is: <samp>0</samp>, <samp>1</samp> or <samp>Any</samp>.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">Inner Tag Type</dt>
+ <dd class="has_arch_jaguar_1">
+ The inner tag type for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: The ECE will match both tagged and untagged frames.
+ <br><samp>Tagged</samp>: The ECE will match tagged frames only.
+ <br><samp>C-Tagged</samp>: The ECE will match custom tagged frames only.
+ <br><samp>S-Tagged</samp>: The ECE will match service tagged frames only.
+ <br><samp>Untagged</samp>: The ECE will match untagged frames only.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">Inner VLAN ID Filter</dt>
+ <dd class="has_arch_jaguar_1">
+ The inner VLAN ID filter for matching the ECE. It only significant if tag type 'Tagged' is selected.
+ The possible values are:
+ <br><samp>Any</samp>: No inner VLAN ID filter is specified. (Inner VLAN ID filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific inner VLAN ID value with this ECE, choose this value. A field for entering a specific value appears.
+ <br><samp>Range</samp>: If you want to filter a specific inner VLAN ID range filter with this ECE, choose this value. A field for entering a range appears.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">Inner VLAN ID Value</dt>
+ <dd class="has_arch_jaguar_1">
+ When "Specific" is selected for the VLAN ID filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">Inner VLAN ID Range</dt>
+ <dd class="has_arch_jaguar_1">
+ When "Range" is selected for the VLAN ID filter, you can enter a specific range.
+ The allowed range is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">Inner Tag PCP</dt>
+ <dd class="has_arch_jaguar_1">
+ The inner PCP value for matching the ECE. It only significant if inner tag type 'Tagged' is selected.
+ The possible values are:
+ <br><samp>Any</samp>: The ECE will match any PCP value.
+ <br><samp>Range</samp>: The ECE will match PCP values in the selected range <samp>0-1</samp>, <samp>2-3</samp>, <samp>4-5</samp>, <samp>6-7</samp>, <samp>0-3</samp> or <samp>4-7</samp>.
+ <br><samp>Specific</samp>: The ECE will match a specific PCP in the range <samp>0</samp> through <samp>7</samp>.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">Inner Tag DEI</dt>
+ <dd class="has_arch_jaguar_1">
+ The inner DEI value for matching the ECE. It only significant if inner tag type 'Tagged' is selected.
+ The allowed value is: <samp>0</samp>, <samp>1</samp> or <samp>Any</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Inner Tag Type</dt>
+ <dd class="has_arch_serval">
+ The inner tag type for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: The ECE will match both tagged and untagged frames.
+ <br><samp>Untagged</samp>: The ECE will match untagged frames only.
+ <br><samp>Tagged</samp>: The ECE will match tagged frames only.
+ </dd>
+
+ <dt class="has_arch_serval">Inner VLAN ID Filter</dt>
+ <dd class="has_arch_serval">
+ The inner VLAN ID filter for matching the ECE. It only significant if tag type 'Tagged' is selected.
+ The possible values are:
+ <br><samp>Any</samp>: No inner VLAN ID filter is specified. (Inner VLAN ID filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific inner VLAN ID value with this ECE, choose this value. A field for entering a specific value appears.
+ <br><samp>Range</samp>: If you want to filter a specific inner VLAN ID range filter with this ECE, choose this value. A field for entering a range appears.
+ </dd>
+
+ <dt class="has_arch_serval">Inner VLAN ID Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the VLAN ID filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Inner VLAN ID Range</dt>
+ <dd class="has_arch_serval">
+ When "Range" is selected for the VLAN ID filter, you can enter a specific range.
+ The allowed range is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Inner Tag PCP</dt>
+ <dd class="has_arch_serval">
+ The inner PCP value for matching the ECE. It only significant if inner tag type 'Tagged' is selected.
+ The possible values are:
+ <br><samp>Any</samp>: The ECE will match any PCP value.
+ <br><samp>Range</samp>: The ECE will match PCP values in the selected range <samp>0-1</samp>, <samp>2-3</samp>, <samp>4-5</samp>, <samp>6-7</samp>, <samp>0-3</samp> or <samp>4-7</samp>.
+ <br><samp>Specific</samp>: The ECE will match a specific PCP in the range <samp>0</samp> through <samp>7</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Inner Tag DEI</dt>
+ <dd class="has_arch_serval">
+ The inner DEI value for matching the ECE. It only significant if inner tag type 'Tagged' is selected.
+ The allowed value is: <samp>0</samp>, <samp>1</samp> or <samp>Any</samp>.
+ </dd>
+
+ <dt>Frame Type</dt>
+ <dd>
+ The frame type for the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: The ECE will match any frame type.
+ <br><samp>IPv4</samp>: The ECE will match IPv4 frames only.
+ <br><samp>IPv6</samp>: The ECE will match IPv6 frames only.
+ </dd>
+ <dd class="has_arch_serval">
+ <samp>Ethernet Type</samp>: The ECE will match Ethernet type frames only.
+ <br><samp>LLC</samp>: The ECE will match LLC frames only.
+ <br><samp>SNAP</samp>: The ECE will match SNAP frames only.
+ <br><samp>L2CP</samp>: The ECE will match L2CP frames only.
+ </dd>
+
+ <dt class="has_arch_jaguar_1"><a href="glossary.htm#dscp" class="glossary">DSCP</a> Filter</dt>
+ <dd class="has_arch_jaguar_1">
+ The DSCP filter for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No DSCP filter is specified. (DSCP filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific DSCP value with this ECE, choose this value. A field for entering a specific value appears.
+ <br><samp>Range</samp>: If you want to filter a specific DSCP range filter with this ECE, choose this value. A field for entering a range appears.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">DSCP Value</dt>
+ <dd class="has_arch_jaguar_1">
+ When "Specific" is selected for the DSCP filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>63</samp>.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">DSCP Range</dt>
+ <dd class="has_arch_jaguar_1">
+ When "Range" is selected for the DSCP filter, you can enter a specific range.
+ The allowed range is from <samp>0</samp> through <samp>63</samp>.
+ </dd>
+</dl>
+
+<h2 class="has_arch_luton26">MAC Parameters</h2>
+<dl>
+ <dt class="has_arch_luton26">SMAC/DMAC Filter</dt>
+ <dd class="has_arch_luton26">
+ The source/destination MAC address for matching the ECE.
+ It depend on by the port address mode, when port address mode is set to 'Source' then the field is used for source MAC address.
+ Similarly when port address mode is set to 'Destination' then the field is used for destination MAC address.
+ The possible values are:
+ <br><samp>Any</samp>: No SMAC/DMAC filter is specified. (SMAC/DMAC filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific SMAC/DMAC value with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt class="has_arch_luton26">SMAC/DMAC Value</dt>
+ <dd class="has_arch_luton26">
+ When "Specific" is selected for the SMAC/DMAC filter, you can enter a specific value.
+ The legal format is "xx-xx-xx-xx-xx-xx" or "xx.xx.xx.xx.xx.xx" or "xxxxxxxxxxxx" (x is a hexadecimal digit).
+ </dd>
+
+ <dt class="has_arch_luton26">DMAC Type</dt>
+ <dd class="has_arch_luton26">
+ The destination MAC address for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No destination MAC address is specified.
+ <br><samp>Unicast</samp>: Frame must be unicast.
+ <br><samp>Multicast</samp>: Frame must be multicast.
+ <br><samp>Broadcast</samp>: Frame must be broadcast.
+ </dd>
+</dl>
+
+<h2 class="has_arch_luton26">IP Parameters</h2>
+<dl>
+ <dt class="has_arch_luton26">Protocol Filter</dt>
+ <dd class="has_arch_luton26">
+ The <a href="glossary.htm#ip" class="glossary">IP</a> protocol for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No protocol filter is specified. (Protocol filter status is "don't-care".)
+ <br><samp><a href="glossary.htm#udp" class="glossary">UDP</a></samp>: Specify the UDP for matching the ECE.
+ <br><samp><a href="glossary.htm#tcp" class="glossary">TCP</a></samp>: Specify the TCP for matching the ECE.
+ <br><samp>Specific</samp>: If you want to filter a specific protocol value with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt class="has_arch_luton26">Protocol Value</dt>
+ <dd class="has_arch_luton26">
+ When "Specific" is selected for the protocol filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>255</samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">SIP/DIP Filter</dt>
+ <dd class="has_arch_luton26">
+ The source/destination IP address for matching the ECE.
+ It depend on by the port address mode, when port address mode is set to 'Source' then the field is used for source address.
+ Similarly when port address mode is set to 'Destination' then the field is used for destination address.
+ The possible values are:
+ <br><samp>Any</samp>: No SIP/DIP filter is specified. (SIP/DIP filter status is "don't-care".)
+ <br><samp>Host</samp>: When "IPv4" is selected for the Frame Type, if you want to filter a specific host address with this ECE, choose this value. A field for entering a host address appears.
+ <br><samp>Network</samp>: When "IPv4" is selected for the Frame Type, if you want to filter a specific network address with this ECE, choose this value. Two fields for entering a specific network address and network mask appears.
+ <br><samp>Specific</samp>: When "IPv6" is selected for the Frame Type, if you want to filter a specific network address with this ECE, choose this value. Two fields for entering a specific network address and network mask appears.
+ </dd>
+
+ <dt class="has_arch_luton26">SIP/DIP Address</dt>
+ <dd class="has_arch_luton26">
+ When "IPv4" is selected for the Frame Type and "Host" or "Network" is selected for the SIP/DIP filter, you can enter a specific host or network address.
+ When "IPv6" is selected for the Frame Type, the field only supported 32 bits for IPv6 address.
+ </dd>
+
+ <dt class="has_arch_luton26">SIP/DIP Mask</dt>
+ <dd class="has_arch_luton26">
+ When "IPv4" is selected for the Frame Type and "Host" or "Network" is selected for the SIP/DIP filter, you can enter a specific network mask.
+ When "IPv6" is selected for the Frame Type, the field only supported 32 bits for IPv6 address mask.
+ </dd>
+
+ <dt class="has_arch_luton26">DSCP Filter</dt>
+ <dd class="has_arch_luton26">
+ The DSCP filter for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No DSCP filter is specified. (DSCP filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific DSCP value with this ECE, choose this value. A field for entering a specific value appears.
+ <br><samp>Range</samp>: If you want to filter a specific DSCP range filter with this ECE, choose this value. A field for entering a range appears.
+ </dd>
+
+ <dt class="has_arch_luton26">DSCP Value</dt>
+ <dd class="has_arch_luton26">
+ When "Specific" is selected for the DSCP filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>63</samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">DSCP Range</dt>
+ <dd class="has_arch_luton26">
+ When "Range" is selected for the DSCP filter, you can enter a specific range.
+ The allowed range is from <samp>0</samp> through <samp>63</samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">Fragment</dt>
+ <dd class="has_arch_luton26">
+ The IPv4 Fragment for matching the ECE. This involves the settings for the More Fragments (MF) bit and the Fragment Offset (FRAG OFFSET) field for an IPv4 frame.
+ The possible values are:
+ <br><samp>Any</samp>: The ECE will match any MF bit.
+ <br><samp>Non-Fragment</samp>: IPv4 frames where the MF bit is set or the FRAG OFFSET field is greater than zero must not be able to match this entry.
+ <br><samp>Fragment</samp>: IPv4 frames where the MF bit is set or the FRAG OFFSET field is greater than zero must be able to match this entry.
+ </dd>
+</dl>
+
+<h2 class="has_arch_luton26">UDP/TCP Parameters</h2>
+<dl>
+ <dt class="has_arch_luton26">Source Port Filter</dt>
+ <dd class="has_arch_luton26">
+ The TCP/UDP source port for matching the ECE. It only significant if protocol filter 'UDP' or 'TCP' is selected.
+ The possible values are:
+ <br><samp>Any</samp>: No TCP/UDP source port filter is specified. (Source port filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific TCP/UDP source port No. with this ECE, choose this value. A field for entering a specific No. appears.
+ <br><samp>Range</samp>: If you want to filter a specific TCP/UDP source port range filter with this ECE, choose this value. A field for entering a range appears.
+ </dd>
+
+ <dt class="has_arch_luton26">Source Port No.</dt>
+ <dd class="has_arch_luton26">
+ When "Specific" is selected for the source port filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>65535</samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">Source Port Range</dt>
+ <dd class="has_arch_luton26">
+ When "Range" is selected for the source port filter, you can enter a specific range.
+ The allowed range is from <samp>0</samp> through <samp>65535</samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">Destination Port Filter</dt>
+ <dd class="has_arch_luton26">
+ The TCP/UDP destination port for matching the ECE. It only significant if protocol filter 'UDP' or 'TCP' is selected.
+ The possible values are:
+ <br><samp>Any</samp>: No TCP/UDP destination port filter is specified. (Destination port filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific TCP/UDP destination port No. with this ECE, choose this value. A field for entering a specific No. appears.
+ <br><samp>Range</samp>: If you want to filter a specific TCP/UDP destination port range filter with this ECE, choose this value. A field for entering a range appears.
+ </dd>
+
+ <dt class="has_arch_luton26">Destination Port No.</dt>
+ <dd class="has_arch_luton26">
+ When "Specific" is selected for the destination port filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>65535</samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">Destination Port Range</dt>
+ <dd class="has_arch_luton26">
+ When "Range" is selected for the destination port filter, you can enter a specific range.
+ The allowed range is from <samp>0</samp> through <samp>65535</samp>.
+ </dd>
+</dl>
+
+<h2 class="has_arch_serval">MAC Parameters</h2>
+<dl>
+ <dt class="has_arch_serval">SMAC Filter</dt>
+ <dd class="has_arch_serval">
+ The source MAC address for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No SMAC filter is specified. (SMAC filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific SMAC value with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt class="has_arch_serval">SMAC Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the SMAC filter, you can enter a specific value.
+ The legal format is "xx-xx-xx-xx-xx-xx" or "xx.xx.xx.xx.xx.xx" or "xxxxxxxxxxxx" (x is a hexadecimal digit).
+ </dd>
+
+ <dt class="has_arch_serval">DMAC Filter</dt>
+ <dd class="has_arch_serval">
+ The destination MAC address for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No DMAC filter is specified. (DMAC filter status is "don't-care".)
+ <br><samp>Unicast</samp>: Frame must be unicast.
+ <br><samp>Multicast</samp>: Frame must be multicast.
+ <br><samp>Broadcast</samp>: Frame must be broadcast.
+ <br><samp>Specific</samp>: If you want to filter a specific DMAC value with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt class="has_arch_serval">DMAC Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the DMAC filter, you can enter a specific value.
+ The legal format is "xx-xx-xx-xx-xx-xx" or "xx.xx.xx.xx.xx.xx" or "xxxxxxxxxxxx" (x is a hexadecimal digit).
+ </dd>
+</dl>
+
+<h2 class="has_arch_serval">Ethernet Type Parameters</h2>
+<dl>
+ <dt class="has_arch_serval">Ethernet Type Value Filter</dt>
+ <dd class="has_arch_serval">
+ The Ethernet type value for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No Ethernet type value filter is specified. (Ethernet type filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific Ethernet type value with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt class="has_arch_serval">Ethernet Type Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the Ethernet type filter, you can enter a specific value.
+ The allowed value is from <samp>0x600</samp> through <samp>0xFFFF</samp> but exclude 0x0800(IPv4), 0x806(ARP) and 0x86DD(IPv6).
+ </dd>
+
+ <dt class="has_arch_serval">Ethernet Type Data Filter</dt>
+ <dd class="has_arch_serval">
+ The Ethernet type data for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No Ethernet type data filter is specified. (Ethernet type filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific Ethernet type value with this ECE, choose this value.  Two fields for entering a specific Ethenet type data and data mask appears.
+ </dd>
+
+ <dt class="has_arch_serval">Ethernet Type Data</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the Ethernet type data filter, you can enter a specific value.
+ It a pair of the Ethernet type data and its mask.
+ The allowed value is from <samp>0x0</samp> through <samp>0xFFFF</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Ethernet Type Data Mask</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the Ethernet type data filter, you can enter a specific mask.
+ The allowed value is from <samp>0x0</samp> through <samp>0xFFFF</samp>.
+ </dd>
+</dl>
+
+<h2 class="has_arch_serval">LLC Parameters</h2>
+<dl>
+ <dt class="has_arch_serval">LLC DSAP Filter</dt>
+ <dd class="has_arch_serval">
+ The LLC DSAP for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No LLC DSAP value filter is specified. (LLC DSAP filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific LLC DSAP value with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt class="has_arch_serval">LLC DSAP Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the LLC DSAP filter, you can enter a specific value.
+ The allowed value is from <samp>0x0</samp> through <samp>0xFF</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">LLC SSAP Filter</dt>
+ <dd class="has_arch_serval">
+ The LLC SSAP for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No LLC SSAP value filter is specified. (LLC SSAP filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific LLC SSAP value with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt class="has_arch_serval">LLC SSAP Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the LLC SSAP filter, you can enter a specific value.
+ The allowed value is from <samp>0x0</samp> through <samp>0xFF</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">LLC Control Filter</dt>
+ <dd class="has_arch_serval">
+ The LLC control for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No LLC control value filter is specified. (LLC control filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific LLC control value with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt class="has_arch_serval">LLC Control Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the LLC control filter, you can enter a specific value.
+ The allowed value is from <samp>0x0</samp> through <samp>0xFF</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">LLC Data Filter</dt>
+ <dd class="has_arch_serval">
+ The LLC data for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No LLC data filter is specified. (LLC filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific LLC value with this ECE, choose this value.  Two fields for entering a specific Ethenet type data and data mask appears.
+ </dd>
+
+ <dt class="has_arch_serval">LLC Data</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the LLC data filter, you can enter a specific value.
+ It a pair of the LLC data and its mask.
+ The allowed value is from <samp>0x0</samp> through <samp>0xFFFF</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">LLC Data Mask</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the LLC data filter, you can enter a specific mask.
+ The allowed value is from <samp>0x0</samp> through <samp>0xFFFF</samp>.
+ </dd>
+</dl>
+
+<h2 class="has_arch_serval">SNAP Parameters</h2>
+<dl>
+ <dt class="has_arch_serval">SNAP OUI Filter</dt>
+ <dd class="has_arch_serval">
+ The SNAP OUI for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No SNAP OUI value filter is specified. (SNAP OUI filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific SNAP OUI value with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt class="has_arch_serval">SNAP OUI Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the SNAP OUI filter, you can enter a specific value.
+ The allowed value is from <samp>00-00-00</samp> through <samp>FF-FF-FF</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">SNAP PID Filter</dt>
+ <dd class="has_arch_serval">
+ The SNAP PID for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No SNAP PID value filter is specified. (SNAP PID filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific SNAP PID value with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt class="has_arch_serval">SNAP PID Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the SNAP PID filter, you can enter a specific value.
+ The allowed value is from <samp>0x0</samp> through <samp>0xFFFF</samp>.
+ </dd>
+</dl>
+
+<h2 class="has_arch_serval">IP Parameters</h2>
+<dl>
+ <dt class="has_arch_serval">Protocol Filter</dt>
+ <dd class="has_arch_serval">
+ The IP protocol for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No protocol filter is specified. (Protocol filter status is "don't-care".)
+ <br><samp>UDP</samp>: Specify the UDP for matching the ECE.
+ <br><samp>TCP</samp>: Specify the TCP for matching the ECE.
+ <br><samp>Specific</samp>: If you want to filter a specific protocol value with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt class="has_arch_serval">Protocol Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the protocol filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>255</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">SIP Filter</dt>
+ <dd class="has_arch_serval">
+ The source IP address for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No SIP filter is specified. (SIP filter status is "don't-care".)
+ <br><samp>Host</samp>: When "IPv4" is selected for the Frame Type, if you want to filter a specific host address with this ECE, choose this value. A field for entering a host address appears.
+ <br><samp>Network</samp>: When "IPv4" is selected for the Frame Type, if you want to filter a specific network address with this ECE, choose this value. Two fields for entering a specific network address and network mask appears.
+ <br><samp>Specific</samp>: When "IPv6" is selected for the Frame Type, if you want to filter a specific network address with this ECE, choose this value. Two fields for entering a specific network address and network mask appears.
+ </dd>
+
+ <dt class="has_arch_serval">SIP Address</dt>
+ <dd class="has_arch_serval">
+ When "Host" or "Network" is selected for the SIP filter, you can enter a specific host or network address.
+ When "IPv6" is selected for the Frame Type, the field only supported 32 bits for IPv6 address.
+ </dd>
+
+ <dt class="has_arch_serval">SIP Mask</dt>
+ <dd class="has_arch_serval">
+ When "Host" or "Network" is selected for the SIP filter, you can enter a specific network mask.
+ When "IPv6" is selected for the Frame Type, the field only supported 32 bits for IPv6 address mask.
+ </dd>
+
+ <dt class="has_arch_serval">DIP Filter</dt>
+ <dd class="has_arch_serval">
+ The destination IP address for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No DIP filter is specified. (DIP filter status is "don't-care".)
+ <br><samp>Host</samp>: When "IPv4" is selected for the Frame Type, if you want to filter a specific host address with this ECE, choose this value. A field for entering a host address appears.
+ <br><samp>Network</samp>: When "IPv4" is selected for the Frame Type, if you want to filter a specific network address with this ECE, choose this value. Two fields for entering a specific network address and network mask appears.
+ <br><samp>Specific</samp>: When "IPv6" is selected for the Frame Type, if you want to filter a specific network address with this ECE, choose this value. Two fields for entering a specific network address and network mask appears.
+ </dd>
+
+ <dt class="has_arch_serval">DIP Address</dt>
+ <dd class="has_arch_serval">
+ When "IPv4" is selected for the Frame Type and "Host" or "Network" is selected for the DIP filter, you can enter a specific host or network address.
+ When "IPv6" is selected for the Frame Type, the field only supported 32 bits for IPv6 address.
+ </dd>
+
+ <dt class="has_arch_serval">DIP Mask</dt>
+ <dd class="has_arch_serval">
+ When "IPv4" is selected for the Frame Type and "Host" or "Network" is selected for the DIP filter, you can enter a specific network mask.
+ When "IPv6" is selected for the Frame Type, the field only supported 32 bits for IPv6 address mask.
+ </dd>
+
+ <dt class="has_arch_serval">DSCP Filter</dt>
+ <dd class="has_arch_serval">
+ The DSCP filter for matching the ECE.
+ The possible values are:
+ <br><samp>Any</samp>: No DSCP filter is specified. (DSCP filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific DSCP value with this ECE, choose this value. A field for entering a specific value appears.
+ <br><samp>Range</samp>: If you want to filter a specific DSCP range filter with this ECE, choose this value. A field for entering a range appears.
+ </dd>
+
+ <dt class="has_arch_serval">DSCP Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the DSCP filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>63</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">DSCP Range</dt>
+ <dd class="has_arch_serval">
+ When "Range" is selected for the DSCP filter, you can enter a specific range.
+ The allowed range is from <samp>0</samp> through <samp>63</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Fragment</dt>
+ <dd class="has_arch_serval">
+ The IPv4 Fragment for matching the ECE. This involves the settings for the More Fragments (MF) bit and the Fragment Offset (FRAG OFFSET) field for an IPv4 frame.
+ The possible values are:
+ <br><samp>Any</samp>: The ECE will match any MF bit.
+ <br><samp>Non-Fragment</samp>: IPv4 frames where the MF bit is set or the FRAG OFFSET field is greater than zero must not be able to match this entry.
+ <br><samp>Fragment</samp>: IPv4 frames where the MF bit is set or the FRAG OFFSET field is greater than zero must be able to match this entry.
+ </dd>
+</dl>
+
+<h2 class="has_arch_serval">UDP/TCP Parameters</h2>
+<dl>
+ <dt class="has_arch_serval">Source Port Filter</dt>
+ <dd class="has_arch_serval">
+ The TCP/UDP source port for matching the ECE. It only significant if protocol filter 'UDP' or 'TCP' is selected.
+ The possible values are:
+ <br><samp>Any</samp>: No TCP/UDP source port filter is specified. (Source port filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific TCP/UDP source port No. with this ECE, choose this value. A field for entering a specific No. appears.
+ <br><samp>Range</samp>: If you want to filter a specific TCP/UDP source port range filter with this ECE, choose this value. A field for entering a range appears.
+ </dd>
+
+ <dt class="has_arch_serval">Source Port No.</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the source port filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>65535</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Source Port Range</dt>
+ <dd class="has_arch_serval">
+ When "Range" is selected for the source port filter, you can enter a specific range.
+ The allowed range is from <samp>0</samp> through <samp>65535</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Destination Port Filter</dt>
+ <dd class="has_arch_serval">
+ The TCP/UDP destination port for matching the ECE. It only significant if protocol filter 'UDP' or 'TCP' is selected.
+ The possible values are:
+ <br><samp>Any</samp>: No TCP/UDP destination port filter is specified. (Destination port filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific TCP/UDP destination port No. with this ECE, choose this value. A field for entering a specific No. appears.
+ <br><samp>Range</samp>: If you want to filter a specific TCP/UDP destination port range filter with this ECE, choose this value. A field for entering a range appears.
+ </dd>
+
+ <dt class="has_arch_serval">Destination Port No.</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the destination port filter, you can enter a specific value.
+ The allowed value is from <samp>0</samp> through <samp>65535</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Destination Port Range</dt>
+ <dd class="has_arch_serval">
+ When "Range" is selected for the destination port filter, you can enter a specific range.
+ The allowed range is from <samp>0</samp> through <samp>65535</samp>.
+ </dd>
+</dl>
+
+<h2 class="has_arch_serval">L2CP Parameter</h2>
+<dl>
+ <dt class="has_arch_serval">L2CP Type</dt>
+ <dd class="has_arch_serval">
+ The L2CP type for the ECE.
+ The possible values are:
+ <br><samp>STP/RSTP/MSTP</samp>: Match STP/RSTP/MSTP frames. The destination MAC address is 01-80-C2-00-00-00, LLC value 0x42/0x42 and protocol ID 0x0000.
+ <br><samp>Pause</samp>: Match Pause frames. The destination MAC address is 01-80-C2-00-00-01, Ethernet type value 0x8808.
+ <br><samp>LACP</samp>: Match LACP frames. The destination MAC address is 01-80-C2-00-00-02, Ethernet type 0x8809 and protocol ID 0x01.
+ <br><samp>LAMP</samp>: Match LAMP frames. The destination MAC address is 01-80-C2-00-00-02, Ethernet type 0x8809 and protocol ID 0x02.
+ <br><samp>Link OAM(802.1ah)</samp>: Match Link OAM(802.1ah) frames. The destination MAC address is 01-80-C2-00-00-02, Ethernet type 0x8809 and protocol ID 0x03.
+ <br><samp>Port Authentication(802.1x)</samp>: Match Port Authentication(802.1x) frames. The destination MAC address is 01-80-C2-00-00-03, Ethernet type 0x888E.
+ <br><samp>E-LMI</samp>: Match PB Group Address frames. The destination MAC address is 01-80-C2-00-00-07, Ethernet type 0x88EE.
+ <br><samp>PB Group Address</samp>: Match PB Group Address frames. The destination MAC address is 01-80-C2-00-00-08, LLC value 0x42/0x42 and protocol ID 0x0000.
+ <br><samp>PB GVRP</samp>: Match PB GVRP frames. The destination MAC address is 01-80-C2-00-00-0D, LLC value 0x42/0x42 and protocol ID 0x0001.
+ <br><samp>LLDP</samp>: Match LLDP frames. The destination MAC address is 01-80-C2-00-00-0E, Ethernet type value 0x88CC.
+ <br><samp>GMRP</samp>: Match GMRP frames. The destination MAC address is 01-80-C2-00-00-20, LLC value 0x42/0x42 and protocol ID 0x0001.
+ <br><samp>GVRP</samp>: Match GVRP frames. The destination MAC address is 01-80-C2-00-00-21, LLC value 0x42/0x42 and protocol ID 0x0001.
+ <br><samp>ULD</samp>: Match ULD frames. The destination MAC address is 01-00-0C-CC-CC-CC, SNAP value 0x00000C and protocol ID 0x0111.
+ <br><samp>PAgP</samp>: Match PAgP frames. The destination MAC address is 01-00-0C-CC-CC-CC, SNAP value 0x00000C and protocol ID 0x0104.
+ <br><samp>PVST/PVST+</samp>: Match PVST/PVST+ frames. The destination MAC address is 01-00-0C-CC-CC-CD, SNAP value 0x00000C and protocol ID 0x010B.
+ <br><samp>Cisco BPDU</samp>: Match Cisco BPDU frames. The destination MAC address is 01-00-0C-CC-CC-CE, SNAP value 0x00000C and protocol ID 0x010C.
+ <br><samp>CDP</samp>: Match CDP frames. The destination MAC address is 01-00-0C-CC-CC-CC, SNAP value 0x00000C and protocol ID 0x2000.
+ <br><samp>VTP</samp>: Match VTP frames. The destination MAC address is 01-00-0C-CC-CC-CC, SNAP value 0x00000C and protocol ID 0x2003.
+ <br><samp>DTP</samp>: Match DTP frames. The destination MAC address is 01-00-0C-CC-CC-CC, SNAP value 0x00000C and protocol ID 0x2004.
+ <br><samp>STP Uplink Fast</samp>: Match STP Uplink Fast frames. The destination MAC address is 01-00-0C-CD-CD-CD, SNAP value 0x00000C and protocol ID 0x200A.
+ <br><samp>Cisco CFM</samp>: Match Cisco CFM frames. The destination MAC address is 01-00-0C-CC-CC-C3, SNAP value 0x00000C and protocol ID 0x0126.
+ </dd>
+</dl>
+
+<h2>Actions</h2>
+<dl>
+ <dt>Direction</dt>
+ <dd>
+ The <a href="glossary.htm#EVC" class="glossary">EVC</a>s and ECEs are used to setup flows in one or both directions as determined by the ECE Direction parameter. If the ECE is bidirectional, the ingress rules of the NNI ports will be setup to match the traffic being forwarded to NNI ports.
+ The possible values are:
+ <br><samp>Both</samp>: Bidirectional.
+ <br><samp>UNI-to-NNI</samp>: Unidirectional from UNI to NNI.
+ <br><samp>NNI-to-UNI</samp>: Unidirectional from NNI to UNI.
+ </dd>
+
+ <dt class="has_arch_serval">Rule Type</dt>
+ <dd class="has_arch_serval">
+ The rule type for the ECE.
+ The possible values are:
+ <br><samp>Both</samp>: Ingress and egress rule.
+ <br><samp>RX</samp>: Ingress rule.
+ <br><samp>TX</samp>: Egress rule.
+ </dd>
+
+ <dt class="has_arch_serval">TX Lookup</dt>
+ <dd class="has_arch_serval">
+ The TX lookup for the ECE.
+ The possible values are:
+ <br><samp>VID lookup</samp>: The TX lookup is based on VID.
+ <br><samp>VID-PCP</samp>: The TX lookup is based on VID and PCP.
+ <br><samp>ISDX</samp>: The TX lookup is based on ISDX.
+ </dd>
+
+ <dt class="has_arch_serval">L2CP Mode</dt>
+ <dd class="has_arch_serval">
+ The L2CP mode for the ECE.
+ The possible values are:
+ <br><samp>Forward</samp>: Forward with unchanged DMAC.
+ <br><samp>Tunnel</samp>: Forward EType/LLC/SNAP frame and replace DMAC.
+ <br><samp>Discard</samp>: Drop frame.
+ <br><samp>Peer</samp>: Process frame by local protocol entity.
+ </dd>
+
+ <dt class="has_arch_serval">L2CP DMAC</dt>
+ <dd class="has_arch_serval">
+ The L2CP destinaton MAC for the ECE.
+ The possible values are:
+ <br><samp>Custom</samp>: The L2CP destination MAC address is based on IEEE L2CP MAC addresses (01-00-0C-CD-CD-0X or 01-00-0C-CD-CD-2X).
+ <br><samp>Cisco</samp>: The L2CP destination MAC address is based on Cisco L2CP MAC address (01-00-0C-CD-CD-D0).
+ </dd>
+
+ <dt>EVC ID Filter</dt>
+ <dd>
+ The EVC ID for the ECE. The ECE is only active when mapping to an existing EVC.
+ The possible values are:
+ <br><samp>Any</samp>: No EVC ID filter is specified. (EVC ID filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific EVC ID with this ECE, choose this value. A field for entering a specific value appears.
+ </dd>
+
+ <dt>EVC ID Value</dt>
+ <dd>
+ When "Specific" is selected for the VLAN ID filter, you can enter a specific value.
+ The allowed value is from <samp>1</samp> through <samp><span id="EvcIdMax">128</span></samp>.
+ </dd>
+
+ <dt class="has_arch_jaguar_1"><a href="glossary.htm#policer" class="glossary">Policer</a> ID Filter</dt>
+ <dd class="has_arch_jaguar_1">
+ The policer ID filter for matching the ECE.
+ The possible values are:
+ <br><samp>Specific</samp>: If you want to filter a specific policer ID value with this ECE, choose this value. A field for entering a specific value appears.
+ <br><samp>Discard</samp>: All received frames are discarded for the ECE.
+ <br><samp>None</samp>: All received frames are forwarded for the ECE.
+ <br><samp>None</samp>:The bandwidth profile for the specified EVC ID is used.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">Policer ID Value</dt>
+ <dd class="has_arch_jaguar_1">
+ When "Specific" is selected for the policer ID filter, you can enter a specific value.
+ The value is from <samp>1</samp> through <samp><span id="EvcPolicerIdMax">128</span></samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Policer ID Filter</dt>
+ <dd class="has_arch_serval">
+ The policer ID filter for matching the ECE.
+ The possible values are:
+ <br><samp>Specific</samp>: If you want to filter a specific policer ID value with this ECE, choose this value. A field for entering a specific value appears.
+ <br><samp>Discard</samp>: All received frames are discarded for the ECE.
+ <br><samp>None</samp>: All received frames are forwarded for the ECE.
+ <br><samp>None</samp>:The bandwidth profile for the specified EVC ID is used.
+ </dd>
+
+ <dt class="has_arch_serval">Policer ID Value</dt>
+ <dd class="has_arch_serval">
+ When "Specific" is selected for the policer ID filter, you can enter a specific value.
+ The value is from <samp>1</samp> through <samp><span id="EvcPolicerIdMax1">128</span></samp>.
+ </dd>
+
+ <dt>Tag Pop Count</dt>
+ <dd>
+ The ingress tag pop count for the ECE.
+ The allowed range is from <samp>0</samp> through <samp>2</samp>.
+ </dd>
+
+ <dt>Policy ID</dt>
+ <dd>
+ The <a href="glossary.htm#acl" class="glossary">ACL</a> Policy ID for the ECE for matching ACL rules.
+ The allowed range is from <samp>0</samp> through <samp><span id="AclPolicyMax">255</span></samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">Class</dt>
+ <dd class="has_arch_luton26">
+  The traffic class for the ECE.
+ The allowed range is from <samp>0</samp> through <samp><span id="QosClassMax">7</span></samp> or <samp>disabled</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Class</dt>
+ <dd class="has_arch_serval">
+  The traffic class for the ECE.
+ The allowed range is from <samp>0</samp> through <samp><span id="QosClassMax1">7</span></samp> or <samp>disabled</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Drop Precedence</dt>
+ <dd class="has_arch_serval">
+  The drop precedence for the ECE.
+ The allowed range is <samp>0</samp>, <samp>1</samp> or <samp>disabled</samp>.
+ </dd>
+</dl>
+
+<h2>Egress Outer Tag</h2>
+<dl>
+ <dt>Outer Tag Mode</dt>
+ <dd>
+ The outer tag for nni-to-uni direction for the ECE.
+ The possible values are:
+ <br><samp>Enable</samp>: Enable outer tag for nni-to-uni direction for the ECE.
+ <br><samp>Disable</samp>: Disable outer tag for nni-to-uni direction for the ECE.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">Outer Tag VID</dt>
+ <dd class="has_arch_jaguar_1">
+ The EVC outer tag VID for UNI ports.
+ The allowed value is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Outer Tag VID</dt>
+ <dd class="has_arch_serval">
+ The EVC outer tag VID for UNI ports.
+ The allowed value is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">Outer Tag PCP/DEI Preservation</dt>
+ <dd class="has_arch_luton26">
+ The outer tag PCP and DEI preservation for the ECE.
+ The possible values are:
+ <br><samp>Preserved</samp>: The outer tag PCP and DEI is preserved.
+ <br><samp>Fixed</samp>: The outer tag PCP and DEI is fixed.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">Outer Tag PCP/DEI Preservation</dt>
+ <dd class="has_arch_jaguar_1">
+ The outer tag PCP and DEI preservation for the ECE.
+ The possible values are:
+ <br><samp>Preserved</samp>: The outer tag PCP and DEI is preserved.
+ <br><samp>Fixed</samp>: The outer tag PCP and DEI is fixed.
+ </dd>
+
+ <dt class="has_arch_serval">Outer Tag PCP Mode</dt>
+ <dd class="has_arch_serval">
+ The outer tag PCP mode for the ECE.
+ The possible values are:
+ <br><samp>Classified</samp>: The outer tag PCP Mode is classified.
+ <br><samp>Fixed</samp>: The outer tag PCP Mode is classified.
+ <br><samp>Mapped</samp>: The outer tag PCP Mode is based on mapped (<a href="glossary.htm#qos" class="glossary">QOS</a>, DP).
+ </dd>
+
+ <dt>Outer Tag PCP</dt>
+ <dd>
+ The outer tag PCP value for the ECE.
+ The allowed range is from <samp>0</samp> through <samp>7</samp>.
+ </dd>
+
+ <dt class="has_arch_serval">Outer Tag DEI Mode</dt>
+ <dd class="has_arch_serval">
+ The outer tag DEI mode for the ECE. The possible values are:
+ <br><samp>Classified</samp>: The outer tag DEI mode is classified.
+ <br><samp>Fixed</samp>: The outer tag DEI mode is fixed.
+ <br><samp>Drop Precedence</samp>: The outer tag DEI mode is drop precedence.
+ </dd>
+
+ <dt>Outer Tag DEI</dt>
+ <dd>
+ The outer tag DEI value for the ECE.
+ The allowed value is <samp>0</samp> or <samp>1</samp>.
+ </dd>
+</dl>
+
+<h2 class="has_arch_jaguar_1">Egress Inner Tag</h2>
+<dl class="has_arch_jaguar_1">
+ <dt>Inner Tag Type</dt>
+ <dd>
+ The inner type for the ECE determines whether an inner tag is inserted in frames forwarded to NNI ports.
+ The possible values are:
+ <br><samp>None</samp>: An inner tag is not inserted.
+ <br><samp>C-tag</samp>: An inner C-tag is inserted.
+ <br><samp>S-tag</samp>: An inner S-tag is inserted.
+ <br><samp>S-custom-tag</samp>: An inner tag is inserted and the tag type is determined by the VLAN port configuration of the NNI.
+ </dd>
+
+ <dt>Inner Tag VLAN ID</dt>
+ <dd>
+ The inner tag VLAN ID for the ECE.
+ The allowed range is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt>Inner Tag PCP Mode</dt>
+ <dd>
+ The inner tag PCP mode for the ECE.
+ The possible values are:
+ <br><samp>Classified</samp>: The inner tag PCP Mode is classified.
+ <br><samp>Fixed</samp>: The inner tag PCP Mode is classified.
+ <br><samp>Mapped</samp>: The inner tag PCP Mode is based on mapped (QOS, DP).
+ </dd>
+
+ <dt>Inner Tag PCP</dt>
+ <dd>
+ The inner tag PCP value for the ECE.
+ The allowed range is from <samp>0</samp> through <samp>7</samp>.
+ </dd>
+
+ <dt>Inner Tag DEI</dt>
+ <dd>
+ The inner tag DEI value for the ECE.
+ The allowed value is <samp>0</samp> or <samp>1</samp>.
+ </dd>
+</dl>
+
+<h2 class="has_arch_serval">Egress Inner Tag</h2>
+<dl class="has_arch_serval">
+ <dt>Inner Tag Type</dt>
+ <dd>
+ The inner type for the ECE determines whether an inner tag is inserted in frames forwarded to NNI ports.
+ The possible values are:
+ <br><samp>None</samp>: An inner tag is not inserted.
+ <br><samp>C-tag</samp>: An inner C-tag is inserted.
+ <br><samp>S-tag</samp>: An inner S-tag is inserted.
+ <br><samp>S-custom-tag</samp>: An inner tag is inserted and the tag type is determined by the VLAN port configuration of the NNI.
+ </dd>
+
+ <dt>Inner Tag VLAN ID</dt>
+ <dd>
+ The inner tag VLAN ID for the ECE.
+ The allowed range is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt>Inner Tag PCP Mode</dt>
+ <dd>
+ The inner tag PCP mode for the ECE.
+ The possible values are:
+ <br><samp>Classified</samp>: The inner tag PCP Mode is classified.
+ <br><samp>Fixed</samp>: The inner tag PCP Mode is classified.
+ <br><samp>Mapped</samp>: The inner tag PCP Mode is based on mapped (QOS, DP).
+ </dd>
+
+ <dt>Inner Tag PCP</dt>
+ <dd>
+ The inner tag PCP value for the ECE.
+ The allowed range is from <samp>0</samp> through <samp>7</samp>.
+ </dd>
+
+ <dt>Inner Tag DEI Mode</dt>
+ <dd>
+ The inner tag DEI mode for the ECE. The possible values are:
+ <br><samp>Classified</samp>: The inner tag DEI mode is classified.
+ <br><samp>Fixed</samp>: The inner tag DEI mode is fixed.
+ <br><samp>Drop Precedence</samp>: The inner tag DEI mode is drop precedence.
+ </dd>
+
+ <dt>Inner Tag DEI</dt>
+ <dd>
+ The inner tag DEI value for the ECE.
+ The allowed value is <samp>0</samp> or <samp>1</samp>.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+<p><input type="button" value=" Cancel ">: Return to the previous page; any changes made locally will be undone.</p>
+
+</body>
+</html>

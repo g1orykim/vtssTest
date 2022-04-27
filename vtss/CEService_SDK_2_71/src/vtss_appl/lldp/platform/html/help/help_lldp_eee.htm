@@ -1,0 +1,125 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>LLDP EEE Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+     window.addEvent('domready', function() {
+         $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+      });
+    </script>
+</head>
+
+<body>
+<h1>LLDP EEE Help</h1>
+
+
+<p>By using <a href="glossary.htm#EEE" class="glossary">EEE</a> power savings can be achieved at the expense of traffic
+latency. This latency occurs due to that the circuits <a href="glossary.htm#EEE" class="glossary">EEE</a> turn off to
+save power, need time to boot up before sending traffic over the
+link. This time is called "wakeup time". To achieve minimal latency,
+devices can use <a href="glossary.htm#lldp" class="glossary">LLDP</a> to exchange information about their respective tx
+and rx "wakeup time ", as a way to agree upon the minimum wakeup time they
+need.</p>
+
+
+<p>This page provides an overview of <a href="glossary.htm#EEE" class="glossary">EEE</a> information exchanged by <a href="glossary.htm#lldp" class="glossary">LLDP</a>.</p>
+
+
+<h2>LLDP Neighbors EEE Information </h2>
+   The displayed table contains a row for each port. The columns hold the following information:
+<dl>
+ <dt>Local Port</dt>
+ <dd>
+   The port on which <a href="glossary.htm#lldp" class="glossary">LLDP</a> frames are received or transmitted.
+ </dd>
+
+ <dt>Tx Tw</dt>
+ <dd>
+   The link partner's maximum time that transmit path can hold-off sending data after deassertion of LPI.
+ </dd>
+
+ <dt>Rx Tw</dt>
+ <dd>
+   The link partner's time that receiver would like the transmitter to hold-off to allow time for the receiver to wake from sleep.
+ </dd>
+
+ <dt>Fallback Receive Tw</dt>
+ <dd>
+    <p>The link partner's fallback receive Tw.</p>
+    <p>A receiving link partner may inform the transmitter of an alternate desired Tw_sys_tx. Since a receiving link
+partner is likely to have discrete levels for savings, this provides the transmitter with additional information
+that it may use for a more efficient allocation. Systems that do not implement this option default the value to be the same as that of the Receive Tw_sys_tx.</p>
+ </dd>
+
+ <dt>Echo Tx Tw</dt>
+ <dd>
+   <p>The link partner's Echo Tx Tw value.</p>
+   <p>The respective echo values shall be defined as the local link partners reflection (echo) of the remote link
+partners respective values. When a local link partner receives its echoed values from the remote link partner
+it can determine whether or not the remote link partner has received, registered and processed its most recent
+values. For example, if the local link partner receives echoed parameters that do not match the values in its
+local MIB, then the local link partner infers that the remote link partners request was based on stale information.</p>
+ </dd>
+
+
+ <dt>Echo Rx Tw</dt>
+ <dd>
+   <p>The link partner's Echo Rx Tw value.</p>
+ </dd>
+
+ <dt>Resolved Tx Tw</dt>
+ <dd>
+   <p>The resolved Tx Tw for this link. Note : NOT the link partner</p>
+   <p>The resolved value that is the actual "tx wakeup time " used for this link (based on <a href="glossary.htm#EEE" class="glossary">EEE</a> information exchanged via <a href="glossary.htm#lldp" class="glossary">LLDP</a>).</p>
+ </dd>
+
+ <dt>Resolved Rx Tw</dt>
+ <dd>
+   <p>The resolved Rx Tw for this link. Note : NOT the link partner</p>
+   <p>The resolved value that is the actual "tx wakeup time " used for this link (based on <a href="glossary.htm#EEE" class="glossary">EEE</a> information exchanged via <a href="glossary.htm#lldp" class="glossary">LLDP</a>).</p>
+ </dd>
+
+ <dt>EEE in Sync</dt>
+ <dd>
+   <p>Shows whether the switch and the link partner have agreed on wake times.</p>
+   <p>Red   - Switch and link partner have not agreed on wakeup times.</p>
+   <p>Green - Switch and link partner have agreed on wakeup times.</p>
+ </dd>
+
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page.</p>
+</body>
+</html>
+

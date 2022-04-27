@@ -1,0 +1,180 @@
+<ipc>
+  <prefix>rpc_</prefix>
+  <includes>
+    <include file="vtss_mgmt_api.h" />
+  </includes>
+  <types>
+    <type name="BOOL" base="u8" />
+    <type name="vtss_port_no_t" base="u32" />
+    <type name="vtss_chip_no_t" base="u32" />
+    <type name="vtss_inst_t" base="rpc_pointer" />
+    <type name="vtss_port_forward_t" base="u8" />
+    <type name="vtss_port_interface_t" base="u8" />
+    <type name="vtss_port_conf_t" struct="1">
+      <elm name="if_type" base="vtss_port_interface_t" />
+      <elm name="sd_enable" base="BOOL" />
+    </type>
+    <type name="vtss_port_speed_t" base="u8" />
+    <type name="vtss_port_status_t" struct="1">
+      <elm name="link" base="BOOL" />
+      <elm name="speed" base="vtss_port_speed_t" />
+      <elm name="fdx" base="BOOL" />
+      <elm name="remote_fault" base="BOOL" />
+      <elm name="aneg.obey_pause" base="BOOL" />
+      <elm name="aneg.generate_pause" base="BOOL" />
+    </type>
+    <type name="vtss_port_counter_t" base="u64" />
+    <type name="vtss_port_counters_t" struct="1">
+      <elm name="rmon" base="vtss_port_rmon_counters_t" />
+      <elm name="if_group" base="vtss_port_if_group_counters_t" />
+      <elm name="ethernet_like" base="vtss_port_ethernet_like_counters_t" />
+    </type>
+    <type name="vtss_port_rmon_counters_t" struct="1">
+      <elm name="rx_etherStatsDropEvents" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsOctets" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsPkts" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsBroadcastPkts" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsMulticastPkts" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsCRCAlignErrors" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsUndersizePkts" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsOversizePkts" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsFragments" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsJabbers" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsPkts64Octets" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsPkts65to127Octets" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsPkts128to255Octets" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsPkts256to511Octets" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsPkts512to1023Octets" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsPkts1024to1518Octets" base="vtss_port_counter_t" />
+      <elm name="rx_etherStatsPkts1519toMaxOctets" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsDropEvents" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsOctets" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsPkts" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsBroadcastPkts" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsMulticastPkts" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsCollisions" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsPkts64Octets" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsPkts65to127Octets" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsPkts128to255Octets" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsPkts256to511Octets" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsPkts512to1023Octets" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsPkts1024to1518Octets" base="vtss_port_counter_t" />
+      <elm name="tx_etherStatsPkts1519toMaxOctets" base="vtss_port_counter_t" />
+    </type>
+    <type name="vtss_port_if_group_counters_t" struct="1">
+      <!-- Incomplete -->
+    </type>
+    <type name="vtss_port_ethernet_like_counters_t" struct="1">
+      <!-- Incomplete -->
+    </type>
+    <type name="vtss_basic_counters_t" struct="1">
+      <elm name="rx_frames" base="u32" />
+      <elm name="tx_frames" base="u32" />
+    </type>
+    <type name="port_info_t" struct="1">
+      <elm name="link" base="BOOL" />
+      <elm name="speed" base="vtss_port_speed_t" />
+      <elm name="stack" base="BOOL" />
+      <elm name="phy" base="BOOL" />
+      <elm name="chip_port" base="vtss_port_no_t" />
+      <elm name="chip_no" base="vtss_chip_no_t" />
+      <elm name="fiber" base="BOOL" />
+      <elm name="fdx" base="BOOL" />
+    </type>
+    <type name="vtss_vid_t" base="u16" />
+    <type name="vtss_vlan_port_type_t" base="u8" />
+    <type name="vtss_vlan_frame_t" base="u8" />
+    <type name="vtss_vlan_port_conf_t" struct="1">
+      <elm name="port_type" base="vtss_vlan_port_type_t" />
+      <elm name="pvid" base="vtss_vid_t" />
+      <elm name="untagged_vid" base="vtss_vid_t" />
+      <elm name="frame_type" base="vtss_vlan_frame_t" />
+      <elm name="ingress_filter" base="BOOL" />
+    </type>
+  </types>
+  <!-- Port group -->
+  <group name="port" >
+    <entry name="vtss_phy_mmd_read" guard="VTSS_FEATURE_10G">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="devad" type="u16" />
+      <param name="addr" type="u32" />
+      <param name="value" type="u16" out="1" />
+    </entry>
+    <entry name="vtss_phy_mmd_write" guard="VTSS_FEATURE_10G">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="devad" type="u16" />
+      <param name="addr" type="u32" />
+      <param name="value" type="u16" />
+    </entry>
+    <entry name="vtss_port_conf_set">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="conf" type="vtss_port_conf_t" />
+    </entry>
+    <entry name="vtss_port_conf_get">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="conf" type="vtss_port_conf_t" out="1"/>
+    </entry>
+    <entry name="vtss_port_status_get">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="status" type="vtss_port_status_t" out="1" />
+    </entry>
+    <entry name="vtss_port_counters_clear">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+    </entry>
+    <entry name="vtss_port_counters_get">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="counters" type="vtss_port_counters_t" out="1" />
+    </entry>
+    <entry name="vtss_port_basic_counters_get">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="counters" type="vtss_basic_counters_t" out="1" />
+    </entry>
+    <entry name="vtss_port_forward_state_get">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="forward" type="vtss_port_forward_t" out="1"/>
+    </entry>
+    <entry name="vtss_port_forward_state_set">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="forward" type="vtss_port_forward_t" />
+    </entry>
+  </group>
+  <!-- VLAN group -->
+  <group name="vlan" >
+    <entry name="vtss_vlan_port_conf_get">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="conf" type="vtss_vlan_port_conf_t" out="1" />
+    </entry>
+    <entry name="vtss_vlan_port_conf_set">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="conf" type="vtss_vlan_port_conf_t"/>
+    </entry>
+    <entry name="vtss_vlan_port_members_get">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="vid" type="vtss_vid_t" />
+      <param name="member" type="BOOL" array="VTSS_PORT_ARRAY_SIZE" out="1" />
+    </entry>
+    <entry name="vtss_vlan_port_members_set">
+      <param name="inst" type="vtss_inst_t" />
+      <param name="vid" type="vtss_vid_t" />
+      <param name="member" type="BOOL" array="VTSS_PORT_ARRAY_SIZE"/>
+    </entry>
+  </group>
+  <events>
+    <event name="evt_port_state">
+      <param name="port_no" type="vtss_port_no_t" />
+      <param name="info" type="port_info_t" />
+    </event>
+  </events>
+</ipc>

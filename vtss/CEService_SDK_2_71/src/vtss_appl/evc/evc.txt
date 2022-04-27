@@ -1,0 +1,298 @@
+!
+! EVC VCLI commands, note the platform differencies
+!
+
+! Platform  Command
+! ========  =======
+! All     : EVC Configuration [<port_list>] [<policer_id>]
+! L26/JR1 : EVC Port DEI [<port_list>] [<dei_mode>]
+! L26     : EVC Port Tag [<port_list>] [<tag_mode>]
+! SRVL    : EVC Port Key [<port_list>] [<key_type>]
+! SRVL/L26: EVC Port Addr [<port_list>] [<addr_mode>]
+! All     : EVC Port L2CP [<port_list>] [<l2cp_list>] [<mode>]
+! All     : EVC Policer [<policer_id>] [enable|disable] [<policer_mode>]
+!                       [<cir>] [<cbs>] [<eir>] [<ebs>]
+! SRVL/JR1: EVC Add <evc_id> [<vid>] [<ivid>] [<nni_list>] [<learning>] [<policer_id>]
+! L26     : EVC Add <evc_id> [<vid>] [<ivid>] [<nni_list>] [<learning>]
+!                   [inner] [<it_type>] [<it_vid_mode>] [<it_vid>]
+!                           [<it_preserve>] [<it_pcp>] [<it_dei>]
+!                   [outer] [<ot_vid>]
+! All     : EVC Delete <evc_id>
+! All     : EVC Lookup [<evc_id>]
+! All     : EVC Status [<evc_id>]
+! L26     : EVC Statistics [<port_list>] [<class_list>] [<command>]
+! SRVL/JR1: EVC Statistics [<evc_id>] [<port_list>] [<command>] [frames|bytes]
+! L26     : EVC ECE Add [<ece_id>] [<ece_id_next>] [uni] [<uni_list>]
+!                       [<smac>] [<dmac_type>]
+!                       [tag] [<tag_type>] [<vid>] [<pcp>] [<dei>]
+!                       [all |
+!                       (ipv4 [<proto>] [<sip>] [<dscp>] [<fragment>] [<sport>] [<dport>]) |
+!                       (ipv6 [<proto>] [<sip_v6>] [<dscp>] [<sport>] [<dport>])]
+!                       [direction] [<direction>]
+!                       [evc] [<evc_id>]
+!                       [pop] [<pop>]
+!                       [policy] [<policy>]
+!                       [class] [<class>]
+!                       [outer] [<ot_mode>] [<ot_preserve>] [<ot_pcp>] [<ot_dei>]
+! SRVL    : EVC ECE Add [<ece_id>] [<ece_id_next>] [uni] [<uni_list>]
+!                       [<smac>] [<dmac_type>] [<dmac>]
+!                       [tag] [<tag_type>] [<vid>] [<pcp>] [<dei>]
+!                       [intag] [<in_type>] [<in_vid>] [<in_pcp>] [<in_dei>]
+!                       [all |
+!                       (ipv4 [<proto>] [<sip>] [<dip>] [<dscp>] [<fragment>]
+!                             [<sport>] [<dport>]) |
+!                       (ipv6 [<proto>] [<sip_v6>] [<dip_v6>] [<dscp>] [<sport>] [<dport>])]
+!                       [direction] [<direction>]
+!                       [rule_type] [<rule_type>]
+!                       [tx_lookup] [<tx_lookup>]
+!                       [evc] [<evc_id>] [<policer_id>]
+!                       [pop] [<pop>]
+!                       [policy] [<policy>]
+!                       [class] [<class>]
+!                       [dp] [<dp>]
+!                       [outer] [<ot_mode>] [<ot_vid>] [<ot_pcp_mode>] [<ot_pcp>]
+!                               [<ot_dei_mode>] [<ot_dei>]
+!                       [inner] [<it_type>] [<it_vid>] [<it_pcp_mode>] [<it_pcp>]
+!                               [<it_dei_mode>] [<it_dei>]
+! JR1     : EVC ECE Add [<ece_id>] [<ece_id_next>] [uni] [<uni_list>]
+!                       [tag] [<tag_type>] [<vid>] [<pcp>] [<dei>]
+!                       [intag] [<in_type>] [<in_vid>] [<in_pcp>] [<in_dei>]
+!                       [all | (ipv4 [<dscp>]) | (ipv6 [<dscp>])]
+!                       [direction] [<direction>]
+!                       [evc] [<evc_id>] [<policer_id>]
+!                       [pop] [<pop>]
+!                       [policy] [<policy>]
+!                       [outer] [<ot_mode>] [<ot_vid>] [<ot_preserve>] [<ot_pcp>] [<ot_dei>]
+!                       [inner] [<it_type>] [<it_vid>] [<it_preserve>] [<it_pcp>] [<it_dei>]
+! All     : EVC ECE Delete <ece_id>
+! All     : EVC ECE Lookup [<ece_id>]
+! All     : EVC ECE Status [<ece_id>]
+! SRVL/JR1: EVC ECE Statistics [<ece_id>] [<port_list>] [<command>] [frames|bytes]
+
+!
+! EVC ICLI commands, note the platform differencies
+!
+
+user exec
+  !!
+
+privileged exec
+  ! All     : EVC Configuration [<port_list>] [<policer_id>]
+  ! All     : EVC Lookup [<evc_id>]
+  ! All     : EVC ECE Lookup [<ece_id>]
+  ! These commands will be covered by 'show running-config'
+  !
+  !! All     : EVC Status [<evc_id>]
+  !! All     : EVC ECE Status [<ece_id>]
+  !
+  ! Examples:
+  ! show evc         : Show all evc and ece status 
+  ! show evc all     : Show all evc status
+  ! show evc 1       : Show evc 1 status
+  ! show evc ece     : Show all ece status
+  ! show evc ece 2   : Show ece 2 status
+  show evc {[<evc_id:uint> | all]} [ece [<ece_id:uint>]]
+
+  !! L26     : EVC Statistics [<port_list>] [<class_list>] [<command>]
+  !! SRVL/JR1: EVC Statistics [<evc_id>] [<port_list>] [<command>] [frames|bytes]
+  !! SRVL/JR1: EVC ECE Statistics [<ece_id>] [<port_list>] [<command>] [frames|bytes]
+  !
+  ! Examples (SRVL/JR1):
+  ! show evc statistics                : Show all evc and ece statistics for all ports
+  ! show evc statistics all            : Show all evc statistics for all ports
+  ! show evc statistics ece            : Show all ece statistics for all ports
+  ! show evc statistics int gi 1/1     : Show all evc and ece statistics for port 1/1
+  ! show evc statistics ece int gi 1/1 : Show all ece statistics for port 1/1
+  show evc statistics {[<evc_id:uint> | all]}
+                      [ece [<ece_id:uint>]]
+                      [interface <port_list:port_type_list>]
+                      [cos <cos:0~7>]
+                      [green | yellow | red | discard]
+                      [frames | bytes]
+  clear evc statistics {[<evc_id:uint> | all]}
+                       [ece [<ece_id:uint>]]
+                       [interface <port_list:port_type_list>]
+
+global config
+  !! EVC Policer [<policer_id>] [enable|disable] [<policer_mode>]
+  !!             [<cir>] [<cbs>] [<eir>] [<ebs>]
+  ! Mode 'blind' only for JR1:
+  evc policer [update] <policer_id:uint>
+              [{enable | disable}]
+              [type {mef | single}]
+              [mode {coupled | aware | blind}]
+              [rate-type {line | data}]
+              [cir <cir:uint>]
+              [cbs <cbs:uint>]
+              [eir <eir:uint>]
+              [ebs <ebs:uint>]
+
+  !! SRVL/JR1: EVC Add <evc_id> [<vid>] [<ivid>] [<nni_list>] [<learning>] [<policer_id>]
+  !! L26     : EVC Add <evc_id> [<vid>] [<ivid>] [<nni_list>] [<learning>]
+  !!                   [inner] [<it_type>] [<it_vid_mode>] [<it_vid>]
+  !!                           [<it_preserve>] [<it_pcp>] [<it_dei>]
+  !!                   [outer] [<ot_vid>]
+  evc [update] <evc_id:uint>
+      {[has_evc_vid:vid <evc_vid:vlan_id>]}
+      [ivid <ivid:vlan_id>]
+      [interface <port_list:port_type_list>]
+      [learning [has_learning_disable:disable]]
+      [policer {<policer_id:uint> | has_policer_none:none | discard}]
+      [inner-tag add 
+       {[has_it_add_type:type {none | c-tag | s-tag | s-custom-tag}]
+        [vid-mode {normal | tunnel}]
+        [has_it_add_vid:vid <it_add_vid:vlan_id>]
+        [has_it_preserve:preserve [has_it_preserve_disable:disable]]
+        [has_it_add_pcp:pcp <it_add_pcp:0-7>]
+        [has_it_add_dei:dei <it_add_dei:0-1>]}*1]
+      [outer-tag add has_ot_add_vid:vid <ot_add_vid:vlan_id>]
+
+  !! All     : EVC Delete <evc_id>
+  no evc <evc_id:uint>
+
+  !! L26     : EVC ECE Add [<ece_id>] [<ece_id_next>] [uni] [<uni_list>]
+  !!                       [<smac>] [<dmac_type>]
+  !!                       [tag] [<tag_type>] [<vid>] [<pcp>] [<dei>]
+  !!                       [all |
+  !!                       (ipv4 [<proto>] [<sip>] [<dscp>] [<fragment>] [<sport>] [<dport>]) |
+  !!                       (ipv6 [<proto>] [<sip_v6>] [<dscp>] [<sport>] [<dport>])]
+  !!                       [direction] [<direction>]
+  !!                       [evc] [<evc_id>]
+  !!                       [pop] [<pop>]
+  !!                       [policy] [<policy>]
+  !!                       [class] [<class>]
+  !!                       [outer] [<ot_mode>] [<ot_preserve>] [<ot_pcp>] [<ot_dei>]
+  !! JR1     : EVC ECE Add [<ece_id>] [<ece_id_next>] [uni] [<uni_list>]
+  !!                       [tag] [<tag_type>] [<vid>] [<pcp>] [<dei>]
+  !!                       [intag] [<in_type>] [<in_vid>] [<in_pcp>] [<in_dei>]
+  !!                       [all | (ipv4 [<dscp>]) | (ipv6 [<dscp>])]
+  !!                       [direction] [<direction>]
+  !!                       [evc] [<evc_id>] [<policer_id>]
+  !!                       [pop] [<pop>]
+  !!                       [policy] [<policy>]
+  !!                       [outer] [<ot_mode>] [<ot_vid>] [<ot_preserve>] [<ot_pcp>] [<ot_dei>]
+  !!                       [inner] [<it_type>] [<it_vid>] [<it_preserve>] [<it_pcp>] [<it_dei>]
+  !! SRVL    : EVC ECE Add [<ece_id>] [<ece_id_next>] [uni] [<uni_list>]
+  !!                       [<smac>] [<dmac_type>] [<dmac>]
+  !!                       [tag] [<tag_type>] [<vid>] [<pcp>] [<dei>]
+  !!                       [intag] [<in_type>] [<in_vid>] [<in_pcp>] [<in_dei>]
+  !!                       [all |
+  !!                       (ipv4 [<proto>] [<sip>] [<dip>] [<dscp>] [<fragment>]
+  !!                             [<sport>] [<dport>]) |
+  !!                       (ipv6 [<proto>] [<sip_v6>] [<dip_v6>] [<dscp>] [<sport>] [<dport>])]
+  !!                       [direction] [<direction>]
+  !!                       [rule_type] [<rule_type>]
+  !!                       [tx_lookup] [<tx_lookup>]
+  !!                       [evc] [<evc_id>] [<policer_id>]
+  !!                       [pop] [<pop>]
+  !!                       [policy] [<policy>]
+  !!                       [class] [<class>]
+  !!                       [dp] [<dp>]
+  !!                       [outer] [<ot_mode>] [<ot_vid>] [<ot_pcp_mode>] [<ot_pcp>]
+  !!                               [<ot_dei_mode>] [<ot_dei>]
+  !!                       [inner] [<it_type>] [<it_vid>] [<it_pcp_mode>] [<it_pcp>]
+  !!                               [<it_dei_mode>] [<it_dei>]
+  evc ece [update] <ece_id:uint> [next {<ece_id_next:uint> | last}]
+          [lookup {basic | advanced}]
+          [interface <port_list:port_type_list>]
+          [smac {<smac:mac_addr> | has_smac_any:any}]
+          [dmac {<dmac:mac_addr> | unicast | multicast | broadcast| has_dmac_any:any}]
+          [outer-tag
+           {[has_ot_match:match 
+            {[has_ot_match_type:type {has_ot_untagged:untagged | has_ot_tagged:tagged | has_ot_c_tagged:c-tagged | has_ot_s_tagged:s-tagged | has_ot_type_any:any}]
+             [has_ot_match_vid:vid {<ot_match_vid:vcap_vr> | has_ot_vid_any:any}]
+             [has_ot_match_pcp:pcp {<ot_match_pcp:pcp> | has_ot_pcp_any:any}]
+             [has_ot_match_dei:dei {<ot_match_dei:0-1> | has_ot_dei_any:any}]}*1]
+            [has_ot_add:add
+            {[has_ot_mode:mode {has_ot_mode_enable:enable | has_ot_mode_disable:disable}]
+             [has_ot_add_vid:vid <ot_add_vid:vlan_id>]
+             [has_ot_preserve:preserve [has_ot_preserve_disable:disable]]
+             [has_ot_pcp_mode:pcp-mode {has_ot_pcp_classified:classified | has_ot_pcp_fixed:fixed | has_ot_pcp_mapped:mapped}]
+             [has_ot_add_pcp:pcp <ot_add_pcp:0-7>]
+             [has_ot_dei_mode:dei-mode {has_ot_dei_classified:classified | has_ot_dei_fixed:fixed | has_ot_dei_dp:dp}]
+             [has_ot_add_dei:dei <ot_add_dei:0-1>]}*1]}*1]
+          [inner-tag
+           {[has_it_match:match
+            {[has_it_match_type:type {has_it_untagged:untagged | has_it_tagged:tagged | has_it_c_tagged:c-tagged | has_it_s_tagged:s-tagged | has_it_type_any:any}]
+             [has_it_match_vid:vid {<it_match_vid:vcap_vr> | has_it_vid_any:any}]
+             [has_it_match_pcp:pcp {<it_match_pcp:pcp> | has_it_pcp_any:any}]
+             [has_it_match_dei:dei {<it_match_dei:0-1> | has_it_dei_any:any}]}*1]
+            [has_it_add:add
+            {[has_it_add_type:type {none | c-tag | s-tag | s-custom-tag}]
+             [has_it_add_vid:vid <it_add_vid:vlan_id>]
+             [has_it_preserve:preserve [has_it_preserve_disable:disable]]
+             [has_it_pcp_mode:pcp-mode {has_it_pcp_classified:classified | has_it_pcp_fixed:fixed | has_it_pcp_mapped:mapped}]
+             [has_it_add_pcp:pcp <it_add_pcp:0-7>]
+             [has_it_dei_mode:dei-mode {has_it_dei_classified:classified | has_it_dei_fixed:fixed | has_it_dei_dp:dp}]
+             [has_it_add_dei:dei <it_add_dei:0-1>]}*1]}*1]
+          [frame-type 
+           {has_frame_type_any:any |
+           {ipv4 [has_pr4:proto {<pr4:0-255> | has_udp4:udp | has_tcp4:tcp | has_pr4_any:any}]
+                 [has_dscp4:dscp {<dscp4:vcap_vr> | has_dscp4_any:any}]
+                 [has_sip4:sip {<sip4:ipv4_subnet> | has_sip4_any:any}]
+                 [has_dip4:dip {<dip4:ipv4_subnet> | has_dip4_any:any}]
+                 [fragment {yes | no | has_fragment_any:any}]
+                 [has_sp4:sport {<sp4:vcap_vr> | has_sp4_any:any}]
+                 [has_dp4:dport {<dp4:vcap_vr> | has_dp4_any:any}]} |
+           {ipv6 [has_pr6:proto {<pr6:0-255> | has_udp6:udp | has_tcp6:tcp | has_pr6_any:any}]
+                 [has_dscp6:dscp {<dscp6:vcap_vr> | has_dscp6_any:any}]
+                 [has_sip6:sip {<sip6:ipv4_subnet> | has_sip6_any:any}]
+                 [has_dip6:dip {<dip6:ipv4_subnet> | has_dip6_any:any}]
+                 [has_sp6:sport {<sp6:vcap_vr> | has_sp6_any:any}]
+                 [has_dp6:dport {<dp6:vcap_vr> | has_dp6_any:any}]} |
+           {etype [etype-value {<etype_value:0x600-0x7ff,0x801-0x86dc,0x86de-0xffff> | has_etype_any:any}]
+                  [etype-data {<etype_data:0x0000-0xffff> | has_etype_data_any:any} [<etype_mask:0x0000-0xffff>]]} |
+           {llc [dsap {<dsap:0x00-0xff> | has_dsap_any:any}]
+                [ssap {<ssap:0x00-0xff> | has_ssap_any:any}]
+                [control {<control:0x00-0xff> | has_control_any:any}]
+                [llc-data {<llc_data:0x0000-0xffff> | has_llc_data_any:any} [<llc_mask:0x0000-0xffff>]]} |
+           {snap [oui {<oui:0x000000-0xffffff> | has_oui_any:any}]
+                 [pid {<pid:0x0000-0xffff> | has_pid_any:any}]} |
+           {l2cp {stp | pause | lacp | lamp | loam | dot1x | elmi | pb | pb-gvrp | lldp | gmrp | gvrp | uld | pagp | pvst | cisco-vlan | cdp | vtp | dtp | cisco-stp | cisco-cfm}}}]
+          [direction {has_dir_both:both | uni-to-nni | nni-to-uni}]
+          [rule-type {has_rule_both:both | rx | tx}]
+          [tx-lookup {has_tx_vid:vid | pcp-vid | isdx}]
+          [has_l2cp_action:l2cp
+           {[has_l2cp_mode:mode {tunnel | peer | forward | discard}]
+            [has_l2cp_dmac:tmac {cisco | custom}]}*1]
+          [has_evc_ece:evc {<evc_id:uint> | has_evc_none:none}]
+	  [policer {<policer_id:uint> | has_policer_none:none | has_policer_discard:discard | has_policer_evc:evc}]
+          [pop <pop:0-2>]
+          [policy <policy_no:uint>]
+          [cos {<cos:0-7> | has_cos_disable:disable}]
+          [dpl {<dpl:dpl> | has_dpl_disable:disable}]
+
+  !! All     : EVC ECE Delete <ece_id>
+  no evc ece <ece_id:uint>
+
+vlan <vlan_id>
+  !!
+
+interface common
+  !!
+
+interface vlan <vlan_id>
+  !!
+
+interface ethernet <port_id>
+  !! L26/JR1 : EVC Port DEI [<port_list>] [<dei_mode>]
+  !! L26     : EVC Port Tag [<port_list>] [<tag_mode>]
+  !! SRVL    : EVC Port Key [<port_list>] [<key_type>]
+  !! SRVL/L26: EVC Port Addr [<port_list>] [<addr_mode>]
+  !! All     : EVC Port L2CP [<port_list>] [<l2cp_list>] [<mode>]
+  evc [update]
+      [dei {colored | fixed}]
+      [tag {inner | outer}]
+      [key {double-tag | normal | ip-addr | mac-ip-addr}]
+      [key-advanced {double-tag | normal | ip-addr | mac-ip-addr}]
+      [addr {source | destination}]
+      [addr-advanced {source | destination}]
+      [l2cp 
+       {[peer [<l2cp_peer_list:0~31>]] 
+        [forward [<l2cp_forward_list:0~31>]]
+        [discard[<l2cp_discard_list:0~31>]]}*1]
+
+line
+  !!
+
+! End of file.

@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RFC2544 Report Overview Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" src="/lib/mootools-more.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.report_cnt').set('text', rfc2544_report_cnt);
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+
+<body>
+
+<h1>RFC2544 Report Overview Help</h1>
+
+<p>
+  This page provides an overview of the currently stored reports along with options for deleting, downloading, and viewing them. Also initiation of execution of a profile is also handled through this page.<br/>
+  If no reports are currently stored, the table contains one line stating &quot;&lt;No test reports&gt;&quot;.
+  Otherwise there is a table row for each test report, each containing these elements:
+</p>
+
+<dl>
+  <dt>Action</dt>
+  <dd>
+    If a test is currently being executed, a <input type="button" value=" Stop ">-button is shown.
+    Clicking the Stop-button will cause a request to be sent to gracefully cancel the execution.
+    During this cancellation, the button will be disabled. At most one test can execute at a time.<br/>
+    Once execution of a test is complete, successfully or not, the resulting report is persisted to non-volatile memory.
+    Up to <span class="report_cnt">?</span> reports can be persisted. New reports will replace the oldest.<br/>
+    Only reports stored in non-volatile memory can be erased. This is done with the <input type="button" value=" Delete ">-button.
+  </dd>
+
+  <dt>Save</dt>
+  <dd>
+    Test reports can be downloaded and stored on the local computer with the use of the <input type="button" value=" Save ">-button.
+    The suggested file name will be the report name concatenated with &quot;.txt&quot;.
+  </dd>
+
+  <dt>Name</dt>
+  <dd>
+    A unique name identifying the report. Click the name to view the report.
+  </dd>
+
+  <dt>Description</dt>
+  <dd>
+    The description assigned to the report as entered on the test execution page, invoked with the <input type="button" value=" Start New Test ">-button.
+  </dd>
+
+  <dt>Created</dt>
+  <dd>
+    The date and time at which execution started.
+  </dd>
+
+  <dt>Status</dt>
+  <dd>
+    The current status of executing a test:
+    <ul>
+      <li><samp>Inactive</samp>: Test just initiated, but not started. This is a transitional state that is unlikely to be noticed.</li>
+      <li><samp>Executing</samp>: Test is currently executing. At most one test can execute at a time.</li>
+      <li><samp>Cancelling</samp>: Test has just been stopped by the user. This is a transitional state that is unlikely to be noticed.</li>
+      <li><samp>Cancelled</samp>: Test was stopped by the user and report is stored in non-volatile memory.</li>
+      <li><samp>Passed</samp>: Test passed successfully and reports is stored in non-volatile memory.</li>
+      <li><samp>Failed</samp>: Test failed execution and report is stored in non-volatile memory. Details as to why the test failed are embedded in the report.</li>
+    </ul>
+  </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Start New Test ">: Initiate execution of a profile. This button is grayed out if a test is already in progress.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+</body>
+</html>

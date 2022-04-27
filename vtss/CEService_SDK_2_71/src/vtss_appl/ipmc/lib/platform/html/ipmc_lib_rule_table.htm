@@ -1,0 +1,723 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IPMC Profile Rule Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+var oTEntryRule = Array();
+var oVEntryRule = Array();
+var bgnEntryRule = Array();
+var endEntryRule = Array();
+
+var oTActionRule = Array("Deny", "Permit");
+var oVActionRule = Array(0, 1);
+var oTLogRule = Array("Disable", "Enable");
+var oVLogRule = Array(0, 1);
+
+var pageSelectSid = -1;
+var pageSelectConfigable = -1;
+var pageSelectPdxName = "";
+var pageArgsName;
+var pageArgs = searchArgs(window.location.search);
+
+pageArgsName = 'CurSidV';
+if (pageArgs[pageArgsName]) {
+    pageSelectSid = parseInt(pageArgs[pageArgsName], 10);
+} else {
+    pageSelectSid = 0;
+}
+pageArgsName = 'DoPdxOp';
+if (pageArgs[pageArgsName]) {
+    pageSelectConfigable = parseInt(pageArgs[pageArgsName], 10);
+} else {
+    pageSelectConfigable = 0;
+}
+pageArgsName = 'DynBgnPdx';
+if (pageArgs[pageArgsName]) {
+    pageSelectPdxName = asciiStrToTextStr(pageArgs[pageArgsName]);
+} else {
+    pageSelectPdxName = "-";
+}
+
+var reqObject;
+var totalEntriesNum = 0;
+var curMaxEntryCnt = 0;
+//  var cfgIpmcLibPfrMax = 128;
+
+
+// Help page magic
+var help_page = "/help/help_ipmc_lib_rule_table.htm";
+
+function CreateTableHeaderRule(fragEntry)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Profile Name & Index", "hdrc", 2);
+    addTextHeaderCell(tr, "Entry Name", "hdrc");
+    addTextHeaderCell(tr, "Address Range", "hdrc");
+    addTextHeaderCell(tr, "Action", "hdrc");
+    addTextHeaderCell(tr, "Log", "hdrc");
+    if (parseInt(pageSelectConfigable, 10) > 0) {
+        addTextHeaderCell(tr, "", "hdrc");
+    }
+    fragEntry.appendChild(tr);  // Add row to fragment
+}
+
+function searchEntryRule(entryKey)
+{
+    var edx;
+
+    for (edx = 0; edx <= curMaxEntryCnt; edx++) {
+        if (oTEntryRule[edx] === entryKey) {
+            return edx;
+        }
+    }
+
+    return -1;
+}
+
+function UpdateEdxValue(idx, newVal)
+{
+    var td = document.getElementById("edx_ipmcpf_rule_" + idx);
+
+    if (td) {
+        if (newVal < 0) {
+            td.value = oTEntryRule[0];
+        } else {
+            td.value = oTEntryRule[newVal];
+        }
+    }
+}
+
+function checkNewRange()
+{
+    var rdx = this.id.split("_");
+    var idx = this.value;
+    var newEntry = oTEntryRule[parseInt(idx, 10)];
+
+    if (newEntry && newEntry !== "") {
+        var edx = searchEntryRule(newEntry);
+
+        if (edx < 0) {
+            UpdateId("range_ipmcpf_rule_" + rdx[3], "N/A");
+        } else {
+            UpdateId("range_ipmcpf_rule_" + rdx[3], bgnEntryRule[edx] + " ~ " + endEntryRule[edx]);
+        }
+        UpdateEdxValue(rdx[3], edx);
+    }
+}
+
+function addImageInline(frag, style, src, text, idx, click)
+{
+    var field = document.createElement('img');
+    var pval = text.split(" ");
+    field.id = pval[pval.length - 1] + "_" + idx;
+    field.src = src;
+    field.border = 0;
+    field.value = idx;
+    if (click) {
+        field.onclick = click;
+    }
+    field.title = field.alt = text;
+    frag.appendChild(field);
+    return field;
+}
+
+function ruleMoveDown(idx, tr)
+{
+    var dst_idx, dst_act, dst_log, mve, rdx;
+
+    if (idx === totalEntriesNum) {
+        return;
+    }
+
+    mve = document.getElementById("entry_ipmcpf_rule_" + idx);
+    dst_idx = parseInt(mve.value, 10);
+    mve = document.getElementById("action_ipmcpf_rule_" + idx);
+    dst_act = parseInt(mve.value, 10);
+    mve = document.getElementById("log_ipmcpf_rule_" + idx);
+    dst_log = parseInt(mve.value, 10);
+
+    rdx = idx + 1;
+
+    mve = document.getElementById("entry_ipmcpf_rule_" + rdx);
+    UpdateIdSelect("entry_ipmcpf_rule_" + idx, oTEntryRule, oVEntryRule, parseInt(mve.value, 10));
+    UpdateEdxValue(idx, parseInt(mve.value, 10));
+    UpdateId("range_ipmcpf_rule_" + idx, bgnEntryRule[parseInt(mve.value, 10)] + " ~ " + endEntryRule[parseInt(mve.value, 10)]);
+    mve = document.getElementById("action_ipmcpf_rule_" + rdx);
+    UpdateIdSelect("action_ipmcpf_rule_" + idx, oTActionRule, oVActionRule, parseInt(mve.value, 10));
+    mve = document.getElementById("log_ipmcpf_rule_" + rdx);
+    UpdateIdSelect("log_ipmcpf_rule_" + idx, oTLogRule, oVLogRule, parseInt(mve.value, 10));
+
+    UpdateIdSelect("entry_ipmcpf_rule_" + rdx, oTEntryRule, oVEntryRule, dst_idx);
+    UpdateEdxValue(rdx, dst_idx);
+    UpdateId("range_ipmcpf_rule_" + rdx, bgnEntryRule[dst_idx] + " ~ " + endEntryRule[dst_idx]);
+    UpdateIdSelect("action_ipmcpf_rule_" + rdx, oTActionRule, oVActionRule, dst_act);
+    UpdateIdSelect("log_ipmcpf_rule_" + rdx, oTLogRule, oVLogRule, dst_log);
+}
+
+function ruleMoveUp(idx, tr)
+{
+    var dst_idx, dst_act, dst_log, mve, rdx;
+
+    if (idx === 1) {
+        return;
+    }
+
+    mve = document.getElementById("entry_ipmcpf_rule_" + idx);
+    dst_idx = parseInt(mve.value, 10);
+    mve = document.getElementById("action_ipmcpf_rule_" + idx);
+    dst_act = parseInt(mve.value, 10);
+    mve = document.getElementById("log_ipmcpf_rule_" + idx);
+    dst_log = parseInt(mve.value, 10);
+
+    rdx = idx - 1;
+
+    mve = document.getElementById("entry_ipmcpf_rule_" + rdx);
+    UpdateIdSelect("entry_ipmcpf_rule_" + idx, oTEntryRule, oVEntryRule, parseInt(mve.value, 10));
+    UpdateEdxValue(idx, parseInt(mve.value, 10));
+    UpdateId("range_ipmcpf_rule_" + idx, bgnEntryRule[parseInt(mve.value, 10)] + " ~ " + endEntryRule[parseInt(mve.value, 10)]);
+    mve = document.getElementById("action_ipmcpf_rule_" + rdx);
+    UpdateIdSelect("action_ipmcpf_rule_" + idx, oTActionRule, oVActionRule, parseInt(mve.value, 10));
+    mve = document.getElementById("log_ipmcpf_rule_" + rdx);
+    UpdateIdSelect("log_ipmcpf_rule_" + idx, oTLogRule, oVLogRule, parseInt(mve.value, 10));
+
+    UpdateIdSelect("entry_ipmcpf_rule_" + rdx, oTEntryRule, oVEntryRule, dst_idx);
+    UpdateEdxValue(rdx, dst_idx);
+    UpdateId("range_ipmcpf_rule_" + rdx, bgnEntryRule[dst_idx] + " ~ " + endEntryRule[dst_idx]);
+    UpdateIdSelect("action_ipmcpf_rule_" + rdx, oTActionRule, oVActionRule, dst_act);
+    UpdateIdSelect("log_ipmcpf_rule_" + rdx, oTLogRule, oVLogRule, dst_log);
+}
+
+function ruleDelete(idx, tr)
+{
+    var dst, mve, mvx, rdx;
+
+    for (rdx = idx; rdx < totalEntriesNum; rdx++) {
+        mvx = rdx + 1;
+
+        mve = document.getElementById("entry_ipmcpf_rule_" + mvx);
+        dst = parseInt(mve.value, 10);
+        UpdateIdSelect("entry_ipmcpf_rule_" + rdx, oTEntryRule, oVEntryRule, dst);
+        UpdateEdxValue(rdx, dst);
+        UpdateId("range_ipmcpf_rule_" + rdx, bgnEntryRule[dst] + " ~ " + endEntryRule[dst]);
+
+        mve = document.getElementById("action_ipmcpf_rule_" + mvx);
+        dst = parseInt(mve.value, 10);
+        UpdateIdSelect("action_ipmcpf_rule_" + rdx, oTActionRule, oVActionRule, dst);
+        mve = document.getElementById("log_ipmcpf_rule_" + mvx);
+        dst = parseInt(mve.value, 10);
+        UpdateIdSelect("log_ipmcpf_rule_" + rdx, oTLogRule, oVLogRule, dst);
+    }
+
+    document.getElementById("ruleData").deleteRow(totalEntriesNum);
+    totalEntriesNum--;
+
+    var last_down = document.getElementById("down_down_rule_" + totalEntriesNum);
+    if (last_down) {
+        last_down.src = "images/down_gray.gif";
+        last_down.title = last_down.alt = "Cannot move this rule down";
+    }
+}
+
+function ruleInsert(idx, tr)
+{
+    if (totalEntriesNum < cfgIpmcLibPfrMax) {
+        /* AddLastRow() */
+        if (totalEntriesNum) {
+            var last_down = document.getElementById("down_down_rule_" + totalEntriesNum);
+            if (last_down) {
+                last_down.src = "images/down.gif";
+                last_down.title = last_down.alt = "Move this rule down";
+            }
+        }
+
+        totalEntriesNum++;
+
+        var td, ins_tr = CreateStyledElement("tr", (totalEntriesNum - 1) % 2 ? "config_odd" : "config_even");
+
+        // create holder for accumulated tbody elements and text nodes
+        td = addTextCell(ins_tr, pageSelectPdxName, "cl");
+        td.id = "profile_ipmcpf_rule_" + totalEntriesNum;
+        td = addTextCell(ins_tr, totalEntriesNum, "cr");
+
+        td = addSelectCell(ins_tr, oTEntryRule, oVEntryRule, 0, "cr", "entry_ipmcpf_rule_" + totalEntriesNum);
+        td.onchange = checkNewRange;
+        td = addTextCell(ins_tr, bgnEntryRule[0] + " ~ " + endEntryRule[0], "cr");
+        td.id = "range_ipmcpf_rule_" + totalEntriesNum;
+
+        addSelectCell(ins_tr, oTActionRule, oVActionRule, 0, "cr", "action_ipmcpf_rule_" + totalEntriesNum);
+        addSelectCell(ins_tr, oTLogRule, oVLogRule, 0, "cr", "log_ipmcpf_rule_" + totalEntriesNum);
+
+        td = addHiddenInputCell(ins_tr, "-", "dummy", "edx_ipmcpf_rule_" + totalEntriesNum);
+        td.readOnly = true;
+
+        /* addRowControlCol(ins_tr, totalEntriesNum, totalEntriesNum) */
+        var container = document.createElement("td");
+        var img_idx = totalEntriesNum;
+        //insert
+        addImageInline(container, "cl",  "images/add.gif", "Insert a new rule before this rule", "add_rule_" + img_idx, function() { ruleInsert(img_idx, ins_tr); });
+        //move up
+        addImageInline(container, "cl",  "images/up.gif", "Move this rule up", "up_rule_" + img_idx, function() { ruleMoveUp(img_idx, ins_tr); });
+        container.appendChild(document.createElement("br"));
+        //delete
+        addImageInline(container, "cl",  "images/del.gif", "Delete this rule", "del_rule_" + img_idx, function() { ruleDelete(img_idx, ins_tr); });
+        //move down
+        addImageInline(container, "cl",  "images/down_gray.gif", "Cannot move this rule down", "down_rule_" + img_idx, function() { ruleMoveDown(img_idx, ins_tr); });
+        ins_tr.appendChild(container);
+
+        tbody = document.getElementById("ruleData");
+        if (!tbody.appendChild(ins_tr)) {
+            alert("This browser doesn't support dynamic tables.");
+        }
+
+        var dst, mve, mvx, rdx;
+        for (rdx = totalEntriesNum; rdx > idx; rdx--) {
+            mvx = rdx - 1;
+
+            mve = document.getElementById("entry_ipmcpf_rule_" + mvx);
+            dst = parseInt(mve.value, 10);
+            UpdateIdSelect("entry_ipmcpf_rule_" + rdx, oTEntryRule, oVEntryRule, dst);
+            UpdateEdxValue(rdx, dst);
+            UpdateId("range_ipmcpf_rule_" + rdx, bgnEntryRule[dst] + " ~ " + endEntryRule[dst]);
+
+            mve = document.getElementById("action_ipmcpf_rule_" + mvx);
+            dst = parseInt(mve.value, 10);
+            UpdateIdSelect("action_ipmcpf_rule_" + rdx, oTActionRule, oVActionRule, dst);
+            mve = document.getElementById("log_ipmcpf_rule_" + mvx);
+            dst = parseInt(mve.value, 10);
+            UpdateIdSelect("log_ipmcpf_rule_" + rdx, oTLogRule, oVLogRule, dst);
+        }
+
+        dst = 0;
+        UpdateIdSelect("entry_ipmcpf_rule_" + idx, oTEntryRule, oVEntryRule, dst);
+        UpdateEdxValue(idx, dst);
+        UpdateId("range_ipmcpf_rule_" + idx, bgnEntryRule[dst] + " ~ " + endEntryRule[dst]);
+        UpdateIdSelect("action_ipmcpf_rule_" + rdx, oTActionRule, oVActionRule, dst);
+        UpdateIdSelect("log_ipmcpf_rule_" + rdx, oTLogRule, oVLogRule, dst);
+    } else {
+        alert("The maximum number of rules is " + cfgIpmcLibPfrMax);
+        return;
+    }
+}
+
+function addRowControlCol(tr, idx, maxCnt)
+{
+    if (parseInt(pageSelectConfigable, 10) < 1) {
+        return;
+    }
+
+    var container = document.createElement("td");
+
+    //insert
+    addImageInline(container, "cl",  "images/add.gif", "Insert a new rule before this rule", "add_rule_" + idx, function() { ruleInsert(idx, tr); });
+    //move up
+    if (parseInt(idx, 10) > 1) {
+        addImageInline(container, "cl",  "images/up.gif", "Move this rule up", "up_rule_" + idx, function() { ruleMoveUp(idx, tr); });
+    } else {
+        addImageInline(container, "cl",  "images/up_gray.gif", "Cannot move this rule up", "up_rule_" + idx, function() { ruleMoveUp(idx, tr); });
+    }
+
+    container.appendChild(document.createElement("br"));
+
+    //delete
+    addImageInline(container, "cl",  "images/del.gif", "Delete this rule", "del_rule_" + idx, function() { ruleDelete(idx, tr); });
+    //move down
+    if (idx !== maxCnt) {
+        addImageInline(container, "cl",  "images/down.gif", "Move this rule down", "down_rule_" + idx, function() { ruleMoveDown(idx, tr); });
+    }  else {
+        addImageInline(container, "cl",  "images/down_gray.gif", "Cannot move this rule down", "down_rule_" + idx, function() { ruleMoveDown(idx, tr); });
+    }
+
+    tr.appendChild(container);
+}
+
+function AddLastRow()
+{
+    if (totalEntriesNum < parseInt(cfgIpmcLibPfrMax, 10)) {
+        if (totalEntriesNum) {
+            var last_down = document.getElementById("down_down_rule_" + totalEntriesNum);
+            if (last_down) {
+                last_down.src = "images/down.gif";
+                last_down.title = last_down.alt = "Move this rule down";
+            }
+        }
+
+        totalEntriesNum++;
+
+        var td, tr = CreateStyledElement("tr", (totalEntriesNum - 1) % 2 ? "config_odd" : "config_even");
+
+        // create holder for accumulated tbody elements and text nodes
+        td = addTextCell(tr, pageSelectPdxName, "cl");
+        td.id = "profile_ipmcpf_rule_" + totalEntriesNum;
+        td = addTextCell(tr, totalEntriesNum, "cr");
+
+        td = addSelectCell(tr, oTEntryRule, oVEntryRule, 0, "cr", "entry_ipmcpf_rule_" + totalEntriesNum);
+        td.onchange = checkNewRange;
+        td = addTextCell(tr, bgnEntryRule[0] + " ~ " + endEntryRule[0], "cr");
+        td.id = "range_ipmcpf_rule_" + totalEntriesNum;
+
+        addSelectCell(tr, oTActionRule, oVActionRule, 0, "cr", "action_ipmcpf_rule_" + totalEntriesNum);
+        addSelectCell(tr, oTLogRule, oVLogRule, 0, "cr", "log_ipmcpf_rule_" + totalEntriesNum);
+
+        td = addHiddenInputCell(tr, "-", "dummy", "edx_ipmcpf_rule_" + totalEntriesNum);
+        td.readOnly = true;
+
+        addRowControlCol(tr, totalEntriesNum, totalEntriesNum);
+
+        tbody = document.getElementById("ruleData");
+        if (!tbody.appendChild(tr)) {
+            alert("This browser doesn't support dynamic tables.");
+        }
+    } else {
+        alert("The maximum number of rules is " + cfgIpmcLibPfrMax);
+        return;
+    }
+}
+
+function addRowRule(idx, frag, ruleVal, maxCnt)
+{
+    var grpsEntry = ruleVal.split("/");
+    var td, tr = CreateStyledElement("tr", (idx - 1) % 2 ? "config_odd" : "config_even");
+
+    td = addTextCell(tr, pageSelectPdxName, "cl");
+    td.id = "profile_ipmcpf_rule_" + idx;
+    td = addTextCell(tr, idx, "cr");
+
+    /* [entry_name]/[action]/[log] */
+    if (grpsEntry[0]) {
+        var edx = searchEntryRule(unescape(grpsEntry[0]));
+        if (parseInt(pageSelectConfigable, 10) > 0) {
+            if (edx < 0) {
+                td = addTextCell(tr, "-", "cr");
+                td.id = "entry_ipmcpf_rule_" + idx;
+            } else {
+                td = addSelectCell(tr, oTEntryRule, oVEntryRule, edx, "cr", "entry_ipmcpf_rule_" + idx);
+                td.onchange = checkNewRange;
+            }
+        } else {
+            td = addTextCell(tr, unescape(grpsEntry[0]), "cl");
+            td.id = "entry_ipmcpf_rule_" + idx;
+        }
+
+        if (edx < 0) {
+            td = addTextCell(tr, "N/A", "cr");
+        } else {
+            td = addTextCell(tr, bgnEntryRule[edx] + " ~ " + endEntryRule[edx], "cr");
+        }
+        td.id = "range_ipmcpf_rule_" + idx;
+    } else {
+        td = addTextCell(tr, "-", "cr");
+        td.id = "entry_ipmcpf_rule_" + idx;
+        td = addTextCell(tr, "N/A", "cr");
+        td.id = "range_ipmcpf_rule_" + idx;
+    }
+
+    if ((parseInt(pageSelectConfigable, 10) > 0) && grpsEntry[1]) {
+        addSelectCell(tr, oTActionRule, oVActionRule, parseInt(grpsEntry[1], 10), "cr", "action_ipmcpf_rule_" + idx);
+    } else {
+        if (grpsEntry[1]) {
+            addTextCell(tr, oTActionRule[parseInt(grpsEntry[1], 10)], "cr");
+        } else {
+            addTextCell(tr, "N/A", "cr");
+        }
+    }
+    if ((parseInt(pageSelectConfigable, 10) > 0) && grpsEntry[2]) {
+        addSelectCell(tr, oTLogRule, oVLogRule, parseInt(grpsEntry[2], 10), "cr", "log_ipmcpf_rule_" + idx);
+    } else {
+        if (grpsEntry[2]) {
+            addTextCell(tr, oTLogRule[parseInt(grpsEntry[2], 10)], "cr");
+        } else {
+            addTextCell(tr, "N/A", "cr");
+        }
+    }
+
+    if (parseInt(pageSelectConfigable, 10) > 0) {
+        td = addHiddenInputCell(tr, unescape(grpsEntry[0]), "dummy", "edx_ipmcpf_rule_" + idx);
+        td.readOnly = true;
+
+        addRowControlCol(tr, idx, maxCnt);
+    }
+
+    frag.appendChild(tr);
+    totalEntriesNum++;
+}
+
+function processUpdateRule(req, ref)
+{
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeaderRule(frag);
+
+    curMaxEntryCnt = totalEntriesNum = 0;
+    if (reqObject !== req) {
+        reqObject = req;
+    }
+    /*
+        Format:
+        [profile_name];[entry_1]/[bgn]/[end]|...|[entry_n]/[bgn]/[end];[entry_name]/[action]/[log]|...;
+    */
+    if (req.responseText) {
+    //if (req) {
+        var idx, values = req.responseText.split(";");
+        //var values = req.split(";");
+        pageSelectPdxName = unescape(values[0]);
+
+        UpdateId("display_profile", "[" + pageSelectPdxName + "]");
+
+        if (values[1] !== "NoEntries") {
+            var entryEntry, entryTable = values[1].split("|");
+
+            curMaxEntryCnt = entryTable.length;
+            for (idx = 0; idx <= curMaxEntryCnt; idx++) {
+                if (idx === 0) {
+                    continue;
+                }
+
+                entryEntry = entryTable[idx - 1].split("/");
+                oTEntryRule[idx] = unescape(entryEntry[0]);
+                oVEntryRule[idx] = idx;
+
+                bgnEntryRule[idx] = entryEntry[1];
+                endEntryRule[idx] = entryEntry[2];
+            }
+        } else {
+            if (values[2] !== "NoEntries") {
+                return;
+            }
+        }
+        oTEntryRule[0] = "-";
+        oVEntryRule[0] = 0;
+        bgnEntryRule[0] = "";
+        endEntryRule[0] = "";
+
+        document.getElementById("pdx_ipmcpf_rule").value = pageSelectPdxName;
+
+        if (values[2] !== "NoEntries") {
+            var ruleTable = values[2].split("|");
+
+            for (idx = 0; idx < ruleTable.length; idx++) {
+                addRowRule(idx + 1, frag, ruleTable[idx], ruleTable.length);
+            }
+        }
+    }
+
+    document.getElementById("update").style.visibility = "hidden";
+    if (parseInt(pageSelectConfigable, 10) > 0) {
+        document.getElementById("addLastEntry").disabled = false;
+        document.getElementById("addLastEntry").style.visibility = "visible";
+
+        document.getElementById("commitRules").disabled = false;
+        document.getElementById("commitRules").style.visibility = "visible";
+        document.getElementById("resetRules").disabled = false;
+        document.getElementById("resetRules").style.visibility = "visible";
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    processUpdateRule(reqObject, "ruleData");
+}
+
+function checkForm(form)
+{
+    var i, j, fld, chk;
+
+    for (i = 1; i <= totalEntriesNum; i++) {
+        fld = document.getElementById("entry_ipmcpf_rule_" + i);
+        if (!fld) {
+            continue;
+        }
+
+        if (parseInt(fld.value, 10)) {
+            for (j = i + 1; j <= totalEntriesNum; j++) {
+                chk = document.getElementById("entry_ipmcpf_rule_" + j);
+                if (!chk) {
+                    continue;
+                }
+
+                if (parseInt(fld.value, 10) === parseInt(chk.value, 10)) {
+                    if ((j === 11) || (j === 12)) {
+                        alert("Duplicated entry used in the " + j + "th rule.");
+                    } else {
+                        if ((j % 10) === 1) {
+                            alert("Duplicated entry used in the " + j + "st rule.");
+                        } else if ((j % 10) === 2) {
+                            alert("Duplicated entry used in the " + j + "nd rule.");
+                        } else if ((j % 10) === 3) {
+                            alert("Duplicated entry used in the " + j + "rd rule.");
+                        } else {
+                            alert("Duplicated entry used in the " + j + "th rule.");
+                        }
+                    }
+
+                    return false;
+                }
+            }
+        } else {
+            if (curMaxEntryCnt) {
+                if ((i === 11) || (i === 12)) {
+                    alert("Please select the Entry Name for the " + i + "th rule.");
+                } else {
+                    if ((i % 10) === 1) {
+                        alert("Please select the Entry Name for the " + i + "st rule.");
+                    } else if ((i % 10) === 2) {
+                        alert("Please select the Entry Name for the " + i + "nd rule.");
+                    } else if ((i % 10) === 3) {
+                        alert("Please select the Entry Name for the " + i + "rd rule.");
+                    } else {
+                        alert("Please select the Entry Name for the " + i + "th rule.");
+                    }
+                }
+            } else {
+                alert("Please create the Address Entry at first!");
+            }
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function requestUpdate()
+{
+    if (parseInt(pageSelectConfigable, 10) > 0) {
+        if (SpomNavigationLoading()) {
+            return;    // Bail out, navigation will trigger update
+        }
+    } else {
+        if (parseInt(pageSelectSid, 10) > 0) {
+            SpomSetCurrentSid(pageSelectSid);   // Save input SID
+        }
+    }
+
+    document.getElementById("update").style.visibility = "visible";
+
+    var td = document.getElementById("addLastEntry");
+    td.disabled = true;
+    document.getElementById("addLastEntry").style.visibility = "hidden";
+
+    td = document.getElementById("commitRules");
+    td.disabled = true;
+    document.getElementById("commitRules").style.visibility = "hidden";
+    td = document.getElementById("resetRules");
+    td.disabled = true;
+    document.getElementById("resetRules").style.visibility = "hidden";
+
+    /*
+        Format:
+        [profile_name];[entry_1]/[bgn]/[end]|...|[entry_n]/[bgn]/[end];[entry_name]/[action]/[log]|...;
+    */
+    loadXMLDoc(SpomAddSidArg("/config/ipmclib_rule?CurSidV=" + pageSelectSid +
+                             "&DoPdxOp=" + pageSelectConfigable +
+                             "&DynBgnPdx=" + textStrToAsciiStr(pageSelectPdxName)),
+                             processUpdateRule,
+                             'ruleData');
+
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/ipmclib_rule" onsubmit="return checkForm(this);">
+
+<h1>IPMC Profile <b><span id="display_profile"></span></b> Rule Settings (In Precedence Order)</h1>
+
+<div class="refreshbar">
+  <img id="update" alt="" src="images/updating.gif">
+</div>
+
+<table id="ruleConfig" summary="IPMC Profile Rule Settings" cellspacing="0" class="config">
+ <tbody id="ruleData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="button" id="addLastEntry" value="Add Last Rule" onclick="AddLastRow();">
+</p>
+
+<p>
+<input type="submit" id="commitRules" value="Commit">
+<input type="button" id="resetRules" value="Reset" onclick="resetForm();">
+<input type="hidden" id="pdx_ipmcpf_rule" name="pdx">
+</p>
+
+</form>
+
+<!-- IE caching bug -->
+<div style="display: none;">
+ <img alt="" src="images/add.gif">
+ <img alt="" src="images/add_gray.gif">
+ <img alt="" src="images/del.gif">
+ <img alt="" src="images/del_gray.gif">
+ <img alt="" src="images/up.gif">
+ <img alt="" src="images/up_gray.gif">
+ <img alt="" src="images/down.gif">
+ <img alt="" src="images/down_gray.gif">
+</div>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

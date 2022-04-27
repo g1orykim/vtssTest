@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Delete Configuration File</title>
+ <link href="/lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var help_page = "/help/help_maintenance_icfg_conf.htm#delete";
+
+function EnableSubmit(enb)
+{
+    var elem = document.getElementById("submit_button");
+    elem.disabled = !enb;
+}
+
+function addRow(index, frag, filename)
+{
+    var tr    = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+    var radio = addRadioCell(tr, false, "cl", "file_name_radio", null, filename);
+    radio.setAttribute("value", filename);
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+	var frag           = document.createDocumentFragment();
+    var tbody          = document.getElementById("file_list_rows");
+    var visible_inputs = document.getElementById("visible_inputs");
+    var message        = document.getElementById("message");
+    var fields         = req.responseText.split("*");
+    var status         = fields[0];
+    var files          = fields.slice(1);
+    var i;
+
+    if (status === "OK") {
+        if (files.length < 2) {
+            message.innerHTML   = "No files available for deletion.";
+            visible_inputs.style.display = "none";
+        } else {
+            for(i = 0; i < files.length - 1; i++) {
+                addRow(i, frag, files[i]);
+            }
+            EnableSubmit(true);
+            clearChildNodes(tbody);
+            if (!tbody.appendChild(frag)) {
+                alert("This browser doesn't support dynamic tables.");
+            }
+        }
+    } else if (status === "ERR_LOCK") {
+        message.innerHTML = "Another I/O operation is in progress. Please try again later.";
+        visible_inputs.style.display = "none";
+    } else if (status === "ERR") {
+        message.innerHTML = "Could not retrieve file list from switch. Please try again later.";
+        visible_inputs.style.display = "none";
+    }
+}
+
+function requestUpdate() {
+    EnableSubmit(false);
+    loadXMLDoc("/config/icfg_conf_get_file_list?op=delete", processUpdate, "file_list_rows");
+}
+
+function onSubmit() {
+    var radioObj = document.getElementsByName("file_name_radio");
+    var i;
+    for(i = 0; i < radioObj.length; i++) {
+        if (radioObj[i].checked) {
+            var fn = radioObj[i].value;
+            var res = confirm("Are you sure you want to delete\n" + fn + "?");
+            document.getElementById("file_name").value = fn;
+            return res;
+        }
+    }
+    alert("Please select a file name.");
+    return false;
+}
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+    <h1>Delete Configuration File</h1>
+    <form name ="file_form" method="POST" action="/config/icfg_conf_delete" onsubmit="return onSubmit();">
+        <input type="hidden" id="submit_sid" name="sid">
+        <input type="hidden" id="file_name"  name="file_name" value="">
+        <div id="visible_inputs">
+            <p>
+                Select configuration file to delete.
+            </p>
+            <table id="file_list_table" summary="Available Files" cellspacing="0" class="display">
+                <thead>
+                    <tr class="display_header">
+                        <th>File Name</th>
+                    </tr>
+                </thead>
+                <tbody id="file_list_rows">
+                    <tr class="display_odd">
+                        <td>(Please wait)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p id="message"></p>
+        <input type="submit" id="submit_button" value="Delete Configuration File" onclick="return true;">
+    </form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

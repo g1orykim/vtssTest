@@ -1,0 +1,245 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_port_power_savings_status.htm";
+
+// Refresh timer
+var timerID;
+
+var eee_supported = false;
+
+// Add a row to the status table
+function addRow(index, frag, values)
+{
+    var yesno_image = Array("images/no.gif", "images/yes.gif");
+    var link_image  = Array("images/led-down.gif", "images/led-up.gif");
+
+
+
+    // Format: port_no/eee/capable/eee_enabled/fast_queue_mask
+    var pval            = values.split("/");
+    var port_no         = pval[0];
+    var eee_capable     = pval[1];
+    var eee_enabled     = pval[2];
+    var link            = pval[3];
+    var lp_eee_cap      = pval[4];
+    var rx_savings      = pval[5];
+    var tx_savings      = pval[6];
+    var actiphy_savings = pval[7];
+    var perfectreach_savings = pval[8];
+
+
+
+
+
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    // Add port to table
+    addTextCell(tr, port_no, "cr");
+
+
+    addImageCell(tr, "c", link_image[link], "Dummy");
+    if (eee_supported) {
+        addImageCell(tr, "c", yesno_image[eee_enabled], "Dummy");
+        addImageCell(tr, "c", yesno_image[lp_eee_cap], "Dummy");
+        addImageCell(tr, "c", yesno_image[rx_savings || tx_savings], "Dummy");
+    }
+    addImageCell(tr, "c", yesno_image[actiphy_savings], "Dummy");
+    addImageCell(tr, "c", yesno_image[perfectreach_savings], "Dummy");
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+// Create table header for the status table.
+function CreatePortsTableHeader(frag)
+{
+    var tr;
+
+    clearChildNodes(document.getElementById('port_head')); // Delete table if it already exists
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"Port", "hdrc", 1);
+    addTextHeaderCell(tr,"Link", "hdrc", 1);
+    if (eee_supported) {
+        addTextHeaderCell(tr,"EEE", "hdrc", 1);  
+        addTextHeaderCell(tr,"LP EEE Cap", "hdrc", 1);
+        addTextHeaderCell(tr,"EEE Savings", "hdrc", 1);  
+    }
+    addTextHeaderCell(tr,"ActiPhy Savings", "hdrc", 1);  
+    addTextHeaderCell(tr,"PerfectReach Savings", "hdrc", 1);  
+    frag.appendChild(tr);
+}
+
+// Update the port status table
+function UpdateTable(status)
+{
+    // Create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreatePortsTableHeader(frag);
+    FinishTable(frag, 'port_head');
+
+    frag = document.createDocumentFragment();
+    var pval = status.split("&");
+    for (var i = 0; i < pval.length; i++) {
+        if (pval[i].length) {
+            addRow(i, frag, pval[i]);
+        }
+    }
+    FinishTable(frag, 'port_body');
+}
+
+// Update when web page is loaded
+function processUpdate(req)
+{
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        // Get and set status settings
+        var status = req.responseText.split("|");
+
+
+        // Error message
+        var err_msg = status[0];
+        if (err_msg !== "") {
+            alert(err_msg);
+        }
+
+        eee_supported = parseInt(status[1],10);
+        
+        // Create the table
+        UpdateTable(status[2]);
+
+    } else {
+        SpomHandleError();
+    }
+
+    document.getElementById("update").style.visibility = "hidden";
+
+    // Update the timer
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+	}
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+
+}
+
+// Check all input when "save" button is pressed.
+function checkForm(form)
+{
+    return true;                // Feed the chickens and go home
+}
+
+// Request update
+function requestUpdate()
+{
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/stat/port_power_savings_status"), processUpdate);
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function chkRefresh(fld)
+{
+  if(!fld.checked) {
+      if(timerID) {
+	  clearTimeout(timerID);
+      }
+    timerID = null;
+  } else {
+      requestUpdate();
+  }
+}
+
+
+// Check if the switch in the stack is changed.
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+<h1>Port Power Savings Status <span id="display_sid"></span></h1>
+
+<form name="StatusForm" method="POST" action="/stat/port_power_savings_status" onsubmit="if (!checkForm()) { return false; } changeForm('grayOut');"> </form>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<table id="status" summary="Switch Port Status" cellspacing="0" class="display">
+  <tbody id="port_head"></tbody>
+  <tbody id="port_body"></tbody>
+</table>
+
+
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

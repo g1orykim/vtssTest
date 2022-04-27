@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>VLAN Translation Table Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/ajax.js"></script>
+ <script type="text/javascript" src="/lib/spom.js"></script>
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript"> </script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+    $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+</script>
+</head>
+
+<body>
+<h1>VLAN Translation Table Help</h1>
+
+<p>This page allows you to map VLAN ID to other VLAN ID for a particular Group ID Globally.</p>
+
+<p>The displayed settings are:</p>
+
+<dl>
+ <dt>Delete</dt>
+ <dd>To delete a VLAN Translation Group database entry, check this box. The entry will be deleted on the switch during the next Save</dd>
+ <dt >Group ID</dt>
+ <dd>A valid Group ID is an integer value from 1 to <script type="text/javascript"> document.write(configNormalPortMax); </script>.
+    A set of VLAN Translations are mapped to a group Id. This way a port is mapped to
+    a list of VLAN Translations easily by mapping it to a group. Number of groups in a 
+    switch is equal to the number of ports present in this switch. A port can be mapped 
+    to any of the groups. Multiple ports can also be mapped to a group with same group Id.<br />
+    <b>Note:</b>
+	By default,
+	each port is mapped to a group with a group Id equal to the port number. For
+	example, port 1 is mapped to the group with ID=1.
+    
+  </dd>
+ <dt><a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a></dt>
+ <dd>Indicates the ID to which Group ID will be mapped. A valid VLAN ID ranges from 1-4095.</dd>
+<dt>Translated to VLAN ID</dt>
+<dd>
+Indicates the VID to which VLAN ID of ingress frames will be changed, if VID in incoming
+frames if same as configured in VLAN ID field preceded by this field on member ports of a
+particular group to which this entry belongs.
+ </dd>
+ <dt>Adding a New VLAN Translation entry</dt>
+ <dd>
+   Click <input type="button" value=" Add New Entry "> to add a new entry in VLAN Translation table. An empty row is added
+   to the table, the Group ID, VLAN ID and  Translated to VID fields can be configured as needed. Legal values for a VLAN ID are
+   <samp>1</samp> through <samp>4095</samp>.<br/><br/>
+   The <input type="button" value=" Delete "> button can be used to undo the addition of new entry.
+ </dd>  
+ </dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value="Refresh">: Click to refresh the page immediately.</p>
+<p><input type="button" value="Save">: Click to save changes.</p>
+<p><input type="button" value="Reset">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

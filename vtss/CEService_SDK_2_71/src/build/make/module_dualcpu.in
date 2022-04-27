@@ -1,0 +1,45 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_dualcpu := $(DIR_APPL)/dualcpu
+OBJECTS_dualcpu := dualcpu.o \
+ $(if $(filter -DDUALCPU_MASTER,$(Custom/Defines)),dual_ddr.o dual_remoteio.o dual_firmware.o) \
+ $(call if-module,vcli,dualcpu_cli.o)
+
+dualcpu.o dual_ddr.o dualcpu_cli.o dual_remoteio.o: %.o: $(DIR_dualcpu)/%.c
+	$(call compile_c, $@, $<)
+
+dual_firmware.o: $(DIR_dualcpu)/dual_firmware.S $(DIR_dualcpu)/firmware.bin
+	$(COMPILER_PREFIX)as -EL -mips32 -o $@ $<
+
+INCLUDES += -I$(DIR_dualcpu)
+
+# Lint files
+# LINT_FILES_dualcpu += $(DIR_dualcpu)/*.c
+
+# Code style checking
+VTSS_CODE_STYLE_CHK_FILES_dualcpu += $(DIR_dualcpu)/*.c $(DIR_dualcpu)/*.h
+

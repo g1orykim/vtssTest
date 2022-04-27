@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Activating New Configuration</title>
+ <link href="/lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var help_page = "/help/help_maintenance_icfg_conf.htm#activate";
+var timerID;
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+function processUpdate(req, ref)
+{
+    var autorefresh    = document.getElementById('autorefresh');
+    var code_element   = document.getElementById("code");
+    var status_element = document.getElementById("status");
+    var lines          = req.responseText.split("\n");
+    var status         = lines[0];
+    var trunc          = lines.length > 200;
+
+    lines = lines.slice(1, 200);
+    if (trunc) {
+        lines.push("! (Large amount of output; truncated.)\n");
+    }
+    code_element.innerHTML = lines.join("\n");
+
+    if (status === "DONE") {
+        status_element.innerHTML = "Activation completed successfully.";
+        autorefresh.checked = false;
+    } else if (status === "ERR") {
+        status_element.innerHTML = "Warning: Activation completed with errors.";
+        autorefresh.checked = false;
+    } else if (status === "SYNERR") {
+        status_element.innerHTML = "Warning: Syntax check completed with errors; configuration has not been activated.";
+        autorefresh.checked = false;
+    } else if (status === "IDLE") {
+        status_element.innerHTML = "No activation in progress yet.";
+    } else if (status === "RUN") {
+        status_element.innerHTML = "In progress, please stand by.";
+    }
+
+    if(autorefresh.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate() {
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc("/config/icfg_conf_activate", processUpdate, null);
+}
+
+function onLoad() {
+    var checkbox = document.getElementById("autorefresh");
+    checkbox.checked = true;
+    chkRefresh(checkbox);
+}
+ </script>
+</head>
+
+<body class="content" onload="onLoad();">
+
+<h1>Activating New Configuration</h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<p>Please note: If the configuration changes IP settings, management
+connectivity may be lost.</p>
+
+<h2>Status</h2>
+<p id="status">In progress, please stand by.</p>
+
+<h2>Output</h2>
+<textarea id="code" readonly rows="20" cols="80">
+! No output yet
+</textarea>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

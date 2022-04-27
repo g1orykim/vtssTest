@@ -1,0 +1,386 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Ethernet Protection Switching</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_eps.htm";
+
+var reqObject;
+var oTEvcDomain = new Array ("Port","Evc");
+var oVEvcDomain = new Array(0, 1);
+var oTDomain = new Array ("Port");
+var oVDomain = new Array(0);
+var oTArch = new Array ("1+1","1:1");
+var oVArch = new Array(0, 1);
+var entry_name = new Array();
+var add_cnt = 0;
+var evc;
+var originalCnt = 0;
+var configEpsMax=0;
+
+function resetForm()
+{
+    processUpdate(reqObject, "epsData");
+}
+
+function appendFrag(frag, ref, clear)
+{
+    var tbody = document.getElementById(ref);
+    if (clear)
+        clearChildNodes(tbody);
+    if (!tbody.appendChild(frag))
+        // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+}
+
+function addNewRow()
+{
+    var eps_id = 1;
+    var td;
+
+    // Check if entry already added
+    if (add_cnt)
+    {
+        alert("Only one EPS can be added for each Save operation");
+        return;
+    }
+    add_cnt++;
+
+    // Search for first available EPS ID
+    for (var idx = 0; idx < entry_name.length; idx++)
+    {
+        if (entry_name[idx] == eps_id)
+            eps_id++;
+        else
+            break;
+    }
+
+    // Create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalCnt + add_cnt) % 2 ? "config_even" : "config_odd");
+    var button = document.createElement('input');
+
+    button.onclick = function() {processUpdate(reqObject, "epsData");};
+    button.type = "button";
+    button.value = " Delete ";
+    td = CreateTd("c");
+    addCell(tr, td, button);
+
+    td = addInputCell(tr, eps_id, "c", "new_eps", 3);
+    td.setAttribute("maxLength", 3);
+    if (evc)
+        addSelectCell(tr, oTEvcDomain, oVEvcDomain, 0, "c", "dom");
+    else
+        addSelectCell(tr, oTDomain, oVDomain, 0, "c", "dom");
+    addSelectCell(tr, oTArch, oVArch, 0, "c", "arch");
+    td = addInputCell(tr, 1, "c", "w_flow", 2);
+    td.setAttribute("maxLength", 2);
+    td = addInputCell(tr, 1, "c", "p_flow", 2);
+    td.setAttribute("maxLength", 2);
+    td = addInputCell(tr, 1, "c", "w_mep", 3);
+    td.setAttribute("maxLength", 3);
+    td = addInputCell(tr, 1, "c", "p_mep", 3);
+    td.setAttribute("maxLength", 3);
+    td = addInputCell(tr, 1, "c", "aps_mep", 3);
+    td.setAttribute("maxLength", 3);
+    addTextCell(tr, "", "c");
+
+    frag.appendChild(tr);       // Add row to fragment
+    appendFrag(frag, "epsData", 0);
+}
+
+function checkForm(form)
+{
+    var id = "w_flow";
+    var fld = document.getElementById(id);
+
+    if (fld)
+    {
+        if (fld.value == 0)
+        {
+            alert("Flow instance must not be zero");
+            return false;
+        }
+    }
+
+    id = "p_flow";
+    fld = document.getElementById(id);
+
+    if (fld)
+    {
+        if (fld.value == 0)
+        {
+            alert("Flow instance must not be zero");
+            return false;
+        }
+    }
+
+    id = "w_mep";
+    fld = document.getElementById(id);
+
+    if (fld)
+    {
+        if (fld.value == 0)
+        {
+            alert("MEP instance must not be zero");
+            return false;
+        }
+    }
+
+    id = "p_mep";
+    fld = document.getElementById(id);
+
+    if (fld)
+    {
+        if (fld.value == 0)
+        {
+            alert("MEP instance must not be zero");
+            return false;
+        }
+    }
+
+    id = "aps_mep";
+    fld = document.getElementById(id);
+
+    if (fld)
+    {
+        if (fld.value == 0)
+        {
+            alert("MEP instance must not be zero");
+            return false;
+        }
+    }
+
+    id = "new_eps";
+    fld = document.getElementById(id);
+    var del_cnt = 0;
+    var idx;
+
+    if (fld)
+    {
+        // Check that new EPS ID in within range
+        if(!isWithinRange(id, 1, configEpsMax, "'EPS ID'"))
+            return false;
+
+        // Check that new EPS ID is not already used
+        for (idx = 0; idx < entry_name.length; idx++)
+        {
+            if (entry_name[idx] == fld.value)
+            {
+                GiveAlert("EPS ID " + fld.value + " is already in use", fld);
+                return false;
+            }
+        }
+    }
+    else
+    {
+        /* Check if anything must be deleted */
+        for (idx = 0; idx < entry_name.length; idx++)
+        {
+            if (document.getElementById("del_" + entry_name[idx]).checked)
+                del_cnt++;
+        }
+        if (del_cnt == 0)
+            return false;
+    }
+    return true;
+}
+
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    originalCnt++;
+
+    entry_name[index] = values[0];
+    addCheckBoxCell(tr, 0, "c", "del_" + values[0]);
+    addLink(tr, "c", "eps_config.htm?eps=" + values[0], values[0]);
+    addTextCell(tr, oTEvcDomain[parseInt(values[1])], "c");
+    addTextCell(tr, oTArch[parseInt(values[2])], "c");
+    addTextCell(tr, String(parseInt(values[3])), "c");
+    addTextCell(tr, String(parseInt(values[4])), "c");
+
+    if (parseInt(values[5]) != parseInt(values[9])) {
+        addTextCell(tr, String(parseInt(values[5])), "c");
+    } else {
+        addTextCell(tr, "-", "c");
+    }
+    if (parseInt(values[6]) != parseInt(values[9])) {
+        addTextCell(tr, String(parseInt(values[6])), "c");
+    } else {
+        addTextCell(tr, "-", "c");
+    }
+    if (parseInt(values[7]) != parseInt(values[9])) {
+        addTextCell(tr, String(parseInt(values[7])), "c");
+    } else {
+        addTextCell(tr, "-", "c");
+    }
+
+    link = values[8];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    frag.appendChild(tr);
+}
+
+
+function processUpdate(req, ref)
+{
+    var reset=0;
+
+    if (reqObject != req)   reqObject = req;
+    else                    reset = 1;
+
+    if (req.responseText)
+    {
+        var values = req.responseText.split("|");
+        var frag = document.createDocumentFragment();
+        originalCnt = 0;
+
+        evc = parseInt(values[0]);
+        configEpsMax = parseInt(values[1]);
+        for (var i = 0; i < (values.length-3); i++)
+        {
+            if (values[i+2])
+                addRow(i, frag, values[i+2].split("/"));
+        }
+        add_cnt = 0;
+        appendFrag(frag, ref, 1);
+
+        if (values[i+2] && (values[i+2] != "EPS_RC_OK") && (reset == 0))
+        {
+            if (values[i+2] == "EPS_RC_NOT_CREATED" )
+                alert("EPS instance not created");
+            else
+            if (values[i+2] == "EPS_RC_CREATED" )
+                alert("EPS instance already created");
+            else
+            if (values[i+2] == "EPS_RC_INVALID_PARAMETER" )
+                alert("Invalid parameter");
+            else
+            if (values[i+2] == "EPS_RC_NOT_CONFIGURED" )
+                alert("EPS NOT created");
+            else
+            if (values[i+2] == "EPS_RC_ARCHITECTURE" )
+                alert("Only 1+1 in port domain");
+            else
+            if (values[i+2] == "EPS_RC_W_P_FLOW_EQUAL" )
+                alert("Working and protecting flow is equal");
+            else
+            if (values[i+2] == "EPS_RC_W_P_SSF_MEP_EQUAL" )
+                alert("Working and protecting SF MEP is equal");
+            else
+            if (values[i+2] == "EPS_RC_INVALID_APS_MEP" )
+                alert("Invalid APS MEP");
+            else
+            if (values[i+2] == "EPS_RC_INVALID_W_MEP" )
+                alert("Invalid working SF MEP");
+            else
+            if (values[i+2] == "EPS_RC_INVALID_P_MEP" )
+                alert("Invalid protecting SF MEP");
+            else
+            if (values[i+2] == "EPS_RC_WORKING_USED" )
+                alert("Working flow is used by other instance");
+            else
+            if (values[i+2] == "EPS_RC_PROTECTING_USED" )
+                alert("Protecting flow is used by other instance");
+            else
+                alert("Unknown error returned from EPS");
+            addNewRow();
+        }
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+
+function requestUpdate()
+{
+    //Format: <eps_id>/<domain>/<architecture>,...
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc("/config/epsCreate", processUpdate, "epsData");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Ethernet Protection Switching</h1>
+
+<div class="refreshbar">
+<form action="#">
+ <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+ <img id="update" alt="" src="images/updating.gif">
+</form>
+</div>
+
+<form method="POST" action="/config/epsCreate" onsubmit="return checkForm(this);">
+
+<table summary="Ethernet Protection Switching Create" cellspacing="0" class="config">
+  <thead>
+    <tr class="config_header">
+      <th>Delete</th>
+      <th>EPS ID</th>
+      <th>Domain</th>
+      <th>Architecture</th>
+      <th>W Flow</th>
+      <th>P Flow</th>
+      <th>W SF MEP</th>
+      <th>P SF MEP</th>
+      <th>APS MEP</th>
+      <th>Alarm</th>
+    </tr>
+  </thead>
+  <tbody id="epsData">
+  </tbody>
+</table>
+
+<p>
+  <input type="button" id="addNewEntry" value="Add New EPS" onclick="addNewRow()">&nbsp;&nbsp;&nbsp;&nbsp;
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

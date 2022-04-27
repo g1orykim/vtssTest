@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Power Over Ethernet Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Power Over Ethernet Configuration Help</h1>
+
+<p>This page allows the user to inspect and configure the current <a href="glossary.htm#PoE" class="glossary">PoE</a> port
+settings.</p>
+
+<h2>Power Over Ethernet Configuration</h2>
+<dl>
+ <dt><b>Reserved Power determined by</b></dt>
+ <dd>There are three modes for configuring how the ports/<a href="glossary.htm#PD" class="glossary">PDs</a>  may reserve power. </dd>
+<dd> 1.	Allocated mode: In this mode the user allocates the amount of
+power that each port may reserve. The allocated/reserved power for each port/<a href="glossary.htm#PD" class="glossary">PD</a>  is specified in the Maximum Power fields. 
+ </dd>
+<dd> 2. Class mode: In this mode each port automatically determines how much
+power to reserve according to the class the connected
+<a href="glossary.htm#PD" class="glossary">PD</a> belongs to, and
+reserves the power accordingly. Four different port classes exist and
+one for 4, 7, 15.4 or 30 Watts. </dd>
+<dd>In this mode the Maximum Power fields have no effect. </dd>
+<dd>3. LLDP-MED mode: This mode is similar to the Class mode expect that
+each port determine the amount power it reserves by exchanging PoE
+information using the <a href="glossary.htm#lldp"
+class="glossary">LLDP</a> protocol and reserves power accordingly. If no <a href="glossary.htm#lldp" class="glossary">LLDP</a> information is available for a port, the port will reserve power using the class mode</dd>
+<dd> In this mode the Maximum Power fields have no effect </dd> 
+<dd>For all modes: If a port uses more power than the reserved power for the port, the port is shut down. 
+</dd>
+</dl>
+<dl>
+<dt><b>Power Management Mode</b></dt> 
+<dd>There are 2 modes for configuring when to shut down the ports:
+</dd>
+<dd>1.	Actual Consumption: In this mode the ports are shut down when
+the actual power consumption for all ports exceeds the amount of power that the power
+supply can deliver or if the actual power consumption for a given port exceeds the
+reserved power for that port. The ports are shut down according to the ports priority. If two ports have the same priority the port with the highest port number is shut down.</dd>
+
+<dd>2.	Reserved Power: In this mode the ports are shut down when total
+  reserved powered exceeds the amount of power that the power supply can
+  deliver. In this mode the port power is not turned on if
+  the <a href="glossary.htm#PD" class="glossary">PD</a> requests more
+  power than available from the power supply.</dd>
+
+</dl>
+<h2>Power Supply Configuration</h2>
+<dl>
+ <dt>Power Source</dt>
+<!-- No one has yet used the backup feature
+ <dd class="has_backup">
+    Some switches support having two PoE power supplies. One is used as
+    primary power source, and one as backup power source. If the switch
+    doesn't support backup power supply only the primary power supply
+    settings will be shown. In case that the primary power source fails
+    the backup power source will take over. 
+ </dd>
+-->
+ <dd> For being able to determine the amount of power the <a href="glossary.htm#PD"
+    class="glossary">PD</a> may use, it must be defined what amount of
+    power a power source can deliver.
+
+    <p>Valid values are in the range 0 to 2000 Watts.</p>
+ </dd>
+</dl>
+
+<h2>Port Configuration</h2>
+
+<dl>
+ <dt>Port</dt>
+ <dd>
+   This is the logical port number for this row. 
+   <p>Ports that are not PoE-capable are grayed out and thus impossible to configure PoE for.</p>
+ </dd>
+
+ <dt>PoE Mode</dt>
+ <dd>
+ <p>    The <b>PoE Mode</b> represents the PoE operating mode  for the
+ port.</p>
+ <p><b>Disabled</b>: PoE disabled for the port. </p>
+ <p><b>PoE</b>     : Enables PoE IEEE 802.3af (Class 4 PDs limited to 15.4W)</p>
+ <p><b>PoE+</b>    : Enables PoE+ IEEE 802.3at (Class 4 PDs limited to 30W) </p>
+ </dd>
+
+ <dt>Priority</dt>
+ <dd>
+    <p>The <b>Priority</b> represents the ports priority. There are three levels of power priority named Low, High and Critical.</p> 
+    <p>The priority is used in the case where the remote devices
+  requires more power than the power supply can deliver. In this case the port with the lowest priority will be turn off starting from the port with the highest port number.</p>
+  </dd>
+
+
+ <dt>Maximum Power</dt>
+ <dd>
+ <p>The <b>Maximum Power</b> value contains a numerical value that indicates the maximum power in watts that can be delivered to a remote device.</p>
+ <p> The maximum allowed value is 30 W. </p>
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+</body>
+</html>
+

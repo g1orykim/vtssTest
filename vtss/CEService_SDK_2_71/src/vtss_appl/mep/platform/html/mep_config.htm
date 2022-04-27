@@ -1,0 +1,587 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>MEP Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_mep_config.htm";
+var peer_name = new Array();
+var peer_add_cnt = 0;
+var g_inst;
+
+var selectedMEP = 1;
+var pageArgs = searchArgs(window.location.search);
+if (pageArgs['mep'])
+    selectedMEP = parseInt(pageArgs['mep']);
+
+var reqObject;
+var oTRate = new Array ("300 f/sec","100 f/sec","10 f/sec","1 f/sec","6 f/min","1 f/min","6 f/hour");
+var oVRate = new Array(1, 2, 3, 4, 5, 6, 7);
+var oTDomain = new Array ("Port","Evc","Vlan");
+var oVDomain = new Array(0, 1, 2);
+var oTMode = new Array ("Mep","Mip");
+var oVMode = new Array(0, 1);
+var oTDirection = new Array ("Down","Up");
+var oVDirection = new Array(0, 1);
+var oTLevel = new Array(0, 1, 2, 3, 4, 5, 6, 7);
+var oVLevel = new Array(0, 1, 2, 3, 4, 5, 6, 7);
+var oTFormat = new Array("ITU ICC", "IEEE String", "ITU CC ICC");
+var oVFormat = new Array(0, 1, 2);
+var oTCast = new Array ("Uni","Multi");
+var oVCast = new Array(0, 1);
+var oTType = new Array ("L-APS","R-APS");
+var oVType = new Array(1, 2);
+var nul_MAC = new Array("00-00-00-00-00-00");
+var up_mep, jaguar, evc, port, peer_count, voe;
+
+function resetForm(form)
+{
+    processUpdate(reqObject);
+}
+
+function appendFrag(frag, ref, clear)
+{
+    var tbody = document.getElementById(ref);
+
+    if (clear)
+        clearChildNodes(tbody);
+
+    if (!tbody.appendChild(frag))  // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+}
+
+
+function addInstance(inst, frag, values)
+{
+    var td;
+    var tr;
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Instance", "hdrc", 1);
+    addTextHeaderCell(tr, "Domain", "hdrc", 1);
+    addTextHeaderCell(tr, "Mode", "hdrc", 1);
+    addTextHeaderCell(tr, "Direction", "hdrc", 1);
+    addTextHeaderCell(tr, "Residence Port", "hdrc", 1);
+    addTextHeaderCell(tr, "Flow Instance", "hdrc", 1);
+    if (port)
+        addTextHeaderCell(tr, "Tagged VID", "hdrc", 1);
+    addTextHeaderCell(tr, "EPS Instance", "hdrc", 1);
+    addTextHeaderCell(tr, "This MAC", "hdrc", 1);
+
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextCell(tr, String(parseInt(inst)), "c");
+    addTextCell(tr, oTDomain[parseInt(values[0])], "c");
+    addTextCell(tr, oTMode[parseInt(values[1])], "c");
+    addTextCell(tr, oTDirection[parseInt(values[2])], "c");
+    addTextCell(tr, values[3], "c");
+    addTextCell(tr, values[4], "c");
+    if (port)
+        addTextCell(tr, values[5], "c");
+    addTextCell(tr, values[6], "c");
+    addTextCell(tr, values[7], "c");
+
+    frag.appendChild(tr);
+}
+
+function addEvc(inst, frag, values)
+{
+    var tr;
+
+    tr = CreateStyledElement("tr", "config_header");
+    if (jaguar || up_mep)
+        addTextHeaderCell(tr, "EVC Policy ID", "hdrc", 1);
+    if (!jaguar && !voe)
+        addTextHeaderCell(tr, "EVC QoS", "hdrc", 1);
+
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "config_even");
+    if (jaguar || up_mep) {
+        input = addInputCell(tr, values[0], "c", "evcpag", 3);
+        input.setAttribute("maxLength", 3);
+        input.setAttribute("size", 3);
+    }
+    if (!jaguar && !voe) {
+        input = addInputCell(tr, values[1], "c", "evcqos", 1);
+        input.setAttribute("maxLength", 1);
+        input.setAttribute("size", 1);
+    }
+
+    frag.appendChild(tr);
+}
+
+function addConfig(inst, frag, values, instVal, instState)
+{
+    var tr;
+
+    UpdateIdValue("mep_id_hidden", inst);
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Level", "hdrc", 1);
+    addTextHeaderCell(tr, "Format", "hdrc", 1);
+    addTextHeaderCell(tr, "Domain Name", "hdrc", 1);
+    addTextHeaderCell(tr, "MEG id", "hdrc", 1);
+    addTextHeaderCell(tr, "MEP id", "hdrc", 1);
+    if (port)
+        addTextHeaderCell(tr, "Tagged VID", "hdrc", 1);
+    if (voe)
+        addTextHeaderCell(tr, "VOE", "hdrc", 1);
+    cell = addTextHeaderCell(tr, "", "hdrc",1);
+    cell.width="100px";
+    addTextHeaderCell(tr, "cLevel", "hdrc", 1);
+    addTextHeaderCell(tr, "cMEG", "hdrc", 1);
+    addTextHeaderCell(tr, "cMEP", "hdrc", 1);
+    addTextHeaderCell(tr, "cAIS", "hdrc", 1);
+    addTextHeaderCell(tr, "cLCK", "hdrc", 1);
+    addTextHeaderCell(tr, "cSSF", "hdrc", 1);
+    addTextHeaderCell(tr, "aBLK", "hdrc", 1);
+    addTextHeaderCell(tr, "aTSF", "hdrc", 1);
+
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "config_even");
+    addSelectCell(tr, oTLevel, oVLevel, parseInt(values[0]), "c", "level");
+    addSelectCell(tr, oTFormat, oVFormat, parseInt(values[1]), "c", "format");
+    input = addInputCell(tr, unescape(values[2]), "c", "name", 16);
+    input.setAttribute("maxLength", 16);
+    input.setAttribute("size", 16);
+    input = addInputCell(tr, unescape(values[3]), "c", "meg", 16);
+    input.setAttribute("maxLength", 16);
+    input.setAttribute("size", 16);
+    input = addInputCell(tr, values[4], "c", "mep", 4);
+    input.setAttribute("maxLength", 4);
+    input.setAttribute("size", 4);
+    if (port) {
+        input = addInputCell(tr, values[5], "c", "vid", 4);
+        input.setAttribute("maxLength", 4);
+        input.setAttribute("size", 4);
+    }
+    if (voe)
+        addCheckBoxCell(tr, parseInt(values[6]), "c", "voe");
+    addTextHeaderCell(tr, "", "hdrc",1);
+    link = instState[0];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    link = instState[1];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    link = instState[2];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    link = instState[3];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    link = instState[4];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    link = instState[5];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    link = instState[6];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    link = instState[7];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+
+    frag.appendChild(tr);
+}
+
+function addPeerMep(inst, frag, values, peerState)
+{
+    var tr;
+    peer_count = parseInt(values[0]);
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Delete", "hdrc", 1);
+    addTextHeaderCell(tr, "Peer MEP ID", "hdrc", 1);
+    addTextHeaderCell(tr, "Unicast Peer MAC", "hdrc", 1);
+    cell = addTextHeaderCell(tr, "", "hdrc",1);
+    cell.width="100px";
+    addTextHeaderCell(tr, "cLOC", "hdrc", 1);
+    addTextHeaderCell(tr, "cRDI", "hdrc", 1);
+    addTextHeaderCell(tr, "cPeriod", "hdrc", 1);
+    addTextHeaderCell(tr, "cPriority", "hdrc", 1);
+
+    frag.appendChild(tr);
+
+    if (peer_count == 0)
+    {
+        tr = CreateStyledElement("tr", "config_even");
+        addTextCell(tr, "", "c");
+        addTextCell(tr, "No Peer MEP Added", "c");
+        addTextCell(tr, "", "c");
+        var cell = addTextCell(tr, "", "c");
+        cell.style.borderLeft = "solid black 1px";
+        cell.style.borderRight = "solid black 1px";
+        addTextCell(tr, "", "c");
+        addTextCell(tr, "", "c");
+        addTextCell(tr, "", "c");
+        addTextCell(tr, "", "c");
+
+        frag.appendChild(tr);
+    }
+
+    for (var i=0; i<peer_count; i++)
+    {
+        tr = CreateStyledElement("tr", (i % 2) ? "config_odd" : "config_even");
+        peer_name[i] = values[1+(i*2)];
+        addCheckBoxCell(tr, 0, "c", "del_" + peer_name[i]);
+        addTextCell(tr, String(parseInt(peer_name[i])), "c");
+        input = addInputCell(tr, values[2+(i*2)], "c", "peerMAC_" + peer_name[i], 17);
+        input.setAttribute("maxLength", 17);
+        input.setAttribute("size", 17);
+        var cell = addTextCell(tr, "", "c");
+        cell.style.borderLeft = "solid black 1px";
+        cell.style.borderRight = "solid black 1px";
+        link = peerState[0+(i*4)];
+        addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+        link = peerState[1+(i*4)];
+        addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+        link = peerState[2+(i*4)];
+        addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+        link = peerState[3+(i*4)];
+        addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+
+        frag.appendChild(tr);
+    }
+}
+
+function addFunction1(inst, frag, values)
+{
+    var tr;
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Continuity Check", "hdrc", 3);
+    cell = addTextHeaderCell(tr, "", "hdrc", 1);
+    cell.width="100px";
+    addTextHeaderCell(tr, "APS Protocol", "hdrc", 5);
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Enable", "hdrc");
+    addTextHeaderCell(tr, "Priority", "hdrc");
+    addTextHeaderCell(tr, "Frame rate", "hdrc");
+    addTextHeaderCell(tr, "", "hdrc",1);
+    addTextHeaderCell(tr, "Enable", "hdrc");
+    addTextHeaderCell(tr, "Priority", "hdrc");
+    addTextHeaderCell(tr, "Cast", "hdrc");
+    addTextHeaderCell(tr, "Type", "hdrc");
+    addTextHeaderCell(tr, "Last Octet", "hdrc");
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "config_even");
+    addCheckBoxCell(tr, parseInt(values[0]), "c", "cc");
+    input = addInputCell(tr, values[1], "c", "cc_prio", 1);
+    input.setAttribute("maxLength", 1);
+    input.setAttribute("size", 1);
+    addSelectCell(tr, oTRate, oVRate, parseInt(values[2]), "c", "cc_rate");
+    addTextHeaderCell(tr, "", "hdrc",1);
+    addCheckBoxCell(tr, parseInt(values[3]), "c", "aps");
+    input = addInputCell(tr, values[4], "c", "aps_prio", 1);
+    input.setAttribute("maxLength", 1);
+    input.setAttribute("size", 1);
+    addSelectCell(tr, oTCast, oVCast, parseInt(values[5]), "c", "aps_cast");
+    addSelectCell(tr, oTType, oVType, parseInt(values[6]), "c", "aps_type");
+    input = addInputCell(tr, values[7], "c", "aps_octet", 3);
+    input.setAttribute("maxLength", 3);
+    input.setAttribute("size", 3);
+    frag.appendChild(tr);
+}
+
+function processUpdate(req)
+{
+    if (redirectOnError(req))
+        return;
+
+    var reset=0;
+
+    if (reqObject != req)    reqObject = req;
+    else                     reset = 1;
+
+    if (req.responseText)
+    {
+        var pval;
+        var mepConfig = req.responseText.split("|");
+        var inst = parseInt(mepConfig[0]);
+        g_inst = inst
+        peer_add_cnt=0;
+
+        up_mep = parseInt(mepConfig[1]);
+        if (parseInt(mepConfig[2]) == 1)    jaguar = 1; else Jaguer = 0;
+        if (parseInt(mepConfig[2]) == 2)    voe = 1;    else voe = 0;
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+
+        var instVal = mepConfig[4].split("/");
+        evc = (oTDomain[parseInt(instVal[0])] == "Evc") ? 1 : 0;
+        port = (oTDomain[parseInt(instVal[0])] == "Port") ? 1 : 0;
+        addInstance(inst, frag, instVal);
+        appendFrag(frag, "mepData", 1);
+
+        if (evc)
+        {
+            var instVal = mepConfig[3].split("/");
+            addEvc(inst, frag, instVal);
+            appendFrag(frag, "evcConfigData", 1);
+
+        }
+
+        pval = mepConfig[5].split("/");
+        var instState = mepConfig[8].split("/");
+        addConfig(inst, frag, pval, instVal, instState);
+        appendFrag(frag, "mepConfigData", 1);
+
+        var peerVal = mepConfig[6].split("/");
+        var peerState = mepConfig[9].split("/");
+        addPeerMep(inst, frag, peerVal, peerState);
+        appendFrag(frag, "mepPeerData", 1);
+
+        pval = mepConfig[7].split("/");
+        addFunction1(inst, frag, pval);
+        appendFrag(frag, "mepFunction1", 1);
+
+        var rc_index = 10;
+        if (mepConfig[rc_index] && (reset == 0))
+        {
+            alert(mepConfig[rc_index]);
+        }
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+
+function addNewPeer()
+{
+    var td;
+
+    // Check if entry already added
+    if (peer_add_cnt)
+    {
+        alert("Only one peer MEP can be added for each Save operation");
+        return;
+    }
+    peer_add_cnt++;
+
+    // Create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (peer_count % 2) ? "config_odd" : "config_even");
+    var button = document.createElement('input');
+
+    // Delete checkbox
+    button.onclick = function() { processUpdate(reqObject);};
+    button.type = "button";
+    button.value = " Delete ";
+    td = CreateTd("c");
+    addCell(tr, td, button);
+
+    td = addInputCell(tr, 0, "c", "new_peer", 4);
+    td.setAttribute("maxLength", 4);
+    input = addInputCell(tr, "00-00-00-00-00-00", "c", "new_peerMAC", 17);
+    input.setAttribute("maxLength", 17);
+    input.setAttribute("size", 17);
+    var cell = addTextCell(tr, "", "c");
+    cell.style.borderLeft = "solid black 1px";
+    cell.style.borderRight = "solid black 1px";
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+
+    frag.appendChild(tr);
+    appendFrag(frag, "mepPeerData", 0);
+}
+
+function faultMgt() {
+    document.location.href="mep_fm_config.htm?mep=" + g_inst;
+}
+
+function pmMonitor() {
+    document.location.href="mep_pm_config.htm?mep=" + g_inst;
+}
+
+function requestUpdate()
+{
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc("/config/mepConfig?mep=" + selectedMEP, processUpdate);
+}
+
+
+// Check that all forms contains valid values
+function checkForm(form)
+{
+    var fld = document.getElementById("new_peer");
+    var idx, name, format;
+
+    if (fld)
+    {
+        // Check that new peer MEP ID is not already used
+        for (idx = 0; idx < peer_name.length; idx++)
+        {
+            if (peer_name[idx] == fld.value)
+            {
+                GiveAlert("Peer MEP ID " + fld.value + " is already in use", fld);
+                return false;
+            }
+        }
+    }
+
+    format = document.getElementById("format");
+    if (format)
+    {
+        name = document.getElementById("meg");
+        if (name)
+        {
+            if ((format.value == 0) && (name.value.length > 13)) {
+                alert ("ITU ICC MEG id must be max 13 characters");
+                return false;
+            }
+            if ((format.value == 2) && (name.value.length > 15)) {
+                alert ("ITU CC ICC MEG id must be max 15 characters");
+                return false;
+            }
+        }
+    }
+
+    fld = document.getElementById("peerMAC");
+    if (fld)
+    {
+        if (!IsMacAddress(fld.value, 0))
+        {
+            alert ("Peer MAC address is not valid. The format is 'xx-xx-xx-xx-xx-xx' or 'xx.xx.xx.xx.xx.xx' or 'xxxxxxxxxxxx' (x is a hexadecimal digit).");
+            return false;
+        }
+    }
+
+    fld = document.getElementById("aps_octet");
+    if (fld)
+    {
+        if (fld.value > 255)
+        {
+            alert ("RAPS Last Octet is not valid");
+            return false;
+        }
+    }
+
+    fld = document.getElementById("vid");
+    if (fld)
+    {
+        if (fld.value > 4095)
+        {
+            alert ("Tagged VID is not valid");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+ </script>
+</head>
+
+
+<body class="content" onload="requestUpdate();">
+
+<h1>MEP Configuration <span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+<form action="#">
+ <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+ <img id="update" alt="" src="images/updating.gif">
+</form>
+</div>
+
+<h1>Instance Data</h1>
+
+<form name="configForm" method="POST" action="/config/mepConfig" onsubmit="return checkForm(this);">
+
+<table summary="Maintenance Entity End Point Instance" class="config">
+  <tbody id="mepData">
+  </tbody>
+</table>
+
+<h1>Instance Configuration</h1>
+
+<table summary="EVC Configuration" class="config">
+  <tbody id="evcConfigData">
+  </tbody>
+</table>
+
+<table summary="Instance Configuration" class="config">
+  <tbody id="mepConfigData">
+  </tbody>
+</table>
+
+<h1>Peer MEP Configuration</h1>
+
+<table summary="Instance Peer MEP" class="config">
+  <tbody id="mepPeerData">
+  </tbody>
+</table>
+
+<p>
+  <input type="button" id="addNewEntry" value="Add New Peer MEP" onclick="addNewPeer()">&nbsp;&nbsp;&nbsp;&nbsp;
+</p>
+
+<h1>Functional Configuration</h1>
+
+<table summary="Functional Configuration 1" class="config">
+  <tbody id="mepFunction1">
+  </tbody>
+</table>
+
+<p>
+  <input type="button" id="faultManagement" value="Fault Management" onclick="faultMgt()">&nbsp;&nbsp;&nbsp;&nbsp;
+  <input type="button" id="performanceMon" value="Performance Monitoring " onclick="pmMonitor()">&nbsp;&nbsp;&nbsp;&nbsp;
+</p>
+
+<p>
+<input type="hidden" id="mep_id_hidden" name="mep_id_hidden">
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm(this.form);">
+</p>
+
+</form>
+
+<!-- IE caching bug -->
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

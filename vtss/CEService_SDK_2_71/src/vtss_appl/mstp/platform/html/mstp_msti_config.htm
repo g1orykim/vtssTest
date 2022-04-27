@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>MSTI Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_mstp_msti_config.htm";
+
+var ppT = Array(16);
+var ppV = Array(16);
+for(var i = 0; i < 16; i++) {
+    ppV[i] = (i << 4);
+    ppT[i] = String(ppV[i] << 8);
+}
+
+function addRow(index, frag, values)
+{
+    var mstino = parseInt(values[0], 10);
+    var msti = values[1];
+    var mstiprio = parseInt(values[2], 10);
+
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    addTextCell(tr, msti, "cl");
+    addSelectCell(tr, ppT, ppV, mstiprio, "c", "mstiprio_" + mstino);
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    var msticonfig = req.responseText.split("|");
+    var frag_msti = document.createDocumentFragment();
+    for(var i = 0; i < msticonfig.length; i++) {
+        if(msticonfig[i]) {
+            var pval = msticonfig[i].split("/");
+            addRow(i, frag_msti, pval);
+        }
+    }
+    var tbody;
+    tbody = document.getElementById('mstiData');
+    clearChildNodes(tbody);
+    tbody.appendChild(frag_msti);
+    var cBar = new MasterControlBar([{text: "*", className: "cl"}, {name: "mstiprio_"}]);
+    cBar.construct('mstiData');
+}
+
+function requestUpdate() {
+    loadXMLDoc("/config/rstp_msti", processUpdate, null);
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>MSTI Configuration</h1>
+
+<form method="POST" action="/config/rstp_msti">
+
+<fieldset>
+
+<legend>MSTI Priority Configuration</legend>
+
+<table id="mstiConfig" summary="MSTI Configuration" class="config">
+ <thead>
+  <tr class="config_header">
+   <th>MSTI</th>
+   <th>Priority</th>
+  </tr>
+ </thead>
+ <tbody id="mstiData">
+ </tbody>
+</table>
+
+</fieldset>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

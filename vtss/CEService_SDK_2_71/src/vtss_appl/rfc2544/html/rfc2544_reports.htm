@@ -1,0 +1,256 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RFC2544 Report Overview</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Help page magic
+var help_page = "/help/help_rfc2544_reports.htm";
+
+var timerID;
+
+var PARM_IDX_NAME   = 0;
+var PARM_IDX_DSCR   = 1;
+var PARM_IDX_TS     = 2;
+var PARM_IDX_STATUS = 3;
+var PARM_IDX_CNT    = PARM_IDX_STATUS + 1;
+
+var status_as_str = Array("Inactive", "Executing", "Cancelling", "Cancelled", "Passed", "Failed");
+var STATUS_IN_PROGRESS = 1; // Corresponding to "Executing"
+var STATUS_CANCELLING  = 2; // Can't delete or stop when cancelling a profile.
+
+function my_save(name)
+{
+  $('report').value = name;
+  $('myform').submit();
+};
+
+//------------------------------------------------------------------------------
+// add_report_row()
+//------------------------------------------------------------------------------
+function add_report_row(frag, values, idx)
+{
+  var fld, tr = CreateStyledElement("tr", idx % 2 ? "config_even" : "config_odd");
+  var unescaped_name = values[PARM_IDX_NAME];
+  var name = unescape(unescaped_name);
+  var stat = parseInt(values[PARM_IDX_STATUS], 10);
+
+  // Delete/Stop-button
+  fld = document.createElement('input');
+  fld.setAttribute('type', 'button');
+  fld.setAttribute('value', stat == STATUS_IN_PROGRESS ? 'Stop' : 'Delete');
+  fld.style.cssText = "width: 5em";
+  if (stat == STATUS_IN_PROGRESS) {
+    fld.onclick = function () {
+      requestUpdate("report=" + unescaped_name + "&stop=1");
+    };
+  } else {
+    fld.onclick = function () {
+      if (confirm("Warning: You are about to permanently delete this report.\nContinue?")) {
+        requestUpdate("report=" + unescaped_name + "&clear=1");
+      }
+    };
+  }
+
+  if (stat == STATUS_CANCELLING) {
+      // Can't delete a report that is being cancelled (this is a transitional state)
+      fld.disabled = true;
+  }
+
+  var td = CreateTd("c");
+  td.appendChild(fld);
+  tr.appendChild(td);
+
+  // Save-button
+  fld = document.createElement('input');
+  fld.setAttribute('type', 'submit');
+  fld.setAttribute('value', 'Save');
+//   fld.onclick = function () {requestUpdate("report=" + unescaped_name);};
+  fld.onclick = function () {my_save(unescaped_name); return true;};
+
+  td = CreateTd("c");
+  td.appendChild(fld);
+  tr.appendChild(td);
+
+  // Report name with href
+  td = CreateStyledElement("td", "cl");
+  var txt = document.createTextNode(name);
+  var link = document.createElement("a");
+  link.href = "rfc2544_report_view.htm?report=" + unescaped_name;
+  link.appendChild(txt);
+  td.appendChild(link);
+  tr.appendChild(td);
+
+  // Description
+  addTextCell(tr, unescape(values[PARM_IDX_DSCR]), "cl");
+
+  // Timestamp
+  addTextCell(tr, unescape(values[PARM_IDX_TS]), "cl");
+
+  // Status
+  addTextCell(tr, status_as_str[stat], "cl");
+
+  frag.appendChild(tr);
+}
+
+//------------------------------------------------------------------------------
+// processUpdate()
+//------------------------------------------------------------------------------
+function processUpdate(req, ref)
+{
+  // Format: err_msg#[Reports]
+  //         [Reports] = [Report1]#[Report2]#...#[ReportN]
+  //         [Report]  = report_name/description/creation_timestamp/status
+  // 'status' is enumerated in #status_as_str
+  var values = req.responseText.split("#");
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  // Error message
+  var err_msg = unescape(values[0]);
+  if (err_msg !== "") {
+    alert(err_msg);
+  }
+
+  var report_cnt = values.length - 1;
+  var on_going_cnt = 0;
+
+  var frag = document.createDocumentFragment();
+  if (report_cnt === 0) {
+      var tr = CreateStyledElement("tr", "config_even");
+      addTypedTextCell(tr, "td", "<No test reports>", "cl", 3, 1);
+      frag.appendChild(tr);
+  } else {
+    for (var idx = 1; idx < values.length; idx++) {
+      var report_values = values[idx].split("/");
+      if (report_values.length != PARM_IDX_CNT) {
+        return;
+      }
+      if (parseInt(report_values[PARM_IDX_STATUS], 10) == STATUS_IN_PROGRESS) {
+        on_going_cnt++;
+      }
+      add_report_row(frag, report_values, idx);
+    }
+  }
+
+  var tbody = $('report_data');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag);
+
+  $("start_new_test_button").disabled = on_going_cnt !== 0;
+
+  var autorefresh = $('autorefresh');
+  if (autorefresh && autorefresh.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+  }
+}
+
+//------------------------------------------------------------------------------
+// requestUpdate()
+//------------------------------------------------------------------------------
+function requestUpdate(params)
+{
+  var url = "/config/rfc2544_reports";
+  if (params) {
+    url += "?" + params;
+  }
+  loadXMLDoc(url, processUpdate, null);
+}
+
+//------------------------------------------------------------------------------
+// chkRefresh()
+//------------------------------------------------------------------------------
+function chkRefresh(fld)
+{
+  if (!fld.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = null;
+  } else {
+    requestUpdate();
+  }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>RFC2544 Report Overview</h1>
+
+<div class="refreshbar">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+</div>
+
+<table summary="RFC2544 Reports" cellspacing="0" class="config">
+  <thead>
+    <tr>
+      <th>Action</th>
+      <th>Save</th>
+      <th>Name</th>
+      <th>Description</th>
+      <th>Created</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody id="report_data"></tbody>
+</table>
+
+<form id="myform" method="POST" onsubmit="return true;" action="/config/rfc2544_reports">
+<p>
+<input type="button" id="start_new_test_button" value="Start New Test" onclick="document.location.href='rfc2544_test_start.htm'"/>
+<input type="hidden" id="report" name="report"/>
+</p>
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

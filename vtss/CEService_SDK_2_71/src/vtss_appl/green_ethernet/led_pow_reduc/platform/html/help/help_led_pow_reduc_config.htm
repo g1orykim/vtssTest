@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>LEDs Power Reduction Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+
+<body>
+<h1>LEDs Power Reduction Help</h1>
+<h2>LEDs switch on Help</h2>
+
+<h2>LEDs</h2>
+<h3>Status LED</h3>
+<p>The system status LED shows whether the system is
+running. The LED is green when system is running and no errors are
+detected. If errors has been detected the status LED will indicate this
+by blinking red</p>
+
+<h3>Front Ethernet Port LEDs</h3>
+<p>The front Ethernet ports have a dual color LEDs per port. The port
+LEDs is placed in a block (1-high for SFPs, 2-high for RJ45s) to the left of the ports.</p>
+<p>A pushbutton and a 4-high tower of LEDs is placed next to the
+front ethernet port LEDs. The pushbutton selects between four different
+port LED modes, indicated by the 4-high LED mode tower. After 30 seconds
+the LED mode falls back to mode A.</p>
+
+<p>The port LED modes are named A through D and shows the following</p>
+<h4>Port LED Indication mode D:</h4>
+<p>Green (1000Mbit): Solid=Link, Blink=Activity</p>
+<p>Orange (10/100Mbit): Solid=Link, Blink=Activity</p>
+
+<h4>Port LED Indication mode C:</h4>
+<p>Green: Solid=Full Duplex Off=No link</p>
+<p>Orange: Solid=Half Duplex, Blink: Collisions</p>
+
+<h4>Port LED Indication mode B:</h4>
+<p>Green: Solid = Link, Blink=Activity</p>
+<p>Orange: Solid = Port disabled by management, Blink = Errors received</p>
+
+<h4>Port LED Indication mode A:</h4>
+<p>Power save mode - LEDs are off.</p>
+
+
+
+<h2>LEDs Intensity</h2>
+<dl>
+ <dd>
+ The LEDs power consumption can be reduced by lowering the LEDs
+ intensity. 
+LEDs intensity could for example be lowered during night time, or they could be turn completely off.
+It is possible to configure 24 different hours of the day, at where the LEDs 
+intensity should be set. 
+ </dd>
+
+ <dt>Start Time</dt>
+ <dd>
+   The time at which the LEDs intensity shall be set to the corresponding intensity. 
+ </dd>
+
+ <dt>End Time</dt>
+ <dd>
+   The time at which the LEDs intensity shall be set to a new intensity. If no intensity is specified for the next hour, the intensity is set to default intensity. 
+ </dd>
+
+ <dt>Intensity</dt>
+ <dd>
+   The LEDs intensity (100% = Full power, 0% = LED off). 
+ </dd>
+</dl>
+
+
+
+<h2>Maintenance</h2>
+<dl>
+<dt> Maintenance Time</dt>
+<dd>
+When a network administrator does maintenance of the switch (e.g. adding or 
+moving users) he might want to have full LED intensity during the
+maintenance period . Therefore it is possible to specify that the LEDs shall use full
+intensity a specific period of time. <b>Maintenance Time</b> is the number of seconds
+that the LEDs will have full intensity after either a port has changed
+link state, or the LED pushbutton has been pushed.
+</dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>
+
+

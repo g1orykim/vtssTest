@@ -1,0 +1,307 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript">
+
+
+
+// Help page magic
+var help_page = "/help/help_lldp_config.htm";
+
+function addRow(index, frag, values) {
+    var portno          = values[0];
+    var tx_ena          = values[1];
+    var rx_ena          = values[2];
+    var cdp_aware       = parseInt(values[3], 10);
+    var port_descr_ena  = parseInt(values[4], 10);
+    var sys_name_ena    = parseInt(values[5], 10);
+    var sys_descr_ena   = parseInt(values[6], 10);
+    var sys_capa_ena    = parseInt(values[7], 10);
+    var mgmt_ena        = parseInt(values[8], 10);
+
+
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    
+    addTextCell(tr, portno, "cr");
+
+    var oT = Array("Disabled","Enabled","Rx only","Tx only"); // Text
+    var oV = Array("0","3","2","1"); // Disabled, enabled,rx only,tx only
+
+    // Determine the mode 
+    val = 0;
+    if (parseInt(tx_ena, 10)) {
+        val = val + 1;
+    }
+    if (parseInt(rx_ena, 10)) {
+        val = val + 2;
+    }
+
+    // Add the drop down list
+    addSelectCell(tr, oT, oV, val, "cr", "mode_" + portno);
+    if (configHasCDP == 1) {
+	addCheckBoxCell(tr,cdp_aware,"c","cdp_aware_" + portno);
+    }
+    addCheckBoxCell(tr,port_descr_ena,"c","port_descr_ena_" + portno);
+    addCheckBoxCell(tr,sys_name_ena,"c","sys_name_ena_" + portno);
+    addCheckBoxCell(tr,sys_descr_ena,"c","sys_descr_ena_" + portno);
+    addCheckBoxCell(tr,sys_capa_ena,"c","sys_capa_ena_" + portno);
+    addCheckBoxCell(tr,mgmt_ena,"c","mgmt_addr_ena_" + portno);
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+
+//
+// Creates the table header for the port configuration table.
+//
+function CreatePortsTableHeader (frag)
+{    
+    clearChildNodes(document.getElementById('portTableHead')); // Delete table if it already exists
+    var tr = CreateStyledElement("tr", "config_header");
+    if (configHasCDP == 1) {
+	addTextHeaderCell(tr,"","hdrc",3);
+    } else {
+	addTextHeaderCell(tr,"","hdrc",2);
+    }
+    addTextHeaderCell(tr,"Optional TLVs","hdrc",5);
+    frag.appendChild(tr);       // Add row to fragment
+   
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"Port","hdrc",1);
+    addTextHeaderCell(tr,"Mode","hdrc",1);
+    if (configHasCDP == 1) {
+	addTextHeaderCell(tr, "CDP aware","hdrc",1);
+    }
+    addTextHeaderCell(tr,"Port Descr","hdrc",1);
+    addTextHeaderCell(tr,"Sys Name","hdrc",1);
+    addTextHeaderCell(tr,"Sys Descr","hdrc",1);
+    addTextHeaderCell(tr,"Sys Capa","hdrc",1);
+    addTextHeaderCell(tr,"Mgmt Addr","hdrc",1);
+    frag.appendChild(tr);       // Add row to fragment
+
+    FinishTable(frag, 'portTableHead');
+}
+
+
+
+function UpdateTable (ref, lldpconfig) {
+   // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+
+    CreatePortsTableHeader(frag);
+
+    for(var i = 0; i < lldpconfig.length; i++) {
+        if(lldpconfig[i].length) {
+            var pval = lldpconfig[i].split("/");
+            addRow(i, frag, pval);
+        }
+    }
+    
+    FinishTable(frag, 'portTableBody');
+
+    var cBar = new MasterControlBar([{text: "*", className: "cr"},
+    {name: "mode_"}]);
+    
+    if (configHasCDP == 1) {
+	cBar.extend([{name: "cdp_"}]);
+    }
+    cBar.extend([{name: "port_descr_ena_"}]);
+    cBar.extend([{name: "sys_name_ena_"}]);
+    cBar.extend([{name: "sys_descr_ena_"}]);
+    cBar.extend([{name: "sys_capa_ena_"}]);
+    cBar.extend([{name: "mgmt_addr_ena_"}]);
+    
+    cBar.construct('portTableBody', 'config_odd');
+}
+
+function processUpdate(req, ref)
+{
+    // Format: 
+    //  <err_msg>|<lldp_switch>,<lldp_port>,<sid#sid#..>|<source enable>/<destination enable>,<source enable>/<destination enable>,.....
+    
+    if(redirectOnError(req)) {
+        return;
+    }
+
+    if(req.responseText) {
+        
+        // Get and set configurations settings
+        var config = req.responseText.split("|");
+	
+	// Error message
+	var err_msg = config[0];
+	if (String(err_msg) !== "") {
+	    alert(err_msg);
+	}
+
+	// Global configuration
+        var pval = config[1].split("/");
+        var fld = document.getElementById("txInterval");
+        fld.value = fld.defaultValue = parseInt(pval[0], 10);
+        fld = document.getElementById("txHold");
+        fld.value = fld.defaultValue = parseInt(pval[1], 10);
+        fld = document.getElementById("txDelay");
+        fld.value = fld.defaultValue = parseInt(pval[2], 10);
+        fld = document.getElementById("reInitDelay");
+        fld.value = fld.defaultValue = parseInt(pval[3], 10);
+
+        
+        // Create the table
+        UpdateTable(ref, config[2].split(",")); // First 2 entries is err_msg + global configuration
+    } else {
+        SpomHandleError();   
+    }
+}
+
+function checkForm(form)
+{
+
+    if(!isWithinRange("txInterval", 5, 32768, "'Tx Interval'", " seconds")) {
+        return false;
+    }
+
+    fld = document.getElementById("txInterval");
+    txInterval = fld.value;
+
+    if(!isWithinRange("txHold", 2, 10, "'Tx Hold'", " times")) {
+        return false;
+    }
+
+    if(!isWithinRange("txDelay", 1, 8192, "'Tx Delay'", " seconds")) {
+        return false;
+    }
+
+    fld = document.getElementById("txDelay");
+    tx_delay = fld.value;
+
+    //.IEEE 802.1AB-clause 10.5.4.2
+    if (tx_delay > txInterval/4) {
+	alert("Tx Delay must not be larger than 1/4 of the Tx Interval value (IEEE 802.1AB-clause 10.5.4.2).");
+	return false;
+    }
+    
+    if(!isWithinRange("reInitDelay", 1, 10, "'Tx Reinit'", " seconds")) {
+        return false;
+    }
+
+
+    return true;                // Feed the chickens and go home
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    loadXMLDoc(SpomAddSidArg("/config/lldp_config"), processUpdate, 'portTable');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function DocLoad()
+{
+    for (var i = configPortMin; i <= configNormalPortMax; i++) {
+        var opt = document.createElement("option");
+        opt.appendChild(document.createTextNode("Port " + i));
+        opt.setAttribute("value", i);
+    }
+    requestUpdate();
+}
+
+ </script>
+</head>
+
+<body class="content" onload="DocLoad();">
+
+<h1>LLDP Configuration</h1>
+
+<h2> LLDP Parameters</h2>
+<form name="LLDPConfigForm" method="POST" action="/config/lldp_config" onsubmit="return checkForm(this);">
+
+<table id="qconfig" summary="Switch Default Class Configuration" class="config">
+ <tbody>
+  <tr class="config">
+   <td class="param_label">Tx Interval</td>
+   <td><input  type="text" id="txInterval" name="txInterval" maxlength="5" size="6"> seconds</td>
+  </tr>
+  <tr class="config">
+   <td class="param_label">Tx Hold</td>
+   <td><input type="text" id="txHold" name="txHold" maxlength="2" size="6"> times</td>
+  </tr>
+  <tr class="config">
+   <td class="param_label">Tx Delay</td>
+   <td><input type="text" id="txDelay" name="txDelay" maxlength="4" size="6"> seconds</td>
+  </tr>
+  <tr class="config">
+   <td class="param_label">Tx Reinit</td>
+   <td><input type="text" id="reInitDelay" name="reInitDelay" maxlength="2" size="6"> seconds</td>
+  </tr>
+
+ </tbody>
+</table>
+
+<h2>LLDP Port Configuration <span id="display_sid"></span></h2>
+
+<table id="lldpconfig" summary="Switch Port Configuration" class="config">
+ <tbody id="portTableHead"> </tbody>
+ <tbody id="portTableBody"> </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+</form>
+</body>
+</html>
+     
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

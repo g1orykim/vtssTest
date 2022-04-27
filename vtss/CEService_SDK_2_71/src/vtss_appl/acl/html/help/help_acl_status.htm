@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>ACL Status Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="../lib/config.js"></script>
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+
+<body onload="document.getElementById('aceMax').innerHTML=configAceMax; document.getElementById('AclRateLimitIdMax').innerHTML=configAclRateLimitIdMax;">
+<h1>ACL Status Help</h1>
+
+<h2><a href="glossary.htm#acl" class="glossary">ACL</a> Status Help</h2>
+
+<p>This page shows the ACL status by different ACL users. Each row
+describes the <a href="glossary.htm#ace" class="glossary">ACE</a> that is defined. It is a conflict if a specific
+ACE is not applied to the hardware due to hardware limitations.
+The maximum number of ACEs is <samp><span id="aceMax">128</span></samp>
+on each switch.</p>
+
+<dl>
+ <dt>User</dt>
+ <dd>
+ Indicates the ACL user.
+ </dd>
+
+ <dt>Ingress Port</dt>
+ <dd>
+ Indicates the ingress port of the ACE. Possible values are:
+ <br><samp>All</samp>: The ACE will match all ingress port.
+ <br><samp>Port</samp>: The ACE will match a specific ingress port.
+ </dd>
+
+ <dt>Frame Type</dt>
+ <dd>
+ Indicates the frame type of the ACE. Possible values are:
+ <br><samp>Any</samp>: The ACE will match any frame type.
+ <br><samp>EType</samp>: The ACE will match <a href="glossary.htm#ethernet_type" class="glossary">Ethernet Type</a> frames.  Note that an Ethernet Type based ACE will not get matched by <a href="glossary.htm#ip" class="glossary">IP</a> and <a href="glossary.htm#arp" class="glossary">ARP</a> frames.
+ <br><samp>ARP</samp>: The ACE will match ARP/<a href="glossary.htm#rarp" class="glossary">RARP</a> frames.
+ <br><samp>IPv4</samp>: The ACE will match all IPv4 frames.
+ <br><samp>IPv4/<a href="glossary.htm#icmp" class="glossary">ICMP</a></samp>: The ACE will match IPv4 frames with ICMP protocol.
+ <br><samp>IPv4/<a href="glossary.htm#udp" class="glossary">UDP</a></samp>: The ACE will match IPv4 frames with UDP protocol.
+ <br><samp>IPv4/<a href="glossary.htm#tcp" class="glossary">TCP</a></samp>: The ACE will match IPv4 frames with TCP protocol.
+ <br><samp>IPv4/Other</samp>: The ACE will match IPv4 frames, which are not ICMP/UDP/TCP.
+ </dd>
+ <dd class="acl_ipv6_only"><samp>IPv6</samp>: The ACE will match all IPv6 standard frames.</dd>
+
+
+ <dt>Action</dt>
+ <dd>
+ Indicates the forwarding action of the ACE.
+ <br><samp>Permit</samp>: Frames matching the ACE may be forwarded and learned.
+ <br><samp>Deny</samp>: Frames matching the ACE are dropped.
+ <span class="acl_v2_only"><br><samp>Filter</samp>: Frames matching the ACE are filtered.</span>
+ </dd>
+
+ <dt>Rate Limiter</dt>
+ <dd>
+ Indicates the rate limiter number of the ACE. The allowed range is <samp>1</samp> to <samp><span id="AclRateLimitIdMax">15</span></samp>. When <samp>Disabled</samp> is displayed, the rate limiter operation is disabled.
+ </dd>
+
+ <dt class="has_arch_luton26">Port Redirect</dt>
+ <dd class="has_arch_luton26">
+ Indicates the port redirect operation of the ACE. Frames matching the ACE are redirected to the port number. The allowed values are <samp>Disabled</samp> or a specific port number. When <samp>Disabled</samp> is displayed, the port redirect operation is disabled.
+ </dd>
+
+ <dt class="has_arch_luton26">Port Redirect</dt>
+ <dd class="has_arch_luton26">
+ Indicates the port redirect operation of the ACE. Frames matching the ACE are redirected to the port number. The allowed values are <samp>Disabled</samp> or a specific port number. When <samp>Disabled</samp> is displayed, the port redirect operation is disabled.
+ </dd>
+
+ <dt class="has_arch_serval">Port Redirect</dt>
+ <dd class="has_arch_serval">
+ Indicates the port redirect operation of the ACE. Frames matching the ACE are redirected to the port number. The allowed values are <samp>Disabled</samp> or a specific port number. When <samp>Disabled</samp> is displayed, the port redirect operation is disabled.
+ </dd>
+
+ <dt class="acl_v2_only">Mirror</dt>
+ <dd class="acl_v2_only">
+ Specify the mirror operation of this port. The allowed values are:
+ <br><samp>Enabled</samp>: Frames received on the port are mirrored.
+ <br><samp>Disabled</samp>: Frames received on the port are not mirrored.
+ <br>The default value is "Disabled".
+ </dd>
+
+ <dt>CPU</dt>
+ <dd>
+ Forward packet that matched the specific ACE to CPU.
+ </dd>
+
+ <dt>CPU Once</dt>
+ <dd>
+ Forward first packet that matched the specific ACE to CPU.
+ </dd>
+
+ <dt>Counter</dt>
+ <dd>
+ The counter indicates the number of times the ACE was hit by a frame.
+ </dd>
+
+ <dt>Conflict</dt>
+ <dd>
+ Indicates the hardware status of the specific ACE.
+ The specific ACE is not applied to the hardware due to hardware limitations.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>The select box determines which ACL user is affected by clicking the buttons.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page.</p>
+
+</body>
+</html>

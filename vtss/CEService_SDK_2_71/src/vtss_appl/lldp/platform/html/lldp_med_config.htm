@@ -1,0 +1,757 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+
+var reqObject; // Variable to store current configuration (used for when pressing the reset button)		  
+							  
+
+// Help page magic
+var help_page = "/help/help_lldpmed_config.htm";
+
+var active_policy_ids = Array();
+var ActivePoliciesCnt = 0; // Number of active policies shown in web. Used for coloring the policies rows.
+var tude_multiplier = 10000; 
+var frag      = document.createDocumentFragment();
+
+
+function UpdateFld (fld_name, pval) {
+    var fld = document.getElementById(fld_name);
+    fld.value = fld.defaultValue = unescape(pval);
+}
+
+
+//
+// Updates the ecs location information fields
+//
+function UpdateEcsLocationTable(config) {
+    UpdateFld("ecs",config);
+}
+
+
+//
+// Updates the Civic location information fields
+//
+function UpdateCivicLocationTable(config) {
+
+    // The civic infomation is splited by commas
+    var pval = config.split("¤");
+    
+    var i = 0;
+    UpdateFld("country_code",pval[i++]);
+    UpdateFld("state",pval[i++]);
+    UpdateFld("county",pval[i++]);
+    UpdateFld("city",pval[i++]);
+    UpdateFld("city_district",pval[i++]);
+    UpdateFld("block",pval[i++]);
+    UpdateFld("street",pval[i++]);
+    UpdateFld("leading_street_direction",pval[i++]);
+    UpdateFld("trailing_street_suffix",pval[i++]);
+    UpdateFld("str_suf",pval[i++]);
+    UpdateFld("house_no",pval[i++]);
+    UpdateFld("house_no_suffix",pval[i++]);
+    UpdateFld("landmark",pval[i++]);
+    UpdateFld("additional_info",pval[i++]);
+    UpdateFld("name",pval[i++]);
+    UpdateFld("zip_code",pval[i++]);
+    UpdateFld("building",pval[i++]);
+    UpdateFld("apartment",pval[i++]);
+    UpdateFld("floor",pval[i++]);
+    UpdateFld("room_number",pval[i++]);
+    UpdateFld("place_type",pval[i++]);
+    UpdateFld("postal_com_name",pval[i++]);
+    UpdateFld("p_o_box",pval[i++]);
+    UpdateFld("additional_code",pval[i++]);
+}
+
+//
+// Updates the corrdinate location information fields
+//
+function UpdateCoordinateLocationTable(config) {
+              
+    // The location infomation is split like this :<tude_multiplier>,<latitude>,<latitude_dir>,<longitude>,.......
+    var pval = config.split(",");
+
+    var oTDir = Array("North", "South");
+    var oVDir = Array(0,1,2,3);
+
+    tude_multiplier = pval[0]; // Because we don't want to operate with floating point at the host, the host
+    // gives a multiplier that is used to convert the floating point number to an
+    // integer number.
+
+    UpdateFld("latitude_float",parseInt(pval[1], 10)/tude_multiplier);
+    UpdateFld("latitude_integer",parseInt(pval[1], 10));
+    
+    UpdateIdSelect("latitude_dir", oTDir, oVDir, parseInt(pval[2], 10));
+
+    UpdateFld("longitude_float",parseInt(pval[3], 10)/tude_multiplier);
+    UpdateFld("longitude_integer",parseInt(pval[3], 10));
+    
+    oTDir = Array("East","West");	
+    UpdateIdSelect("longitude_dir", oTDir, oVDir, parseInt(pval[4], 10));
+    
+    UpdateFld("altitude_float",parseInt(pval[5], 10)/tude_multiplier);
+    UpdateFld("altitude_integer",parseInt(pval[5], 10));
+    
+    oTDir = Array("Meters", "Floors");
+    oVDir = Array(1,2); // RFC3825,July 2004, section 2.1
+    UpdateIdSelect("altitude_type", oTDir, oVDir, parseInt(pval[6], 10));
+    
+    
+    oTDir = Array("WGS84", "NAD83/NAVD88","NAD83/MLLW");
+    oVDir = Array(1,2,3);// RFC3825,July 2004, section 2.1
+    UpdateIdSelect("map_datum_type", oTDir, oVDir, parseInt(pval[7], 10));
+
+}
+
+function UpdateLocationTable(config) {
+    // The location information is split like this:<coordinated based info>#<civic info>#<ecs info>
+    
+    var location_info = config.split("#");
+    UpdateCoordinateLocationTable(location_info[0]);
+    UpdateCivicLocationTable(location_info[1]);
+    UpdateEcsLocationTable(location_info[2]);
+    
+}
+
+//
+// Updates the FastStartRepeatCount field
+//
+
+function UpdateFastRepeatCount(config) {
+    UpdateFld("fast_start_repeat_count_value",parseInt(config, 10));
+}
+
+//
+// Policies Table
+//
+function init_active_policy_ids () {
+    for (var i = configLldpmedPoliciesMin; i <= configLldpmedPoliciesMax; i++) {
+	active_policy_ids[i] = 0;
+    }
+}
+
+
+// Updates the policy ids table.
+// Action 1 = add id to the table
+// Action 2 = delete id from table
+// Action "All others" = Return a free id number.  
+function update_active_policy_ids(policy_id, action) {
+    var i;
+    
+    if (action == 1) {
+	active_policy_ids[policy_id] = 1; 
+	ActivePoliciesCnt++;
+    } else if  (action == 2) {
+	active_policy_ids[policy_id] = 0; 
+
+
+	var all_entries_free = 1;
+	ActivePoliciesCnt--;
+	for (i = configLldpmedPoliciesMin ; i <= configLldpmedPoliciesMax; i++) {
+	    if (active_policy_ids[i] === 1) {
+		all_entries_free = 0;
+	    }
+	}
+	if (all_entries_free) {
+            ActivePoliciesCnt =0;
+	    var table = document.getElementById('policies_table');
+	    var tr = table.insertRow(1);
+	    addTextCell(tr, "No entries present", "c", 7);
+	    tr.id = "NoEntries";
+	    frag.appendChild(tr);       // Add row to fragment
+	    
+	    var tbody = document.getElementById("policies_table");
+	    if (!tbody.appendChild(frag)) { // Add Frag to table body
+		alert("This browser doesn't support dynamic tables.");
+	    }
+	}
+    } else {
+	for (i = configLldpmedPoliciesMin; i <= configLldpmedPoliciesMax; i++) {
+	    if (active_policy_ids[i] === 0) {
+		active_policy_ids[i] = 1;
+		ActivePoliciesCnt++;
+		return i;
+	    }
+	}
+	var MaxPolicies = parseInt(configLldpmedPoliciesMax, 10) + 1;
+	alert("The maximum number of policies supported is " + MaxPolicies);
+	return "-";
+    }
+
+    return 0;
+}
+
+// Function that disable fields that can't be used with the current configuration
+var changeFilter = function changeFilter() {
+    var fld;
+    for (var i = configLldpmedPoliciesMin; i <= configLldpmedPoliciesMax; i++) {
+	if (active_policy_ids[i] == 1) {
+	     fld = document.getElementById("tag_" + i);
+
+	     // Untagged must have VLAN = 0 (TIA 0157, section 10.2.3.3);
+	     if (fld.value === "0") {
+		 fld = document.getElementById("vlan_id_" + i);
+		 fld.value = "0";
+		 fld.disabled = 1;
+	     } else {
+		 fld = document.getElementById("vlan_id_" + i);
+		 fld.disabled = 0;
+	     }
+	}
+    }
+};
+
+function addRow2PoliciesTable(values, NewEntry, index) {
+    var policy_id   =  values[0];
+    var application_type= parseInt(values[1], 10);
+    var tag             = parseInt(values[2], 10);
+    var vlan_id         = values[3];
+    var l2_priority     = values[4];
+    var dscp_value      = values[5];
+    var td;
+
+    var tr = CreateRow(ActivePoliciesCnt%2);
+
+    if (NewEntry) {
+	policy_id = update_active_policy_ids(policy_id,3); // Get a free id
+	if (policy_id == "-") {
+	    return;
+	} else {
+	    var button = document.createElement('input');
+	    button.onclick = function() {update_active_policy_ids(policy_id,2); document.getElementById("policies_table").removeChild(tr);};
+	    button.type = "button";
+	    button.value = " Delete ";
+	    td = CreateTd("c");
+	    addCell(tr, td, button);
+	}
+    } else {
+	update_active_policy_ids(policy_id,1); // Add policy id to ids table   
+	addCheckBoxCell(tr,0,"c","Delete_" + policy_id);
+    }
+
+    addTextCell(tr, policy_id, "c");
+
+    // Table 12,TIA1057
+    var oT = Array("Voice",
+		   "Voice Signaling",
+		   "Guest Voice",
+		   "Guest Voice Signaling",
+		   "Softphone Voice",
+		   "Video Conferencing",
+		   "Streaming Video",
+		   "Video Signaling"); 
+    var oV = Array("1","2","3","4","5","6","7","8");  
+    addSelectCell(tr, oT, oV, application_type, "cr", "application_type_" + policy_id);
+
+    // Section 10.2.3.3,TIA1057
+    oT = Array("Tagged","Untagged"); // Text
+    oV = Array("1","0"); // 
+    td =  addSelectCell(tr, oT, oV, tag, "cr", "tag_" + policy_id);
+    td.onchange=changeFilter;
+      
+    addInputCell(tr,vlan_id,"c","vlan_id_" + policy_id, 4, 4);
+    addInputCell(tr,l2_priority,"c","l2_priority_" + policy_id, 1, 1);
+    addInputCell(tr,dscp_value,"c","dscp_value_" + policy_id, 2, 2);
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+
+function CreatePoliciesTableHeader ()
+{
+    clearChildNodes(document.getElementById('policies_table')); // Delete table if it already exists
+    
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"Delete","hdrc");
+    addTextHeaderCell(tr,"Policy ID","hdrc");
+    addTextHeaderCell(tr,"Application Type","hdrc");
+    addTextHeaderCell(tr,"Tag","hdrc");
+    addTextHeaderCell(tr,"VLAN ID","hdrc");
+    addTextHeaderCell(tr,"L2 Priority","hdrc");
+    addTextHeaderCell(tr,"DSCP","hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function UpdatePoliciesTable(config) {
+    init_active_policy_ids();
+    // The policies is split like this: <policy 1>#<policy 2>#....
+
+    var policies_val = config.split("#");
+
+    tr = CreateRow(1);	
+    if (policies_val.length  > 1 ) {
+	for(var i = 0; i < policies_val.length -1 ; i++) {
+	    // Each policy is split like this: <policy number>,<Application Type>,<Tag>,<VLAN ID>,<L2 Priority>,<DSCP Value>
+	    var policy_val = policies_val[i].split(",");
+	    addRow2PoliciesTable(policy_val, false, i);
+	}
+    } else {
+	addTextCell(tr, "No entries present", "c", 7);
+	tr.id = "NoEntries";
+	frag.appendChild(tr);       // Add row to fragment
+    }
+    FinishTable(frag, "policies_table");
+}
+
+
+function AddNewPolicyRow ()
+{
+    if  (document.getElementById('NoEntries') !== null) {
+	var table = document.getElementById('policies_table');
+	table.deleteRow(1);
+    }
+    
+    // Assign Default values to new policy
+    var values = Array();
+    values[0] = "-"; // Policy ID
+    values[1] = 1; // Application type
+    values[2] = 1; // Tag
+    values[3] = 1; // Vlan ID
+    values[4] = 0; // Priority
+    values[5] = 0; // DSCP
+
+    addRow2PoliciesTable(values, true, 0);
+    var tbody = document.getElementById("policies_table");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+    alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+
+
+
+//
+// Ports Table
+//
+function CreatePortsTableHeader (tablewidth)
+{
+    clearChildNodes(document.getElementById('ports_table')); // Delete table if it already exists
+    var tr = CreateStyledElement("tr", "config_header");
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"","hdrc");
+    addTextHeaderCell(tr, "Policy ID", "hdrc", tablewidth); 
+    frag.appendChild(tr);       // Add row to fragment
+    FinishTable(frag,"ports_table");
+}
+
+function UpdatePortsTable(config) {
+    // The ports is split like this: <list of policies in use>&<port 1>#<port 2>#....    
+    var policies_list =  config.split("&");
+    
+    var policies_id = policies_list[0].split(",");
+    var ports_val = policies_list[1].split("#");
+    if (policies_list[0].length > 0) {
+	document.getElementById("PolicyPortHeader").style.visibility  = "visible"; // Only show header when where are policies defined.
+
+	CreatePortsTableHeader(policies_id.length);
+	
+	var tr = CreateStyledElement("tr", "config_header");
+	addTextHeaderCell(tr,"Port","hdrc");
+	frag.appendChild(tr);       // Add row to fragment
+	// Added the policies id to header
+	for(var policy_idx = 0; policy_idx < policies_id.length ; policy_idx++) {
+	    var cell = addTextHeaderCell(tr, policies_id[policy_idx], "hdrc");
+	    cell.style.width = "2em"; // Set the width to 2 charaters in order to have same spacing between all checkboxes
+	}
+
+	CreateRow(1); // Start row with even color
+    
+	// Add checkboxes for each port
+	for(var port_idx = 0; port_idx < ports_val.length -1 ; port_idx++) {
+	    // Each port is split like this: <port number>,<Policy#1>,<Policy#2>.....
+	    var port_val = ports_val[port_idx].split(",");
+	
+	    if (port_val.length  > 1 ) {
+		tr = CreateRow(); 
+		addTextCell(tr,port_val[0],"cr"); // Port number
+
+		// Loop through all policies and set the corresponding checkbox
+		for(policy_idx = 0; policy_idx < policies_id.length ; policy_idx++) {	
+		    addCheckBoxCell(tr,parseInt(port_val[policy_idx+1], 10),//policy_idx+1, because first entry is the port number
+				    "c","port_policies_" + port_idx + "_" + policies_id[policy_idx]);
+		}
+		frag.appendChild(tr);       // Add row to fragment
+	    }
+	}
+	frag.appendChild(tr);       // Add row to fragment
+	FinishTable(frag,"ports_table");
+    } else {
+	// Delete the header when where are no policies defined.
+	clearChildNodes(document.getElementById('PolicyPortHeader'));
+    }
+}
+
+
+
+//
+//
+//
+
+function processUpdate(req, ref)
+{
+    // Format: 
+    //  <lldpmed_switch>,<lldpmed_port>,<sid#sid#..>|<source enable>/<destination enable>,<source enable>/<destination enable>,.....
+    if(redirectOnError(req)) {
+        return;
+    }
+
+    if (reqObject != req) {
+        reqObject = req;
+    }
+
+    if(req.responseText) {
+
+        // The input is split like this:<fast start repeat count>|<Location Data>|<Policies Data>|<Ports Data>|<error message>
+	var config = req.responseText.split("|");
+	UpdateFastRepeatCount(config[0]);
+	UpdateLocationTable(config[1]);
+	CreatePoliciesTableHeader();
+	UpdatePoliciesTable(config[2]);        
+	UpdatePortsTable(config[3]);        
+	var err_msg = config[4];
+
+	if (err_msg && String(err_msg) !== "") {
+	    alert (err_msg);
+	}
+	
+    } else {
+        SpomHandleError();   
+    }
+    changeFilter();
+}
+
+function resetForm(form)
+{
+    processUpdate(reqObject, "PolicyTable"); // Reset the PolicyTable
+    form.reset();
+}
+
+
+
+function checkForm(form)
+{
+    var fld;
+    if(!isWithinRangeFloat("latitude_float", 0,90, "'Latitude'", " \u00B0")) { // \u00B0 is the degress sign
+        return false;
+    } else {
+	fld = document.getElementById("latitude_float");
+	var latitude_integer_var = fld.value * tude_multiplier;
+        fld = document.getElementById("latitude_integer");
+	fld.value = latitude_integer_var;
+    }
+    
+    if(!isWithinRangeFloat("longitude_float", 0,180, "'Longitude'", " \u00B0")) { // \u00B0 is the degress sign
+        return false;
+    } else {
+	fld = document.getElementById("longitude_float");
+	var longitude_integer_var = fld.value * tude_multiplier;
+        fld = document.getElementById("longitude_integer");
+	fld.value = longitude_integer_var;
+    }
+
+    if(!isWithinRangeFloat("altitude_float", -32767,32767, "'Altitude'", " meters/floors")) {
+        return false;
+    } else {
+	fld = document.getElementById("altitude_float");
+	var altitude_integer_var = fld.value * tude_multiplier;
+        fld = document.getElementById("altitude_integer");
+	fld.value = altitude_integer_var;
+
+    }
+
+    
+    // Check Fast_Start_Repeat_Count_Value, See lldpXMedFastStartRepeatCount MIB in TIA1057
+    if(!isWithinRange("fast_start_repeat_count_value",1,10, "'Fast Start Repeat Count'", "")) {
+        return false;
+    }
+    
+
+    // Ranges defined in Section 10.2.35 -> 10.2.3.6 in TIA1057.
+    for (i = configLldpmedPoliciesMin; i <= configLldpmedPoliciesMax; i++) {
+	if (active_policy_ids[i]) {
+	    if (!isWithinRange("l2_priority_" + i, 0,7, "'Priority'", "") ||
+		!isWithinRange("dscp_value_" + i, 0,63, "'DSCP'", ""))   {
+		return false;
+	    }
+
+	    fld = document.getElementById("tag_" + i);
+	    // If UnTagged VLAN id must to 0   (TIA1057 Table 13)
+	    if (fld.value === "0") {
+		if (!isWithinRange("vlan_id_" + i, 0, 0, "'VLAN ID'", "")) {
+		    return false;
+		}
+	    } else {
+		// When tagged VLAN must be between 1 and 4095 (TIA1057 Table 13)
+		if (!isWithinRange("vlan_id_" + i, 1, 4095, "'VLAN ID'", "")) {
+		    return false;
+		}
+	    }
+	}
+    }
+    
+    // Check ECS
+    fld = document.getElementById("ecs");
+    if (isNaN(fld.value)) {
+	alert("The Emergency Call Service must be a number");
+	return false;
+    }
+
+    return true;                // Feed the chickens and go home
+}
+
+
+// Because we disables some of the element in "runtime", we need to
+// do take special care of the reset.
+function ResetUpdate() {
+    document.ConfigForm.reset();
+    changeFilter();
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/lldpmed_config"), processUpdate, 'policies_table');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function DocLoad()
+{
+    requestUpdate();
+}
+
+ </script>
+</head>
+
+<body class="content" onload="DocLoad();">
+
+<h1>LLDP-MED Configuration</h1>
+
+<form name="ConfigForm" method="POST" action="/config/lldpmed_config" onsubmit="return checkForm(this);">
+
+<h2>Fast Start Repeat Count</h2>
+<table id="FastStartRepeatCount" summary="FastStartRepeatCount" class="config">
+ <tbody>
+     <tr>
+     <td class="param_label">Fast start repeat count</td>
+     <td><input type="text" id="fast_start_repeat_count_value" name="fast_start_repeat_count_value" maxlength="2" size="2"></td>
+     </tr>
+     </tbody>
+</table>
+
+<h2>Coordinates Location</h2>
+<table id="qconfig" summary="Switch Default Class Configuration" class="config">
+ <tbody>
+     <tr>
+     <td class="param_label">Latitude</td>
+     <td><input type="text" id="latitude_float" name="latitude_float" maxlength="7" size="7"> &deg;</td>
+     <td><input type="hidden" id="latitude_integer" name="latitude_integer" maxlength="10" size="10"> </td>
+     <td class="cl"><select id="latitude_dir" name="latitude_dir" style="width: 6em;"></select></td>  
+
+     <td class="param_label">Longitude</td>
+     <td><input type="text" id="longitude_float" name="longitude_float" maxlength="8" size="8"> &deg;</td>
+     <td><input type="hidden" id="longitude_integer" name="longitude_integer" maxlength="10" size="10"> </td>
+     <td class="cl"><select id="longitude_dir" name="longitude_dir" style="width: 6em;"></select></td>  
+
+     
+     <td class="param_label">Altitude</td>
+     <td><input type="text" id="altitude_float" name="altitude_float" maxlength="11" size="11"> </td>
+     <td><input type="hidden" id="altitude_integer" name="altitude_integer" maxlength="11" size="11"> </td>
+     <td class="cl"><select id="altitude_type" name="altitude_type" style="width: 6em;"></select></td>  
+     
+     <td class="param_label">Map Datum</td>
+     <td class="cl"><select id="map_datum_type" name="map_datum_type" style="width: 6em;"></select></td>  
+     </tr>
+  </tbody>
+</table>
+
+<h2>Civic Address Location</h2>
+<table id="Civic_config" summary="Civic" class="config">
+ <tbody>
+    <tr>
+     <td class="param_label">Country code</td>
+     <td><input type="text" id="country_code" name="country_code" maxlength="2" size="2"></td>
+
+     <td class="param_label">State</td>
+     <td><input type="text" id="state" name="state" maxlength="50" size="20"></td>
+     
+     <td class="param_label">County</td>
+     <td><input type="text" id="county" name="county" maxlength="50" size="20"></td>
+
+    </tr>
+
+    <tr>
+     <td class="param_label">City</td>
+     <td><input type="text" id="city" name="city" maxlength="50" size="20"></td>
+
+     <td class="param_label">City district</td>
+     <td><input type="text" id="city_district" name="city_district" maxlength="50" size="20"></td>
+
+     <td class="param_label">Block (Neighborhood)</td>
+     <td><input type="text" id="block" name="block" maxlength="50" size="20"></td>
+
+    </tr>
+
+    <tr>
+     <td class="param_label">Street</td>
+     <td><input type="text" id="street" name="street" maxlength="50" size="20"></td>
+
+     <td class="param_label">Leading street direction</td>
+     <td><input type="text" id="leading_street_direction" name="leading_street_direction" maxlength="50" size="20"></td>
+
+      <td class="param_label">Trailing street suffix</td>
+      <td><input type="text" id="trailing_street_suffix" name="trailing_street_suffix" maxlength="50" size="20"></td>
+    </tr>
+     <tr>
+      <td class="param_label">Street suffix</td>
+      <td><input type="text" id="str_suf" name="str_suf" maxlength="50" size="20"></td>
+
+      <td class="param_label">House no.</td>
+      <td><input type="text" id="house_no" name="house_no" maxlength="50" size="20"></td>
+
+      <td class="param_label">House no. suffix</td>
+      <td><input type="text" id="house_no_suffix" name="house_no_suffix" maxlength="50" size="20"></td>
+     </tr>
+
+     <tr>
+       <td class="param_label">Landmark</td>
+       <td><input type="text" id="landmark" name="landmark" maxlength="50" size="20"></td>
+
+      <td class="param_label">Additional location info</td>
+      <td><input type="text" id="additional_info" name="additional_info" maxlength="50" size="20"></td>
+     
+      <td class="param_label">Name</td>
+      <td><input type="text" id="name" name="name" maxlength="50" size="20"></td>
+
+     </tr>
+     <tr>
+        <td class="param_label">Zip code</td>
+        <td><input type="text" id="zip_code" name="zip_code" maxlength="50" size="20"></td>
+     
+        <td class="param_label">Building</td>
+        <td><input type="text" id="building" name="building" maxlength="50" size="20"></td>
+
+        <td class="param_label">Apartment</td>
+        <td><input type="text" id="apartment" name="apartment" maxlength="50" size="20"></td>
+
+      </tr>
+
+      <tr>
+        <td class="param_label">Floor</td>
+        <td><input type="text" id="floor" name="floor" maxlength="50" size="20"></td>
+     
+        <td class="param_label">Room no.</td>
+        <td><input type="text" id="room_number" name="room_number" maxlength="50" size="20"></td>
+
+        <td class="param_label">Place type</td>
+        <td><input type="text" id="place_type" name="place_type" maxlength="50" size="20"></td>
+
+      </tr>
+     
+      <tr>
+        <td class="param_label">Postal community name</td>
+        <td><input type="text" id="postal_com_name" name="postal_com_name" maxlength="50" size="20"></td>
+
+        <td class="param_label">P.O. Box</td>
+        <td><input type="text" id="p_o_box" name="p_o_box" maxlength="50" size="20"></td>
+
+        <td class="param_label">Additional code</td>
+        <td><input type="text" id="additional_code" name="additional_code" maxlength="50" size="20"></td>
+      
+      </tr>
+
+
+
+
+ </tbody>
+</table>
+
+
+<h2>Emergency Call Service</h2>
+<table id="ecs_config" summary="Emergency Call Service" class="config">
+ <tbody>
+     <tr>
+     <td class="param_label">Emergency Call Service</td>
+     <td><input type="text" id="ecs" name="ecs" maxlength="25" size="25"></td>
+     </tr>
+  </tbody>
+</table>
+
+
+<h2>Policies</h2>
+<table id="PolicyTable" summary="Policy Table" cellspacing="0" class="config">
+ <tbody id="policies_table">
+ </tbody>
+     </table>
+
+<p>
+<input type=button id="addNewEntry" value="Add New Policy" onclick="AddNewPolicyRow();">
+</p>
+
+<h2 id="PolicyPortHeader" >Policy Port Configuration <span id="display_sid"></span></h2>
+<table id="lldpmed_policy_config" summary="Switch Port Configuration" class="config">
+ <tbody id="ports_table">
+ </tbody>
+</table>
+
+<p>
+  <input type="hidden" id="submit_sid" name="sid">
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm(this.form);">
+</p>
+
+</form>
+</body>
+</html>
+     
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

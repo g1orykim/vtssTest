@@ -1,0 +1,563 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Protocol Group to VLAN mapping table</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+ var help_page = "/help/help_vcl_grp_2_vlan_mapping.htm";
+var timerID;
+var timeOut = settingsRefreshInterval();
+
+var maxEntriesNum = configVCLGrp2VLANMax - configVCLGrp2VLANMin + 1;
+var entryIdxArray = Array();
+var originalEntriesNum, newEntriesNum;
+var usedGrpNameArray = Array();
+var vidArray = Array();
+
+function addEntryIdx()
+{
+    var fld;
+
+    for (var i = 1; i <= maxEntriesNum; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newEntriesNum++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1]);
+    var pcount = SpomCurrentPorts();
+
+    pcount = parseInt(pcount) + 3;
+    for(var j = 0; j < SpomCurrentPorts(); j++) {
+        if (isStackPort(j + 1)) {
+            pcount--;
+        }
+    }
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById('vlanData').deleteRow(tr.rowIndex);
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tbody = document.getElementById("vlanData");
+
+    if (originalEntriesNum ==0 && newEntriesNum == 0) {
+       clearChildNodes(tbody);
+       addTblHeader(frag);
+       // no entries found - Display that in the table
+       tr = CreateStyledElement("tr","config_even");
+       addTextCell(tr, "No Group entry found!", "c", pcount);
+       frag.appendChild(tr);       // Add row to fragment
+       tbody.appendChild(frag);
+    }
+}
+
+function AddNewRow()
+{
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tbody = document.getElementById("vlanData");
+
+    if (originalEntriesNum ==0 && newEntriesNum == 0) {
+       clearChildNodes(tbody);
+       addTblHeader(frag);
+       tbody.appendChild(frag);
+    }
+ 
+    var entryIdx = addEntryIdx();
+    if (entryIdx == 0) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return;
+    }
+
+    if ((originalEntriesNum + newEntriesNum) > maxEntriesNum) {
+        newEntriesNum--;
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return;
+    }
+    var tr = CreateStyledElement("tr", (originalEntriesNum + entryIdx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+
+    //Group Name
+    var edit_ctrl = addInputCell(tr, "", "cl", "name_new_" + entryIdx, 16);
+    edit_ctrl.setAttribute("maxLength", 16); // 'camelCase' required for maxLength for this to work with IE.
+    //VLAN ID
+    var edit_ctrl_name = addInputCell(tr, "", "cl", "vid_new_" + newEntriesNum, 4);
+    edit_ctrl_name.setAttribute("maxLength", 4);
+
+    //checkboxes
+    for(var i = 0; i < SpomCurrentPorts(); i++) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        addCheckBoxCell(tr, 0, "c", "mask_new_" + entryIdx + "_" + (i + 1));
+    }
+
+    frag.appendChild(tr);       // Add row to fragment
+
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+
+function addRow(index, frag, values)
+{
+  vidArray[originalEntriesNum] = values[1];
+  usedGrpNameArray[originalEntriesNum] = values[0];
+  originalEntriesNum++;
+  var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+  //Delete checkbox
+  addCheckBoxCell(tr, 0, "c", "delete_" + index);
+  //hidden Grp id field
+  //var form_var = document.getElementById("grp_2_vlan_map_form");
+  addHiddenParam(tr, "hiddenGrp_"+index, values[0]);
+  //hidden vid field
+  addHiddenParam(tr, "hiddenVID_"+index, values[1]);
+  //Group Name
+  var txt = addTextCell(tr, values[0], "cl");
+  //VID
+  var txt = addTextCell(tr, values[1], "cl");
+  //Member ports
+  var checkboxAry = values[2].split("#");
+  for (var i = 0; i < SpomCurrentPorts(); i++) {
+      if (isStackPort(i + 1)) {
+          continue;
+      }
+      if(checkboxAry[i] != "") {
+          addCheckBoxCell(tr, parseInt(checkboxAry[i]), "cr", "mask_" + index + "_" + (i + 1));
+      }
+  }
+  //var txt = addTextCell(tr, values[2], "cl");
+  frag.appendChild(tr);       // Add row to fragment
+ }
+ function getQueryVariable(variable)
+ {
+    var query = window.location.search.substring(1);
+    var vars = query.split("&");
+    for (var i=0;i<vars.length;i++)
+    {
+       var pair = vars[i].split("=");
+       if (pair[0] == variable)
+       {
+           return pair[1];
+       }
+    }
+ }
+ if (getQueryVariable("error") == 1) {
+     alert("Protocol Vlan entry add operation failed, port members in different entries belonging to same Group must be \'mutually exclusive\'!");
+ }
+
+function changeFilter () {
+    var tempAry = this.id.split("_");
+    var length = 5;
+    var defaultTxt = "08-00";
+    var index = tempAry[1];
+    if (index != "new")
+        alert (index);
+    else {
+        index = tempAry[2];
+    }
+    if (this.value == "Ethernet") {
+        length = 5;
+        defaultTxt = "08-00";
+    } else if (this.value == "LLC") {
+        length = 5;
+        defaultTxt = "FE-EE";
+    } else if (this.value == "SNAP") {
+        length = 14;
+        defaultTxt = "00-E0-2B-00-01";
+    } else {
+               alert ("Error: Wrong value of Frame type");
+    }
+    var elemRef = document.getElementById("value_new_" + index);
+    elemRef.setAttribute("maxLength", length);
+    elemRef.setAttribute("size", length);
+    elemRef.value = defaultTxt;
+
+
+}
+
+var prev_req = "";
+function processUpdate(req, ref)
+{
+ /* Format: <Group Name 1><Group Name 2>...<Group Name n>,<Group Name i>/<VID i>/<Member port 1 status>#...<Member port max status> */
+
+ //var valuesdommy = "ABC/1/1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#|CDE/2/1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#1#|";
+ /* take backup of previous req object */
+  prev_req = req;
+ var portconfig = req.responseText.split("|");
+ // create holder for accumulated tbody elements and text nodes
+ var frag = document.createDocumentFragment();
+ var pcount = SpomCurrentPorts();
+
+ pcount = parseInt(pcount) + 3;
+ for(var j = 0; j < SpomCurrentPorts(); j++) {
+     if (isStackPort(j + 1)) {
+         pcount--;
+     }
+ }
+ addTblHeader(frag);
+ originalEntriesNum = newEntriesNum = 0;
+ if (portconfig != "") {
+  for(var i = 0; i < portconfig.length; i++) {
+    if(portconfig[i]) {
+        var pval = portconfig[i].split("/");
+    addRow(i, frag, pval);
+    }
+  }
+ } else {
+     // no entries found - Display that in the table
+     var tr = CreateStyledElement("tr","config_even");
+     addTextCell(tr, "No Group entries", "c", pcount);
+     frag.appendChild(tr);       // Add row to fragment
+ }
+ var tbody = document.getElementById(ref);
+ clearChildNodes(tbody);
+ if (!tbody.appendChild(frag)) { // Add Frag to table body
+    alert("This browser doesn't support dynamic tables.");
+ }
+ var autorefresh = document.getElementById('autorefresh');
+ if (autorefresh.checked) {
+    if (timerID) {
+        clearTimeout(timerID);
+    }
+    timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+ }
+ updateFuncBar(1);
+}
+
+function addTblHeader(frag)
+{
+    var tr;
+    var portcount = SpomCurrentPorts();
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "", "hdrc", 3);
+    for(var j = 0; j < SpomCurrentPorts(); j++) {
+        if (isStackPort(j + 1)) {
+            portcount--;
+        }
+    }
+    addTextHeaderCell(tr, "Port Members", "hdrc", portcount);
+    frag.appendChild(tr);       // Add row to fragment
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"Delete","hdrc");
+    addTextHeaderCell(tr,"Group Name","hdrc");
+    addTextHeaderCell(tr,"VLAN ID","hdrc");
+    for (var i = 0; i < SpomCurrentPorts(); i++ ) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        addTextHeaderCell(tr, configPortName(i + 1, 0), "portno");
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function chkRefresh(fld) {
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate(0);
+    }
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading())
+        return;         // Bail out, navigation will trigger update
+    updateFuncBar(0);
+    loadXMLDoc(SpomAddSidArg("/config/vcl_grp_2_vlan_map"), processUpdate, 'vlanData');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+
+
+
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function checkName(sText)
+{
+    var ValidChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    var ValidDigits = "0123456789";
+    var IsValid = 0;
+    var NumDigits = 0;
+    var Char;
+
+    for (var i = 0; i < sText.length; i++)
+    {
+        Char = sText.charAt(i);
+        if (ValidDigits.indexOf(Char) == -1 || Char == "")
+        {
+            if (ValidChars.indexOf(Char) == -1 || Char == "")
+            {
+                return IsValid;
+            }
+        } else {
+            NumDigits = NumDigits + 1;
+        }
+    }
+    if (NumDigits != i) {
+        IsValid = 1;
+    }
+    return IsValid;
+}
+
+function checkForm()
+{
+    var VLANfld, fld1;
+    var GrpNamefld;
+    var deleteEntriesNum = 0;
+    var port_count = 0;
+    var port = 0;
+
+    //counter delete entries number
+    for (var i = 0; i < originalEntriesNum; i++) {
+        fld1 = document.getElementById("delete_" + i);
+        if (fld1.checked) {
+            deleteEntriesNum++;
+        }
+        else {
+            port_count = 0;
+            for(var j = 0; j < SpomCurrentPorts(); j++) {
+                if (isStackPort(j + 1)) {
+                    continue;
+                }
+                var port_fld = document.getElementById("mask_" + i +"_" + (j + 1));
+                if (!port_fld.checked) {
+                    port_count++;
+                }
+            }
+        }
+
+        if (port_count == SpomCurrentPorts()) {
+            GiveAlert("No port members for this VLAN. Please check the delete button to delete VLAN from the list or add the members.");
+            return false;
+        }
+
+        //check for mutual exclusion in usedGroup name list
+        for (var jused = i + 1; jused < originalEntriesNum; jused++) {
+            if (usedGrpNameArray[i] == usedGrpNameArray[jused]) {//Check for mutual exclusion
+                for(var jchk = 0; jchk < SpomCurrentPorts(); jchk++) {
+                    if (isStackPort(jchk + 1)) {
+                        continue;
+                    }
+                    var cur_port_fld = document.getElementById("mask_" + i +"_" + (jchk + 1));
+                    var next_port_fld = document.getElementById("mask_"+ jused +"_" + (jchk + 1));
+                    if (cur_port_fld.checked && next_port_fld.checked) {
+                        GiveAlert("Group ID " + usedGrpNameArray[jused] + "\'s port list is not mutually exclusive!");
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+
+    //check new entries's
+    for (var i = 1; i <= newEntriesNum; i++) {
+
+        VLANfld = document.getElementById("vid_new_" + entryIdxArray[i-1]);
+        GrpNamefld = document.getElementById("name_new_" + entryIdxArray[i-1]);
+        //Validate Group Name fields
+        if (GrpNamefld.value != "") {
+            if (!checkName(GrpNamefld.value)) {
+                GiveAlert("Invalid characters found. Please check help page for correct Group name format.");
+                GrpNamefld.select();
+                return false;
+            }
+        } else {
+            GiveAlert("Group Name field can not be empty. Please check help page for correct Group name format.");
+            GrpNamefld.select();
+            return false;
+        }
+
+        //Check whether current Group Name and VID is existing in already stored static entries
+        for (var j = 0; j < originalEntriesNum; j++) {
+            if (GrpNamefld.value == usedGrpNameArray[j] && VLANfld.value == vidArray[j]) {
+                GiveAlert("Group ID " + GrpNamefld.value + " and VID: " + VLANfld.value + " combinations is already in use. Please update existing entry instead of adding it again!", GrpNamefld);
+                return false;
+            }
+            if (GrpNamefld.value == usedGrpNameArray[j]) {//Mutually exclusive port list check
+                for(var jchk = 0; jchk < SpomCurrentPorts(); jchk++) {
+                    if (isStackPort(jchk + 1)) {
+                        continue;
+                    }
+                    var cur_port_fld = document.getElementById("mask_new_" + entryIdxArray[i-1] +"_" + (jchk + 1));
+                    var next_port_fld = document.getElementById("mask_"+ j +"_" + (jchk + 1));
+                    if (cur_port_fld.checked && next_port_fld.checked) {
+                        GiveAlert("Group ID " + GrpNamefld.value + "\'s port list is not mutually exclusive!", GrpNamefld);
+                        return false;
+                    }
+                }
+            }
+        }
+
+        //check the entry exist in new entries
+        for (var j = i + 1; j <= newEntriesNum; j++) {
+            var nextGrpName = document.getElementById("name_new_"+ entryIdxArray[j-1]).value ;
+            var nextVIDValue = document.getElementById("vid_new_"+ entryIdxArray[j-1]).value ;
+            if (GrpNamefld.value == nextGrpName && nextVIDValue == VLANfld.value) {
+                GiveAlert("Group ID " + GrpNamefld.value + " and VID: " + VLANfld.value + " combination is already in use. Please add single entry instead of adding it again!", GrpNamefld);
+                return false;
+            }
+            if (GrpNamefld.value == nextGrpName) {//Mutually exclusive port list check
+                for(var jchk = 0; jchk < SpomCurrentPorts(); jchk++) {
+                    if (isStackPort(jchk + 1)) {
+                        continue;
+                    }
+                    var cur_port_fld = document.getElementById("mask_new_" + entryIdxArray[i-1] +"_" + (jchk + 1));
+                    var next_port_fld = document.getElementById("mask_new_"+ entryIdxArray[j-1] +"_" + (jchk + 1));
+                    if (cur_port_fld.checked && next_port_fld.checked) {
+                        GiveAlert("Group ID " + GrpNamefld.value + "\'s port list is not mutually exclusive!", GrpNamefld);
+                        return false;
+                    }
+                }
+            }
+        }
+
+        //Check whether the vid added is an integer.
+        if (!isInt(VLANfld.value)) {
+            GiveAlert("Invalid VLAN ID " + VLANfld.value);
+            VLANfld.select();
+            return false;
+        }
+        //vid
+        if(!isWithinRange("vid_new_"+ entryIdxArray[i-1], 1, 4095, "'VLAN ID'")) {
+            return false;
+        }
+
+        //check the member ports in new entry
+        port_count = 0;
+        for(var j = 0; j < SpomCurrentPorts(); j++) {
+            if (isStackPort(j + 1)) {
+                continue;
+            }
+            var port_fld = document.getElementById("mask_new_" + entryIdxArray[i-1] +"_" + (j + 1));
+            if (!port_fld.checked) {
+                port_count++;
+            }
+        }
+        if (port_count == SpomCurrentPorts()) {
+            GiveAlert("No port members for entry [Group: \""+GrpNamefld.value+"\" with VID: \""+VLANfld.value+"\"]. Please add the member ports for selected VLAN ID field.");
+            VLANfld.select();
+            return false;
+        }
+
+    }//Main for loop for validating new entries
+}
+
+function updateFuncBar(enable)
+{
+    if (enable) {
+        document.getElementById("refresh").style.visibility = "visible";
+        document.getElementById("update").style.visibility = "hidden";
+    } else {
+        document.getElementById("refresh").style.visibility = "hidden";
+        document.getElementById("update").style.visibility = "visible";
+    }
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+<div class="refreshbar">
+<form action="#">
+<label for="autorefresh">Auto-refresh</label>
+<input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+ <input type="button" id="refresh" value="Refresh" onClick="requestUpdate(); this.blur(); " style="visibility:hidden">
+  <span id="update">&nbsp;Updating...</span>
+ </form>
+</div>
+
+<h1>Group Name to VLAN mapping Table <span id="display_sid"></span></h1>
+
+<form id="grp_2_vlan_map_form" method="POST" action="/config/vcl_grp_2_vlan_map" onsubmit="return checkForm();">
+
+<table id="dscpConfig" summary="QoS Port DSCP Configuration" class="config">
+ <tbody id="vlanData">
+ </tbody>
+</table>
+<p>
+<input type="button" id="addNewEntry" value="Add New Entry" onclick="AddNewRow()">
+</p>
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset" onClick="processUpdate(prev_req, 'vlanData'); this.blur(); ">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

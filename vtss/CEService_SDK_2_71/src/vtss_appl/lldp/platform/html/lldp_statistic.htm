@@ -1,0 +1,249 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_lldp_statistic.htm";
+
+//
+// Global variables
+//
+var LLDPconfig = Array();
+
+// Refresh timer
+var timerID;
+
+//
+// Java script functions
+//
+
+function UpdateGlobalCnts(ref, frag)
+{
+
+    // Check that data is available
+    if (LLDPconfig.length > 1) { 
+	var tr = CreateStyledElement("tr", "display_header");
+	var LearnBody = document.getElementById('LLDPGlobalCnts');
+	clearChildNodes(LearnBody);
+	addTextHeaderCell(tr,"Global Counters", "hdrc", 2);
+	LearnBody.appendChild(tr);       // Add row to fragment
+
+ 	var pval = LLDPconfig[0].split("/");
+	tr = CreateRow(1); // Start row with even color
+	addTextCell(tr, "Neighbor entries were last changed ", "cl");  
+	addTextCell(tr, pval[0], "c");  
+	LearnBody.appendChild(tr);       // Add row to fragment
+
+	tr = CreateRow();  // Create row with altering coloring
+	addTextCell(tr, "Total Neighbors Entries Added", "cl");  
+	addTextCell(tr, pval[1], "c");  
+	LearnBody.appendChild(tr);       // Add row to fragment
+
+
+	tr = CreateRow();  // Create row with altering coloring
+	addTextCell(tr, "Total Neighbors Entries Deleted", "cl");  
+	addTextCell(tr, pval[2], "c");  
+	LearnBody.appendChild(tr);       // Add row to fragment
+
+	tr = CreateRow();  // Create row with altering coloring
+	addTextCell(tr, "Total Neighbors Entries Dropped", "cl");  
+	addTextCell(tr, pval[3], "c");  
+	LearnBody.appendChild(tr);       // Add row to fragment
+
+	tr = CreateRow();  // Create row with altering coloring
+	addTextCell(tr, "Total Neighbors Entries Aged Out", "cl");  
+	addTextCell(tr, pval[4], "c");  
+	LearnBody.appendChild(tr);       // Add row to fragment
+    } // end LLDPconfig.length > 1
+}
+
+
+
+// Updated local counters
+function UpdateTable()
+{
+    var tr = CreateStyledElement("tr", "display_header");
+    var LearnBody = document.getElementById('LLDPLocalCnts');
+    clearChildNodes(LearnBody);
+
+    addTextHeaderCell(tr,"Local Port","hdrc");
+    addTextHeaderCell(tr,"Tx Frames","hdrc");
+    addTextHeaderCell(tr,"Rx Frames","hdrc");
+    addTextHeaderCell(tr,"Rx Errors","hdrc");
+    addTextHeaderCell(tr,"Frames Discarded","hdrc");
+    addTextHeaderCell(tr,"TLVs Discarded","hdrc");
+    addTextHeaderCell(tr,"TLVs Unrecognized","hdrc");
+    addTextHeaderCell(tr,"Org. Discarded","hdrc");
+    addTextHeaderCell(tr,"Age-Outs","hdrc");
+
+    LearnBody.appendChild(tr);       // Add row to fragment
+
+
+    // Check that data is available
+    if (LLDPconfig.length > 2) { 
+	// Loop though all data
+        for(var index = 1; index < LLDPconfig.length -1 ; index++) {
+	    // Change color for every 2nd row.
+	    var tr = CreateStyledElement("tr", index % 2 ? "display_even" : "display_odd");
+
+	    // Loop though all statistic counter for current port
+	    var pval = LLDPconfig[index].split("/");
+	    for(var pval_index = 0; pval_index < pval.length -1; pval_index++) {
+		addTextCell(tr, pval[pval_index], "c");  
+	    }
+	    LearnBody.appendChild(tr);       // Add row to fragment
+	} // End for loop
+    } // end LLDPconfig.length > 1
+}
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req))
+        return;
+    if(req.responseText) {
+
+        // Get number of entries
+	LLDPconfig = req.responseText.split("|");
+
+	
+	// create holder for accumulated tbody elements and text nodes
+	var frag = document.createDocumentFragment();
+    
+	UpdateGlobalCnts(ref,frag);
+	
+	// Create the table
+	UpdateTable();
+
+    } else {
+        SpomHandleError();
+    }
+    document.getElementById("update").style.visibility = "hidden";
+
+    // Update the timer
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+}
+
+function requestUpdate(type) {
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/config/lldp_statistics"), processUpdate, 'LLDPData');
+    
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateDisplaySid("display_sid_1");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function requestClear() {
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/config/lldp_statistics?clear=1"), processUpdate, 'LLDPData');
+}
+
+function chkRefresh(fld)
+{
+  if(!fld.checked) {
+    if(timerID)
+      clearTimeout(timerID);
+    timerID = null;
+  } else {
+    requestUpdate();
+  }
+}
+
+// Update when SID is changed.
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+
+
+<form name="LLDPStatisticForm" method="POST" action="/config/lldp_statistics" onsubmit="return checkForm(this);"></form>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+  <input type="button" value="Clear"   onClick="requestClear();  this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<h1>LLDP Global Counters <span id="display_sid"></span></h1>
+
+<table id="LLDPGlobalCntTable" summary="LLDP Global Counters" cellspacing="0" class="display">
+ <tbody id="LLDPGlobalCnts">
+ </tbody>
+</table>
+
+<br/>
+
+<h1>LLDP Statistics Local Counters <span id="display_sid_1"></span></h1>
+
+<table id="LLDPStatisticsTable" summary="LLDP Statistics Table" cellspacing="0" class="display">
+ <tbody id="LLDPLocalCnts">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

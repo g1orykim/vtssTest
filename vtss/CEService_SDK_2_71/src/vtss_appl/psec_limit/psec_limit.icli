@@ -1,0 +1,567 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "psec_limit_icli_functions.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+PORT_SECURITY_HELP = Port security (psec limit)
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_PSEC_LIMIT)
+
+COMMAND = no port-security shutdown [ interface <port_type_list> ]
+
+NO_SHUTDOWN_HELP = Reopen one or more ports whose limit is exceeded and shut down.
+
+DOC_CMD_DESC    = ##NO_SHUTDOWN_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NO_SHUTDOWN_HELP
+DOC_CMD_EXAMPLE = no shutdown
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: shutdown
+! 3: interface
+! 4: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+
+HELP = 
+HELP = ##PORT_SECURITY_HELP
+HELP = ##NO_SHUTDOWN_HELP
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Interface : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(psec_limit_icli_no_shutdown(session_id, v_port_type_list));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_PSEC_LIMIT)
+
+COMMAND = port-security
+
+PORT_SECURITY_ENABLE_HELP = Enable/disable port security globally.
+DOC_CMD_DESC    = ##PORT_SECURITY_ENABLE_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##PORT_SECURITY_ENABLE_HELP
+DOC_CMD_EXAMPLE = port-security
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME = 
+
+! 1: port-security
+
+CMD_VAR = 
+
+HELP = ##PORT_SECURITY_ENABLE_HELP
+
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(psec_limit_icli_enable_global(session_id, FALSE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(psec_limit_icli_enable_global(session_id, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_PSEC_LIMIT)
+
+COMMAND = port-security aging
+
+PORT_SECURITY_AGING_HELP = Enable/disable port security aging.
+
+DOC_CMD_DESC    = ##PORT_SECURITY_AGING_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##PORT_SECURITY_AGING_HELP
+DOC_CMD_EXAMPLE = port-security aging
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: port-security
+! 2: aging
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##PORT_SECURITY_HELP
+HELP = ##PORT_SECURITY_AGING_HELP
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(psec_limit_icli_aging(session_id, FALSE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(psec_limit_icli_aging(session_id, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_PSEC_LIMIT)
+
+COMMAND = port-security aging time <10-10000000>
+
+PORT_SECURITY_AGING_TIME_HELP = Time in seconds between check for activity on learned MAC addresses.
+
+DOC_CMD_DESC    = ##PORT_SECURITY_AGING_TIME_HELP
+DOC_CMD_DEFAULT = aging time is 3600 seconds
+DOC_CMD_USAGE   = ##PORT_SECURITY_AGING_TIME_HELP
+DOC_CMD_EXAMPLE = port-security aging time 100
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: port-security
+! 2: aging
+! 3: time
+! 4: <10-10000000>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_10_to_10000000
+
+HELP = ##PORT_SECURITY_HELP
+HELP = ##PORT_SECURITY_AGING_TIME_HELP
+HELP = ##PORT_SECURITY_AGING_TIME_HELP
+HELP = seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(psec_limit_icli_aging_time(session_id, v_10_to_10000000, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_PSEC_LIMIT)
+
+COMMAND = no port-security aging time
+
+
+
+DOC_CMD_DESC    = ##PORT_SECURITY_AGING_TIME_HELP
+DOC_CMD_DEFAULT = aging time is 3600 seconds.
+DOC_CMD_USAGE   = ##PORT_SECURITY_AGING_TIME_HELP
+DOC_CMD_EXAMPLE = no port-security aging time
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: port-security
+! 3: aging
+! 4: time
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = ##PORT_SECURITY_HELP
+HELP = ##PORT_SECURITY_AGING_TIME_HELP
+HELP = ##PORT_SECURITY_AGING_TIME_HELP
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(psec_limit_icli_aging_time(session_id, 0, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_PSEC_LIMIT)
+
+COMMAND = port-security
+
+PSEC_LIMIT_PORT_SECURITY_HELP = Enable/disable port security per interface.
+
+DOC_CMD_DESC    = ##PSEC_LIMIT_PORT_SECURITY_HELP
+DOC_CMD_DEFAULT = Port security is disabled 
+DOC_CMD_USAGE   = ##PSEC_LIMIT_PORT_SECURITY_HELP
+DOC_CMD_EXAMPLE = port-security
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: port-security
+
+CMD_VAR = 
+
+HELP = ##PSEC_LIMIT_PORT_SECURITY_HELP
+
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(psec_limit_icli_enable(session_id, plist, FALSE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(psec_limit_icli_enable(session_id, plist, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_PSEC_LIMIT)
+
+COMMAND = port-security maximum [<1-1024>]
+
+PORT_SECURITY_MAXIMUM_HELP = Miximum number of MAC addresses that can be learned on this set of interfaces.
+
+DOC_CMD_DESC    = ##PORT_SECURITY_MAXIMUM_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##PORT_SECURITY_MAXIMUM_HELP
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: port-security
+! 2: maximum
+! 3: <1-1024>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_1_to_1024
+
+HELP = ##PORT_SECURITY_HELP
+HELP = ##PORT_SECURITY_MAXIMUM_HELP
+HELP = Number of addresses
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Number of addresses : 1-1024>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(psec_limit_icli_maximum(session_id, plist, v_1_to_1024, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_PSEC_LIMIT)
+
+COMMAND = no port-security maximum 
+
+DOC_CMD_DESC    = ##PORT_SECURITY_MAXIMUM_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##PORT_SECURITY_MAXIMUM_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+HELP = 
+HELP = ##PORT_SECURITY_HELP
+HELP = ##PORT_SECURITY_MAXIMUM_HELP
+
+CODE_BEGIN
+    VTSS_RC(psec_limit_icli_maximum(session_id, plist, 0, TRUE));
+CODE_END
+
+CMD_END
+
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_PSEC_LIMIT)
+
+COMMAND = port-security violation { protect | trap | trap-shutdown | shutdown }
+
+PORT_SECURITY_VIOLATION_HELP = The action involved with exceeding the limit.
+
+DOC_CMD_DESC    = ##PORT_SECURITY_VIOLATION_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##PORT_SECURITY_VIOLATION_HELP
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: port-security
+! 2: violation
+! 3: protect
+! 4: trap
+! 5: shut
+! 6: shutdown
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_protect
+CMD_VAR = has_trap
+CMD_VAR = has_trap_shut
+CMD_VAR = has_shutdown
+
+HELP = 
+HELP = ##PORT_SECURITY_VIOLATION_HELP
+HELP = Don't do anything
+HELP = Send an SNMP trap
+HELP = Send an SNMP trap and shutdown the port
+HELP = Shutdown the port
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Protect : option>
+BYWORD = <Trap : option>
+BYWORD = <Shut : option>
+BYWORD = <Shutdown : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(psec_limit_icli_violation(session_id, has_protect, has_trap, has_trap_shut, has_shutdown, plist, FALSE)); 
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_PSEC_LIMIT)
+
+COMMAND = no port-security violation
+
+PORT_SECURITY_VIOLATION_HELP = The action involved with exceeding the limit.
+
+DOC_CMD_DESC    = ##PORT_SECURITY_VIOLATION_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##PORT_SECURITY_VIOLATION_HELP
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: port-security
+! 2: violation
+! 3: protect
+! 4: trap
+! 5: shut
+! 6: shutdown
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = ##PORT_SECURITY_VIOLATION_HELP
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(psec_limit_icli_violation(session_id, FALSE, FALSE, FALSE, FALSE, plist, TRUE)); 
+CODE_END
+
+CMD_END
+
+
+

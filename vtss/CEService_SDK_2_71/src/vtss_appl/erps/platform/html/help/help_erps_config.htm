@@ -1,0 +1,215 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>ERPS Configuration And State Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script> 
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+  window.addEvent('domready', function() {
+   $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+  });
+</script>
+</head>
+
+<body>
+<h1>Ethernet Ring Protection Switch Configuration Help</h1>
+
+<p> This page allows the user to inspect and configure the current <a href="glossary.htm#EPS" class="glossary">ERPS</a> Instance.</p>
+
+<h2>Instance Data</h2>
+<dl>
+ <dt>ERPS ID</dt>
+ <dd>
+ The ID of the Protection group.
+ </dd>
+ <dt>Port 0</dt>
+ <dd>
+ See help on ERPS create WEB. </dd>
+ <dt>Port 1</dt>
+ <dd>
+ See help on ERPS create WEB. </dd>
+ <dt>Port 0 SF MEP</dt>
+ <dd>
+ See help on ERPS create WEB. </dd>
+ <dt>Port 1 SF MEP</dt>
+ <dd>
+ See help on ERPS create WEB. </dd>
+ <dt>Port 0 APS MEP</dt>
+ <dd>
+ See help on ERPS create WEB. </dd>
+ <dt>Port 1 APS MEP</dt>
+ <dd>
+ See help on ERPS create WEB. </dd>
+ <dt>Ring Type</dt>
+ <dd>
+ Type of Protecting ring. It can be either major ring or sub-ring.</dd>
+</dl>
+
+<h2>Instance Configuration</h2>
+<dl>
+ <dt>Configured</dt>
+ <dd>
+ <p><b>Red:</b> This ERPS is only created and has not yet been configured - is not active.</p>
+ <p><b>Green:</b> This ERPS is configured - is active.</p>
+ </dd>
+ <dt>Guard Time</dt>
+ <dd>
+ <p>Guard timeout value to be used to prevent ring nodes from receiving outdated R-APS messages.</p>
+ <p>The period of the guard timer can be configured in 10 ms steps between 10 ms and 2 seconds, with a default value of 500 ms </p>
+ </dd>
+
+ <dt>WTR Time</dt>
+ <dd>
+ <p>The Wait To Restore timing value to be used in revertive switching.</p>
+ <p>The period of the WTR time can be configured by the operator in 1 minute steps between 5 and 12 minutes with a default value of
+   5 minutes.</p>
+ </dd>
+ <dt>Hold Off Time</dt>
+ <dd>
+ <p>The timing value to be used to make persistent check on Signal Fail before switching. </p>
+ <p> The range of the hold off timer is 0 to 10 seconds in steps of 100 ms</p>
+ </dd>
+ <dt>Version</dt>
+ <dd>
+ <p>ERPS Protocol Version - v1 or v2</p>
+ </dd>
+ <dt>Revertive</dt>
+ <dd>
+ <p>In Revertive mode, after the conditions causing a protection switch has cleared, the traffic channel is
+ restored to the working transport entity, i.e., blocked on the RPL.</p>
+ <p>In Non-Revertive mode, the traffic channel continues to use the RPL, if it is not failed, after a protection 
+ switch condition has cleared.</p>
+ </dd>
+ <dt>VLAN config</dt>
+ <dd>
+ <p>VLAN configuration of the Protection Group. Click on the "VLAN Config" link to configure VLANs for this protection group.</p>
+ </dd>
+</dl>
+
+<h2>RPL Configuration </h2>
+<dl>
+ <dt>RPL Role</dt>
+ <dd>
+  <p>It can be either RPL owner or RPL Neighbor.</p>
+ </dd>
+ <dt>RPL Port</dt>
+ <dd>
+  <p>This allows to select the east port or west port as the RPL block.</p>
+ </dd>
+ <dt>Clear</dt>
+ <dd>
+  <p>If the owner has to be changed, then the clear check box allows to clear the RPL owner for that ERPS ring.</p>
+ </dd>
+</dl>
+
+<h2>Sub-Ring Configuration</h2>
+<dl>
+<dt>Topology Change</dt>
+ <dd>
+<p>Clicking this checkbox indicates that the topology changes in the sub-ring are propagated in the major ring.</p>
+ </dd>
+</dl>
+
+<h2>Instance Command</h2>
+<dl>
+ <dt>Command</dt>
+  <dd>Administrative command. A port can be administratively configured to be in either manual switch or forced switch state.</dd>
+  <dt>Forced Switch</dt>
+  <dd>Forced Switch command forces a block on the ring port where the command is issued.</dd>
+  <dt>Manual Switch</dt>
+  <dd>In the absence of a failure or FS, Manual Switch command forces a block on the ring port where the command is issued.</dd>
+  <dt>Clear</dt>
+  <dd>The Clear command is used for clearing an active local administrative command (e.g., Forced Switch or Manual Switch).</dd>
+ <dt>Port</dt>
+ <dd>Port selection - Port0 or Port1 of the protection Group on which the command is applied.</dd>
+</dl>
+
+<h2>Instance State</h2>
+<dl>
+ <dt>Protection State</dt>
+ <dd>
+ ERPS state according to State Transition Tables in G.8032.
+ </dd>
+ <dt>Port 0</dt>
+ <dd>
+ <p><b>OK:</b> State of East port is ok</p>
+ <p><b>SF:</b> State of East port is Signal Fail</p>
+ </dd>
+ <dt>Port 1</dt>
+ <dd>
+ <p><b>OK:</b> State of West port is ok</p>
+ <p><b>SF:</b> State of West port is Signal Fail</p> 
+ </dd>
+ <dt>Transmit APS</dt>
+ <dd>
+ The transmitted APS according to State Transition Tables in G.8032.
+ </dd>
+ <dt>Port 0 Receive APS</dt>
+ <dd>
+ The received APS on Port 0 according to State Transition Tables in G.8032.
+ </dd>
+ <dt>Port 1 Receive APS</dt>
+ <dd>
+ The received APS on Port 1 according to State Transition Tables in G.8032.
+ </dd>
+ <dt>WTR Remaining</dt>
+ <dd>
+ Remaining WTR timeout in milliseconds.
+ </dd>
+ <dt>RPL Un-blocked</dt>
+ <dd>
+ APS is received on the working flow.
+ </dd> 
+ <dt>No APS Received</dt>
+ <dd>
+ RAPS PDU is not received from the other end.
+ </dd>
+ <dt>Port 0 Block Status</dt>
+ <dd>
+ Block status for Port 0 (Both traffic and R-APS block status). R-APS channel is never blocked on sub-rings without virtual channel.
+ </dd>
+ <dt>Port 1 Block Status</dt>
+ <dd>
+ Block status for Port 1 (Both traffic and R-APS block status). R-APS channel is never blocked on sub-rings without virtual channel.
+ </dd>
+ <dt>FOP Alarm</dt>
+ <dd>
+ Failure of Protocol Defect(FOP) status. If FOP is detected, red LED glows; else green LED glows.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+</body>
+</html>
+

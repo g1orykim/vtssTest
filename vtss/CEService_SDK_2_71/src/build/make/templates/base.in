@@ -1,0 +1,81 @@
+# -*- mode: makefile-gmake; -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2010 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+# @arg $1 is variable list to check
+define CheckSet
+ $(foreach var,$1,$(if $($(var)),,$(error $(var) is not set!)))
+endef
+
+# @arg $1 is value to check
+# @arg $2 is legal values
+# @arg $3 is name of argument $1 (error message)
+define CheckOneOf
+ $(if $(filter $1,$2),,$(error $3 ($1) is invalid, must be one of ($2)))
+endef
+
+# @arg $1 is board name
+# @arg $2 are valid board names
+define CheckBoard
+	$(call CheckOneOf,$1,$2 $(Custom/BoardName),Board Type)
+endef
+
+# @arg $1 is product chip
+# @arg $2 is board type
+define Setup/Switch
+	VTSS_PRODUCT_CHIP := $1
+	VTSS_PRODUCT_HW   := $2
+endef
+
+# @arg $1 is target CPU compiler name/prefix
+# @arg $2 is eCos HAL name
+# @arg $3 is eCos HAL config template and additions
+# @arg $4 is (redboot) RAM size modifier (optional)
+define Setup/eCosHAL
+	# This defines paths and target rules preamble/postamble
+	TARGET := $1
+	# This is the ecos HAL name - needed by the ecos make file
+	ECOS_HAL := $2
+	# The HAL startup type, and other ecos configuration
+	ECOS_CONF   := $(firstword $3)
+	# Changes to default HAL
+	ECOS_CONF_EXTRA := $(wordlist 2, 99, $3 $(Custom/eCosConfig))
+	# RAM size modifier
+	ECOS_RAM_SIZE := $4
+endef
+
+# @arg $1 is eCos HAL config template
+define Setup/eCosHAL/VCoreII
+	$(call Setup/eCosHAL,ecos-arm,vcoreii,$1,$(if $(Custom/RAMSize),$(Custom/RAMSize),64))
+endef
+
+# @arg $1 is eCos HAL config template
+define Setup/eCosHAL/VCoreIII
+	$(call Setup/eCosHAL,ecos-mips,vcoreiii,$1,$(Custom/RAMSize))
+endef
+
+# @arg $1 is eCos HAL config template
+define Setup/eCosHAL/VCoreIIIServal
+	$(call Setup/eCosHAL,ecos-mips,vcoreiii_serval,$1,$(Custom/RAMSize))
+endef

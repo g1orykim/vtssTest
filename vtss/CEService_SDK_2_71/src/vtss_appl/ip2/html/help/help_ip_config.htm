@@ -1,0 +1,260 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IP Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+   $$('span.configIPMaxInterfaces').set('text', configIPMaxInterfaces);
+   $$('span.configIPMaxRoutes').set('text', configIPMaxRoutes);
+   if(configIPv6Support) {
+       $$('.ipv6').removeClass('hidden');
+   }
+   if((!configIPRoutingSupport) && (!configIPDNSSupport)) {
+       $$('.basic').addClass('hidden');
+   } else {
+       if(configIPRoutingSupport) {
+	   $$('.routing').removeClass('hidden');
+       }
+       if(configIPDNSSupport) {
+	   $$('.has_dns').removeClass('hidden');
+       }
+   }
+   });
+ </script>
+</head>
+
+<body>
+<h1>IP Configuration Help</h1>
+
+<p>Configure <a href="glossary.htm#ip" class="glossary">IP</a> basic
+settings, control IP interfaces and IP routes.
+
+<p>The maximum number of interfaces supported
+is <span class="configIPMaxInterfaces">32</span> and the maximum
+number of routes is <span class="configIPMaxRoutes">8</span>.</p>
+
+<fieldset class="basic">
+ <legend>Basic Settings</legend>
+ <dl>
+   <dt class="routing hidden">Mode</dt>
+   <dd class="routing hidden">
+     Configure whether the IP stack should act as a <samp>Host</samp>
+     or a <samp>Router</samp>. In <samp>Host</samp> mode, IP traffic
+     between interfaces will not be routed. In <samp>Router</samp>
+     mode traffic is routed between all interfaces.
+   </dd>
+   <dt class="has_dns hidden"><a href="glossary.htm#dns" class="glossary">DNS</a> Server</dt>
+   <dd class="has_dns hidden">
+     This setting controls the DNS name resolution done by the switch.
+     The following modes are supported:
+     <ul>
+       <li>
+	 <samp>From any DHCP interfaces</samp>
+	 <p>
+	   The first DNS server offered from a DHCP lease to a
+	   DHCP-enabled interface will be used.
+	 </p>
+       </li>
+       <li>
+	 <samp>No DNS server</samp>
+	 <p>No DNS server will be used.</p>
+       </li>
+       <li>
+	 <samp>Configured</samp>
+	 <p>
+	   Explicitly provide the IP address of the DNS Server
+	   in <a href="glossary.htm#dotted_decimal" class="glossary">
+	   dotted decimal notation</a>.
+	 </p>
+       </li>
+       <li>
+	 <samp>From this DHCP interface</samp>
+	 <p>
+	   Specify from which DHCP-enabled interface a provided DNS
+	   server should be preferred.
+	 </p>
+       </li>
+     </ul>
+   </dd>
+   <dt class="has_dns"><a href="glossary.htm#dns" class="glossary"> DNS</a> Proxy</dt>
+   <dd class="has_dns">
+     When DNS proxy is enabled, system will relay DNS requests to the
+     currently configured DNS server, and reply as a DNS resolver
+     to the client devices on the network.
+   </dd> 
+ </dl>
+</fieldset>
+
+<fieldset>
+ <legend>IP Interfaces</legend>
+ <dl>
+
+   <dt>Delete</dt>
+   <dd>
+     Select this option to delete an existing IP interface.
+   </dd>
+
+   <dt>VLAN</dt>
+   <dd>
+     The VLAN associated with the IP interface. Only ports in this
+     VLAN will be able to access the IP interface. This field is only
+     available for input when creating an new interface.
+   </dd>
+
+   <dt>IPv4 <a href="glossary.htm#dhcp" class="glossary">DHCP</a> Enabled</dt>
+   <dd>
+     Enable the DHCP client by checking this box. If this option is
+     enabled, the system will configure the IPv4 address and mask of the
+     interface using the DHCP protocol. The DHCP client will announce
+     the configured System Name as hostname to provide DNS lookup.
+   </dd>
+
+   <dt>IPv4 DHCP Fallback Timeout</dt>
+   <dd>
+     The number of seconds for trying to obtain a DHCP lease. After
+     this period expires, a configured IPv4 address will be used as
+     IPv4 interface address. A value of zero disables the fallback
+     mechanism, such that DHCP will keep retrying until a valid lease
+     is obtained. Legal values are 0 to 4294967295 seconds.
+   </dd>
+
+   <dt>IPv4 DHCP Current Lease</dt>
+   <dd>
+     For DHCP interfaces with an active lease, this column show the
+     current interface address, as provided by the DHCP server.
+   </dd>
+
+   <dt>IPv4 Address</dt>
+   <dd>
+     The IPv4 address of the interface
+     in <a href="glossary.htm#dotted_decimal" class="glossary">dotted
+     decimal notation</a>. <br> If <samp>DHCP</samp> is enabled, this
+     field configures the fallback address. The field may be left
+     blank if IPv4 operation on the interface is not desired - or no
+     DHCP fallback address is desired.
+   </dd>
+
+   <dt>IPv4 Mask</dt>
+   <dd>
+     The IPv4 network mask, in number of bits (<i>prefix
+     length</i>). Valid values are between 0 and 30 bits for a IPv4
+     address. <br> If <samp>DHCP</samp> is enabled, this field
+     configures the fallback address network mask. The field may be
+     left blank if IPv4 operation on the interface is not desired - or
+     no DHCP fallback address is desired.
+   </dd>
+
+   <dt class="ipv6 hidden">IPv6 Address</dt>
+   <dd class="ipv6 hidden">
+     The IPv6 address of the interface. A IPv6 address is in 128-bit
+     records represented as eight fields of up to four hexadecimal
+     digits with a colon separating each field (:).  For example,
+     <samp>fe80::215:c5ff:fe03:4dc7</samp>.  The
+     symbol <samp>::</samp> is a special syntax that can be used as a
+     shorthand way of representing multiple 16-bit groups of
+     contiguous zeros; but it can appear only once.  It can also
+     represent a legally valid IPv4 address. For example,
+     <samp>::192.1.2.34</samp>.
+     <br>The field may be left blank if IPv6 operation on the
+     interface is not desired.
+   </dd>
+
+   <dt class="ipv6 hidden">IPv6 Mask</dt>
+   <dd class="ipv6 hidden">
+     The IPv6 network mask, in number of bits (<i>prefix
+     length</i>). Valid values are between 1 and 128 bits for a IPv6
+     address.
+     <br>The field may be left blank if IPv6 operation on the
+     interface is not desired.
+   </dd>
+
+ </dl>
+</fieldset>
+
+<fieldset>
+ <legend>IP Routes</legend>
+ <dl>
+
+   <dt>Delete</dt>
+   <dd>
+     Select this option to delete an existing IP route.
+   </dd>
+
+   <dt>Network</dt>
+   <dd>
+     The destination IP network or host address of this route. Valid format is 
+     <a href="glossary.htm#dotted_decimal" class="glossary">dotted
+     decimal notation</a><span class="ipv6 hidden">or a valid IPv6
+     notation</span>. A default route can use the
+     value <samp>0.0.0.0</samp><span class="ipv6 hidden">or
+     IPv6 <samp>::</samp> notation</span>.
+   </dd>
+
+   <dt>Mask Length</dt>
+   <dd>
+     The destination IP network or host mask, in number of bits
+     (<i>prefix length</i>). It defines how much of a network address
+     that must match, in order to qualify for this route. Valid values
+     are between 0 and 32 bits <span class="ipv6 hidden"> respectively
+     128 for IPv6 routes</span>. Only a default route will have a mask
+     length of <samp>0</samp> (as it will match anything).
+   </dd>
+
+   <dt>Gateway</dt>
+   <dd>
+     The IP address of the IP gateway. Valid format is 
+     <a href="glossary.htm#dotted_decimal" class="glossary">dotted
+     decimal notation</a><span class="ipv6 hidden">or a valid IPv6
+     notation. Gateway and Network must be of the same type</span>.
+   </dd>
+
+   <dt>Next Hop VLAN (Only for IPv6)</dt>
+   <dd>
+     The VLAN ID (VID) of the specific IPv6 interface associated with the gateway.<br/>
+     The given VID ranges from 1 to 4094 and will be effective only when the corresponding IPv6 interface is valid.<br/>
+     If the IPv6 gateway address is link-local, it must specify the next hop VLAN for the gateway.<br/>
+     If the IPv6 gateway address is not link-local, system ignores the next hop VLAN for the gateway.<br/>
+   </dd>
+
+ </dl>
+</fieldset>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Add Interface ">: Click to add a new
+IP interface. A maximum of <span class="configIPMaxInterfaces">8</span> interfaces is supported.</p>
+<p><input type="button" value=" Add Route ">: Click to add a new IP
+route. A maximum of <span class="configIPMaxRoutes">8</span> routes is supported.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

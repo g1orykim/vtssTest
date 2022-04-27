@@ -1,0 +1,179 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DSCP Translation</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var help_page = "/help/help_dscp_translation.htm";
+
+var oTdscp = configQosDscpNames;
+var oVdscp = genArrayInt(0,63);
+
+function addRow(index, frag, values)
+{
+  var dscpno = parseInt(values[0], 10);
+  var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+  addTextCell(tr, oTdscp[dscpno], "cl");
+  addSelectCell(tr, oTdscp, oVdscp, values[1], "cr", "trans_sel_" + dscpno);
+  addCheckBoxCell(tr, parseInt(values[2], 10), "c", "classi_chk_" + dscpno);
+  addSelectCell(tr, oTdscp, oVdscp, values[3], "cr", "rmp_dp0_" + dscpno);
+  if (!configArchJaguar_1) {
+    addSelectCell(tr, oTdscp, oVdscp, values[4], "cr", "rmp_dp1_" + dscpno);
+  } 
+  frag.appendChild(tr); // Add row to fragment
+}
+/*
+ * Format:
+ * <dscp 0>|<dscp 1>|<dscp 3>|...<dscp 63>
+ * 
+ * dscp x :== <dscp_no>/<trans_sel>/<classi_chk>/<remap_dp0>/<remap_dp1>
+ *   dscp_no    :== 0..63
+ *   trans_sel  :== 0..63
+ *   classi_chk :== 0..1
+ *   remap_dp0  :== 0..63
+ *   remap_dp1  :== 0..63
+*/
+function processUpdate(req, ref)
+{
+  if (req.responseText) {
+     var portconfig = req.responseText.split("|");
+     var frag = document.createDocumentFragment();
+     var tr;
+     var elem;
+     
+    // Create Port QoS Table Header
+    frag = document.createDocumentFragment();
+
+    tr = document.createElement("tr");
+    addTextHeaderCell(tr, "DSCP", "cl", 1, 2);
+    addTextHeaderCell(tr, "Ingress", "cl", 2);
+    addTextHeaderCell(tr, "Egress", "cl", !configArchJaguar_1 ? 2 : 1);
+    frag.appendChild(tr);
+
+    tr = document.createElement("tr");
+    addTextHeaderCell(tr, "Translate", "cl");
+    addTextHeaderCell(tr, "Classify", "cl");
+
+    if (!configArchJaguar_1) {
+      addTextHeaderCell(tr, "Remap DP0", "cl");
+      addTextHeaderCell(tr, "Remap DP1", "cl");
+    } else {
+      addTextHeaderCell(tr, "Remap", "cl");
+    }
+
+    frag.appendChild(tr);
+    
+    elem = document.getElementById("qos_thead");
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+
+    // Create Port QoS Table Body
+    frag = document.createDocumentFragment();
+ 
+    for (var i = 0; i < portconfig.length; i++) {
+      if(portconfig[i] !== "") {
+        var pval = portconfig[i].split("/");
+        addRow(i, frag, pval);
+      }
+    }
+    elem = document.getElementById(ref);
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+    var cBar = new MasterControlBar([{text: "*", className: "cl"}, 
+                                     {name: "trans_sel_"},
+                                     {name: "classi_chk_"},
+                                     {name: "rmp_dp0_"}]);
+    if (!configArchJaguar_1) {
+        cBar.extend([{name: "rmp_dp1_"}]);
+    }
+    cBar.construct(ref);
+  } else {
+    SpomHandleError();
+  }
+}
+
+function requestUpdate() {
+  if (SpomNavigationLoading()) {
+    return; // Bail out, navigation will trigger update
+  }
+  loadXMLDoc(SpomAddSidArg("/config/qos_dscp_translation"), processUpdate, 'dscpData');
+  //SpomUpdateDisplaySid("display_sid");
+  SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>DSCP Translation <span id="display_sid"></span></h1>
+
+<form method="POST" action="/config/qos_dscp_translation">
+
+<table id="dscpConfig" summary="QoS Port DSCP Configuration" class="config">
+ <thead id="qos_thead">
+ </thead>
+ <tbody id="dscpData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

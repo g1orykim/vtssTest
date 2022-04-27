@@ -1,0 +1,182 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/misc.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_fan_status.htm";
+
+
+
+// Refresh timer
+var timerID;
+
+
+//
+// Process data, Called via requestUpdate.
+//
+function processUpdate(req, ref)
+{
+
+   if(redirectOnError(req)) {
+        return;
+    }
+
+    if(req.responseText) {
+	// Get status -  Format: <err_msg>|<chip_temp>|<fan_speed>
+	var status = req.responseText.split("|");
+	
+	// Error message
+	var err_msg = status[0];
+	if (err_msg !== "") {
+	    alert(err_msg);
+	    return;
+	}
+	
+	// Header
+	var tr = CreateStyledElement("tr", "display_header");
+	var LearnBody = document.getElementById('FanStatus');
+	clearChildNodes(LearnBody); // Remove table if alredy exist.
+	addTextHeaderCell(tr,"Fan Status", "hdrc", 3);
+	LearnBody.appendChild(tr);       // Add row to fragment
+	
+
+	// Fan Speed
+	tr = CreateRow(1); // Start row with even color
+	addTextCell(tr, "Fan Speed ", "cl");  
+	addTextCell(tr, status[1], "cr");
+	addTextCell(tr, " RPM", "cl");
+	LearnBody.appendChild(tr);       // Add row to fragment
+	
+
+	// Temperaturesx
+	var Temperatures = status[2].split("¤");
+	
+	// Loop through all ports and show the corresponding temperature
+	for (var TempIdx = 0; TempIdx < Temperatures.length; TempIdx++ ) {
+	    tr = CreateRow();  // Create row with altering coloring
+	    addTextCell(tr, "Temperature Sensor No:" + parseInt(TempIdx + 1, 10), "cl");  
+	    addTextCell(tr, Temperatures[TempIdx], "cr");
+	    addTextCell(tr, " \u00B0C", "cl"); //  \u00B0C is the degree sign
+	    LearnBody.appendChild(tr);       // Add row to fragment
+	}
+	
+	document.getElementById("update").style.visibility = "hidden";
+	
+	// Update the timer
+	var autorefresh = document.getElementById('autorefresh');
+	if(autorefresh.checked) {
+	    if(timerID) {
+		clearTimeout(timerID);
+	    }
+	    timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+	}
+    } else {
+        SpomHandleError();   
+    }
+}
+function requestUpdate() {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/stat/fan_status"), processUpdate, 'FanStatusTable');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+
+function chkRefresh(fld)
+{
+  if(!fld.checked) {
+      if(timerID) {
+	clearTimeout(timerID);
+      }
+    timerID = null;
+  } else {
+      requestUpdate();
+  }
+}
+
+//
+// Check if the switch in the stack is changed.
+//
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();
+}
+
+ </script>
+</head>
+<body class="content" onload="requestUpdate();">
+<h1>Fan Status</h1>
+<form name="StatusForm" method="POST" action="/stat/fan_status"></form>
+
+<div class="refreshbar">
+ <form action="#">
+    <label for="autorefresh">Auto-refresh</label>
+    <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+    <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+    <img id="update" alt="" src="images/updating.gif">
+  </form>
+</div>
+
+
+<table id="FanStatusTable" summary="Fan Staus" cellspacing="0" class="display">
+ <tbody id="FanStatus">
+ </tbody>
+</table>
+
+
+
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+</body>
+</html>
+     
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

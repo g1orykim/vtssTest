@@ -1,0 +1,254 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Detailed Link OAM Port Configuration Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_eth_link_oam_port_status.htm";
+
+var selectedPort = configPortMin;
+var pageArgs = searchArgs(window.location.search);
+if(pageArgs['port'])
+    selectedPort = parseInt(pageArgs['port']);
+
+function contentUpdate(req, ref)
+{
+    // Format: 1/0/2/0/128/0/0/0/0|2/0/0/0/0/0/2|3/0/0|4/0/2/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|5/0/0
+    var input = req.responseText.split("|");
+         for(var i = 0; i < input.length; i++) {
+            var info = input[i].split("/");
+            var port = parseInt(info[0]);
+            if(selectedPort == port) {
+               for(var j = 1; j < info.length; j++) {
+                   var id = "T" + "_" + j; 
+                   UpdateId(id, info[j]);
+               }
+               break;
+            }
+         }  
+        var portid = document.getElementById("port");
+        if(portid)
+            portid.innerHTML = configPortName(port, 1);
+        var autorefresh = document.getElementById('autorefresh');
+        if(autorefresh && autorefresh.checked) {
+            if(timerID)
+                clearTimeout(timerID);
+            timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+        }
+      
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate() {
+    document.getElementById("update").style.visibility = "visible";
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+    loadXMLDoc(SpomAddSidArg("/stat/oam_port_status?port=" + selectedPort), contentUpdate, null);
+    SpomUpdateDisplaySid("sid_display");
+}
+
+function requestClear() {
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/stat/oam_port_status?clear=1&port=" + selectedPort), contentUpdate, null);
+}
+
+function PortSelect(sel)
+{
+    selectedPort = sel.options[sel.selectedIndex].value; 
+    requestUpdate();
+}
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = null;
+    } else
+        requestUpdate();
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+    requestUpdate();            // Update page to reflect selector
+}
+
+function docLoad()
+{
+    selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+    requestUpdate();
+}
+
+</script>
+
+</head>
+
+<body class="content" onload="docLoad();">
+
+<h1>Detailed Link OAM Status for<span id="sid_display"></span><span>&nbsp;</span><span id="port"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <select id="portselect" onchange="PortSelect(this);">
+    <option value="1">Port 1</option>
+    <option value="99">Port 99</option>
+   </select>
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+ 
+  <table summary="Port Permission, state and remote MAC details" width ="45%" class="display">
+    <tbody>
+      <tr class="display_even">
+        <td class="displaytext">PDU Permission</td>
+        <td class="cr" id="T_11">Receive Only</td>
+        <td class="displaytext"></td>
+        <td class= "cr"></td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">Discovery State</td>
+        <td class="cr" id="T_12">Fault State</td>
+        <td class="displaytext"></td>        
+        <td class= "cr"></td>
+      </tr>      
+      <tr class="display_even">
+        <td class="displaytext">Peer MAC Address</td>
+        <td class="cr" id="T_23">00:00:00:00:00:00</td>
+        <td class="displaytext"></td>        
+        <td class= "cr"></td>
+      </tr>      
+    </tbody>
+  </table>
+  
+  <h1>&nbsp;</h1>
+  
+  <table summary="Detailed Switch Port OAM status" width="90%" class="display">
+    <tbody>
+      <tr class="display_header">
+        <th colspan="2" class="hdrc">Local</th>
+        <th colspan="2" class="hdrc">Peer</th>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">Mode</td>
+        <td class="cr" id="T_1">Disabled</td>
+        <td class="displaytext">Mode</td>
+        <td class="cr" id="T_13">Disabled</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">Unidirectional Operation Support</td>
+        <td class="cr" id="T_2">Disabled</td>
+        <td class="displaytext">Unidirectional Operation Support</td>
+        <td class="cr" id="T_14">0</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">Remote Loopback Support</td>
+        <td class="cr" id="T_3">Disabled</td>
+        <td class="displaytext">Remote Loopback Support</td>
+        <td class="cr" id="T_15">Disabled</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">Link Monitoring Support</td>
+        <td class="cr" id="T_4">Disabled</td>
+        <td class="displaytext">Link Monitoring Support</td>
+        <td class="cr" id="T_16">Disabled</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">MIB Retrieval Support</td>
+        <td class="cr" id="T_5">Disabled</td>
+        <td class="displaytext">MIB Retrieval Support</td>
+        <td class="cr" id="T_17">Disabled</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">MTU Size</td>
+        <td class="cr" id="T_6">1516</td>
+        <td class="displaytext">MTU Size</td>
+        <td class="cr" id="T_18">0</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">Multiplexer State</td>
+        <td class="cr" id="T_7">Discarding</td>
+        <td class="displaytext">Multiplexer State</td>
+        <td class="cr" id="T_19">Discarding</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">Parser State</td>
+        <td class="cr" id="T_8">Discarding</td>
+        <td class="displaytext">Parser State</td>
+        <td class="cr" id="T_20">Discarding</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">Organizational Unique Identification</td>
+        <td class="cr" id="T_9">00-00-00</td>
+        <td class="displaytext">Organizational Unique Identification</td>
+        <td class="cr" id="T_21">00-00-00</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">PDU Revision</td>
+        <td class="cr" id="T_10">0</td>
+        <td class="displaytext">PDU Revision</td>
+        <td class="cr" id="T_22">0</td>
+      </tr>
+    </tbody>
+  </table>
+   </body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

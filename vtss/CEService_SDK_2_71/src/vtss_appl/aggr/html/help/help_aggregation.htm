@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2009 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+ 
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+ 
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+ 
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Aggregation Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Aggregation Configuration Help</h1>
+<p>This page is used to configure the <a href="glossary.htm#aggregation" class="glossary">Aggregation</a> hash mode and the aggregation group.</p>
+
+<p class="SPOM_only">The aggregation hash mode settings are global,
+whereas the aggregation group relate to the currently selected stack
+unit, as reflected by the page header.</p>
+
+<h2>Hash Code Contributors</h2>
+
+<dl>
+ <dt>Source MAC Address</dt>
+ <dd>
+ The Source MAC address can be used to calculate the destination port for the frame. Check to enable the use of the Source MAC address, or uncheck to disable. By default, Source MAC Address is enabled.
+ </dd>
+ <dt>Destination MAC Address</dt>
+ <dd>
+ The Destination MAC Address can be used to calculate the destination port for the frame. Check to enable the use of the Destination MAC Address, or uncheck to disable. By default, Destination MAC Address is disabled.
+ </dd>
+ <dt><a href="glossary.htm#ip" class="glossary">IP</a> Address</dt>
+ <dd>
+ The IP address can be used to calculate the destination port for the frame. Check to enable the use of the IP Address, or uncheck to disable. By default, IP Address is enabled.
+ </dd>
+ <dt><a href="glossary.htm#tcp" class="glossary">TCP</a>/<a href="glossary.htm#udp" class="glossary">UDP</a> Port Number</dt>
+ <dd>
+ The TCP/UDP port number can be used to calculate the destination port for the frame. Check to enable the use of the TCP/UDP Port Number, or uncheck to disable. By default, TCP/UDP Port Number is enabled.
+ </dd>
+</dl>
+
+
+<h2>Aggregation Group Configuration</h2>
+
+<dl>
+ <dt class="SPOM_only">Locality</dt>
+ <dd class="SPOM_only">
+ Indicates the aggregation group type. This field is only valid for stackable switches.
+<br><b>Global</b>: The group members may reside on different units in the stack. Each global aggregation may consist of up to 8 members.
+<br><b>Local</b>: The group members reside on the same unit. Each local aggregation may consist of up to 16 members.
+ </dd>
+ <dt>Group ID</dt>
+ <dd>
+ Indicates the group ID for the settings contained in the same row. Group ID "Normal" indicates there is no aggregation. Only one group ID is valid per port.
+ </dd>
+ <dt>Port Members</dt>
+ <dd>
+ Each switch port is listed for each group ID.  Select a radio button to include a port in an aggregation, or clear the radio button to remove the port from the aggregation. By default, no ports belong to any aggregation group.  Only full duplex ports can join an aggregation and ports must be in the same speed in each group.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

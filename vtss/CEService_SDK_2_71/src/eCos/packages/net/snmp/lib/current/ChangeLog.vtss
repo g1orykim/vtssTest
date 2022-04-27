@@ -1,0 +1,249 @@
+
+This file contain change log entries for changes to eCos code
+performed by Vitesse Semiconductor Inc. The file is automatically
+generated, so manual changes should not be made.
+
+The original eCos source code can be obtained from http://ecos.sourceware.org/.
+
+2007-07-19   40956b3e5e08    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+
+	  modified SNMP socket bind and SNMP port to configurable
+
+2007-07-19   fdc534f0ec33    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: include/config.h
+
+	  modified for EstaX-34 compiler error
+
+2007-07-20   82cea97c277c    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: include/snmp_api.h
+        * File: src/snmp_api.c
+
+	  upgrade with new version(4.2 patches)
+
+2007-07-27   3623c0a87c77    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: include/snmp_logging.h
+        * File: src/snmp_logging.c
+
+	  add SNMP logging switch
+
+2007-08-03   3a0a9081b93f    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: include/asn1.h
+
+	  move define OID_LENGTH(x) from agent_trap.c to ans1.h for MIBs
+	  using
+
+2007-08-10   f6ca18f86ab6    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: include/snmp_api.h
+
+	  add new typedef of struct variable_list
+
+2007-08-22   d43c7e196bd0    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: include/snmp_api.h
+
+	  should not using netsnmp struct
+
+2007-08-24   0938a52ff9ba    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/asn1.c
+        * File: src/parse.c
+        * File: src/snmp_api.c
+        * File: src/snmp_client.c
+
+	  clear warning message
+
+2007-08-24   1b3a8af9899e    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/parse.c
+        * File: src/snmp_logging.c
+        * File: src/system.c
+
+	  clear warning message
+
+2007-09-05   ec706202c023    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_client.c
+
+	  update to new version 1.70.2.7
+
+2007-09-07   dd285ec5b6a4    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_client.c
+
+	  update _copy_pdu_vars() to new version 1.70.2.7
+
+2007-10-02   85c5fdfc0bef    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+
+	  fixed system crash when received SNMP request-id=0, RFC3416:
+	  request-id INTEGER (-214783648..214783647)
+
+2007-12-28   c5e7c727cc08    Peter Chen, Vitesse Semiconductor Inc.
+
+	* New feature - SNMPv3
+
+2008-11-06   ee4047b4dd29    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: include/config.h
+
+	  remove warning message
+
+2008-11-11   2b194663992c    Simon Miao, Vitesse Semiconductor Inc.
+
+        * File: include/snmp_api.h
+        * File: src/snmp_api.c
+
+	  added new feature - make snmp support ipv4 and ipv6
+
+2008-11-21   8f94b17009ee    Anderson Yang, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+
+	  added new feature - SNMP trap IPv6 supported
+
+2009-01-30   56603ff2b010    Rene Nielsen, Vitesse Semiconductor Inc.
+
+        * File: src/scapi.c
+
+	  Merge of ECOS_TRUNK_2007_10_31_RBN and ECOS_TRUNK_2009_01_28_RBN
+	  onto HEAD
+
+2009-02-04   c74cab602c6d    Rene Nielsen, Vitesse Semiconductor Inc.
+
+        * File: src/parse.c
+
+	  Eliminatied compiler warning (at least when building with -O
+	  instead of -O2)
+
+2009-02-11   43e331901224    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: include/snmp_api.h
+
+	  Remove warning message
+
+2009-02-11   a9a1b6f2db94    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+
+	  Add IPv6 define flag
+
+2009-02-11   98fce3fde093    Rene Nielsen, Vitesse Semiconductor Inc.
+
+	* Merge of ECOS_TRUNK_2009_01_28_RBN and ECOS_TRUNK_2009_02_11_RBN
+	  onto HEAD
+
+2009-03-10   27ef1c46f7f9    Simon Miao, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+
+	  New feature - DNS Client and Proxy.
+
+2009-11-10   1b362c3f8c83    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+
+	  Bugzilla#1234 - agent returns no error for a non-unitary version
+	  rather than dropping
+
+2009-11-11   e2e51b73e058    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/asn1.c
+
+	  Fixed Bugzilla#1235 - snmpInASNParseErrs is not counting after
+	  receiving malformed requests
+
+2009-11-19   c135f51cee4e    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+
+	  Bugzilla#1309 - System hangs when a Get next with Padded OID's is
+	  executed using silver creek
+
+2009-11-23   ac8b1626f5cd    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+
+	  Bugzilla#none - add ASN parser error when system receice trap,
+	  response or report. Because we only impleement SNMP agent (not
+	  server) on our project
+
+2009-12-24   6ec7a665a0ae    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmpusm.c
+
+	  Bugzilla#1512 - Unexpected report received in V3
+
+2010-02-03   14ef09615d7e    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+
+	  Bugzilla#none - Fixed error when trap probe security engine ID
+	  enabled
+
+2010-02-24   452ef6d161f1    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+
+	  Bugzilla#none - Fixed cannot process trap inform response packet
+
+2010-02-25   840b31080114    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+
+	  Bugzilla#none - Add more check when received trap response packet
+
+2010-03-17   47f30671504a    James Lin, Vitesse Semiconductor Inc.
+
+        * File: include/system.h
+        * File: src/snmp_api.c
+        * File: src/system.c
+
+	  Bugzilla#2051 IPv6 issues
+
+2010-12-08   3f765625f1f2    Joergen Andreasen, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_api.c
+        * File: src/snmp_client.c
+
+	  Bugzilla#3793 - Fixed wrong use of cyg_thread_delay()
+
+2011-01-11   353292231cb1    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/scapi.c
+
+	  Bugzilla#none - New feature: update to OPENSSL 0.9.8.o
+
+2011-01-11   8594e1a1d096    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/asn1.c
+        * File: src/snmp_api.c
+
+	  Bugzilla#none - Fixed warning message
+
+2011-06-09   407bff2f68a1    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/read_config.c
+
+	  Bugzilla#5045 - Switch is rebooting when trying to configure
+	  invalid SNMP user configuration
+
+2011-08-18   ad85bde1af65    Sgetz Peng, Vitesse Semiconductor Inc.
+
+        * File: src/snmp_alarm.c
+
+	  Bugzilla#5739 - Sync with Rev 14618
+
+2012-07-03   50224ca7ae0e    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: include/config.h
+
+	  Bugzilla#9167 - Software Pedigree Audit (SNMP/RMON)
+

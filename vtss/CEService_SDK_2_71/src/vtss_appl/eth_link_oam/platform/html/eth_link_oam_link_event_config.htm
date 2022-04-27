@@ -1,0 +1,211 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Link OAM Event Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+var timerID = null;
+
+// Help page
+var help_page = "/help/help_eth_link_oam_link_event.htm";
+
+var selectedPort = configPortMin;
+var pageArgs = searchArgs(window.location.search);
+if(pageArgs['port'])
+    selectedPort = parseInt(pageArgs['port']);
+
+function contentUpdate(req, ref)
+{
+    // Format: 1/0/2/0/128/0/0/0/0|2/0/0/0/0/0/2|3/0/0|4/0/2/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|5/0/0
+    var input = req.responseText.split("|");
+
+    for(var i = 0; i < input.length; i++) {
+	var events = input[i].split("/");
+        var port = parseInt(events[0]);
+	if(selectedPort == port) {
+	    for(var j = 1; j < events.length; j++) {
+		var id = "T" + "_" + j;                
+		UpdateIdValue(id, events[j]);
+	    }
+	    break;
+	}
+    }  
+    var portid = document.getElementById("port");
+    if(portid)
+	portid.innerHTML = configPortName(port, 1);
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh && autorefresh.checked) {
+	if(timerID)
+	    clearTimeout(timerID);
+	timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate()
+{
+    document.getElementById("update").style.visibility = "visible";
+    if(SpomNavigationLoading())
+	return;                 // Bail out, navigation will trigger update
+    loadXMLDoc(SpomAddSidArg("/config/link_oam_events?port=" + selectedPort), contentUpdate, null);
+    SpomUpdateDisplaySid("sid_display");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function PortSelect(sel)
+{
+        selectedPort = sel.options[sel.selectedIndex].value;
+	    requestUpdate();
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+    requestUpdate();            // Update page to reflect selector
+}
+
+function docLoad()
+{
+    selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+    requestUpdate();
+}
+
+function IsNumeric(sText)
+{
+    var ValidChars = "0123456789";
+    var IsNumber = 1;
+    var Char;
+    for (i = 0; i < sText.length && IsNumber == true; i++) 
+    { 
+	Char = sText.charAt(i); 
+	if (ValidChars.indexOf(Char) == -1 || Char == "") 
+	{
+	    IsNumber = 0;
+	}
+    }
+    return IsNumber;
+
+}
+
+function checkForm(form) {
+    var fld, count = 6; //Need to replaced with 10 when other fields are ready
+    for(idx=1;idx <= count;idx++) {
+        fld = document.getElementById("T_" + idx);
+	    if(!IsNumeric(fld.value)) {
+	        alert("Alphabets or invalid characters are not acceptable");
+    	    return false;
+	    }
+    }
+    if (!isWithinRange("T_1", configLoamErrFrameWindowMin, configLoamErrFrameWindowMax, "Error Window for 'Error Frame Event'")) {
+        return false;
+    }
+    if (!isWithinRange("T_2", configLoamErrFrameThresholdMin, configLoamErrFrameThresholdMax, "Error Threshold for 'Error Frame Event'")) {
+        return false;
+    }
+    if (!isWithinRange("T_3", configLoamSymbolFrameWindowMin, configLoamSymbolFrameWindowMax, "Error Window for 'Symbol Period Error Event'")) {
+        return false;
+    }
+    if (!isWithinRange("T_4", configLoamSymbolFrameThresholdMin, configLoamSymbolFrameThresholdMax, "Error Threshold for 'Symbol Period Error Event'")) {
+        return false;
+    }
+    if (!isWithinRange("T_5", configLoamSecsSummaryWindowMin, configLoamSecsSummaryWindowMax, "Error Window for 'Seconds Summary Event'")) {
+        return false;
+    }
+    if (!isWithinRange("T_6", configLoamSecsSummaryThresholdMin, configLoamSecsSummaryThresholdMax, "Error Threshold for 'Seconds Summary Event'")) {
+        return false;
+    }
+    return true;
+}
+</script>
+</head>
+
+<body class="content" onload="docLoad();">
+
+<h1>Link Event Configuration for <span id="sid_display"></span><span>&nbsp;</span><span id="port"></span></h1>
+<form name = "linkoamLintEventConfigForm" method="POST" action="/config/link_oam_events" onsubmit="return checkForm(this);">
+<div class="port_list">
+    <select id="portselect" onchange="PortSelect(this);" name = "port_no">
+    <option value="1">Port 1</option>
+    <option value="99">Port 99</option>
+   </select>
+   <img id="update" alt="" src="images/updating.gif">
+</div>
+<!-- Table needs to be updated when RxPacket Thresshold and Frame Period Error Event are handled -->
+<table summary="Link Event Configurations" cellspacing="0" class="config">
+ <thead>
+   <tr class="display_header">
+   <th> Event Name         </th>
+   <th> Error Window   </th>
+   <th> Error Threshold </th>
+   <!--<th> RxPacket Threshold </th> - To be uncommented when it is implemented -->
+   </tr>
+ </thead>
+   <tr> <td class = "cl">Error Frame Event</td><td class = "cl" ><input type = "text" id = "T_1" name = "err_frame_window" maxlength="2"></td>
+        <td class = "cl"><input type = "text" id="T_2" name = "err_frame_threshold" maxlength="10"></td>
+<!--        <td></td>-->
+   </tr>  
+   <tr> <td class = "cl">Symbol Period Error Event</td><td class = "cl"><input type = "text" id = "T_3" name = "symbol_frame_window" maxlength="2"></td>
+        <td class = "cl"><input type = "text" id="T_4" name = "symbol_frame_threshold" maxlength="10"></td>
+<!--        <td class = "cl"><input type = "text" id = "T_7" name= "symbol_rx_packet_threshold"></td> -->
+   </tr>  
+   <tr> <td class = "cl">Seconds Summary Event</td><td class = "cl" ><input type = "text" id = "T_5" name = "secs_summary_window" maxlength="3"></td>
+        <td class = "cl"><input type = "text" id="T_6" name = "secs_summary_threshold" maxlength="5"></td>
+<!--        <td></td>-->
+   </tr>
+<!--   <tr> <td class = "cl">Frame Period Error Event</td><td class = "cl"><input type = "text" id = "T_8" name = "frame_period_window"></td>
+        <td class = "cl"><input type = "text" id="T_9" name = "frame_period_threshold"></td>
+        <td class = "cl"><input type = "text" id = "T_10" name= "frame_rx_packet_threshold"></td>
+   </tr>  -->
+</table>
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

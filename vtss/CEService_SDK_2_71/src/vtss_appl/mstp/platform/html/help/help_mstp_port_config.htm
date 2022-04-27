@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>STP CIST Port Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>STP CIST Port Configuration Help</h1>
+
+<p>This page allows the user to inspect the
+current <a href="glossary.htm#rstp" class="glossary">STP</a> CIST port
+configurations, and possibly change them as well.</p>
+
+<p class="haveAggregations">This page contains settings for physical and 
+ <a href="glossary.htm#aggregation" class="glossary">aggregated</a> ports.
+ <span class="SPOM_only">The aggregation settings are stack global.</span>
+</p>
+
+<p class="SPOM_only">The STP port settings relate to the currently
+selected stack unit, as reflected by the page header.</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>
+   The switch port number of the logical STP port.
+ </dd>
+
+ <dt>STP Enabled</dt>
+ <dd>
+   Controls whether STP is enabled on this switch port.
+ </dd>
+
+ <dt>Path Cost</dt>
+ <dd>
+   Controls the path cost incurred by the port. The <samp>Auto</samp>
+   setting will set the path cost as appropriate by the physical link
+   speed, using the 802.1D recommended values. Using
+   the <samp>Specific</samp> setting, a user-defined value can be
+   entered. The path cost is used when establishing the active topology of
+   the network. Lower path cost ports are chosen as forwarding ports in favour
+   of higher path cost ports.
+   Valid values are in the range 1 to 200000000.
+ </dd>
+
+ <dt>Priority</dt>
+ <dd>
+   Controls the port priority. This can be used to control priority of ports
+   having identical port cost. (See above).
+ </dd>
+
+ <dt>operEdge (state flag)</dt>
+ <dd>
+   Operational flag describing whether the port is connecting directly
+   to edge devices. (<i>No</i> Bridges attached). Transition to
+   the forwarding state is faster for edge ports (having
+   <em>operEdge</em> <i>true</i>) than for other ports. The value of this flag is based on AdminEdge and AutoEdge fields. This flag is displayed as Edge in Monitor->Spanning Tree -> STP Detailed Bridge Status.
+ </dd>
+
+ <dt>AdminEdge</dt>
+ <dd>
+   Controls whether the <em>operEdge</em> flag should start as 
+   set or cleared. (The initial <em>operEdge</em> state when a port is
+   initialized).
+ </dd>
+
+ <dt>AutoEdge</dt>
+ <dd>
+   Controls whether the bridge should enable automatic edge detection
+   on the bridge port. This allows <em>operEdge</em> to be derived
+   from whether BPDU's are received on the port or not.
+ </dd>
+
+ <dt>Restricted Role</dt>
+ <dd>
+   If enabled, causes the port not to be selected as Root Port for the
+   CIST or any MSTI, even if it has the best spanning tree priority
+   vector. Such a port will be selected as an Alternate Port after the
+   Root Port has been selected. If set, it can cause lack of spanning
+   tree connectivity. It can be set by a network administrator to
+   prevent bridges external to a core region of the network
+   influence the spanning tree active topology, possibly because
+   those bridges are not under the full control of the
+   administrator. This feature is also known as <strong>Root
+   Guard</strong>.
+ </dd>
+
+ <dt>Restricted TCN</dt>
+
+ <dd>
+   If enabled, causes the port not to propagate received topology
+   change notifications and topology changes to other ports. If set it
+   can cause temporary loss of connectivity after changes in a
+   spanning tree's active topology as a result of persistently
+   incorrect learned station location information. It is set by a
+   network administrator to prevent bridges external to a core region
+   of the network, causing address flushing in that region, possibly
+   because those bridges are not under the full control of the
+   administrator or the physical link state of the attached LANs
+   transits frequently.
+ </dd>
+
+ <dt class="hasStpEnhancements">BPDU Guard</dt>
+
+ <dd class="hasStpEnhancements">
+   If enabled, causes the port to disable itself upon receiving valid
+   BPDU's. Contrary to the similar bridge setting, the
+   port <samp>Edge</samp> status does not effect this setting.
+   <p>
+   A port entering error-disabled state due to this setting is subject
+   to the bridge <a href="help_mstp_sys_config.htm#recovery">Port
+   Error Recovery</a> setting as well.
+ </dd>
+
+ <dt>Point-to-Point</dt>
+ <dd>
+   Controls whether the port connects to a point-to-point LAN rather than to a shared
+   medium. This can be automatically determined, or forced either true or false. Transition
+   to the forwarding state is faster for point-to-point LANs than for shared media.
+ </dd>
+
+</dl>
+
+<h2>Buttons</h2>
+
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

@@ -1,0 +1,385 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+ <title>VLAN membership Statistics</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+<script type="text/javascript" language="JavaScript">
+
+var help_page               = "/help/help_vlan_membership.htm";
+var timerID                 = null;
+var glbl_last_vid           = 0;
+var glbl_user_combo_updated = false;
+
+//------------------------------------------------------------------------------
+// create_user_combo()
+// [all_user_names_and_ids] = [user_name_id_1]/[user_name_id_2]/.../[user_name_id_n]
+// [user_name_id_N]         = user_name_1|user_enum_1
+//------------------------------------------------------------------------------
+function create_user_combo(all_user_names_and_ids, currently_selected)
+{
+    var frag = document.createDocumentFragment();
+
+    $("display_user").innerHTML = currently_selected + " user" + (currently_selected == "Combined" ? "s" : "");
+
+    for (var i = 0; i < all_user_names_and_ids.length; i++) {
+        var user_name_and_id = all_user_names_and_ids[i].split("|");
+        var user_name = user_name_and_id[0];
+        var user_id   = parseInt(user_name_and_id[1], 10);
+        var opt = document.createElement("option");
+        opt.appendChild(document.createTextNode(user_name));
+        opt.setAttribute("text", user_name);
+        opt.setAttribute("value", user_id);
+        if (currently_selected == user_name) {
+            opt.setAttribute("selected", true);
+        }
+
+        frag.appendChild(opt);
+    }
+
+    var combo = $("user_combo");
+    clearChildNodes(combo);
+    if (!combo.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    glbl_user_combo_updated = true;
+}
+
+//------------------------------------------------------------------------------
+// create_table_header()
+//------------------------------------------------------------------------------
+function create_table_header(frag)
+{
+    var tr       = CreateStyledElement("tr", "display_header");
+    var port_cnt = SpomCurrentPorts() - configPortMin;
+    var elem, i;
+
+    for (i = 0; i < SpomCurrentPorts(); i++) {
+        if (isStackPort(i + 1)) {
+            port_cnt--;
+        }
+    }
+
+    addTextHeaderCell(tr, "", "hdrc", 1);
+    addTextHeaderCell(tr, "Port Members", "hdrc", port_cnt + 1);
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "display_header"); // Start next line
+    addTextHeaderCell(tr, "VLAN ID", "hdrc");
+
+    for (i = 0; i < SpomCurrentPorts(); i++) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+
+        elem = addTextHeaderCell(tr, configPortName(i + 1, 0), "portno");
+        elem.style.cssText = "width: 1em";
+    }
+
+    frag.appendChild(tr);
+    return port_cnt;
+}
+
+//------------------------------------------------------------------------------
+// addClonedNode()
+//------------------------------------------------------------------------------
+function addClonedNode(tr, v, proto)
+{
+    if (v) {
+        var td = CreateTd("c");
+        addCell(tr, td, proto.cloneNode(1));
+    } else {
+        addTextCell(tr, "", "c");
+    }
+}
+
+//------------------------------------------------------------------------------
+// add_row()
+// [vlan_info_N] = vid|port_val_0|port_val_1|...|port_val_n
+// port_val_N    = 0: not member, 1: member, 2: forbidden, 3: conflict.
+//------------------------------------------------------------------------------
+function add_row(idx, frag, port_cnt, vlan_info)
+{
+    var tr           = CreateStyledElement("tr", idx % 2 ? "display_even" : "display_odd");
+    var bullet       = $("bullet");
+    var nobullet     = $("nobullet");
+    var confnobullet = $("confnobullet");
+    var emptybullet  = $("emptybullet");
+
+    glbl_last_vid = parseInt(vlan_info[0], 10);
+    addTextCell(tr, glbl_last_vid, "c");
+
+    for (i = 1; i < vlan_info.length; i++) {
+        var v = parseInt(vlan_info[i], 10);
+        if (v === 1) {
+            addClonedNode(tr, v, bullet);
+        } else if (v === 2) {
+            addClonedNode(tr, v, nobullet);
+        } else if (v === 3) {
+            addClonedNode(tr, v, confnobullet);
+        } else {
+            v = 1;
+            addClonedNode(tr, v, emptybullet);
+        }
+    }
+
+    frag.appendChild(tr);
+}
+
+//------------------------------------------------------------------------------
+// process_update()
+//------------------------------------------------------------------------------
+function process_update(req)
+{
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (!req.responseText) {
+        SpomHandleError();
+        return;
+    }
+
+    var bullet       = $("bullet");
+    var nobullet     = $("nobullet");
+    var confnobullet = $("confnobullet");
+    var emptybullet  = $("emptybullet");
+    bullet.setAttribute      ('border',  1);
+    nobullet.setAttribute    ('border',  1);
+    confnobullet.setAttribute('border',  1);
+    emptybullet.setAttribute ('border',  1);
+    bullet.setAttribute      ('height', 12);
+    nobullet.setAttribute    ('height', 12);
+    confnobullet.setAttribute('height', 12);
+    emptybullet.setAttribute ('height', 12);
+    bullet.setAttribute      ('width',  15);
+    nobullet.setAttribute    ('width',  15);
+    confnobullet.setAttribute('width',  15);
+    emptybullet.setAttribute ('width',  15);
+
+    // Format: [all_user_names_and_ids]#[vlan_infos]
+    // Where
+    // [all_user_names_and_ids] = [user_name_id_1]/[user_name_id_2]/.../[user_name_id_n]
+    // [user_name_id_N]         = user_name_1|user_enum_1
+    // [vlan_infos]             = requested_user_name/[vlan_info_1]/[vlan_info_2]/.../[vlan_info_n]
+    // [vlan_info_N]            = vid|port_val_0|port_val_1|...|port_val_n
+    // port_val_N               = 0: not member, 1: member, 2: forbidden, 3: conflict
+
+    var values                 = req.responseText.split("#");
+    var all_user_names_and_ids = values[0].split("/");
+    var vlan_infos             = values[1].split("/");
+    create_user_combo(all_user_names_and_ids, vlan_infos[0] /* Currently selected */);
+
+    // Create membership table
+    var frag = document.createDocumentFragment();
+    var port_cnt = create_table_header(frag);
+
+    if (vlan_infos.length < 2) {
+        var tr = CreateStyledElement("tr", "notice");
+        addTextCell(tr, "No data exists for the selected user", "cl", port_cnt + 2);
+        frag.appendChild(tr);
+    } else {
+        for (var idx = 1; idx < vlan_infos.length; idx++) {
+            var vlan_info = vlan_infos[idx].split("|");
+            add_row(idx, frag, port_cnt, vlan_info);
+        }
+    }
+
+    var tbody = $("vlan_table_body");
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    $("update_img").style.visibility = "hidden";
+    if ($("autorefresh_checkbox").checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+
+        timerID = setTimeout("request_update()", settingsRefreshInterval());
+    }
+}
+
+//------------------------------------------------------------------------------
+// check_form()
+//------------------------------------------------------------------------------
+function check_form()
+{
+    var rc = true;
+
+    if (!isWithinRange("start_vid_input", configVlanIdMin, configVlanIdMax, "'Start VLAN ID'", " ")) {
+        rc = false;
+    }
+
+    if (!isWithinRange("entry_cnt_input", 1, 99, "'Number of entries'", " ")) {
+        rc = false;
+    }
+
+    if (rc) {
+        return true;
+    }
+
+    if ($("autorefresh_checkbox").checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+
+        timerID = setTimeout("request_update()", settingsRefreshInterval());
+     }
+
+     return false;
+}
+
+//------------------------------------------------------------------------------
+// request_update()
+//------------------------------------------------------------------------------
+function request_update()
+{
+    var user;
+
+    if (SpomNavigationLoading()) {
+        return; // Bail out, navigation will trigger update
+    }
+
+    if (!check_form()) {
+        return;
+    }
+
+    $("update_img").style.visibility = "visible";
+
+    if (glbl_user_combo_updated) {
+        var combo = $("user_combo");
+        // The server has already made the user IDs one-based
+        user = combo.options[combo.selectedIndex].value;
+    } else {
+        user = 0; // Get whatever the server thinks is the default user to get.
+    }
+
+    loadXMLDoc(SpomAddSidArg("/stat/vlan_membership_stat?DynStartVid=" + $("start_vid_input").value  + "&DynNumberOfEntries=" + $("entry_cnt_input").value + "&user=" + user), process_update);
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+//------------------------------------------------------------------------------
+// SpomSidSelectorUpdate()
+//------------------------------------------------------------------------------
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);
+    $("start_vid_input").value = 1;
+    request_update();
+}
+
+//------------------------------------------------------------------------------
+// request_next_entries()
+//------------------------------------------------------------------------------
+function request_next_entries()
+{
+    var next = glbl_last_vid + 1;
+    if (next >= configVlanIdMin && next <= configVlanIdMax) {
+        $("start_vid_input").value = next;
+        request_update();
+    }
+}
+
+//------------------------------------------------------------------------------
+// refresh_checkbox_click()
+//------------------------------------------------------------------------------
+function refresh_checkbox_click()
+{
+    if (!$("autorefresh_checkbox").checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+            timerID = null;
+        }
+    } else {
+        request_update();
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="request_update();">
+  <h1>VLAN Membership Status for <span id="display_user"></span>&nbsp;<span id="display_sid"></span></h1>
+  <div class="refreshbar">
+    <form action="#">
+      <select id="user_combo" onchange="request_update();">
+        <option value="0">Combined</option>
+        <option value="1">Admin</option>
+      </select>
+      <label for="autorefresh_checkbox">Auto-refresh</label>
+      <input type="checkbox" id="autorefresh_checkbox" name="autorefresh_checkbox" onclick="refresh_checkbox_click();">
+      <input type="button" value="Refresh" onClick="request_update(); this.blur();">
+      <img id="update_img" alt="" src="images/updating.gif">
+    </form>
+  </div>
+
+  <p class="config">
+    <span class="displaytext">Start from VLAN</span>
+    <input id="start_vid_input" name="start_vid_input" maxlength="4" value="1"  size="5">
+    <span class="displaytext"> with </span>
+    <input id="entry_cnt_input" name="entry_cnt_input" maxlength="4" value="20" size="4">
+    <span class="displaytext"> entries per page. </span>
+    <input type="button" value=" |<< " title="First page" onClick="$('start_vid_input').value = 1; request_update(); this.blur();">
+    <input type="button" value=" >> "  title="Next page"  onClick="request_next_entries(); this.blur();">
+  </p>
+
+  <table id="vlan_table" summary="VLAN membership Status for User" cellspacing="0" class="display">
+    <tbody id="vlan_table_body"></tbody>
+  </table>
+  <p><input type="hidden" id="submit_sid" name="sid"></p>
+
+  <!-- IE caching bug -->
+  <div style="visibility: hidden">
+    <img id="bullet"       alt="yes" src="images/port.gif"      height="12">
+    <img id="nobullet"     alt="no"  src="/images/forbid.gif"   height="12">
+    <img id="confnobullet" alt="no"  src="/images/conflict.gif" height="12">
+    <img id="emptybullet"  alt="no"  src="/images/menu_o.gif"   height="12">
+  </div>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->
+

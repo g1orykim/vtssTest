@@ -1,0 +1,125 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse sFlow software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+    -->
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <title>sFlow Configuration Help</title>
+  <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+  <h1>sFlow Configuration Help</h1>
+  <p>
+    This page allows for configuring <a href="glossary.htm#sflow" class="glossary">sFlow</a>.
+    The configuration is divided into two parts: Configuration of the sFlow receiver (a.k.a. sFlow collector) and
+    configuration of per-port flow and counter samplers.<br/>
+    sFlow configuration is not persisted to non-volatile memory, which means that a reboot<span class="SPOM_only"> or master change</span>
+    will disable sFlow sampling.
+  </p>
+
+  <h2>Agent Configuration</h2>
+  <dl>
+    <dt>IP Address</dt>
+    <dd>
+      The IP address used as Agent IP address in sFlow datagrams. It serves as a unique key that will identify this agent over extended periods of time.<br/>
+      <span class="has_ipv6">Both IPv4 and IPv6 addresses are supported.</span>
+    </dd>
+  </dl>
+
+  <h2>Receiver Configuration</h2>
+  <dl>
+    <dt><a name="owner">Owner</a></dt>
+    <dd>
+      Basically, sFlow can be configured in two ways: Through local management using the Web<span class="has_cli"> or CLI</span> interface or
+      through <a href="glossary.htm#snmp" class="glossary">SNMP</a>. This read-only field shows the owner of the current sFlow configuration and assumes values as follows:<br/>
+      &bull; If sFlow is currently unconfigured/unclaimed, Owner contains <samp>&lt;none&gt;</samp>.<br/>
+      &bull; If sFlow is currently configured through Web<span class="has_cli"> or CLI</span>, Owner contains <samp>&lt;Configured through local management&gt;</samp>.<br/>
+      &bull; If sFlow is currently configured through SNMP, Owner contains a string identifying the sFlow receiver.<br/>
+      If sFlow is configured through SNMP, all controls - except for the Release-button - are disabled to avoid inadvertent reconfiguration.
+      <p>
+        The <input type="button" value="Release"> button allows for releasing the current owner and disable sFlow sampling. The button is disabled
+        if sFlow is currently unclaimed. If configured through SNMP, the release must be confirmed (a confirmation request will appear).
+      </p>
+    </dd>
+
+    <dt>IP Address<span class="has_dns">/Hostname</span></dt>
+    <dd>
+      The IP address<span class="has_dns"> or hostname</span> of the sFlow receiver.
+      <span class="has_ipv6">Both IPv4 and IPv6 addresses are supported.</span>
+    </dd>
+
+    <dt>UDP Port</dt>
+    <dd>
+      The <a href="glossary.htm#udp" class="glossary">UDP</a> port on which the sFlow receiver listens to sFlow datagrams. If set to 0 (zero), the default port (6343) is used.
+    </dd>
+
+    <dt>Timeout</dt>
+    <dd>
+      The number of seconds remaining before sampling stops and the current sFlow owner is released. While active, the current time left can be updated with a click on the Refresh-button.
+      If locally managed, the timeout can be changed on the fly without affecting any other settings.
+    </dd>
+
+    <dt><a name="max_datagram_size">Max. Datagram Size</a></dt>
+    <dd>
+      The maximum number of data bytes that can be sent in a single sample datagram. This should be set to a value that avoids fragmentation of the sFlow datagrams. Valid range is 200 to 1468 bytes with default being 1400 bytes.
+    </dd>
+  </dl>
+
+  <h2>Port Configuration</h2>
+  <dl>
+    <dt>Port</dt>
+    <dd>The port number for which the configuration below applies.</dd>
+
+    <dt>Flow Sampler Enabled</dt>
+    <dd>Enables/disables flow sampling on this port.</dd>
+
+    <dt>Flow Sampler Sampling Rate</dt>
+    <dd>
+      The statistical sampling rate for packet sampling. Set to N to sample on average 1/Nth of the packets transmitted/received on the port.<br/>
+      Not all sampling rates are achievable. If an unsupported sampling rate is requested, the switch will automatically adjust it to the closest achievable. This will be reported back in this field.
+    </dd>
+
+    <dt>Flow Sampler Max. Header</dt>
+    <dd>
+      The maximum number of bytes that should be copied from a sampled packet to the sFlow datagram. Valid range is 14 to 200 bytes with default being 128 bytes.<br/>
+      If the <a href="#max_datagram_size">maximum datagram size</a> does not take into account the maximum header size, samples may be dropped.
+    </dd>
+
+    <dt>Counter Poller Enabled</dt>
+    <dd>Enables/disables counter polling on this port.</dd>
+
+    <dt>Counter Poller Interval</dt>
+    <dd>
+      With counter polling enabled, this specifies the interval - in seconds - between counter poller samples.
+    </dd>
+  </dl>
+
+  <h2>Buttons</h2>
+  <p><input type="button" value="Release">: See description under <a href="#owner">Owner</a>.</p>
+  <p><input type="button" value=" Refresh ">: Click to refresh the page. Note that unsaved changes will be lost.</p>
+  <p><input type="button" value=" Save ">: Click to save changes. Note that sFlow configuration is not persisted to non-volatile memory.</p>
+  <p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+</body>
+</html>

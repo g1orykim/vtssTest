@@ -1,0 +1,249 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>MEP Configuration And State Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1> Maintenance Entity End Point Configuration Help</h1>
+
+<p> This page allows the user to inspect and configure the current <a href="glossary.htm#MEP" class="glossary">MEP</a> Instance.</p>
+
+<h2>Instance Data</h2>
+<dl>
+ <dt>MEP Instance</dt>
+ <dd>
+ The ID of the MEP.
+ </dd>
+ <dt>Domain</dt>
+ <dd>
+ See help on MEP create WEB.
+ </dd>
+ <dt>Mode</dt>
+ <dd>
+ See help on MEP create WEB.
+ </dd>
+ <dt>Direction</dt>
+ <dd>
+ See help on MEP create WEB.
+ </dd>
+ <dt>Residence Port</dt>
+ <dd>
+ See help on MEP create WEB.
+ </dd>
+ <dt>Flow Instance</dt>
+ <dd>
+ See help on MEP create WEB.
+ </dd>
+ <dt>Tagged VID</dt>
+ <dd>
+ See help on MEP create WEB.
+ </dd>
+ <dt>This MAC</dt>
+ <dd>
+ See help on MEP create WEB.
+ </dd>
+</dl>
+
+<h2>Instance Configuration</h2>
+<dl>
+ <dt>EVC Policy ID</dt>
+ <dd>
+ This is relevant for a Caracal EVC Up-MEP and Jaguar MEP. This is the Policy number of the relevant ECE.
+ <p><b>Jaguar:</b>  Policy ID is used to assure that received OAM PDU is able to hit a IS2 entry. If this value is '0' IS2 rules will be created on classified VID. If this is NOT '0' IS2 rules will be created on this Policy (PAG). This must be equal to ECE Policy Number if OAM PDU will hit the ECE IS0. This is the case if an ECE is created with 'tag_type' as 'any'</p>
+ <p><b>Caracal:</b> Policy ID that the generated TST frames will get as IS1 action. Can be the same as any ECE Policy Number, enabling it to hit the same ACL and thereby the same EVC policer.</p>
+ </dd>
+ <dt>EVC QoS</dt>
+ <dd>
+ This is only relevant for a EVC MEP. This is the Qos of the EVC and used for getting QoS counters for Loss Measurement.
+ </dd>
+ <dt>Level</dt>
+ <dd>
+ See help on MEP create WEB.
+ </dd>
+ <dt>Format</dt>
+ <dd>
+ This is the configuration of the two possible Maintenance Association Identifier formats.
+ <p><b>ITU ICC:</b>     This is defined by ITU (Y1731 Fig. A3). 'Domain Name' is not used. 'MEG id' must be max. 13 char.</p>
+ <p><b>IEEE String:</b> This is defined by IEEE (802.1ag Section 21.6.5). 'Domain Name' can be max. 16 char. 'MEG id' (Short MA Name) can be max. 16 char.</p>
+ <p><b>ITU CC ICC:</b>  This is defined by ITU (Y1731 Fig. A5). 'Domain Name' is not used. 'MEG id' must be max. 15 char.</p>
+ </dd>
+ <dt>Domain Name</dt>
+ <dd>
+ This is the IEEE Maintenance Domain Name and is only used in case of 'IEEE String' format. This string can be empty giving Maintenance Domain Name Format 1 - Not present. This can be max 16 char.
+ </dd>
+ <dt>MEG Id</dt>
+ <dd>
+ This is either ITU MEG ID or IEEE Short MA Name - depending on 'Format'. See 'Format'.
+ In case of ITU ICC format this must be 13 char. In case of ITU CC ICC format this must be 15 char. In case of IEEE String format this can be max 16 char.
+ </dd>
+ <dt>MEP Id</dt>
+ <dd>
+ This value will become the transmitted two byte CCM MEP ID.
+ </dd>
+ <dt>Tagged VID</dt>
+ <dd>
+ This value will be the VID of a TAG added to the OAM PDU.
+ </dd>
+ <dt>VOE</dt>
+ <dd>
+ This will attempt to utilize VOE HW for MEP implementation. Not all platforms support VOE.
+ </dd>
+ <dt>cLevel</dt>
+ <dd>
+ Fault Cause indicating that a CCM is received with a lower level than the configured for this MEP.
+ </dd>
+ <dt>cMEG</dt>
+ <dd>
+ Fault Cause indicating that a CCM is received with a MEG ID different from configured for this MEP.
+ </dd>
+ <dt>cMEP</dt>
+ <dd>
+ Fault Cause indicating that a CCM is received with a MEP ID different from all 'Peer MEP ID' configured for this MEP.
+ </dd>
+ <dt>cAIS</dt>
+ <dd>
+ Fault Cause indicating that AIS PDU is received.
+ </dd>
+ <dt>cLCK</dt>
+ <dd>
+ Fault Cause indicating that LCK PDU is received.
+ </dd>
+ <dt>cSSF</dt>
+ <dd>
+ Fault Cause indicating that server layer is indicating Signal Fail.
+ </dd>
+ <dt>aBLK</dt>
+ <dd>
+ The consequent action of blocking service frames in this flow is active.
+ </dd>
+ <dt>aTSF</dt>
+ <dd>
+ The consequent action of indicating Trail Signal Fail to-wards protection is active.
+ </dd>
+ <dt>Delete</dt>
+ <dd>
+ This box is used to mark a Peer MEP for deletion in next Save operation.
+ </dd>
+ <dt>Peer MEP ID</dt>
+ <dd>
+ This value will become an expected MEP ID in a received CCM - see 'cMEP'.
+ </dd>
+ <dt>Unicast Peer MAC</dt>
+ <dd>
+ This MAC will be used when unicast is selected with this peer MEP. Also this MAC is used to create HW checking of receiving CCM PDU (LOC detection) from this MEP.
+ </dd>
+ <dt>cLOC</dt>
+ <dd>
+ Fault Cause indicating that no CCM has been received (in 3,5 periods) - from this peer MEP.
+ </dd>
+ <dt>cRDI</dt>
+ <dd>
+ Fault Cause indicating that a CCM is received with Remote Defect Indication - from this peer MEP.
+ </dd>
+ <dt>cPeriod</dt>
+ <dd>
+ Fault Cause indicating that a CCM is received with a period different what is configured for this MEP - from this peer MEP.
+ </dd>
+ <dt>cPriority</dt>
+ <dd>
+ Fault Cause indicating that a CCM is received with a priority different what is configured for this MEP - from this peer MEP.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Add New Peer MEP ">: Click to add a new peer MEP.</p>
+
+<h2>Functional Configuration</h2>
+
+<h2>Continuity Check</h2>
+<dl>
+ <dt>Enable</dt>
+ <dd>
+ Continuity Check based on transmitting/receiving CCM PDU can be enabled/disabled.
+ The CCM PDU is always transmitted as Multi-cast Class 1.
+ </dd>
+ <dt>Priority</dt>
+ <dd>
+ The priority to be inserted as PCP bits in TAG (if any).
+ In case of enable of Continuity Check and Loss Measurement both implemented on SW based CCM, 'Priority' has to be the same.
+ </dd>
+ <dt>Frame rate</dt>
+ <dd>
+ Selecting the frame rate of CCM PDU. This is the inverse of transmission period as described in Y.1731. This value has the following uses:
+ <p><b>*</b> The transmission rate of the CCM PDU.</p>
+ <p><b>*</b> Fault Cause cLOC is declared if no CCM PDU has been received within 3.5 periods - see 'cLOC'.</p>
+ <p><b>*</b> Fault Cause cPeriod is declared if a CCM PDU has been received with different period - see 'cPeriod'.</p>
+ Selecting 300f/sec or 100f/sec will configure HW based CCM (if possible).
+ Selecting other frame rates will configure SW based CCM.
+ In case of enable of Continuity Check and Loss Measurement both implemented on SW based CCM, 'Frame Rate' has to be the same.
+ </dd>
+</dl>
+
+<h2>APS Protocol</h2>
+<dl>
+ <dt>Enable</dt>
+ <dd>
+ Automatic Protection Switching protocol information transportation based on transmitting/receiving R-APS/L-APS PDU can be enabled/disabled.
+ Must be enabled to support ERPS/ELPS implementing APS.
+ This is only valid with one Peer MEP configured.
+ </dd>
+ <dt>Priority</dt>
+ <dd>
+ The priority to be inserted as PCP bits in TAG (if any).
+ </dd>
+ <dt>Cast</dt>
+ <dd>
+ Selection of APS PDU transmitted unicast or multi-cast. The unicast MAC will be taken from the 'Unicast Peer MAC' configuration.
+ Unicast is only valid for L-APS - see 'Type'.
+ The R-APS PDU is always transmitted with multi-cast MAC described in G.8032.
+ </dd>
+ <dt>Type</dt>
+ <dd>
+ <p><b>R-APS:</b> APS PDU is transmitted as R-APS - this is for ERPS.</p>
+ <p><b>L-APS:</b> APS PDU is transmitted as L-APS - this is for ELPS.</p>
+ </dd>
+ <dt>Last Octet</dt>
+ <dd>
+ This is the last octet of the transmitted and expected RAPS multi-cast MAC.
+ In G.8031 (03/2010) a RAPS multi-cast MAC is defined as 01-19-A7-00-00-XX.
+ In current standard the value for this last octet is '01' and the usage of other values is for further study.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Fault Management ">: Click to go to Fault Management page.</p>
+<p><input type="button" value=" Performance Monitoring ">: Click to go to Performance Monitor page.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+</body>
+</html>
+

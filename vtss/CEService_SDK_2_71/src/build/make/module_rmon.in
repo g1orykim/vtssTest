@@ -1,0 +1,77 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files Location
+DIR_rmon_platform := $(DIR_APPL)/rmon/platform
+DIR_rmon_base := $(DIR_APPL)/rmon/base
+
+# Web content generation
+WEB_CONTENT += $(DIR_rmon_platform)/html
+
+# Module platform objects
+OBJECTS_rmon_platform :=  rmon.o rmon_timer.o \
+$(if $(MODULE_VCLI),rmon_cli.o) \
+$(if $(MODULE_WEB),rmon_web.o) \
+$(if $(MODULE_CONF_XML),rmon_xml.o) \
+$(if $(MODULE_ICFG),rmon_icfg.o)
+
+OBJECTS_rmon_base := rmon_rows.o rmon_agutil.o
+
+# Built-in ICLI
+$(eval $(call add_icli, $(foreach m, rmon, $(DIR_rmon_platform)/$(m).icli)))
+
+# Compiler rules
+$(OBJECTS_rmon_platform): %.o: $(DIR_rmon_platform)/%.c
+	$(call compile_c, $@, $<, -D_KERNEL=1)
+
+$(OBJECTS_rmon_base): %.o: $(DIR_rmon_base)/%.c
+	$(call compile_c, $@, $<, -D_KERNEL=1)
+
+# Include files
+INCLUDES += -I$(DIR_rmon_platform)
+INCLUDES += -I$(DIR_rmon_base)
+
+# Total list of objects
+OBJECTS_rmon := $(OBJECTS_rmon_platform)
+OBJECTS_rmon += $(OBJECTS_rmon_base)
+
+# Lint files
+LINT_FILES_rmon += $(DIR_rmon_platform)/rmon.c        \
+  $(DIR_rmon_platform)/rmon_timer.c                   \
+  $(if $(MODULE_VCLI),$(DIR_rmon_platform)/rmon_cli.c) \
+  $(if $(MODULE_WEB),$(DIR_rmon_platform)/rmon_web.c) \
+  $(if $(MODULE_CONF_XML),$(DIR_rmon_platform)/rmon_xml.c) \
+  $(if $(MODULE_ICFG),$(DIR_rmon_platform)/rmon_icfg.c)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_rmon += $(DIR_rmon_platform)/*.c $(DIR_rmon_platform)/*.h $(DIR_rmon_base)/*.h
+
+# Tidy files
+TIDY_FILES_rmon += $(DIR_rmon_platform)/html/*.htm $(DIR_rmon_platform)/html/help/*.htm
+
+# JSLINT files
+JSLINT_FILES_rmon += $(DIR_rmon_platform)/html/*.htm $(DIR_rmon_platform)/html/help/*.htm
+

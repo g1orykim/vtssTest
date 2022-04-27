@@ -1,0 +1,1312 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "dot1x_icli_functions.h"
+#include "vtss_nas_api.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+DOT1X_HELP =  IEEE Standard for port-based Network Access Control
+DOT1X_TIME_OUT_HELP = timeout
+DOT1X_GUEST_HELP = Guest VLAN
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_DOT1X
+
+COMMAND = show dot1x statistics { eapol | radius | all} [ interface <port_type_list> ]
+
+DOT1X_STATISTICS_HELP = Shows statistics for either eapol or radius.
+
+DOC_CMD_DESC    = ##DOT1X_STATISTICS_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_STATISTICS_HELP
+DOC_CMD_EXAMPLE = show dot1x statistics radius
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: dot1x
+! 3: statistics
+! 4: eapol
+! 5: radius
+! 6: interface
+! 7: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_eapol
+CMD_VAR = has_radius
+CMD_VAR = has_all
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+
+HELP = 
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_STATISTICS_HELP
+HELP = Show EAPOL statistics
+HELP = Show Backend Server statistics
+HELP = Show all dot1x statistics
+HELP = Interface
+HELP = Interface list
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Eapol : option>
+BYWORD = <Radius : option>
+BYWORD = <All : option>
+BYWORD = <Interface : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_statistics(session_id, has_eapol, has_radius, has_all, v_port_type_list));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_DOT1X
+
+COMMAND = show dot1x status [ interface <port_type_list> ] [brief]
+
+DOT1X_STATUS_HELP = Shows dot1x status, such as admin state, port state and last source.
+
+DOC_CMD_DESC    = ##DOT1X_STATUS_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_STATUS_HELP
+DOC_CMD_EXAMPLE = show dot1x status
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+! 1: show
+! 2: dot1x
+! 3: status
+! 4: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+CMD_VAR = has_brief
+
+HELP = 
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_STATUS_HELP
+HELP = Interface
+HELP = Interface list
+HELP = Show status in a brief format
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Interface : option>
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_status(session_id, v_port_type_list, has_brief));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_DOT1X
+
+COMMAND = clear dot1x statistics [ interface <port_type_list> ]
+DOT1X_STATISTICS_CLEAR_HELP = Clears the statistics counters
+
+DOC_CMD_DESC    = ##DOT1X_STATISTICS_CLEAR_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_STATISTICS_CLEAR_HELP
+DOC_CMD_EXAMPLE = clear dot1x statistics
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: clear
+! 2: dot1x
+! 3: statistics
+! 4: interface
+! 5: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+
+HELP = 
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_STATISTICS_CLEAR_HELP
+HELP = Interface
+HELP = Interface list
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_statistics_clr(session_id, v_port_type_list));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = dot1x re-authentication
+
+DOT1X_REAUTHENTICATION_HELP = Set Re-authentication state
+
+DOC_CMD_DESC    = ##DOT1X_REAUTHENTICATION_HELP
+DOC_CMD_DEFAULT = Reauthentication is disabled
+DOC_CMD_USAGE   = ##DOT1X_REAUTHENTICATION_HELP
+DOC_CMD_EXAMPLE = dot1x reauthentication
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: dot1x
+! 2: reauthentication
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_REAUTHENTICATION_HELP
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_reauthentication(session_id, FALSE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(dot1x_icli_reauthentication(session_id, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = dot1x authentication timer re-authenticate <1-3600>
+
+DOT1X_REAUTHENTION_HELP =  The period between re-authentication attempts in seconds
+
+DOC_CMD_DESC    = ##DOT1X_REAUTHENTION_HELP
+DOC_CMD_DEFAULT = timer reauthentication is 3600
+DOC_CMD_USAGE   = ##DOT1X_REAUTHENTION_HELP
+DOC_CMD_EXAMPLE = dot1x authentication timer re-authentication 5
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: authentication
+! 2: timer
+! 3: reauthenticate
+! 4: <1-3600>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_1_to_3600
+
+HELP = ##DOT1X_HELP
+HELP = Authentication
+HELP = timer
+HELP = ##DOT1X_REAUTHENTION_HELP
+HELP = seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_reauthenticate(session_id, v_1_to_3600, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = no dot1x authentication timer re-authenticate 
+
+DOC_CMD_DESC    = ##DOT1X_REAUTHENTION_HELP
+DOC_CMD_DEFAULT = timer reauthentication is 3600
+DOC_CMD_USAGE   = ##DOT1X_REAUTHENTION_HELP
+DOC_CMD_EXAMPLE = no dot1x authentication timer re-authenticate
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP =
+HELP = ##DOT1X_HELP
+HELP = Authentication
+HELP = timer
+HELP = ##DOT1X_REAUTHENTION_HELP
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_reauthenticate(session_id, 0, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = dot1x timeout tx-period <1-65535>
+
+DOT1X_TX_PERIOD_HELP = the time between EAPOL retransmissions.
+
+DOC_CMD_DESC    = ##DOT1X_TX_PERIOD_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_TX_PERIOD_HELP
+DOC_CMD_EXAMPLE = dot1x timeout tx-period 4
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: dot1x
+! 2: timeout
+! 3: tx-period
+! 4: <1-65535>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_1_to_65535
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_TIME_OUT_HELP
+HELP = ##DOT1X_TX_PERIOD_HELP
+HELP = seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_tx_period(session_id, v_1_to_65535, FALSE));
+CODE_END
+
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = no dot1x timeout tx-period 
+
+DOT1X_TX_PERIOD_HELP = the time between EAPOL retransmissions.
+
+DOC_CMD_DESC    = ##DOT1X_TX_PERIOD_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_TX_PERIOD_HELP
+DOC_CMD_EXAMPLE = no dot1x timeout tx-period
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP = 
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_TIME_OUT_HELP
+HELP = ##DOT1X_TX_PERIOD_HELP
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_tx_period(session_id, 0, TRUE));
+CODE_END
+
+
+CMD_END
+
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(NAS_USES_PSEC)
+
+COMMAND = dot1x authentication timer inactivity <10-1000000>
+
+DOT1X_INACTIVITY_HELP = Time in seconds between check for activity on successfully authenticated MAC addresses.
+
+DOC_CMD_DESC    = ##DOT1X_INACTIVITY_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_INACTIVITY_HELP
+DOC_CMD_EXAMPLE = dot1x authentication timer inactivity 13
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: authentication
+! 2: timer
+! 3: inactivity
+! 4: <10-100000>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_10_to_100000
+
+HELP = ##DOT1X_HELP
+HELP = authentication
+HELP = timer
+HELP = ##DOT1X_INACTIVITY_HELP
+HELP = seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_inactivity(session_id, v_10_to_100000, FALSE));
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(NAS_USES_PSEC)
+
+COMMAND = no dot1x authentication timer inactivity 
+
+DOC_CMD_DESC    = ##DOT1X_INACTIVITY_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_INACTIVITY_HELP
+DOC_CMD_EXAMPLE = no dot1x authentication timer inactivity
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP =
+HELP = ##DOT1X_HELP
+HELP = authentication
+HELP = timer
+HELP = ##DOT1X_INACTIVITY_HELP
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_inactivity(session_id, 0, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = dot1x timeout quiet-period <10-1000000>
+
+DOT1X_QUITE_PERIOD_HELP = Time in seconds before a MAC-address that failed authentication gets a new authentication chance.
+
+DOC_CMD_DESC    = ##DOT1X_QUITE_PERIOD_HELP
+DOC_CMD_DEFAULT = quiet-period is 10
+DOC_CMD_USAGE   = #DOT1X_QUITE_PERIOD_HELP
+DOC_CMD_EXAMPLE = dot1x timeout quiet-period 11
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: dot1x
+! 2: timeout
+! 3: quiet-period
+! 4: <10-1000000>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_10_to_1000000
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_TIME_OUT_HELP
+HELP = ##DOT1X_QUITE_PERIOD_HELP
+HELP = seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_quiet_period(session_id, v_10_to_1000000, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = no dot1x timeout quiet-period
+
+DOC_CMD_DESC    = ##DOT1X_QUITE_PERIOD_HELP
+DOC_CMD_DEFAULT = quiet-period is 10
+DOC_CMD_USAGE   = #DOT1X_QUITE_PERIOD_HELP
+DOC_CMD_EXAMPLE = no dot1x timeout quiet-period
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP = 
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_TIME_OUT_HELP
+HELP = ##DOT1X_QUITE_PERIOD_HELP
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_quiet_period(session_id, 0, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = dot1x re-authenticate
+
+DOT1X_REAUTHENTICATE_HELP = Refresh (restart) 802.1X authentication process.
+
+DOC_CMD_DESC    = ##DOT1X_REAUTHENTICATE_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_REAUTHENTICATE_HELP
+DOC_CMD_EXAMPLE = dot1x re-authenticate
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: dot1x
+! 2: re-authenticate
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_REAUTHENTICATE_HELP
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_re_authenticate(session_id, plist));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = dot1x initialize [ interface <port_type_list> ]
+
+DOT1X_INITIALIZE_HELP = Force re-authentication immediately
+
+DOC_CMD_DESC    = ##DOT1X_INITIALIZE_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_INITIALIZE_HELP
+DOC_CMD_EXAMPLE = dot1x initialize
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+RUNTIME = 
+
+! 1: dot1x
+! 2: initialize
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = plist
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_INITIALIZE_HELP
+HELP = Interface
+HELP = Interface list
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_initialize(session_id, plist));  
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = dot1x system-auth-control
+
+DOT1X_SYSTEM_AUTH_CONTROL_HELP = Set the global NAS state
+
+DOC_CMD_DESC    = ##DOT1X_SYSTEM_AUTH_CONTROL_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_SYSTEM_AUTH_CONTROL_HELP
+DOC_CMD_EXAMPLE = dot1x system-auth-control
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no dot1x system-auth-control
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: dot1x
+! 2: system-auth-control
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_SYSTEM_AUTH_CONTROL_HELP
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_system_auth_control(session_id, FALSE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(dot1x_icli_system_auth_control(session_id, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = dot1x port-control { force-authorized | force-unauthorized | auto | single | multi | mac-based }
+
+DOT1X_PORT_CONTROL_HELP = Sets the port security state.
+
+DOC_CMD_DESC    = ##DOT1X_PORT_CONTROL_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_PORT_CONTROL_HELP
+DOC_CMD_EXAMPLE = dot1x port-control force-authorized
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = dot1x_icli_runtime_single
+RUNTIME = dot1x_icli_runtime_multi
+RUNTIME = dot1x_icli_runtime_macbased
+
+! 1: dot1x
+! 2: port-control
+! 3: force-authorized
+! 4: force-unauthorized
+! 5: auto
+! 6: single
+! 7: multi
+! 8: macbased
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_force_authorized
+CMD_VAR = has_force_unauthorized
+CMD_VAR = has_auto
+CMD_VAR = has_single
+CMD_VAR = has_multi
+CMD_VAR = has_macbased
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_PORT_CONTROL_HELP
+HELP = Port access is allowed
+HELP = Port access is not allowed
+HELP = Port-based 802.1X Authentication
+HELP = Single Host 802.1X Authentication
+HELP = Multiple Host 802.1X Authentication
+HELP = Switch authenticates on behalf of the client
+
+BYWORD = 
+BYWORD = 
+BYWORD = <ForceAuthorized : option>
+BYWORD = <ForceUnauthorized : option>
+BYWORD = <Auto : option>
+BYWORD = <Single : option>
+BYWORD = <Multi : option>
+BYWORD = <Macbased : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_port_contol(session_id, has_force_unauthorized, has_force_authorized, has_auto, has_single, has_multi, has_macbased, plist, FALSE));  
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_DOT1X)
+
+COMMAND = no dot1x port-control
+
+DOT1X_PORT_CONTROL_HELP = Sets the port security state.
+
+DOC_CMD_DESC    = ##DOT1X_PORT_CONTROL_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_PORT_CONTROL_HELP
+DOC_CMD_EXAMPLE = no dot1x port-control
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+HELP =
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_PORT_CONTROL_HELP
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_port_contol(session_id, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, plist, TRUE));  
+CODE_END
+
+CMD_END
+
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_NAS_GUEST_VLAN)
+
+COMMAND = dot1x guest-vlan 
+
+DOT1X_GUEST_VLAN_HELP = Enables/disables guest VLAN
+
+DOC_CMD_DESC    = ##DOT1X_GUEST_VLAN_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_GUEST_VLAN_HELP
+DOC_CMD_EXAMPLE = dot1x guest-vlan 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: dot1x
+! 2: guest-vlan
+
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_GUEST_VLAN_HELP
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(dot1x_icli_interface_guest_vlan(session_id, plist, TRUE));
+NO_FORM_CODE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_interface_guest_vlan(session_id, plist, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_NAS_GUEST_VLAN)
+
+COMMAND = dot1x max-reauth-req <1-255>
+
+DOT1X_MAX_REAUTH_REQ_HELP = The number of times a Request Identity EAPOL frame is sent without response before considering entering the Guest VLAN
+
+
+DOC_CMD_DESC    = ##DOT1X_MAX_REAUTH_REQ_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_MAX_REAUTH_REQ_HELP
+DOC_CMD_EXAMPLE = dot1x max-reauth-req 22
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = value
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_MAX_REAUTH_REQ_HELP
+HELP = number of times
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_max_reauth_req(session_id, value, FALSE));
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_NAS_GUEST_VLAN)
+
+COMMAND = no dot1x max-reauth-req 
+
+DOC_CMD_DESC    = ##DOT1X_MAX_REAUTH_REQ_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_MAX_REAUTH_REQ_HELP
+DOC_CMD_EXAMPLE = no dot1x max-reauth-req 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP =
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_MAX_REAUTH_REQ_HELP
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_max_reauth_req(session_id, 0, TRUE));
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_NAS_GUEST_VLAN)
+
+COMMAND = dot1x guest-vlan <1-4095> 
+
+DOT1X_GUEST_VID_HELP = Guest VLAN ID used when entering the Guest VLAN.
+
+DOC_CMD_DESC    = ##DOT1X_GUEST_VID_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_GUEST_VID_HELP
+DOC_CMD_EXAMPLE = dot1x guest-vlan 3
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = value
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_GUEST_HELP
+HELP = ##DOT1X_GUEST_VID_HELP
+
+
+CODE_BEGIN
+   VTSS_RC( dot1x_icli_guest_vlan(session_id, value, FALSE));
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_NAS_GUEST_VLAN)
+
+COMMAND = no dot1x guest-vlan
+
+DOC_CMD_DESC    = ##DOT1X_GUEST_VID_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_GUEST_VID_HELP
+DOC_CMD_EXAMPLE = no dot1x guest-vlan
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP = 
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_GUEST_HELP
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_guest_vlan(session_id, 1, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_NAS_GUEST_VLAN)
+
+COMMAND = dot1x guest-vlan supplicant
+
+DOT1X_GUEST_VALN_SUPPLICANT_HELP = The switch remembers if an EAPOL frame has been received on the port for the life-time of the port. Once the switch considers whether to enter the Guest VLAN, it will first check if this option is enabled or disabled. If disabled (unchecked; default), the switch will only enter the Guest VLAN if an EAPOL frame has not been received on the port for the life-time of the port. If enabled (checked), the switch will consider entering the Guest VLAN even if an EAPOL frame has been received on the port for the life-time of the port.
+
+DOC_CMD_DESC    = ##DOT1X_GUEST_VALN_SUPPLICANT_HELP
+DOC_CMD_DEFAULT = supplicant is disabled.
+DOC_CMD_USAGE   = ##DOT1X_GUEST_VALN_SUPPLICANT_HELP
+DOC_CMD_EXAMPLE = dot1x guest-vlan supplicant
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME = 
+
+! 1: no
+! 2: dot1x
+! 3: guest-vlan
+! 4: supplicant
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_GUEST_HELP
+HELP = ##DOT1X_GUEST_VALN_SUPPLICANT_HELP
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(dot1x_icli_guest_vlan_supplicant(session_id, TRUE));
+NO_FORM_CODE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_guest_vlan_supplicant(session_id, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_NAS_BACKEND_ASSIGNED_QOS)
+
+COMMAND = dot1x radius-qos
+DOT1X_RADIUS_QOS_HELP = Enables/disables per-port state of RADIUS-assigned QoS.
+
+DOC_CMD_DESC    = ##DOT1X_RADIUS_QOS_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_RADIUS_QOS_HELP
+DOC_CMD_EXAMPLE = dot1x radius-qos
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no dot1x radius-qos
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: dot1x
+! 2: radius-qos
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_RADIUS_QOS_HELP
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_radius_qos(session_id, plist, FALSE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(dot1x_icli_radius_qos(session_id, plist, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_NAS_BACKEND_ASSIGNED_VLAN)
+
+COMMAND = dot1x radius-vlan
+
+DOT1X_RADIUS_VLAN_HELP = Enables/disables per-port state of RADIUS-assigned VLAN.
+
+DOC_CMD_DESC    = ##DOT1X_RADIUS_VLAN_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_RADIUS_VLAN_HELP
+DOC_CMD_EXAMPLE = dot1x radius-vlan
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no dot1x radius-vlan
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: dot1x
+! 2: radius-vlan
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_RADIUS_VLAN_HELP
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_radius_vlan(session_id, plist, FALSE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(dot1x_icli_radius_vlan(session_id, plist, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_NAS_GUEST_VLAN) || defined(VTSS_SW_OPTION_NAS_BACKEND_ASSIGNED_VLAN) || defined(VTSS_SW_OPTION_NAS_BACKEND_ASSIGNED_QOS)
+
+COMMAND = dot1x feature { [ guest-vlan ] [ radius-qos ] [ radius-vlan ] }*1
+
+DOT1X_GLOBAL_HELP = Globally enables/disables a dot1x feature functionality
+
+DOC_CMD_DESC    = ##DOT1X_GLOBAL_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##DOT1X_GLOBAL_HELP
+DOC_CMD_EXAMPLE = dot1x global guest-vlan
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no dot1x feature
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME = 
+
+! 1: dot1x
+! 2: global
+! 3: guest-vlan
+! 6: radius-qos
+! 7: radius-vlan
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_guest_vlan
+CMD_VAR = has_radius_qos
+CMD_VAR = has_radius_vlan
+
+HELP = ##DOT1X_HELP
+HELP = ##DOT1X_GLOBAL_HELP
+HELP = Globally enables/disables state of guest-vlan
+HELP = Globally enables/disables state of RADIUS-assigned QoS. 
+HELP = Globally enables/disables state of RADIUS-assigned VLAN. 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <GuestVlan : option>
+BYWORD = <RadiusQos : option>
+BYWORD = <RadiusVlan : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(dot1x_icli_global(session_id, has_guest_vlan, has_radius_qos, has_radius_vlan, FALSE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(dot1x_icli_global(session_id, has_guest_vlan, has_radius_qos, has_radius_vlan, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+

@@ -1,0 +1,148 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Detailed Port Statistics Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+   $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+
+<body>
+<h1>Detailed Port Statistics Help</h1>
+
+<p>This page provides detailed traffic statistics for a specific switch port. 
+Use the port select box to select which switch port details to display.</p>
+
+<p class="SPOM_only">The selected port belongs to the currently selected stack
+unit, as reflected by the page header.</p>
+
+<p>The displayed counters are the totals for receive and transmit, the size counters for receive and transmit, and the error counters for receive and transmit.</p>
+
+<h2>Receive Total and Transmit Total</h2>
+
+<dl>
+ <dt>Rx and Tx Packets</dt>
+ <dd>
+ The number of received and transmitted (good and bad) packets.
+ </dd>
+
+ <dt>Rx and Tx Octets</dt>
+ <dd>
+The number of received and transmitted (good and bad) bytes. Includes FCS, but excludes framing bits.
+ </dd>
+
+ <dt>Rx and Tx Unicast</dt>
+ <dd>
+The number of received and transmitted (good and bad) unicast packets.
+ </dd>
+
+ <dt>Rx and Tx Multicast</dt>
+ <dd>
+The number of received and transmitted (good and bad) multicast packets.
+ </dd>
+
+ <dt>Rx and Tx Broadcast</dt>
+ <dd>
+The number of received and transmitted (good and bad) broadcast packets.
+ </dd>
+
+ <dt>Rx and Tx Pause</dt>
+ <dd>
+A count of the MAC Control frames received or transmitted on this port that have an opcode indicating a PAUSE operation.
+ </dd>
+
+</dl>
+
+<h2>Receive and Transmit Size Counters</h2>
+
+The number of received and transmitted (good and bad) packets split
+into categories based on their respective frame sizes.
+
+<div class="has_qos">
+<h2>Receive and Transmit Queue Counters</h2>
+
+The number of received and transmitted packets per input and output queue.
+</div>
+
+<h2>Receive Error Counters</h2>
+
+<dl>
+ <dt>Rx Drops</dt>
+ <dd>The number of frames dropped due to lack of receive buffers or egress congestion.</dd>
+
+ <dt>Rx CRC/Alignment</dt>
+ <dd>The number of frames received with CRC or alignment errors.</dd>
+
+ <dt>Rx Undersize</dt>
+ <dd>The number of short<small><sup>&nbsp;1</sup></small> frames received with valid CRC.</dd>
+
+ <dt>Rx Oversize</dt>
+ <dd>The number of long<small><sup>&nbsp;2</sup></small> frames received with valid CRC.</dd>
+
+ <dt>Rx Fragments</dt>
+ <dd>The number of short<small><sup>&nbsp;1</sup></small> frames received with invalid CRC.</dd>
+ <dt>Rx Jabber</dt>
+ <dd>The number of long<small><sup>&nbsp;2</sup></small> frames received with invalid CRC.</dd>
+
+ <dt>Rx Filtered</dt>
+ <dd>The number of received frames filtered by the forwarding process.</dd>
+
+</dl>
+<p><small><sup>1&nbsp;</sup></small>Short frames are frames that are smaller than 64 bytes.</p>
+<p><small><sup>2&nbsp;</sup></small>Long frames are frames that are longer than the configured maximum frame length for this port.</p>
+
+<h2>Transmit Error Counters</h2>
+
+<dl>
+
+ <dt>Tx Drops</dt>
+ <dd>
+The number of frames dropped due to output buffer congestion.
+ </dd>
+
+ <dt>Tx Late/Exc. Coll.</dt>
+ <dd>
+ The number of frames dropped due to excessive or late collisions.
+ </dd>
+
+</dl>
+
+<h2>Buttons</h2>
+<p><i>The port select box determines which port is affected by clicking the buttons.</i></p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Clear ">: Clears the counters for the selected port.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+
+</body>
+</html>

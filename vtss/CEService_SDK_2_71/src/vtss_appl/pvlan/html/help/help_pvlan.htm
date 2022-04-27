@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Private VLAN Membership Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+    $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+</script>
+</head>
+
+<body>
+<h1>Private VLAN Membership Configuration Help</h1>
+
+<p>The <a href="glossary.htm#private_vlan" class="glossary">Private VLAN</a> membership configurations for the switch can be
+monitored and modified here. Private <a href="glossary.htm#vlan" class="glossary">VLAN</a>s can be added or deleted
+here. Port members of each Private VLAN can be added or
+removed here.
+</p>
+
+<p>Private VLANs are based on the source port mask, and there are no
+connections to VLANs. This means that <a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a>s and Private VLAN IDs
+can be identical.</p>
+
+<p>A port must be a member of both a VLAN and a Private VLAN to be able
+to forward packets. By default, all ports are VLAN unaware and members
+of VLAN 1 and Private VLAN 1.</p>
+
+<p>A VLAN unaware port can only be a member of one VLAN, but it can be
+a member of multiple Private VLANs.</p>
+
+<!-- PVLANs should never be compiled into stackable images, but if they are then make sure that users get to know about it -->
+<p class="SPOM_only">Private VLANs do not work across the stack.</p>
+
+<dl>
+ <dt>Delete</dt>
+ <dd>
+
+ To delete a private VLAN entry, check this box. The entry will be deleted during the next save.
+ </dd>
+
+ <dt>Private VLAN ID</dt>
+ <dd>
+
+ Indicates the ID of this particular private VLAN.
+ </dd>
+
+ <dt>Port Members</dt>
+ <dd>
+
+ A row of check boxes for each port is displayed for each private VLAN ID. To include a port in a Private VLAN, check the box. To remove or exclude the port from the Private VLAN, make sure the box is unchecked. By default, no ports are members, and all boxes are unchecked.
+
+ </dd>
+ <dt>Adding a New Private VLAN</dt>
+ <dd>
+
+Click <input type="button" value=" Add New Private VLAN "> to add a
+new private VLAN ID. An empty row is added to the table, and the
+private VLAN can be configured as needed. The allowed range for a
+private VLAN ID is the same as the switch port number range. Any
+values outside this range are not accepted, and a warning message
+appears. Click "OK" to discard the incorrect entry, or click "Cancel"
+to return to the editing and make a correction.
+
+<p>The Private VLAN is enabled when you click "Save".</p>
+ 
+<p>The <input type="button" value=" Delete "> button can be used to
+undo the addition of new Private VLANs.</p>
+
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value="Refresh">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

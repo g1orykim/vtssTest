@@ -1,0 +1,278 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>EVC Policer Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_evc_bw.htm";
+
+var pagePolicerId = 1;
+var pageNumberOfEntries = 20;
+var pageArgs = searchArgs(window.location.search);
+var pageArgsName = 'startPolicerId';
+if (pageArgs[pageArgsName]) {
+    pagePolicerId = parseInt(pageArgs[pageArgsName], 10);
+}
+pageArgsName = 'numberOfEntries';
+if (pageArgs[pageArgsName]) {
+    pageNumberOfEntries = parseInt(pageArgs[pageArgsName], 10);
+}
+
+var reqObject;
+var lastPolicerId = 1;
+var policerIdArray = Array();
+var originalEntriesNum = 0;
+var oTState = Array("Disabled", "Enabled");
+var oTType = Array("MEF", "Single");
+var oTMode;
+var oTRateType = Array("Data", "Line");
+if (configArchLuton26 || configArchServal) {
+oTMode = Array("Coupled", "Aware");
+} else {
+oTMode = Array("Coupled", "Aware", "Blind");
+}
+var oVNormal = genArrayInt(0, 3);
+
+function CreateTableHeader(frag)
+{
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Policer ID", "hdrc");
+    addTextHeaderCell(tr, "State", "hdrc");
+    addTextHeaderCell(tr, "Type", "hdrc");
+    addTextHeaderCell(tr, "Policer Mode", "hdrc");
+    addTextHeaderCell(tr, "Rate Type", "hdrc");
+    addTextHeaderCell(tr, "CIR (kbps)", "hdrc");
+    addTextHeaderCell(tr, "CBS (bytes)", "hdrc");
+    addTextHeaderCell(tr, "EIR (kbps)", "hdrc");
+    addTextHeaderCell(tr, "EBS (bytes)", "hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+    elem = document.getElementById("confHead");
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+}
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var values_idx = 0;
+    var policerId = parseInt(values[values_idx++], 10);
+    lastPolicerId = policerIdArray[originalEntriesNum++] = policerId;
+    addTextCell(tr, policerId, "cr");
+    addSelectCell(tr, oTState, oVNormal, parseInt(values[values_idx++], 10), "c", "state_" + policerId);
+    addSelectCell(tr, oTType, oVNormal, parseInt(values[values_idx++], 10), "c", "type_" + policerId);
+    addSelectCell(tr, oTMode, oVNormal, parseInt(values[values_idx++], 10), "c", "mode_" + policerId);
+    addSelectCell(tr, oTRateType, oVNormal, parseInt(values[values_idx++], 10), "c", "rate_type_" + policerId);
+    addInputCell(tr, parseInt(values[values_idx++], 10), "cr", "cir_" + policerId, 8, 8);
+    addInputCell(tr, parseInt(values[values_idx++], 10), "cr", "cbs_" + policerId, 6, 6);
+    addInputCell(tr, parseInt(values[values_idx++], 10), "cr", "eir_" + policerId, 8, 8);
+    addInputCell(tr, parseInt(values[values_idx], 10), "cr", "ebs_" + policerId, 6, 6);
+    frag.appendChild(tr);   // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format: <start_policer_id>,<num_of_entries>,[policer_id]/[state]/[type]/[mode]/[rate_type]/[cir]/[cbs]/[eir]/[ebs]|...
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    originalEntriesNum = 0;
+    if (reqObject != req) {
+        reqObject = req;
+    }
+
+    if (req.responseText) {
+        var configData = req.responseText.split(",");
+        document.getElementById("startPolicerId").value = configData[0];
+        document.getElementById("numberOfEntries").value = configData[1];
+        var tableData = configData[2].split("|");
+        for (var i = 0, j = 0; i < tableData.length; i++) {
+            if (tableData[i]) {
+                addRow(j++, frag, tableData[i].split("/"));
+            }
+        }
+    }
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+    var cBar = new MasterControlBar([{text: "*", className: "cr"},
+                                    {name: "state_"},
+                                    {name: "type_"},
+                                    {name: "mode_"},
+                                    {name: "rate_type_"},
+                                    {name: "cir_"},
+                                    {name: "cbs_"},
+                                    {name: "eir_"},
+                                    {name: "ebs_"}
+                                    ]);
+    cBar.construct('confCtrl','config_odd');
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "confTable");
+}
+
+function requestUpdate(type)
+{
+    var start_id;
+
+    var fld = document.getElementById("numberOfEntries");
+    if (type == "NextEntries") {
+        loadXMLDoc("/config/evc_bw?GetNextEntry=1&startPolicerId=" + lastPolicerId + "&numberOfEntries=" + fld.value,
+                   processUpdate, 'confTable');
+    } else if (type == "Refresh") {
+        loadXMLDoc("/config/evc_bw?startPolicerId=" + document.getElementById("startPolicerId").value + "&numberOfEntries=" + fld.value,
+                   processUpdate, 'confTable');
+    } else if (type == "GetLastEntry") {
+        start_id = configEvcPolicerIdMax - fld.value + 1;
+        loadXMLDoc("/config/evc_bw?startPolicerId=" + start_id + "&numberOfEntries=" + fld.value,
+                   processUpdate, 'confTable');
+    } else if (type == "GetPreviousEntries") {
+        start_id = (parseInt(lastPolicerId, 10) > parseInt(2 * fld.value, 10)) ? lastPolicerId - 2 * fld.value + 1 : 1;
+        loadXMLDoc("/config/evc_bw?startPolicerId=" + start_id + "&numberOfEntries=" + fld.value,
+                   processUpdate, 'confTable');
+    } else if (type == "GetFirstEntry") {
+        loadXMLDoc("/config/evc_bw?startPolicerId=1" + "&numberOfEntries=" + fld.value,
+                   processUpdate, 'confTable');
+    } else {
+        loadXMLDoc("/config/evc_bw?startPolicerId=" + pagePolicerId + "&numberOfEntries=" + pageNumberOfEntries,
+                   processUpdate, 'confTable');
+    }
+}
+
+function checkForm()
+{
+    //startPolicerId
+    if (!isWithinRange("startPolicerId", 1, configEvcPolicerIdMax, "'Policer ID'")) {
+        return false;
+    }
+
+    //numberOfEntries
+    if (!isWithinRange("numberOfEntries", 2, configEvcIdMax, "'entries per page'")) {
+        return false;
+    }
+
+    //counter delete entries number
+    for (var i = 0; i < originalEntriesNum; i++) {
+        //CIR
+        if (!isWithinRange("cir_" + policerIdArray[i], configEvcCirMin, configEvcCirMax, "'CIR'")) {
+            return false;
+        }
+
+        //CBS
+        if (!isWithinRange("cbs_" + policerIdArray[i], configEvcCbsMin, configEvcCbsMax, "'CBS'")) {
+            return false;
+        }
+
+        //EIR
+        if (!isWithinRange("eir_" + policerIdArray[i], configEvcEirMin, configEvcEirMax, "'EIR'")) {
+            return false;
+        }
+
+        //EBS
+        if (!isWithinRange("ebs_" + policerIdArray[i], configEvcEbsMin, configEvcEbsMax, "'EBS'")) {
+            return false;
+        }
+    }
+
+    return true; // Feed the chickens and go home
+}
+
+function clickCtrlButton(type)
+{
+    if (checkForm()) {
+        requestUpdate(type);
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/evc_bw" onsubmit="return checkForm();">
+<h1>Bandwidth Profiles Configuration</h1>
+
+<div class="refreshbar">
+  <input type="button" id="refresh"     value="Refresh" onclick="clickCtrlButton('Refresh');">
+  <input type="button" id="getFirst"    value=" |<< " title="First page" onclick="clickCtrlButton('GetFirstEntry');">
+  <input type="button" id="getPrevious" value=" << " title="Previous page" onclick="clickCtrlButton('GetPreviousEntries');">
+  <input type="button" id="getNext"     value=" >> " title="Next page" onclick="clickCtrlButton('NextEntries');">
+  <input type="button" id="getLast"     value=" >>| " title="Last page" onclick="clickCtrlButton('GetLastEntry');">
+  <img id="update" alt="" src="images/updating.gif">
+</div>
+
+<p class="config">
+  <span class="displaytext">Start from Policer ID</span>
+  <input type="text" id="startPolicerId" name="startPolicerId" maxlength="4" value="1" size="4">
+  <span class="displaytext"> with </span>
+  <input type="text" id="numberOfEntries" name="numberOfEntries" maxlength="3" value="20" size="3">
+  <span class="displaytext"> entries per page. </span>
+</p>
+
+<table summary="Policer Configuration" cellspacing="0" class="config">
+ <thead id="confHead">
+ </thead>
+ <tbody id="confCtrl">
+ </tbody>
+ <tbody id="confTable">
+ </tbody>
+</table>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

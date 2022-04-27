@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Ingress Port Classification Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>QoS Ingress Port Classification Help</h1>
+
+<p>This page allows you to configure the basic <a href="glossary.htm#qos" class="glossary">QoS</a> Ingress Classification settings for all switch ports.</p>
+
+<p class="SPOM_only">The settings relate to the currently selected stack
+unit, as reflected by the page header.</p>
+
+<p>The displayed settings are:</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>The port number for which the configuration below applies.</dd>
+ 
+ <dt>CoS</dt>
+ <dd>Controls the default class of service.
+
+ <p>All frames are classified to a CoS. There is a one to one mapping between CoS, queue and priority.
+ A CoS of 0 (zero) has the lowest priority.</p>
+
+ <p class="has_qos_fixed_map">If the port is VLAN aware and the frame is tagged, then the frame is
+ classified to a CoS that is based on the PCP value in the tag as shown below.
+ Otherwise the frame is classified to the default CoS.</p>
+
+ <table class="has_qos_fixed_map" summary="PCP-QoS Map">
+  <tr><td>PCP value:</td><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr>
+  <tr><td>CoS value:</td><td>1</td><td>0</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr>
+ </table>
+
+ <p class="has_qos_tag_class">If the port is VLAN aware, the frame is tagged and Tag Class. is enabled,
+ then the frame is classified to a CoS that is mapped from the PCP and DEI value in the tag.
+ Otherwise the frame is classified to the default CoS.</p>
+
+ <p>The classified CoS can be overruled by a QCL entry.</p>
+ 
+ <p><b>Note: </b>If the default CoS has been dynamically changed, then the actual default CoS is
+ shown in parentheses after the configured default CoS.</p></dd>
+ 
+ <dt>DPL</dt>
+ <dd>Controls the default <a href="glossary.htm#dpl" class="glossary">drop precedence level</a>.
+
+ <p>All frames are classified to a drop precedence level.</p>
+
+ <p class="has_qos_fixed_map">If the port is VLAN aware and the frame is tagged, then the frame is classified to a
+ DPL that is equal to the DEI value in the tag. Otherwise the frame is classified to the default DPL.</p>
+
+ <p class="has_qos_tag_class">If the port is VLAN aware, the frame is tagged and Tag Class. is enabled,
+ then the frame is classified to a DPL that is mapped from the PCP and DEI value in the tag.
+ Otherwise the frame is classified to the default DPL.</p>
+
+ <p>The classified DPL can be overruled by a QCL entry.</p></dd>
+ 
+ <dt class="has_qos_pcp_dei">PCP</dt>
+ <dd class="has_qos_pcp_dei">Controls the default <a href="glossary.htm#PCP" class="glossary">PCP</a> value.
+
+ <p>All frames are classified to a PCP value.</p>
+
+ <p> If the port is VLAN aware and the frame is tagged, then the frame is classified to the
+ PCP value in the tag. Otherwise the frame is classified to the default PCP value.</p></dd>
+ 
+ <dt class="has_qos_pcp_dei">DEI</dt>
+ <dd class="has_qos_pcp_dei">Controls the default <a href="glossary.htm#DEI" class="glossary">DEI</a> value.
+
+ <p>All frames are classified to a DEI value.</p>
+
+ <p>If the port is VLAN aware and the frame is tagged, then the frame is classified to the
+ DEI value in the tag. Otherwise the frame is classified to the default DEI value.</p></dd>
+ 
+ <dt class="has_qos_tag_class">Tag Class.</dt>
+ <dd class="has_qos_tag_class">Shows the classification mode for tagged frames on this port.<br>
+ <samp>Disabled</samp>: Use default CoS and DPL for tagged frames.<br>
+ <samp>Enabled</samp>: Use mapped versions of <a href="glossary.htm#PCP" class="glossary">PCP</a>
+ and <a href="glossary.htm#DEI" class="glossary">DEI</a> for tagged frames.
+ 
+ <p>Click on the mode in order to configure the mode and/or mapping.</p>
+
+ <p><b>Note: </b>This setting has no effect if the port is VLAN unaware. Tagged frames received on VLAN unaware ports
+ are always classified to the default CoS and DPL.</p></dd>
+
+ <dt class="has_qos_dscp_class">DSCP Based</dt>
+ <dd class="has_qos_dscp_class">Click to Enable <a href="glossary.htm#dscp" class="glossary">DSCP</a> Based QoS
+ Ingress Port Classification. </dd>
+
+ <dt class="has_arch_serval">Key Type</dt>
+ <dd class="has_arch_serval">
+ The key type specifying the key generated for frames received on the port.
+ The allowed values are:
+ <br><samp>Normal</samp>: Half key, match outer tag, SIP/DIP and SMAC/DMAC.
+ <br><samp>Double Tag</samp>: Quarter key, match inner and outer tag.
+ <br><samp><a href="glossary.htm#ip" class="glossary">IP</a> Address</samp>: Half key, match inner and outer tag, SIP and DIP. For non-IP frames, match outer tag only.
+ <br><samp>MAC and IP Address</samp>: Full key, match inner and outer tag, SMAC, DMAC, SIP and DIP.
+ <br>Filtering on DMAC type (unicast/multicast/broadcast) is supported for any key type.
+ </dd>
+
+ <dt class="has_qcl_smac_sip_and_dmac_dip">Address Mode</dt>
+ <dd class="has_qcl_smac_sip_and_dmac_dip">
+ The IP/MAC address mode specifying whether the <a href="glossary.htm#qcl" class="glossary">QCL</a>
+ classification must be based on source (SMAC/SIP) or destination (DMAC/DIP) addresses on this port.
+ <span class="has_arch_serval">This parameter is only used when the key type is <samp>Normal</samp>.</span>
+ The allowed values are:
+ <br><samp>Source</samp>: Enable SMAC/SIP matching.
+ <br><samp>Destination</samp>: Enable DMAC/DIP matching.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value="Save">: Click to save changes.</p>
+<p><input type="button" value="Reset">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

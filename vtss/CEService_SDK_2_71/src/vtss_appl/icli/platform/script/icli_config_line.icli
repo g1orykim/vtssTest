@@ -1,0 +1,828 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG =
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_cmd_func.h"
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+static void _line_editing_set(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *session_list,
+    IN  icli_unsigned_range_t   *vty_list,
+    IN  icli_input_style_t      input_style
+)
+{
+    u32     sid;
+    u32     i;
+
+    if ( session_list ) {
+        for ( i = 0; i < session_list->cnt; ++i ) {
+            for ( sid = session_list->range[i].min; sid <= session_list->range[i].max; ++sid ) {
+                if ( icli_session_input_style_set(sid, input_style) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to configure line editing on line-%u.\n", sid);
+                }
+            }
+        }
+    } else if ( vty_list ) {
+        for ( i = 0; i < vty_list->cnt; ++i ) {
+            for ( sid = vty_list->range[i].min; sid <= vty_list->range[i].max; ++sid ) {
+                if ( icli_session_input_style_set(sid+1, input_style) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to configure line editing on vty-%u.\n", sid);
+                }
+            }
+        }
+    } else {
+        if ( icli_session_input_style_set(0, input_style) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to configure line editing on console.\n");
+        }
+    }
+}
+
+static void _length_set(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *session_list,
+    IN  icli_unsigned_range_t   *vty_list,
+    IN  u32                     length
+)
+{
+    u32     sid;
+    u32     i;
+
+    if ( session_list ) {
+        for ( i = 0; i < session_list->cnt; ++i ) {
+            for ( sid = session_list->range[i].min; sid <= session_list->range[i].max; ++sid ) {
+                if ( icli_session_lines_set(sid, length) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to configure length on line-%u.\n", sid);
+                }
+            }
+        }
+    } else if ( vty_list ) {
+        for ( i = 0; i < vty_list->cnt; ++i ) {
+            for ( sid = vty_list->range[i].min; sid <= vty_list->range[i].max; ++sid ) {
+                if ( icli_session_lines_set(sid+1, length) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to configure length on vty-%u.\n", sid);
+                }
+            }
+        }
+    } else {
+        if ( icli_session_lines_set(0, length) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to configure length on console.\n");
+        }
+    }
+}
+
+static void _width_set(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *session_list,
+    IN  icli_unsigned_range_t   *vty_list,
+    IN  u32                     width
+)
+{
+    u32     sid;
+    u32     i;
+
+    if ( session_list ) {
+        for ( i = 0; i < session_list->cnt; ++i ) {
+            for ( sid = session_list->range[i].min; sid <= session_list->range[i].max; ++sid ) {
+                if ( icli_session_width_set(sid, width) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to configure width on line-%u.\n", sid);
+                }
+            }
+        }
+    } else if ( vty_list ) {
+        for ( i = 0; i < vty_list->cnt; ++i ) {
+            for ( sid = vty_list->range[i].min; sid <= vty_list->range[i].max; ++sid ) {
+                if ( icli_session_width_set(sid+1, width) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to configure width on vty-%u.\n", sid);
+                }
+            }
+        }
+    } else {
+        if ( icli_session_width_set(0, width) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to configure width on console.\n");
+        }
+    }
+}
+
+static void _timeout_set(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *session_list,
+    IN  icli_unsigned_range_t   *vty_list,
+    IN  i32                     wait_time
+)
+{
+    u32     sid;
+    u32     i;
+
+    if ( session_list ) {
+        for ( i = 0; i < session_list->cnt; ++i ) {
+            for ( sid = session_list->range[i].min; sid <= session_list->range[i].max; ++sid ) {
+                if ( icli_session_wait_time_set(sid, wait_time) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to set timeout on line-%u.\n", sid);
+                }
+            }
+        }
+    } else if ( vty_list ) {
+        for ( i = 0; i < vty_list->cnt; ++i ) {
+            for ( sid = vty_list->range[i].min; sid <= vty_list->range[i].max; ++sid ) {
+                if ( icli_session_wait_time_set(sid+1, wait_time) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to set timeout on vty-%u.\n", sid);
+                }
+            }
+        }
+    } else {
+        if ( icli_session_wait_time_set(0, wait_time) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to set timeout on console.\n");
+        }
+    }
+}
+
+static void _exec_banner_set(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *session_list,
+    IN  icli_unsigned_range_t   *vty_list,
+    IN  BOOL                    b_exec_banner
+)
+{
+    u32     sid;
+    u32     i;
+
+    if ( session_list ) {
+        for ( i = 0; i < session_list->cnt; ++i ) {
+            for ( sid = session_list->range[i].min; sid <= session_list->range[i].max; ++sid ) {
+                if ( icli_session_exec_banner_enable(sid, b_exec_banner) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to %s EXEC banner on line-%u.\n", b_exec_banner?"enable":"disable", sid);
+                }
+            }
+        }
+    } else if ( vty_list ) {
+        for ( i = 0; i < vty_list->cnt; ++i ) {
+            for ( sid = vty_list->range[i].min; sid <= vty_list->range[i].max; ++sid ) {
+                if ( icli_session_exec_banner_enable(sid+1, b_exec_banner) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to %s EXEC banner on vty-%u.\n", b_exec_banner?"enable":"disable", sid);
+                }
+            }
+        }
+    } else {
+        if ( icli_session_exec_banner_enable(0, b_exec_banner) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to %s EXEC banner on console.\n", b_exec_banner?"enable":"disable");
+        }
+    }
+}
+
+static void _motd_banner_set(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *session_list,
+    IN  icli_unsigned_range_t   *vty_list,
+    IN  BOOL                    b_motd_banner
+)
+{
+    u32     sid;
+    u32     i;
+
+    if ( session_list ) {
+        for ( i = 0; i < session_list->cnt; ++i ) {
+            for ( sid = session_list->range[i].min; sid <= session_list->range[i].max; ++sid ) {
+                if ( icli_session_motd_banner_enable(sid, b_motd_banner) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to %s Day banner on line-%u.\n", b_motd_banner?"enable":"disable", sid);
+                }
+            }
+        }
+    } else if ( vty_list ) {
+        for ( i = 0; i < vty_list->cnt; ++i ) {
+            for ( sid = vty_list->range[i].min; sid <= vty_list->range[i].max; ++sid ) {
+                if ( icli_session_motd_banner_enable(sid+1, b_motd_banner) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to %s Day banner on vty-%u.\n", b_motd_banner?"enable":"disable", sid);
+                }
+            }
+        }
+    } else {
+        if ( icli_session_motd_banner_enable(0, b_motd_banner) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to %s Day banner on console.\n", b_motd_banner?"enable":"disable");
+        }
+    }
+}
+
+static void _history_size_set(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *session_list,
+    IN  icli_unsigned_range_t   *vty_list,
+    IN  u32                     history_size
+)
+{
+    u32     sid;
+    u32     i;
+
+    if ( session_list ) {
+        for ( i = 0; i < session_list->cnt; ++i ) {
+            for ( sid = session_list->range[i].min; sid <= session_list->range[i].max; ++sid ) {
+                if ( icli_session_history_size_set(sid, history_size) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to set history size on line-%u.\n", sid);
+                }
+            }
+        }
+    } else if ( vty_list ) {
+        for ( i = 0; i < vty_list->cnt; ++i ) {
+            for ( sid = vty_list->range[i].min; sid <= vty_list->range[i].max; ++sid ) {
+                if ( icli_session_history_size_set(sid+1, history_size) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to set history size on vty-%u.\n", sid);
+                }
+            }
+        }
+    } else {
+        if ( icli_session_history_size_set(0, history_size) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to set history size on console.\n");
+        }
+    }
+}
+
+static void _location_set(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *session_list,
+    IN  icli_unsigned_range_t   *vty_list,
+    IN  char                    *location
+)
+{
+    u32     sid;
+    u32     i;
+
+    if ( session_list ) {
+        for ( i = 0; i < session_list->cnt; ++i ) {
+            for ( sid = session_list->range[i].min; sid <= session_list->range[i].max; ++sid ) {
+                if ( icli_session_location_set(sid, location) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to configure location on line-%u.\n", sid);
+                }
+            }
+        }
+    } else if ( vty_list ) {
+        for ( i = 0; i < vty_list->cnt; ++i ) {
+            for ( sid = vty_list->range[i].min; sid <= vty_list->range[i].max; ++sid ) {
+                if ( icli_session_location_set(sid+1, location) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to configure location on vty-%u.\n", sid);
+                }
+            }
+        }
+    } else {
+        if ( icli_session_location_set(0, location) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to configure location on console.\n");
+        }
+    }
+}
+
+static void _privileged_level_set(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *session_list,
+    IN  icli_unsigned_range_t   *vty_list,
+    IN  u32                     privileged_level
+)
+{
+    u32     sid;
+    u32     i;
+
+    if ( session_list ) {
+        for ( i = 0; i < session_list->cnt; ++i ) {
+            for ( sid = session_list->range[i].min; sid <= session_list->range[i].max; ++sid ) {
+                if ( icli_session_privileged_level_set(sid, privileged_level) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to configure privileged level on line-%u.\n", sid);
+                }
+            }
+        }
+    } else if ( vty_list ) {
+        for ( i = 0; i < vty_list->cnt; ++i ) {
+            for ( sid = vty_list->range[i].min; sid <= vty_list->range[i].max; ++sid ) {
+                if ( icli_session_privileged_level_set(sid+1, privileged_level) != ICLI_RC_OK ) {
+                    ICLI_PRINTF("%% Fail to configure privileged level on vty-%u.\n", sid);
+                }
+            }
+        }
+    } else {
+        if ( icli_session_privileged_level_set(0, privileged_level) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to configure privileged level on console.\n");
+        }
+    }
+}
+FUNCTION_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = editing
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+IF_FLAG   =
+
+HELP      = ##ICLI_HELP_EDITING
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+CODE_BEGIN
+    _line_editing_set(session_id, session_list, vty_list, ICLI_INPUT_STYLE_SINGLE_LINE);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    _line_editing_set(session_id, session_list, vty_list, ICLI_INPUT_STYLE_MULTIPLE_LINE);
+NO_FORM_CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = length <0,3-512>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   = length
+
+RUNTIME   =
+
+BYWORD    =
+BYWORD    = 0 or 3-512
+
+HELP      = ##ICLI_HELP_LENGTH
+HELP      = ##ICLI_HELP_LENGTH_NUM
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _length_set(session_id, session_list, vty_list, length);
+CODE_END
+
+CMD_END
+
+ICLI_HELP_NO = Negate a command or set its defaults
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no length
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_LENGTH
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _length_set(session_id, session_list, vty_list, ICLI_DEFAULT_LINES);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = width <0,40-512>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   = width
+
+RUNTIME   =
+
+BYWORD    =
+BYWORD    = 0 or 40-512
+
+HELP      = ##ICLI_HELP_WIDTH
+HELP      = ##ICLI_HELP_WIDTH_NUM
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _width_set(session_id, session_list, vty_list, width);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no width
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_WIDTH
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _width_set(session_id, session_list, vty_list, ICLI_DEFAULT_WIDTH);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = exec-timeout <0-1440> [<0-3600>]
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   = min
+CMD_VAR   = sec
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_EXEC_TIMEOUT
+HELP      = ##ICLI_HELP_EXEC_MIN
+HELP      = ##ICLI_HELP_EXEC_SEC
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+    i32     wait_time;
+
+    /* init sec */
+    sec = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    wait_time = min * 60 + sec;
+    _timeout_set(session_id, session_list, vty_list, wait_time);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no exec-timeout
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_EXEC_TIMEOUT
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _timeout_set(session_id, session_list, vty_list, ICLI_DEFAULT_WAIT_TIME);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = exec-banner
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+HELP      = Enable the display of the EXEC banner
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+CODE_BEGIN
+    _exec_banner_set(session_id, session_list, vty_list, TRUE);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    _exec_banner_set(session_id, session_list, vty_list, FALSE);
+NO_FORM_CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = motd-banner
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+HELP      = Enable the display of the MOTD banner
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+CODE_BEGIN
+    _motd_banner_set(session_id, session_list, vty_list, TRUE);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    _motd_banner_set(session_id, session_list, vty_list, FALSE);
+NO_FORM_CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = history size <0-32>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = history_size
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_HISTORY
+HELP      = ##ICLI_HELP_HISTORY_SIZE
+HELP      = ##ICLI_HELP_HISTORY_NUM
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _history_size_set(session_id, session_list, vty_list, history_size);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no history size
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_HISTORY
+HELP      = ##ICLI_HELP_HISTORY_SIZE
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _history_size_set(session_id, session_list, vty_list, ICLI_HISTORY_CMD_CNT);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = location <line32>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   = location
+
+BYWORD    =
+BYWORD    = LINE
+
+HELP      = ##ICLI_HELP_LOCATION
+HELP      = One text line describing the terminal's location in 32 char's
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _location_set(session_id, session_list, vty_list, location);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no location
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_LOCATION
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _location_set(session_id, session_list, vty_list, NULL);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = privilege level <0-15>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = privileged_level
+
+HELP      = ##ICLI_HELP_PRIVILEGE
+HELP      = ##ICLI_HELP_PRIVILEGE_LEVEL
+HELP      = Default privilege level for line
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _privileged_level_set(session_id, session_list, vty_list, privileged_level);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no privilege level
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_PRIVILEGE
+HELP      = ##ICLI_HELP_PRIVILEGE_LEVEL
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _privileged_level_set(session_id, session_list, vty_list, ICLI_DEFAULT_PRIVILEGED_LEVEL);
+CODE_END
+
+CMD_END

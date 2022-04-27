@@ -1,0 +1,80 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files location
+DIR_ipmc            := $(DIR_APPL)/ipmc
+DIR_ipmc_base       := $(DIR_ipmc)/base
+DIR_ipmc_platform   := $(DIR_ipmc)/platform
+DIR_ipmc_web        := $(DIR_ipmc_platform)/html
+
+# Module platform objects
+OBJECTS_ipmc_base := vtss_ipmc.o
+OBJECTS_ipmc_platform := ipmc.o             \
+  $(call if-module, vcli, ipmc_cli.o)       \
+  $(call if-module, web, ipmc_web.o)        \
+  $(call if-module, conf_xml, ipmc_xml.o)   \
+  $(call if-module, icli, ipmc_snp_icli.o)  \
+  $(call if-module, icfg, ipmc_snp_icfg.o)
+# Built-in ICLI
+$(eval $(call add_icli, $(foreach m, ipmc_snp_igmp ipmc_snp_mld, $(DIR_ipmc_platform)/$(m).icli)))
+
+OBJECTS_ipmc = $(OBJECTS_ipmc_base) $(OBJECTS_ipmc_platform)
+
+# Compiler rules
+$(OBJECTS_ipmc_base): %.o: $(DIR_ipmc_base)/src/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_ipmc_platform): %.o: $(DIR_ipmc_platform)/%.c
+	$(call compile_c, $@, $<)
+
+# Include files
+INCLUDES += -I$(DIR_ipmc_base)/include -I$(DIR_ipmc_platform)
+
+# Lint files
+LINT_FILES_ipmc += $(DIR_ipmc_base)/src/*.c                     \
+  $(DIR_ipmc_platform)/ipmc.c                                   \
+  $(call if-module, vcli, $(DIR_ipmc_platform)/ipmc_cli.c)      \
+  $(call if-module, web, $(DIR_ipmc_platform)/ipmc_web.c)       \
+  $(call if-module, conf_xml, $(DIR_ipmc_platform)/ipmc_xml.c)  \
+  $(call if-module, icli, $(DIR_ipmc_platform)/ipmc_snp_icli.c) \
+  $(call if-module, icfg, $(DIR_ipmc_platform)/ipmc_snp_icfg.c)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_ipmc += \
+  $(DIR_ipmc_base)/src/*.c        \
+  $(DIR_ipmc_base)/include/*.h    \
+  $(DIR_ipmc_platform)/*.c        \
+  $(DIR_ipmc_platform)/*.h
+
+# Web content generation
+WEB_CONTENT += $(DIR_ipmc_web)
+
+# Tidy files
+TIDY_FILES_ipmc := $(DIR_ipmc_web)/*.htm $(DIR_ipmc_web)/help/*.htm
+
+# JSlint files
+JSLINT_FILES_ipmc := $(TIDY_FILES_ipmc)
+

@@ -1,0 +1,196 @@
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+
+
+INCLUDE_BEGIN
+#include "thermal_protect_icli_functions.h"
+INCLUDE_END
+
+
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = Shows thermal protection status (chip temperature and port status).
+
+DOC_CMD_USAGE   = Use to show thermal protection status.
+
+DOC_CMD_EXAMPLE = show thermal-protect 
+
+IF_FLAG = defined(VTSS_SW_OPTION_THERMAL_PROTECT)
+
+COMMAND =   show thermal-protect [interface <port_type_list>] 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+HELP = 
+HELP = Display thermal protection status.
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = interface
+CMD_VAR   = port_list
+CODE_BEGIN
+    thermal_protect_status(session_id, interface, port_list);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+THERMAL_PROTECT_HELP = Thermal protection configuirations.
+THERMAL_PROTECT_PRIO_HELP = Sets temperature at which to turn ports with the corresponding priority off.
+THERMAL_PROTECT_PRIOTIES_HELP = Prioity or priorities. 
+DOC_CMD_DESC    = ##THERMAL_PROTECT_PRIO_HELP
+DOC_CMD_USAGE   = Use to set the temperature at which to turn ports with the corresponding priority off.
+DOC_CMD_EXAMPLE = thermal-protect prio 1 temperature 30
+
+IF_FLAG = defined(VTSS_SW_OPTION_THERMAL_PROTECT)
+
+COMMAND = thermal-protect prio <0~3> temperature <0-255>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP = ##THERMAL_PROTECT_HELP
+HELP = ##THERMAL_PROTECT_PRIO_HELP
+HELP = ##THERMAL_PROTECT_PRIOTIES_HELP
+HELP = temperature
+HELP = Temperature which to turn ports with the corresponding priority off.
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = prio_list
+CMD_VAR   = 
+CMD_VAR   = new_temp
+
+CODE_BEGIN
+    VTSS_RC(thermal_protect_temp(session_id, prio_list, new_temp, FALSE));
+CODE_END
+
+CMD_END
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = ##THERMAL_PROTECT_PRIO_HELP
+DOC_CMD_USAGE   = Use to set the temperature at which to turn ports with the corresponding priority off.
+DOC_CMD_EXAMPLE = thermal-protect prio 1 temperature 30
+
+IF_FLAG = defined(VTSS_SW_OPTION_THERMAL_PROTECT)
+
+COMMAND = no thermal-protect prio <0~3> 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE | ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP = 
+HELP = ##THERMAL_PROTECT_HELP
+HELP = ##THERMAL_PROTECT_PRIO_HELP
+HELP = ##THERMAL_PROTECT_PRIOTIES_HELP
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = prio_list
+
+CODE_BEGIN
+    VTSS_RC(thermal_protect_temp(session_id, prio_list, 0, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+THERMAL_PROTECT_PORT_PRIO_HELP = Sets the priority for the interface(s).
+
+DOC_CMD_DESC    = ##THERMAL_PROTECT_PORT_PRIO_HELP
+DOC_CMD_USAGE   = Use to set the priority for the port(s).
+DOC_CMD_EXAMPLE = thermal-protect port-prio 3
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = list
+
+IF_FLAG = defined(VTSS_SW_OPTION_THERMAL_PROTECT)
+
+COMMAND = thermal-protect port-prio <0-3>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+HELP = Thermal priority for the interface.
+HELP = ##THERMAL_PROTECT_PORT_PRIO_HELP
+HELP = Priority.
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = prio
+
+CODE_BEGIN
+    thermal_protect_prio(list, prio, FALSE);
+CODE_END
+
+CMD_END
+
+
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = ##THERMAL_PROTECT_PORT_PRIO_HELP
+DOC_CMD_USAGE   = Use to set the priority for the port(s).
+DOC_CMD_EXAMPLE = 
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = list
+
+IF_FLAG = defined(VTSS_SW_OPTION_THERMAL_PROTECT)
+
+COMMAND = no thermal-protect port-prio 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE | ICLI_CMD_PROP_LOOSELY
+
+HELP =
+HELP = Thermal priority for the interface.
+HELP = ##THERMAL_PROTECT_PORT_PRIO_HELP
+
+CODE_BEGIN
+    thermal_protect_prio(list, 0, TRUE);
+CODE_END
+
+CMD_END
+
+

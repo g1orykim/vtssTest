@@ -1,0 +1,1503 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "lldpmed_icli_functions.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+LLDP_NO = No
+LLDP_HELP = Link Layer Discover Protocol.
+MED_HELP = Media Endpoint Discovery.
+TLV_LOCATION_HELP = LLDP-MED Location Type Length Value parameter.
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+
+COMMAND = show lldp med remote-device [ interface <port_type_list> ]
+
+DOC_CMD_DESC    = Show LLDP-MED neighbor device information.
+
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = use to show lldp med remote-device
+DOC_CMD_EXAMPLE = show lldp med remote-device interface GigabitEthernet 1/1
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+RUNTIME =
+
+! 1: show
+! 2: lldp
+! 3: med
+! 4: remote-device
+! 5: interface
+! 6: port list
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_interface
+CMD_VAR = port_list
+
+HELP =
+HELP = ##LLDP_HELP
+HELP = Display LLDP-MED neighbors information.
+HELP = Display remote device LLDP-MED neighbors information.
+HELP =
+HELP =
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Interface : option>
+
+CODE_BEGIN
+    lldpmed_icli_show_remote_device(session_id, has_interface, port_list);
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = show lldp med media-vlan-policy [<0~31>]
+
+DOC_CMD_DESC    = Show media vlan policy(ies)
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Used to media vlan policy
+DOC_CMD_EXAMPLE = show media-vlan-policy
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+RUNTIME =
+
+! 1: show
+! 2: media-vlan-policies
+! 3: <0~31>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = v_0_to_31
+
+HELP =
+HELP =
+HELP =
+HELP = Display media vlan policies.
+HELP = List of policies.
+
+BYWORD =
+BYWORD =
+BYWORD = Policy list.
+
+CODE_BEGIN
+    lldpmed_icli_show_policies(session_id, v_0_to_31);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = lldp med location-tlv latitude { north | south } <word8>
+
+DOC_CMD_DESC    = Use the lldp med location-tlv latitude to configure the location latitude.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to configure location latitude.
+DOC_CMD_EXAMPLE = lldp med location-tlv latitude north 12.2345
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: lldp
+! 2: med
+! 3: location-tlv
+! 4: latitude
+! 5: north
+! 6: south
+! 7: <word8>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_north
+CMD_VAR = has_south
+CMD_VAR = v_word8
+
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##TLV_LOCATION_HELP
+HELP = Latitude parameter.
+HELP = Setting latitude direction to north.
+HELP = Setting latitude direction to south.
+HELP = Latitude degrees (0.0000-90.0000).
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <North : option>
+BYWORD = <South : option>
+BYWORD = Degrees
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_latitude(session_id, has_north, has_south, v_word8));
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = no lldp med location-tlv latitude
+
+DOC_CMD_DESC    = Use no lldp med location-tlv latitude to configure the latitude location to north 0 degrees.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to configure location latitude to north 0 degrees.
+DOC_CMD_EXAMPLE = no lldp med location-tlv latitude
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: no
+! 2: lldp
+! 3: med
+! 4: location-tlv
+! 5: latitude
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##TLV_LOCATION_HELP
+HELP = Setting Latitude parameter to default.
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_latitude(session_id, TRUE, FALSE, "0"));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = lldp med location-tlv longitude { west | east } <word9>
+
+DOC_CMD_DESC    = Use the lldp med location-tlv longitude to configure the location longitude.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to configure location longitude.
+DOC_CMD_EXAMPLE = lldp med location-tlv longitude east 12.2345
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: lldp
+! 2: med
+! 3: location-tlv
+! 4: longitude
+! 5: west
+! 6: east
+! 7: <word9>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_west
+CMD_VAR = has_east
+CMD_VAR = v_word9
+
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##TLV_LOCATION_HELP
+HELP = Longitude parameter.
+HELP = Setting longitude direction to west.
+HELP = Setting longitude direction to east.
+HELP = Longitude degrees (0.0000-180.0000).
+
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <West : option>
+BYWORD = <East : option>
+BYWORD = Degrees
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_longitude(session_id, has_east, has_west, v_word9));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = no lldp med location-tlv longitude
+
+
+DOC_CMD_DESC    = Use no lldp med location-tlv longitude to configure the longitude location to north 0 degrees.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to configure location longitude to east 0 degrees.
+DOC_CMD_EXAMPLE = no lldp med location-tlv longitude
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: no
+! 2: lldp
+! 3: med
+! 4: location-tlv
+! 5: longitude
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##TLV_LOCATION_HELP
+HELP = Setting longitude to default.
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_longitude(session_id, TRUE, FALSE, "0"));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = lldp med location-tlv altitude { meters | floors } <word11>
+
+DOC_CMD_DESC    = Use the lldp med location-tlv altitude to configure the location altitude.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to configure location altitude.
+DOC_CMD_EXAMPLE = lldp med location-tlv altitude meter 12.2345
+
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: lldp
+! 2: med
+! 3: location-tlv
+! 4: altitude
+! 5: meters
+! 6: floors
+! 7: <word11>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_meters
+CMD_VAR = has_floors
+CMD_VAR = v_word11
+
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##TLV_LOCATION_HELP
+HELP = Altitude parameter.
+HELP = Specify the altitude in meters.
+HELP = Specify the altitude in floor.
+HELP = Altitude value.
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Meters : option>
+BYWORD = <Floors : option>
+BYWORD = Meters or floors
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_altitude(session_id, has_meters, has_floors, v_word11));
+CODE_END
+
+CMD_END
+
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = no lldp med location-tlv altitude
+
+DOC_CMD_DESC    = Use the lldp med location-tlv altitude to configure the location altitude.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to configure location altitude.
+DOC_CMD_EXAMPLE = lldp med location-tlv altitude meter 12.2345
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP =
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##TLV_LOCATION_HELP
+HELP = Setting altitude to default.
+
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_altitude(session_id, TRUE, FALSE, "0"));
+CODE_END
+
+CMD_END
+
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = lldp med location-tlv civic-addr { country | state | county | city | district | block | street | leading-street-direction | trailing-street-suffix | street-suffix | house-no | house-no-suffix | landmark | additional-info | name | zip-code | building | apartment | floor | room-number | place-type | postal-community-name | p-o-box | additional-code } <string250>
+
+DOC_CMD_DESC    = Use lldp med location-tlv civic-addr to configure the civic address.
+DOC_CMD_DEFAULT = The default civic address is "" (empty).
+DOC_CMD_USAGE   = Use to configure the civic address.
+DOC_CMD_EXAMPLE = lldp med location-tlv civic-addr street "Poppelvej"
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+
+! 1: lldp
+! 2: med
+! 3: location-tlv
+! 4: civic-addr
+! 5: country
+! 6: state
+! 7: county
+! 8: city
+! 9: district
+! 10: block
+! 11: street
+! 12: leading_street_direction
+! 13: trailing_street_suffix
+! 14: str_suf
+! 15: house_no
+! 16: house_no_suffix
+! 17: landmark
+! 18: additional_info
+! 19: name
+! 20: zip_code
+! 21: building
+! 22: apartment
+! 23: floor
+! 24: room_number
+! 25: place_type
+! 26: postal_com_name
+! 27: p_o_box
+! 28: additional_code
+! 29: <string250>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_country
+CMD_VAR = has_state
+CMD_VAR = has_county
+CMD_VAR = has_city
+CMD_VAR = has_district
+CMD_VAR = has_block
+CMD_VAR = has_street
+CMD_VAR = has_leading_street_direction
+CMD_VAR = has_trailing_street_suffix
+CMD_VAR = has_str_suf
+CMD_VAR = has_house_no
+CMD_VAR = has_house_no_suffix
+CMD_VAR = has_landmark
+CMD_VAR = has_additional_info
+CMD_VAR = has_name
+CMD_VAR = has_zip_code
+CMD_VAR = has_building
+CMD_VAR = has_apartment
+CMD_VAR = has_floor
+CMD_VAR = has_room_number
+CMD_VAR = has_place_type
+CMD_VAR = has_postal_com_name
+CMD_VAR = has_p_o_box
+CMD_VAR = has_additional_code
+CMD_VAR = v_string250
+
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##TLV_LOCATION_HELP
+HELP = Civic address information and postal information
+HELP = The two-letter ISO 3166 country code in capital ASCII letters - Example: DK, DE or US.
+HELP = National subdivisions (state, canton, region, province, prefecture).
+HELP = County, parish, gun (Japan), district.
+HELP = City, township, shi (Japan) - Example: Copenhagen.
+HELP = City division, borough, city district, ward, chou (Japan).
+HELP = Neighborhood, block.
+HELP = Street - Example: Poppelvej.
+HELP = Leading street direction - Example: N.
+HELP = Trailing street suffix - Example: SW.
+HELP = Street suffix - Example: Ave, Platz.
+HELP = House number - Example: 21.
+HELP = House number suffix - Example: A, 1/2.
+HELP = Landmark or vanity address - Example: Columbia University.
+HELP = Additional location info - Example: South Wing.
+HELP = Name (residence and office occupant) - Example: Flemming Jahn.
+HELP = Postal/zip code - Example: 2791.
+HELP = Building (structure) - Example: Low Library.
+HELP = Unit (Apartment, suite) - Example: Apt 42.
+HELP = Floor - Example: 4.
+HELP = Room number - Example: 450F.
+HELP = Place type - Example: Office.
+HELP = Postal community name - Example: Leonia.
+HELP = Post office box (P.O. BOX) - Example: 12345.
+HELP = Additional code - Example: 1320300003.
+HELP = Value for the corresponding selected civic address.
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Country : option>
+BYWORD = <State : option>
+BYWORD = <County : option>
+BYWORD = <City : option>
+BYWORD = <District : option>
+BYWORD = <Block : option>
+BYWORD = <Street : option>
+BYWORD = <LeadingStreetDirection : option>
+BYWORD = <TrailingStreetSuffix : option>
+BYWORD = <StrSuf : option>
+BYWORD = <HouseNo : option>
+BYWORD = <HouseNoSuffix : option>
+BYWORD = <Landmark : option>
+BYWORD = <AdditionalInfo : option>
+BYWORD = <Name : option>
+BYWORD = <ZipCode : option>
+BYWORD = <Building : option>
+BYWORD = <Apartment : option>
+BYWORD = <Floor : option>
+BYWORD = <RoomNumber : option>
+BYWORD = <PlaceType : option>
+BYWORD = <PostalComName : option>
+BYWORD = <POBox : option>
+BYWORD = <AdditionalCode : option>
+BYWORD = Location Information
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_civic_addr(session_id,has_country, has_state, has_county, has_city, has_district, has_block, has_street, has_leading_street_direction, has_trailing_street_suffix, has_str_suf, has_house_no, has_house_no_suffix, has_landmark, has_additional_info, has_name, has_zip_code, has_building, has_apartment, has_floor, has_room_number, has_place_type, has_postal_com_name, has_p_o_box, has_additional_code, v_string250));
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = no lldp med location-tlv civic-addr { country | state | county | city | district | block | street | leading-street-direction | trailing-street-suffix | street-suffix | house-no | house-no-suffix | landmark | additional-info | name | zip-code | building | apartment | floor | room-number | place-type | postal-community-name | p-o-box | additional-code }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: no
+! 2: lldp
+! 3: med
+! 4: location-tlv
+! 5: civic-addr
+! 6: country
+! 7: state
+! 8: county
+! 9: city
+! 10: district
+! 11: block
+! 12: street
+! 13: leading_street_direction
+! 14: trailing_street_suffix
+! 15: str_suf
+! 16: house_no
+! 17: house_no_suffix
+! 18: landmark
+! 19: additional_info
+! 20: name
+! 21: zip_code
+! 22: building
+! 23: apartment
+! 24: floor
+! 25: room_number
+! 26: place_type
+! 27: postal_com_name
+! 28: p_o_box
+! 29: additional_code
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_country
+CMD_VAR = has_state
+CMD_VAR = has_county
+CMD_VAR = has_city
+CMD_VAR = has_district
+CMD_VAR = has_block
+CMD_VAR = has_street
+CMD_VAR = has_leading_street_direction
+CMD_VAR = has_trailing_street_suffix
+CMD_VAR = has_str_suf
+CMD_VAR = has_house_no
+CMD_VAR = has_house_no_suffix
+CMD_VAR = has_landmark
+CMD_VAR = has_additional_info
+CMD_VAR = has_name
+CMD_VAR = has_zip_code
+CMD_VAR = has_building
+CMD_VAR = has_apartment
+CMD_VAR = has_floor
+CMD_VAR = has_room_number
+CMD_VAR = has_place_type
+CMD_VAR = has_postal_com_name
+CMD_VAR = has_p_o_box
+CMD_VAR = has_additional_code
+
+HELP =
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##TLV_LOCATION_HELP
+HELP = Civic address information and postal information
+HELP = The two-letter ISO 3166 country code in capital ASCII letters - Example: DK, DE or US.
+HELP = National subdivisions (state, canton, region, province, prefecture).
+HELP = County, parish, gun (Japan), district.
+HELP = City, township, shi (Japan) - Example: Copenhagen.
+HELP = City division, borough, city district, ward, chou (Japan).
+HELP = Neighborhood, block.
+HELP = Street - Example: Poppelvej.
+HELP = Leading street direction - Example: N.
+HELP = Trailing street suffix - Example: SW.
+HELP = Street suffix - Example: Ave, Platz.
+HELP = House number - Example: 21.
+HELP = House number suffix - Example: A, 1/2.
+HELP = Landmark or vanity address - Example: Columbia University.
+HELP = Additional location info - Example: South Wing.
+HELP = Name (residence and office occupant) - Example: Flemming Jahn.
+HELP = Postal/zip code - Example: 2791.
+HELP = Building (structure) - Example: Low Library.
+HELP = Unit (Apartment, suite) - Example: Apt 42.
+HELP = Floor - Example: 4.
+HELP = Room number - Example: 450F.
+HELP = Place type - Example: Office.
+HELP = Postal community name - Example: Leonia.
+HELP = Post office box (P.O. BOX) - Example: 12345.
+HELP = Additional code - Example: 1320300003.
+HELP = Value for the corresponding selected civic address.
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Country : option>
+BYWORD = <State : option>
+BYWORD = <County : option>
+BYWORD = <City : option>
+BYWORD = <District : option>
+BYWORD = <Block : option>
+BYWORD = <Street : option>
+BYWORD = <LeadingStreetDirection : option>
+BYWORD = <TrailingStreetSuffix : option>
+BYWORD = <StrSuf : option>
+BYWORD = <HouseNo : option>
+BYWORD = <HouseNoSuffix : option>
+BYWORD = <Landmark : option>
+BYWORD = <AdditionalInfo : option>
+BYWORD = <Name : option>
+BYWORD = <ZipCode : option>
+BYWORD = <Building : option>
+BYWORD = <Apartment : option>
+BYWORD = <Floor : option>
+BYWORD = <RoomNumber : option>
+BYWORD = <PlaceType : option>
+BYWORD = <PostalComName : option>
+BYWORD = <POBox : option>
+BYWORD = <AdditionalCode : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_civic_addr(session_id,has_country, has_state, has_county, has_city, has_district, has_block, has_street, has_leading_street_direction, has_trailing_street_suffix, has_str_suf, has_house_no, has_house_no_suffix, has_landmark, has_additional_info, has_name, has_zip_code, has_building, has_apartment, has_floor, has_room_number, has_place_type, has_postal_com_name, has_p_o_box, has_additional_code, ""));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = lldp med location-tlv elin-addr <dword25>
+
+DOC_CMD_DESC    = Use the lldp med location-tlv elin-addr to configure value for the Emergency Call Service
+DOC_CMD_DEFAULT = The default civic address is "" (empty).
+DOC_CMD_USAGE   = Use to configure value for the Emergency Call Service
+DOC_CMD_EXAMPLE = lldp med location-tlv elin-addr 112
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+! 1: lldp
+! 2: med
+! 3: location-tlv
+! 4: elin-addr
+! 5: <word25>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = v_word25
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = ELIN number
+
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##TLV_LOCATION_HELP
+HELP = Emergency Location Identification Number, (e.g. E911 and others), such as defined by TIA or NENA.
+HELP = ELIN value
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_elin_addr(session_id, v_word25));
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = no lldp med location-tlv elin-addr
+
+DOC_CMD_DESC    = Use the no lldp med location-tlv elin-addr to configure value for the Emergency Call Service to default value.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to configure value for the Emergency Call Service to default value.
+DOC_CMD_EXAMPLE = no lldp med location-tlv elin-addr
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: no
+! 2: lldp
+! 3: med
+! 4: location-tlv
+! 5: elin-addr
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##LLDP_NO
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##TLV_LOCATION_HELP
+HELP = Set elin address to default value.
+
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_elin_addr(session_id, ""));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = lldp med transmit-tlv [ capabilities ] [ location ] [ network-policy ]
+
+
+DOC_CMD_DESC    = Use the lldp med transmit-tlv to configure which TLVs to transmit to link partner.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to configure which TLVs to transmit to link partner.
+DOC_CMD_EXAMPLE = lldp med transmit-tlv capabilities
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = list
+
+RUNTIME =
+
+! 1: lldp
+! 2: med
+! 3: transmit-tlv
+! 4: capabilities
+! 5: location
+! 6: network-policy
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_capabilities
+CMD_VAR = has_location
+CMD_VAR = has_network_policy
+
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##TLV_LOCATION_HELP
+HELP = Enable transmission of the optional capabilities TLV.
+HELP = Enable transmission of the optional location TLV.
+HELP = Enable transmission of the optional network-policy TLV.
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Capabilities : option>
+BYWORD = <Location : option>
+BYWORD = <NetworkPolicy : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_transmit_tlv(session_id, list, has_capabilities, has_location, has_network_policy, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = no lldp med transmit-tlv [ capabilities ] [ location ] [ network-policy ]
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = list
+
+RUNTIME =
+
+! 1: no
+! 2: lldp
+! 3: med
+! 4: transmit-tlv
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_capabilities
+CMD_VAR = has_location
+CMD_VAR = has_network_policy
+
+HELP =
+HELP =
+HELP =
+HELP =
+HELP = Disable transmission of the optional capabilities TLV.
+HELP = Disable transmission of the optional location TLV.
+HELP = Disable transmission of the optional network-policy TLV.
+
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_transmit_tlv(session_id, list, has_capabilities, has_location, has_network_policy, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = lldp med datum { wgs84 | nad83-navd88 | nad83-mllw }
+
+DOC_CMD_DESC    = Use the lldp med datum to configure the datum (geodetic system) to use.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to configure the datum (geodetic system) to use.
+DOC_CMD_EXAMPLE = lldp med datum wgs84
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: lldp
+! 2: med
+! 3: datum
+! 4: wgs84
+! 5: nad83-navd88
+! 6: nad83-mllw
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_wgs84
+CMD_VAR = has_nad83_navd88
+CMD_VAR = has_nad83_mllw
+
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = Datum (geodetic system) type.
+HELP = World Geodetic System 1984
+HELP = North American vertical datum 1983
+HELP = Mean lower low water datum 1983
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Wgs84 : option>
+BYWORD = <Nad83Navd88 : option>
+BYWORD = <Nad83Mllw : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_datum(session_id, has_wgs84, has_nad83_navd88, has_nad83_mllw, FALSE));
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = no lldp med datum
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: no
+! 2: lldp
+! 3: med
+! 4: datum
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##LLDP_NO
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = Set datum to default value.
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_datum(session_id, FALSE, FALSE, FALSE, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = lldp med fast <1-10>
+
+DOC_CMD_DESC    = Use the lldp med fast to configure the number of times the fast start LLDPDU are being sent during the activation of the fast start mechanism defined by LLDP-MED (1-10).
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to to configure the number of times the fast start LLDPDU are being sent during the activation of the fast start mechanism defined by LLDP-MED (1-10).
+DOC_CMD_EXAMPLE = lldp med fast 5
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: lldp
+! 2: med
+! 3: fast
+! 4: <1-10>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = v_1_to_10
+
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = Number of times to repeat LLDP frame transmission at fast start.
+HELP =
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_fast_start(session_id, v_1_to_10, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = no lldp med fast
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: no
+! 2: lldp
+! 3: med
+! 4: fast
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##LLDP_NO
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = Set fast repeat count to default value.
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_fast_start(session_id, 0, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = lldp med media-vlan-policy <0-31> { voice | voice-signaling | guest-voice-signaling | guest-voice | softphone-voice | video-conferencing | streaming-video | video-signaling } { tagged <vlan_id> | untagged }  [l2-priority <0-7>] [dscp <0-63>]
+
+LLDPMED_MEDIA_VLAN_POLICY_HELP = Use the media-vlan-policy to create a policy, which can be assigned to an interface.
+DOC_CMD_DESC    = ##LLDPMED_MEDIA_VLAN_POLICY_HELP
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to create a policy, which can be assigned to an interface.
+DOC_CMD_EXAMPLE = media-vlan-policy 1 voice tgged 1 1 1
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: media-vlan-policy
+! 2: <index:0-31>
+! 3: voice
+! 4: voice-signaling
+! 5: guest_voice_signaling
+! 6: guest_voice
+! 7: softphone_voice
+! 9: video_conferencing
+! 10: streaming_video
+! 11: video_signaling
+! 12: tagged
+! 13: <vlan_id>
+! 14: untagged
+! 15: <0-7>
+! 16: <0-63>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = policy_index
+CMD_VAR = has_voice
+CMD_VAR = has_voice_signaling
+CMD_VAR = has_guest_voice_signaling
+CMD_VAR = has_guest_voice
+CMD_VAR = has_softphone_voice
+CMD_VAR = has_video_conferencing
+CMD_VAR = has_streaming_video
+CMD_VAR = has_video_signaling
+CMD_VAR = has_tagged
+CMD_VAR = v_vlan_id
+CMD_VAR = has_untagged
+CMD_VAR =
+CMD_VAR = v_0_to_7
+CMD_VAR =
+CMD_VAR = v_0_to_63
+
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##LLDPMED_MEDIA_VLAN_POLICY_HELP
+HELP = Policy id for the policy which is created.
+HELP = Create a voice policy.
+HELP = Create a voice signaling policy.
+HELP = Create a guest voice signaling policy.
+HELP = Create a guest voice policy.
+HELP = Create a softphone voice policy.
+HELP = Create a video conferencing policy.
+HELP = Create a streaming video policy.
+HELP = Create a video signaling policy.
+HELP = The policy uses tagged frames.
+HELP = The VLAN the policy uses tagged frames.
+HELP = The policy uses un-tagged frames.
+HELP = Layer 2 priority.
+HELP = Priority 0-7
+HELP = Differentiated Services Code Point.
+HELP = DSCP value 0-63.
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Index : 0-31>
+BYWORD = <Voice : option>
+BYWORD = <VoiceSignaling : option>
+BYWORD = <GuestVoiceSignaling : option>
+BYWORD = <GuestVoice : option>
+BYWORD = <SoftphoneVoice : option>
+BYWORD = <VideoConferencing : option>
+BYWORD = <StreamingVideo : option>
+BYWORD = <VideoSignaling : option>
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_media_vlan_policy(session_id, policy_index, has_voice, has_voice_signaling, has_guest_voice_signaling,
+                                    has_guest_voice, has_softphone_voice, has_video_conferencing, has_streaming_video,
+                                    has_video_signaling, has_tagged, has_untagged, v_vlan_id, v_0_to_7, v_0_to_63));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = no lldp med media-vlan-policy <0~31>
+
+DOC_CMD_DESC    = ##LLDPMED_MEDIA_VLAN_POLICY_HELP
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = ##LLDPMED_MEDIA_VLAN_POLICY_HELP
+DOC_CMD_EXAMPLE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = policies_list
+
+HELP = ##LLDP_NO
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = ##LLDPMED_MEDIA_VLAN_POLICY_HELP
+HELP = Policy to delete.
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_media_vlan_policy_delete(session_id, policies_list));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = lldp med media-vlan policy-list <range_list>
+
+DOC_CMD_DESC    = Use the media-vlan policy-list to assign policy to the interface.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to assign policy to the interface.
+DOC_CMD_EXAMPLE = lldp med media-vlan policy-list 1,5
+
+NO_FORM_DOC_CMD_DESC    =
+NO_FORM_DOC_CMD_DEFAULT =
+NO_FORM_DOC_CMD_USAGE   =
+NO_FORM_DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: media-vlan
+! 2: policy-list
+! 3: <range_list>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = v_range_list
+
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = Media VLAN assigment.
+HELP = Assignment of policies.
+HELP = Policies to assign to the interface.
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = policies list e.g. 1,2,
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_assign_policy(session_id, plist, v_range_list, FALSE));
+CODE_END
+
+
+CMD_END
+
+
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LLDP_MED)
+
+COMMAND = no lldp med media-vlan policy-list [<range_list>]
+
+DOC_CMD_DESC    = Use the media-vlan policy-list to remove policy(ies) from the interface.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use to remove policy(ies) from the interface.
+DOC_CMD_EXAMPLE = no lldp med media-vlan policy-list 1,5
+
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: media-vlan
+! 2: policy-list
+! 3: <range_list>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = v_range_list
+
+HELP = ##LLDP_NO
+HELP = ##LLDP_HELP
+HELP = ##MED_HELP
+HELP = Policies to delete from the interface.
+
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = policies list e.g. 1,2,
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(lldpmed_icli_assign_policy(session_id, plist, v_range_list, TRUE));
+CODE_END
+CMD_END

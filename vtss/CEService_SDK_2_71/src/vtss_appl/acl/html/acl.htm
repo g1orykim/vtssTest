@@ -1,0 +1,717 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Access Control List</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page macic
+var help_page = "/help/help_acl.htm";
+
+var oTAction = Array("Deny", "Permit", "Filter");
+var oTRateLimiter = Array("Disabled").concat(genArrayStr(1, configAclRateLimitIdMax));
+var oTPortCopy = Array("Disabled");
+    for(var i = configPortMin; i <= configNormalPortMax; i++) {
+        oTPortCopy.push(configPortName(i, 1));
+    }
+var oTEnable = Array("Disabled", "Enabled");
+var oTTagged = Array("Any","Disabled", "Enabled");
+
+var oTFrameType = Array("Any","EType","LLC","SNAP","ARP","IPv4","IPv6");
+var oTProtocolFilter = Array("Any","ICMP","UDP","TCP","Other");
+
+var singleAceConfigDate;
+var AceIdMapTbl = Array();
+var aclConfig = Array();
+var aclConfigIdx = 0;
+var vtss_isid_end = configSidMax + 1, first_bind_ace_id = 0xFFFF;
+
+var timerID;
+var timeOut = settingsRefreshInterval();
+
+var idx = 0;
+var idx_isid            = idx++;
+var idx_ace_id          = idx++;
+var idx_next_ace_id     = idx++;
+var idx_action          = idx++;
+var idx_ingress_port    = idx++;
+var idx_policy_filter   = idx++;
+var idx_policy          = idx++;
+var idx_policy_bitmask  = idx++;
+var idx_rate_limiter    = idx++;
+var idx_port_copy       = idx++;
+var idx_mirror          = idx++;
+var idx_dmac_filter     = idx++;
+var idx_dmac            = idx++;
+var idx_counters        = idx++;
+var idx_frame_type      = idx++;
+var idx_protocol_filter, idx_protocol, idx_ip_flags1;
+var idx_sip_filter, idx_sip, idx_sip_mask, idx_dip_filter, idx_dip, idx_dip_mask;
+var idx_smac_filter, idx_smac;
+var idx_arp_sip_filter, idx_arp_sip, idx_arp_sip_mask, idx_arp_dip_filter, idx_arp_dip, idx_arp_dip_mask;
+var idx_next_header_filter, idx_next_header, idx_sip_v6_filter, idx_sip_v6;
+var idx_ether_type_filter, idx_ether_type;
+idx_protocol_filter     = idx_smac_filter      = idx_next_header_filter = idx++;
+idx_protocol            = idx_smac             = idx_next_header        = idx++;
+idx_ip_flags1           = idx_arp_sip_filter   = idx_ether_type_filter  = idx_sip_v6_filter = idx++;
+idx_sip_filter          = idx_arp_sip          = idx_ether_type         = idx_sip_v6        = idx++;
+idx_sip                 = idx_arp_sip_mask     = idx_sip_v6_mask        = idx++;
+idx_sip_mask            = idx_arp_dip_filter   = idx++;
+idx_dip_filter          = idx_arp_dip          = idx++;
+idx_dip                 = idx_arp_dip_mask     = idx++;
+idx_dip_mask            = idx++;
+var idx_sport_filter, idx_sport_low, idx_sport_high, idx_dport_filter, idx_dport_low, idx_dport_high;
+var idx_icmp_type_filter, idx_icmp_type, idx_icmp_code_filter, idx_icmp_code;
+idx_sport_filter        = idx_icmp_type_filter = idx++;
+idx_sport_low           = idx_icmp_type        = idx++;
+idx_sport_high          = idx_icmp_code_filter = idx++;
+idx_dport_filter        = idx_icmp_code        = idx++;
+idx_dport_low           = idx++;
+idx_dport_high          = idx++;
+var idx_tcp_flags0      = idx++;
+var idx_tcp_flags1      = idx++;
+var idx_tcp_flags2      = idx++;
+var idx_tcp_flags3      = idx++;
+var idx_tcp_flags4      = idx++;
+var idx_tcp_flags5      = idx++;
+
+var hasAclV2 = 1;
+
+// Predeclare processUpdate(). This makes JSLint happy.
+var processUpdate;
+
+function aceEdit()
+{
+    // Format        : [aceConfigFlag]/[SelectAceId]
+    // <Edit>        :               1/[ece_id]
+    // <Insert>      :               2/[next_id]
+    // <Add to Last> :               3/0
+
+    document.location.href = "acl_edit.htm?aceConfigFlag=1&SelectAceId=" + this.value;
+}
+
+function aceDelete()
+{
+    // Format        : [aceConfigFlag]/[SelectAceId]
+    // <Delete>     :                1/[ece_id]
+    // <Move>       :                2/[ece_id]
+    // <Delete All> :                3/
+
+    if (this.value >= first_bind_ace_id) {
+        if (!confirm("Delete the ACE will influence MAC/SIP Binding to be effective.\nDo you want to proceed anyway?")) {
+            return false;
+        }
+    }
+    var url="/config/acl?aceConfigFlag=1&SelectAceId=" + this.value;
+    loadXMLDoc(url, processUpdate, 'aclData');
+    return true;
+}
+
+function aceMoveUp()
+{
+    // Format        : [aceConfigFlag]/[SelectAceId]
+    // <Delete>     :                1/[ece_id]
+    // <Move>       :                2/[ece_id]
+    // <Delete All> :                3/
+
+    var url="/config/acl?aceConfigFlag=2&SelectAceId=" + AceIdMapTbl[this.value];
+    loadXMLDoc(url, processUpdate, 'aclData');
+}
+
+function aceMoveDown()
+{
+    // Format        : [aceConfigFlag]/[SelectAceId]
+    // <Delete>     :                1/[ece_id]
+    // <Move>       :                2/[ece_id]
+    // <Delete All> :                3/
+
+    var url="/config/acl?aceConfigFlag=2&SelectAceId=" + this.value;
+    loadXMLDoc(url, processUpdate, 'aclData');
+}
+
+function aceInsert()
+{
+    // Format        : [aceConfigFlag]/[SelectAceId]
+    // <Edit>        :               1/[ece_id]
+    // <Insert>      :               2/[next_id]
+    // <Add to Last> :               3/0
+
+    document.location.href = "acl_edit.htm?aceConfigFlag=2&SelectAceId=" + this.value;
+}
+
+function aceAddLast()
+{
+    // Format        : [aceConfigFlag]/[SelectAceId]
+    // <Edit>        :               1/[ece_id]
+    // <Insert>      :               2/[next_id]
+    // <Add to Last> :               3/0
+
+    document.location.href = "acl_edit.htm?aceConfigFlag=3&SelectAceId=0";
+}
+
+function addImageInline(frag, style, src, text, idx, click)
+{
+    var field = document.createElement('img');
+    var pval = text.split(" ");
+    field.id = pval[pval.length - 1] + "_" + (idx > 0 ? idx : 0);
+    field.src = src;
+    field.border = 0;
+    field.value = idx;
+    if (click) {
+        field.onclick = click;
+    }
+    field.title = field.alt = text;
+    frag.appendChild(field);
+    return field;
+}
+
+function addRowControlCol(tr, values, idx, first, last)
+{
+    var container = document.createElement("td");
+
+    //insert
+    addImageInline(container, "cl",  "images/add.gif", "Insert new ACE before this ACE", values[idx_ace_id], aceInsert);
+
+    //move up
+    if (!first) {
+        addImageInline(container, "cl",  "images/up.gif", "Move ACE up", idx-1, aceMoveUp);
+    } else {
+        addImageInline(container, "cl",  "images/up_gray.gif", "Move ACE up", -1, null);
+    }
+
+    container.appendChild(document.createElement("br"));
+
+    //edit
+    addImageInline(container, "cl",  "images/edit.gif", "Edit ACE", values[idx_ace_id], aceEdit);
+
+    //move down
+    if (idx != (aclConfigIdx-1) && !last) {
+       addImageInline(container, "cl",  "images/down.gif", "Move ACE down", values[idx_ace_id], aceMoveDown);
+    }  else {
+        addImageInline(container, "cl",  "images/down_gray.gif", "Move ACE down", -1, null);
+    }
+
+    //del
+    addImageInline(container, "cl",  "images/del.gif", "Delete ACE", values[idx_ace_id], aceDelete);
+
+    tr.appendChild(container);
+}
+
+function convertIpStr2Val(ip_str)
+{
+    var myReg = /^((?:0x)[0-9A-Fa-f]{1,2}|[0][0-7]{0,3}|[1-9]\d{0,2})\.((?:0x)[0-9A-Fa-f]{1,2}|[0][0-7]{0,3}|[1-9]\d{0,2})\.((?:0x)[0-9A-Fa-f]{1,2}|[0][0-7]{0,3}|[1-9]\d{0,2})\.((?:0x)[0-9A-Fa-f]{1,2}|[0][0-7]{0,3}|[1-9]\d{0,2})$/;
+    if(myReg.test(ip_str)) {
+        return (parseInt(RegExp.$1, 10) << 24) + (parseInt(RegExp.$2, 10) << 16) + (parseInt(RegExp.$3, 10) << 8) + parseInt(RegExp.$4, 10);
+    }
+    return 0;
+}
+
+function addRow(frag, values, idx, first, last)
+{
+    AceIdMapTbl[idx] = values[idx_ace_id];
+
+    var i, j, mask_val;
+    var tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+
+    //addTextCell(tr, values[idx_isid], "cl");
+    //addTextCell(tr, values[idx_ace_id], "cl");
+    //addTextCell(tr, values[idx_next_ace_id], "cl");
+
+    if (!SpomStackPortCount() || values[idx_isid] == vtss_isid_end) {
+        if (hasAclV2) {
+            addTextCell(tr, unescape(values[idx_ingress_port]), "cl");
+        } else {
+            addTextCell(tr, values[idx_ingress_port] == "All" ? values[idx_ingress_port] : configPortName(values[idx_ingress_port], 1), "cl");
+        }
+    } else {
+        if (hasAclV2) {
+            addTextCell(tr, "Switch " + values[idx_isid] + ": " + unescape(values[idx_ingress_port]), "cl");
+        } else {
+            addTextCell(tr, "Switch " + values[idx_isid] + ": " + values[idx_ingress_port], "cl");
+        }
+    }
+
+    //policy, policy_bitmask
+    if (parseInt(values[idx_policy_filter], 10) === 0) {
+        if (!SpomStackPortCount() || values[idx_isid] == vtss_isid_end) {
+            addTextCell(tr, "Any", "cl");
+        } else {
+            addTextCell(tr, "Switch: Any", "cl");
+        }
+    } else {
+        if (!SpomStackPortCount() || values[idx_isid] == vtss_isid_end) {
+            addTextCell(tr, values[idx_policy] + " / 0x" + values[idx_policy_bitmask].toString(16), "cl");
+        } else {
+            addTextCell(tr, "Switch " + values[idx_isid] + ": " + values[idx_policy] + " / 0x" + values[idx_policy_bitmask].toString(16), "cl");
+        }
+    }
+
+    if (oTFrameType[parseInt(values[idx_frame_type], 10)] == "IPv4") {
+        var ip_protocol = oTProtocolFilter[parseInt(values[idx_protocol_filter], 10)];
+        var ip_frame_text = oTFrameType[parseInt(values[idx_frame_type], 10)];
+        if (ip_protocol == "ICMP") {
+            ip_frame_text += "/ICMP";
+            if (parseInt(values[idx_icmp_type_filter], 10) == 1 && parseInt(values[idx_icmp_type], 10) == 8 && parseInt(values[idx_icmp_type_filter], 10) == 1 && parseInt(values[idx_icmp_code], 10) === 0) {
+                ip_frame_text += " Ping Request";
+            } else if (parseInt(values[idx_icmp_type_filter], 10) == 1 && parseInt(values[idx_icmp_type], 10) === 0 && parseInt(values[idx_icmp_type_filter], 10) == 1 && parseInt(values[idx_icmp_code], 10) === 0) {
+                ip_frame_text += " Ping Reply";
+            } else if (parseInt(values[idx_icmp_type_filter], 10) == 1 && parseInt(values[idx_icmp_type], 10) == 3) {
+                ip_frame_text += " Destination Unreachable";
+            } else if (parseInt(values[idx_icmp_type_filter], 10) == 1 && parseInt(values[idx_icmp_type], 10) == 5) {
+                ip_frame_text += " Redirect";
+            } else if (parseInt(values[idx_icmp_type_filter], 10) == 1 && parseInt(values[idx_icmp_type], 10) == 11) {
+                ip_frame_text += " Time Exceeded";
+            } else if (parseInt(values[idx_icmp_type_filter], 10) == 1 && parseInt(values[idx_icmp_type], 10) == 12) {
+                ip_frame_text += " Parameter Problem";
+            } else if (parseInt(values[idx_ip_flags1], 10) == 1) { //ICMP Fragment
+                ip_frame_text += " Fragment";
+            } else if (parseInt(values[idx_dmac_filter], 10) == 2) { //dmac_filter: Broadcast
+                ip_frame_text += "/Smurf";
+            }
+        } else if (ip_protocol == "UDP") {
+            ip_frame_text += "/UDP";
+            if (parseInt(values[idx_sport_filter], 10) == 1 || parseInt(values[idx_dport_filter], 10) == 1) { //sport_filter/dport_filter: Specific
+                var udp_port;
+                if (parseInt(values[idx_sport_filter], 10) == 1) {
+                    udp_port = parseInt(values[idx_sport_low], 10);
+                } else {
+                    udp_port = parseInt(values[idx_dport_low], 10);
+                }
+                if (udp_port == 7) {
+                    ip_frame_text += " 7 Echo";
+                } else if (udp_port == 19) {
+                    ip_frame_text += " 19 Chargen";
+                } else if (udp_port == 53) {
+                    ip_frame_text += " 53 DNS";
+                } else if (udp_port == 67) {
+                    ip_frame_text += " 67 DHCP Client";
+                } else if (udp_port == 68) {
+                    ip_frame_text += " 68 DHCP Server";
+                } else if (udp_port == 69) {
+                    ip_frame_text += " 69 TFTP";
+                } else if (udp_port == 161) {
+                    ip_frame_text += " 161 SNMP";
+                } else if (udp_port == 162) {
+                    ip_frame_text += " 162 SNMP Traps";
+                } else {
+                    ip_frame_text = ip_frame_text + " " + udp_port;
+                }
+            } else if (parseInt(values[idx_sport_filter], 10) == 2 || parseInt(values[idx_dport_filter], 10) == 2) { //sport_filter/dport_filter: range
+                var udp_port_low, udp_port_high;
+                if (parseInt(values[idx_sport_filter], 10) == 2) {
+                    udp_port_low = parseInt(values[idx_sport_low], 10);
+                    udp_port_high = parseInt(values[idx_sport_high], 10);
+                } else {
+                    udp_port_low = parseInt(values[idx_dport_low], 10);
+                    udp_port_high = parseInt(values[idx_dport_high], 10);
+                }
+                ip_frame_text = ip_frame_text + " " + udp_port_low + "-" + udp_port_high;
+            }
+        } else if (ip_protocol == "TCP") {
+            ip_frame_text += "/TCP";
+            if (parseInt(values[idx_sport_filter], 10) == 1 || parseInt(values[idx_dport_filter], 10) == 1) { //sport_filter/dport_filter: Specific
+                var tcp_port;
+                if (parseInt(values[idx_sport_filter], 10) == 1) {
+                    tcp_port = parseInt(values[idx_sport_low], 10);
+                } else {
+                    tcp_port = parseInt(values[idx_dport_low], 10);
+                }
+                if (tcp_port == 7) {
+                    ip_frame_text += " 7 Echo";
+                } else if (tcp_port == 19) {
+                    ip_frame_text += " 19 Chargen";
+                } else if (tcp_port == 20) {
+                    ip_frame_text += " 20 FTP Date Port";
+                } else if (tcp_port == 21) {
+                    ip_frame_text += " 21 FTP Control Port)";
+                } else if (tcp_port == 23) {
+                    ip_frame_text += " 23 Telnet";
+                } else if (tcp_port == 25) {
+                    ip_frame_text += " 25 SMTP";
+                } else if (tcp_port == 53) {
+                    ip_frame_text += " 53 DNS";
+                } else if (tcp_port == 80) {
+                    ip_frame_text += " 80 HTTP";
+                } else if (tcp_port == 110) {
+                    ip_frame_text += " 110 POP3";
+                } else if (tcp_port == 139) {
+                    ip_frame_text += " 139 SAMBA";
+                } else if (tcp_port == 143) {
+                    ip_frame_text += " 143 IMAP";
+                } else if (tcp_port == 443) {
+                    ip_frame_text += " 443 HTTPS";
+                } else if (tcp_port == 1863) {
+                    ip_frame_text += " 1863 MSN";
+                } else if (tcp_port == 2049) {
+                    ip_frame_text += " 2049 NFS";
+                } else if (tcp_port == 5050) {
+                    ip_frame_text += " 5050 Yahoo Messenger-Chat";
+                } else if (tcp_port == 5101) {
+                    ip_frame_text += " 5101 Yahoo Messenger-P2P";
+                } else if (tcp_port == 5222) {
+                    ip_frame_text += " 5222 Google Talk";
+                } else {
+                    ip_frame_text = ip_frame_text + " " + tcp_port;
+                }
+            } else if (parseInt(values[idx_sport_filter], 10) == 2 || parseInt(values[idx_dport_filter], 10) == 2) { //sport_filter/dport_filter: range
+                var tcp_port_low, tcp_port_high;
+                if (parseInt(values[idx_sport_filter], 10) == 2) {
+                    tcp_port_low = parseInt(values[idx_sport_low], 10);
+                    tcp_port_high = parseInt(values[idx_sport_high], 10);
+                } else {
+                    tcp_port_low = parseInt(values[idx_dport_low], 10);
+                    tcp_port_high = parseInt(values[idx_dport_high], 10);
+                }
+                if (tcp_port_low == 137 && tcp_port_high == 139) {
+                    ip_frame_text += " 137-139 NetBIOS";
+                } else {
+                   ip_frame_text = ip_frame_text + " " + tcp_port_low + "-" + tcp_port_high;
+                }
+            } else if (parseInt(values[idx_sport_filter], 10) === 0 && parseInt(values[idx_dport_filter], 10) === 0) { //any
+                var tcp_flags_cnt = 0;
+                if (parseInt(values[idx_tcp_flags0], 10) != 2) {
+                    ip_frame_text += " FIN";
+                    tcp_flags_cnt++;
+                }
+                if (parseInt(values[idx_tcp_flags1], 10) != 2) {
+                    ip_frame_text += ((tcp_flags_cnt >= 1) ? "/" : " ") + "SYN";
+                    tcp_flags_cnt++;
+                }
+                if (parseInt(values[idx_tcp_flags2], 10) != 2) {
+                    ip_frame_text += ((tcp_flags_cnt >= 1) ? "/" : " ") + "RST";
+                    tcp_flags_cnt++;
+                }
+                if (parseInt(values[idx_tcp_flags3], 10) != 2) {
+                    ip_frame_text += ((tcp_flags_cnt >= 1) ? "/" : " ") + "PSH";
+                    tcp_flags_cnt++;
+                }
+                if (parseInt(values[idx_tcp_flags4], 10) != 2) {
+                    ip_frame_text += ((tcp_flags_cnt >= 1) ? "/" : " ") + "ACK";
+                    tcp_flags_cnt++;
+                }
+                if (parseInt(values[idx_tcp_flags5], 10) != 2) {
+                    ip_frame_text += ((tcp_flags_cnt >= 1) ? "/" : " ") + "URG";
+                }
+            }
+        } else if (ip_protocol == "Other") {
+            ip_frame_text = ip_frame_text + "/Other " + values[idx_protocol];
+        } else if (parseInt(values[idx_dmac_filter], 10) == 1) { //dmac_filter: Multicast
+            ip_frame_text += "/Multicast IP Stream";
+        } else if ((parseInt(values[idx_ace_id], 10) >= first_bind_ace_id)) {
+            ip_frame_text = ip_frame_text + " SMAC/SIP Binding - " + values[idx_sip];
+        } else if (parseInt(values[idx_ip_flags1], 10) == 1) { //IP Fragment
+            ip_frame_text += "/IP Fragment";
+        }
+        if (parseInt(values[idx_sip_filter], 10) !== 0) {
+            ip_frame_text += " SIP:" + values[idx_sip];
+            mask_val = convertIpStr2Val(values[idx_sip_mask]);
+            for (i = 31, j = 0; i >= 0; i--) {
+                if (mask_val & 1 << i) {
+                    j++;
+                }
+            }
+            ip_frame_text += "/" + j;
+        }
+        if (parseInt(values[idx_dip_filter], 10) !== 0) {
+            ip_frame_text += " DIP:" + values[idx_dip];
+            mask_val = convertIpStr2Val(values[idx_dip_mask]);
+            for (i = 31, j = 0; i >= 0; i--) {
+                if (mask_val & 1 << i) {
+                    j++;
+                }
+            }
+            ip_frame_text += "/" + j;
+        }
+        addTextCell(tr, ip_frame_text, "cl");
+    } else if (oTFrameType[parseInt(values[idx_frame_type], 10)] == "IPv6") {
+        var ipv6_frame_text = oTFrameType[parseInt(values[idx_frame_type], 10)];
+        if (parseInt(values[idx_next_header_filter], 10)) {
+            ipv6_frame_text += " - NH:";
+            if (values[idx_next_header] == 1) { 
+                ipv6_frame_text += "ICMPv4";
+            } else if (values[idx_next_header] == 2) { 
+                ipv6_frame_text += "IGMPv4";
+            } else if (values[idx_next_header] == 4) { 
+                ipv6_frame_text += "IP in IP Encapsulation";
+            } else if (values[idx_next_header] == 6) { 
+                ipv6_frame_text += "TCP";
+            } else if (values[idx_next_header] == 8) { 
+                ipv6_frame_text += "EGP";
+            } else if (values[idx_next_header] == 17) { 
+                ipv6_frame_text += "UDP";
+            } else if (values[idx_next_header] == 41) { 
+                ipv6_frame_text += "IPv6";
+            } else if (values[idx_next_header] == 46) { 
+                ipv6_frame_text += "RSVP";
+            } else if (values[idx_next_header] == 50) { 
+                ipv6_frame_text += "ESP";
+            } else if (values[idx_next_header] == 51) { 
+                ipv6_frame_text += "AH";
+            } else if (values[idx_next_header] == 58) { 
+                ipv6_frame_text += "ICMPv6";
+            } else {
+                ipv6_frame_text += values[idx_next_header];
+            }
+        }
+        if (parseInt(values[idx_sip_v6_filter], 10)) {
+            ipv6_frame_text += " SIP6:[" + values[idx_sip_v6];
+            if (parseInt(values[idx_sip_v6_mask], 16) != 0xFFFFFFFF) {
+                ipv6_frame_text += "/0x" + values[idx_sip_v6_mask];
+            }
+            ipv6_frame_text += "]";
+        }
+        addTextCell(tr, ipv6_frame_text, "cl");
+    } else {
+        if ((parseInt(values[idx_ace_id], 10) >= first_bind_ace_id) && (oTFrameType[parseInt(values[idx_frame_type], 10)] != "IPv4")) {
+            addTextCell(tr, "SMAC/SIP Binding - " + values[idx_smac], "cl");
+        } else if (oTFrameType[parseInt(values[idx_frame_type], 10)] == "EType" && parseInt(values[idx_ether_type_filter], 10)) {
+            addTextCell(tr, oTFrameType[parseInt(values[idx_frame_type], 10)] + "- 0x" + values[idx_ether_type], "cl");
+        } else {
+            addTextCell(tr, oTFrameType[parseInt(values[idx_frame_type], 10)], "cl");
+        }
+    }
+
+    // Action
+    addTextCell(tr, oTAction[parseInt(values[idx_action], 10)], "cl");
+
+    // Rate limter
+    addTextCell(tr, oTRateLimiter[parseInt(values[idx_rate_limiter], 10)], "cr");
+
+    if (hasAclV2) {
+        // Port copy
+        if (values[idx_port_copy]) {
+            addTextCell(tr, unescape(values[idx_port_copy]), "cl");
+        } else {
+            addTextCell(tr, "Disabled", "cl");
+        }
+        // Mirror
+        addTextCell(tr, oTEnable[parseInt(values[idx_mirror], 10)], "cr");
+    } else {
+        // Port copy
+        addTextCell(tr, oTPortCopy[parseInt(values[idx_port_copy], 10)], "cr");
+    }
+
+    // Counter
+    addTextCell(tr, parseInt(values[idx_counters], 10), "cr");
+
+    // Control column
+    addRowControlCol(tr, values, idx, first, last);
+
+    frag.appendChild(tr);   // Add row to fragment
+}
+
+processUpdate = function(req, ref)
+{
+    var rowwidth = 7, tbody, frag, tr, td, img;
+
+    if (typeof(configHasAclV2) == "function") {
+        hasAclV2 = configHasAclV2();
+    }
+    if (hasAclV2) {
+        rowwidth++;
+    }
+
+    if (req.responseText) {
+        var values = req.responseText.split(",");
+        aclConfig = values[0].split("|");
+        first_bind_ace_id = parseInt(values[1], 10);
+        aclConfigIdx = aclConfig.length;
+        //create holder for accumulated tbody elements and text nodes
+        frag = document.createDocumentFragment();
+        var first = 1;
+        for (var i = 0; i < aclConfig.length; i++) {
+            if (aclConfig[i]) {
+                var pval = aclConfig[i].split("/");
+                addRow(frag, pval, i, first, aclConfig[i+1] ? 0 : 1);
+                first = 0;
+            }
+        }
+
+        // Last Row - for new
+        tr = document.createElement("tr");
+        td = document.createElement("td");
+        td.setAttribute("colSpan", rowwidth);
+        tr.appendChild(td); // Add col to row
+        td = document.createElement("td");
+        img = addImageInline(td, "cl",  "images/add.gif", "Add ACE to end of list", 0, aceAddLast);
+        tr.appendChild(td); // Add col to row
+        frag.appendChild(tr);   // Add row to fragment
+
+        tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    } else { //no ACL exist
+        tbody = document.getElementById(ref);
+        if (tbody) {
+            frag = document.createDocumentFragment();
+
+            // Last Row - for new
+            tr = document.createElement("tr");
+            td = document.createElement("td");
+            td.setAttribute("colSpan", rowwidth);
+            tr.appendChild(td); // Add col to row
+            td = document.createElement("td");
+            img = addImageInline(td, "cl",  "images/add.gif", "Add ACE to end of list", 0, aceAddLast);
+            tr.appendChild(td); // Add col to row
+            frag.appendChild(tr);   // Add row to fragment
+
+            tbody = document.getElementById(ref);
+            clearChildNodes(tbody);
+            if (!tbody.appendChild(frag)) { // Add Frag to table body
+                alert("This browser doesn't support dynamic tables.");
+            }
+        }
+    }
+
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+};
+
+function requestUpdate()
+{
+    // Format: [isid]/[ace_id]/[next_ace_id]/[action]/[ingress_port]/[policy_filter]/[policy]/[policy_bitmask]/[rate_limiter]/[port_copy_1]:[port_copy_2]:.../[mirror]/[dmac_filter]/[dmac_mac]/[counters]/[frame_type]/[frame_type_filed]|...,[first_bind_ace_id]
+    // [frame_type_filed]
+    // - [frame_type] = Any
+    // - [frame_type] = Ethernet [smac_filter]/[smac]/[ether_type_filter]/[ether_type]
+    // - [frame_type] = ARP      [smac_filter]/[smac]/[arp_sip_filter]/[arp_sip]/[arp_sip_mask]/[arp_dip_filter]/[arp_dip]/[arp_dip_mask]
+    // - [frame_type] = IPv4, [protocol] = Any/Other [protocol_filter]/[protocol]/[ip_flags1]/[sip_filter]/[sip]/[sip_mask]/[dip_filter]/[dip]/[dip_mask]
+    // - [frame_type] = IPv4, [protocol] = ICMP      [protocol_filter]/[protocol]/[ip_flags1]/[sip_filter]/[sip]/[sip_mask]/[dip_filter]/[dip]/[dip_mask]/[icmp_type_filter]/[icmp_type]/[icmp_code_filter]/[icmp_code]
+    // - [frame_type] = IPv4, [protocol] = UDP       [protocol_filter]/[protocol]/[ip_flags1]/[sip_filter]/[sip]/[sip_mask]/[dip_filter]/[dip]/[dip_mask]/[sport_filter]/[sport_low]/[sport_high]/[dport_filter]/[dport_low]/[dport_high]
+    // - [frame_type] = IPv4, [protocol] = TCP       [protocol_filter]/[protocol]/[ip_flags1]/[sip_filter]/[sip]/[sip_mask]/[dip_filter]/[dip]/[dip_mask]/[sport_filter]/[sport_low]/[sport_high]/[dport_filter]/[dport_low]/[dport_high]/[tcp_flags0]/[tcp_flags1]/[tcp_flags2]/[tcp_flags3]/[tcp_flags4]/[tcp_flags5]
+    // - [frame_type] = IPv6  [next_header_filter]/[next_header]/[sip_v6_filter]/[sip_v6]/[sip_v6_mask]
+
+    //var req = "1/2/1/1/1/0/0/1/0/0/0/00-00-00-00-00-02/0/1/8/2/111/0|2/113/1/2/1/0/0/0/1/0/1/00-00-00-00-00-01/0/1/8/2/222/2/1/00-00-00-00-00-01/2/2/2/1.2.3.4/255.255.255.0/2/4.3.2.1/255.255.255.0/2/2/2/2/2|113/114/1/0/1/0/0/0/1/1/4/00-00-00-00-00-02/0/1/8/2/333/1/1/00-00-00-00-00-01/1/1234|114/0/0/1/2/0/0/0/1/1/0/00-00-00-00-00-02/0/1/8/2/444/3/2/2/2/2/2/0/1.2.3.4/255.255.255.0/0/4.3.2.1/255.255.255.0/1/111/65535/1/333/65535,1,1";
+    //processUpdate(req, 'aclData');
+    loadXMLDoc("/config/acl", processUpdate, 'aclData');
+}
+
+function requestClear()
+{
+    var url="/config/acl?aceConfigFlag=3";
+    loadXMLDoc(url, processUpdate, 'aclData');
+}
+
+function requestRemoveAll()
+{
+    if (!confirm("All ACEs will be removed.\nDo you want to proceed anyway?")) {
+        return false;
+    }
+    var url="/config/acl?aceConfigFlag=4";
+    loadXMLDoc(url, processUpdate, 'aclData');
+    return true;
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button"   value="Refresh"    id="refresh"     onclick="requestUpdate();    this.blur();">
+  <input type="button"   value="Clear"      id="clear"       onclick="requestClear();     this.blur();">
+  <input type="button"   value="Remove All" id="removeall"   onclick="requestRemoveAll(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<div id="control_bar_tbl">
+
+<h1>Access Control List Configuration</h1>
+
+<table summary="Access Control List" class="display">
+ <thead>
+  <tr class="display_header">
+   <th>Ingress Port</th>
+   <th>Policy / Bitmask</th>
+   <th>Frame Type</th>
+   <th>Action</th>
+   <th>Rate Limiter</th>
+   <th class="has_arch_luton26">Port Redirect</th>
+   <th class="has_arch_jaguar_1">Port Redirect</th>
+   <th class="has_arch_serval">Port Redirect</th>
+   <th class="acl_v2_only">Mirror</th>
+   <th>Counter</th>
+   <th>&nbsp;</th>
+  </tr>
+ </thead>
+ <tbody id="aclData">
+ </tbody>
+</table>
+
+</div>
+
+<!-- IE caching bug -->
+<div style="visibility: hidden;">
+ <img alt="" src="images/add.gif">
+ <img alt="" src="images/up.gif">
+ <img alt="" src="images/up_gray.gif">
+ <img alt="" src="images/edit.gif">
+ <img alt="" src="images/down.gif">
+ <img alt="" src="images/down_gray.gif">
+ <img alt="" src="images/del.gif">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

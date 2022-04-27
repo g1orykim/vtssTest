@@ -1,0 +1,394 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Performance Monitor EVC Statistics</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_perf_mon_evc_statistics.htm";
+
+var timerID;
+var reqObject;
+var selectAllText = "All";
+var selectInstanceId = selectAllText, selectIntervalId = selectAllText;
+
+function pageCtrlUpdate()
+{
+    var fld_v1 = document.getElementById("selectIntervalId").value == selectAllText;
+    var fld_v2 = document.getElementById("selectInstanceId").value == selectAllText;
+    var fld = document.getElementById("pageCtrl");
+    if (!fld_v1 && fld_v2) {
+        fld.style.display = "";
+    } else {
+        fld.style.display = "none";
+    }
+}
+
+function isValidInstanceID()
+{
+    var fld = document.getElementById("selectInstanceId");
+    if (fld.value != selectAllText) {
+        if (!isWithinRange("selectInstanceId", 1, configPerfMonEVCInstanceMax, "'EVC Instance'")) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function onclickInstanceChkBox()
+{
+    var fld = document.getElementById("selectInstanceId");
+    if (document.getElementById("instanceChkBox").checked) {
+        fld.disabled = "";
+        fld.value = selectInstanceId == selectAllText ? "" : selectInstanceId;
+    } else {
+        fld.disabled = "disabled";
+        fld.value = selectAllText;
+    }
+    pageCtrlUpdate();
+}
+
+function isValidIntervalID()
+{
+    var fld = document.getElementById("selectIntervalId");
+    if (fld.value != selectAllText) {
+        if (!isWithinRange("selectIntervalId", 1, 0xFFFFFFFF, "'Measurement Interval ID'")) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function onclickIntervalChkBox()
+{
+    var fld = document.getElementById("selectIntervalId");
+    if (document.getElementById("intervalChkBox").checked) {
+        fld.disabled = "";
+        fld.value = selectIntervalId == selectAllText ? "" : selectIntervalId;
+    } else {
+        fld.disabled = "disabled";
+        fld.value = selectAllText;
+    }
+    pageCtrlUpdate();
+}
+
+function CreateTableHeader(frag)
+{
+    var tr, td, i;
+
+    if (document.getElementById("bothUnit").checked) {
+        tr = CreateStyledElement("tr", "display_header");
+        td = addTextHeaderCell(tr, "Measurement", "hdrc", 1, 3);
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Interval ID"));
+        td = addTextHeaderCell(tr, "EVC", "hdrc", 1, 3);
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Instance"));
+        td = addTextHeaderCell(tr, "Port", "hdrc", 1, 3);
+        addTextHeaderCell(tr, "Green", "hdrc", 4);
+        addTextHeaderCell(tr, "Yellow", "hdrc", 4);
+        addTextHeaderCell(tr, "Red", "hdrc", 2);
+        addTextHeaderCell(tr, "Discarded", "hdrc", 4);
+        frag.appendChild(tr);       // Add row to fragment
+
+        tr = CreateStyledElement("tr", "display_header");
+        for (i = 0; i < 4; i++) {
+            if (i != 2) {
+                addTextHeaderCell(tr, "Frames", "hdrc", 2);
+                addTextHeaderCell(tr, "Bytes", "hdrc", 2);
+            } else {
+                addTextHeaderCell(tr, "Frames", "hdrc");
+                addTextHeaderCell(tr, "Bytes", "hdrc");
+            }
+        }
+        frag.appendChild(tr);       // Add row to fragment
+
+        tr = CreateStyledElement("tr", "display_header");
+        for (i = 0; i < 8; i++) {
+            addTextHeaderCell(tr, "Rx", "hdrc");
+            if (i != 4 && i != 5) {
+                addTextHeaderCell(tr, "Tx", "hdrc");
+            }
+        }
+        frag.appendChild(tr);       // Add row to fragment
+    } else {
+        var unit_txt = "Bytes";
+        if (document.getElementById("framesUnit").checked) {
+            unit_txt = "Frames";
+        }
+        tr = CreateStyledElement("tr", "display_header");
+        td = addTextHeaderCell(tr, "Measurement", "hdrc", 1, 2);
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Interval ID")); 
+        td = addTextHeaderCell(tr, "EVC", "hdrc", 1, 2);
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Instance"));
+        td = addTextHeaderCell(tr, "Port", "hdrc", 1, 2);
+        addTextHeaderCell(tr, "Green " + unit_txt, "hdrc", 2);
+        addTextHeaderCell(tr, "Yellow " + unit_txt, "hdrc", 2);
+        addTextHeaderCell(tr, "Red " + unit_txt, "hdrc");
+        addTextHeaderCell(tr, "Discarded " + unit_txt, "hdrc", 2);
+        frag.appendChild(tr);       // Add row to fragment
+
+        tr = CreateStyledElement("tr", "display_header");
+        for (i = 0; i < 4; i++) {
+            addTextHeaderCell(tr,"Rx", "hdrc");
+            if (i != 2) {
+                addTextHeaderCell(tr, "Tx", "hdrc");
+            }
+        }
+        frag.appendChild(tr);       // Add row to fragment
+    }
+}
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addLink(tr, "cr", "perf_mon_interval_info.htm?page_info_type=2&page_start_id=" + values[0] + "&page_entries_num=1", values[0]);
+    addTextCell(tr, values[1], "cr");
+    //addTextCell(tr, values[2], "cr");
+    var counter_filter = Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    if (document.getElementById("framesUnit").checked) {
+        counter_filter = Array(0, 0, 0, 3, 4, 0, 0, 7, 8, 0, 10, 0, 0, 13, 14);
+    } else if (document.getElementById("bytesUnit").checked) {
+        counter_filter = Array(0, 1, 2, 0, 0, 5, 6, 0, 0, 9, 0, 11, 12, 0, 0);
+    }
+    for (var idx = 0; idx < counter_filter.length; idx++) {
+        if (counter_filter[idx]) {
+            continue;
+        }
+        addTextCell(tr, values[idx+2], "cr");
+    }
+    frag.appendChild(tr);   // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format: [selected_interval_id];[selected_instance_id];
+    //         [interval_id]/[instance_id]/[port_no]/
+    //         [green_f_rx]/[green_f_tx]/[green_b_rx]/[green_b_tx]/
+    //         [yellow_f_rx]/[yellow_f_tx]/[yellow_b_rx]/[yellow_b_tx]/
+    //         [red_f_rx]/[red_b_tx]/
+    //         [discard_f_rx]/[discard_f_tx]/[discard_b_rx]/[discard_b_tx]|...
+
+    reqObject = req;
+
+    var tbl = document.createElement("table");
+    var tbl_body = document.createElement("tbody");
+    tbl.className = "display";
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    if (req.responseText) {
+        var displayData = req.responseText.split(";");
+
+        // Update selectIntervalId
+        var fld = document.getElementById("selectIntervalId");
+        selectIntervalId = fld.value = displayData[0];
+        if (selectIntervalId == selectAllText) {
+            document.getElementById("intervalChkBox").checked = false;
+            fld.disabled = "disabled";
+        } else {
+            document.getElementById("intervalChkBox").checked = true;
+            fld.disabled = "";
+        }
+
+        // Update selectInstanceId
+        fld = document.getElementById("selectInstanceId");
+        selectInstanceId = fld.value = displayData[1];
+        if (selectInstanceId == selectAllText) {
+            document.getElementById("instanceChkBox").checked = false;
+            fld.disabled = "disabled";
+        } else {
+            document.getElementById("instanceChkBox").checked = true;
+            fld.disabled = "";
+        }
+
+        // Update entry row
+        if (displayData[2]) {
+            var counterData = displayData[2].split("|");
+            for (var i = 0, j = 0; i < counterData.length; i++) {
+                if (counterData[i]) {
+                    addRow(j++, frag, counterData[i].split("/"));
+                }
+            }
+        } else {
+            tr = CreateStyledElement("tr", "notice");
+            addTextCell(tr, "No more entries", "cl", 17);
+            frag.appendChild(tr);
+        }
+    }
+
+    tbl_body.appendChild(frag);   // Add row to fragment
+    tbl.appendChild(tbl_body);
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(tbl)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    // Update page control bar
+    pageCtrlUpdate();
+
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh && autorefresh.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout("requestUpdate('refresh')", settingsRefreshInterval());
+    }
+}
+
+function checkForm()
+{
+    if (!(isValidIntervalID) || !isValidInstanceID()) {
+        return false;
+    }
+    return true;
+}
+
+function requestUpdate(ctrl_flag)
+{
+    // Format: [ctrl_flag]
+    // 0:init 1:refresh 2:firstPage 3:previousPage 4:nextPage 5:lastPage 6:deleteall
+
+    if (!checkForm()) {
+        return false;
+    }
+
+    selectInstanceId = document.getElementById("selectInstanceId").value;
+    selectIntervalId = document.getElementById("selectIntervalId").value;
+
+    var ctrl_flag_value = 0;
+    switch(ctrl_flag) {
+        case 'refresh':
+            ctrl_flag_value = 1;
+            break;
+        case 'firstPage':
+            ctrl_flag_value = 2;
+            break;
+        case 'previousPage':
+            ctrl_flag_value = 3;
+            break;
+        case 'nextPage':
+            ctrl_flag_value = 4;
+            break;
+        case 'lastPage':
+            ctrl_flag_value = 5;
+            break;
+        case 'deleteall':
+            ctrl_flag_value = 6;
+            break;
+        case 'init':
+        default:
+            ctrl_flag_value = 0;
+            break;
+    }
+
+    loadXMLDoc("/stat/perf_mon_evc_statistics?ctrl_flag=" + ctrl_flag_value + "&interval_id=" + selectIntervalId + "&instance_id=" + selectInstanceId, processUpdate, 'displayTable');
+    return true;
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate('refresh');
+    }
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate('init');">
+
+<h1>Performance Monitor EVC Statistics</h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh"  onclick="chkRefresh(this);">
+  <input type="button"   value="Refresh"    id="refresh"      onclick="requestUpdate('refresh');      this.blur();">
+  <input type="button"   value="Delete All" id="deleteall"    onclick="requestUpdate('deleteall');    this.blur();" title="Delete all entries">
+  <span id="pageCtrl" style="display:none;">
+    <input type="button"   value=" |<< "      id="firstPage"    onclick="requestUpdate('firstPage');    this.blur();" title="First Interval ID">
+    <input type="button"   value=" << "       id="previousPage" onclick="requestUpdate('previousPage'); this.blur();" title="Previous Interval ID">
+    <input type="button"   value=" >> "       id="nextPage"     onclick="requestUpdate('nextPage');     this.blur();" title="Next Interval ID">
+    <input type="button"   value=" >>| "      id="lastPage"     onclick="requestUpdate('lastPage');     this.blur();" title="Last Interval ID">
+  </span>
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<div>
+  <input type="checkbox" id="intervalChkBox" name="intervalChkBox" onchange="onclickIntervalChkBox();">
+  <label id="selectIntervalIdText" for="selectIntervalId">Measurement Interval ID</label>
+  <input type="text" id="selectIntervalId" name="selectIntervalId" maxlength="10" size="10" value="All" disabled>,
+  <input type="checkbox" id="instanceChkBox" name="instanceChkBox" onchange="onclickInstanceChkBox();">
+  <label id="selectInstanceIdText" for="selectInstanceId">EVC Instance</label>
+  <input type="text" id="selectInstanceId" name="selectInstanceId" maxlength="3" size="3" value="All" disabled>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <input type="radio" name="unit" id="framesUnit" onclick="processUpdate(reqObject, 'displayTable');" checked="checked">Frames
+  <input type="radio" name="unit" id="bytesUnit"  onclick="processUpdate(reqObject, 'displayTable');">Bytes
+  <input type="radio" name="unit" id="bothUnit"   onclick="processUpdate(reqObject, 'displayTable');">Both
+</div>
+&nbsp;
+
+<div id="displayTable">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

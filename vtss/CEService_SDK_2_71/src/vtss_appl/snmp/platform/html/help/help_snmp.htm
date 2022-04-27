@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>SNMP System Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>SNMP System Configuration Help</h1>
+
+<h2><a href="glossary.htm#snmp" class="glossary">SNMP</a> System Configuration</h2>
+
+<p>Configure SNMP on this page.</p>
+
+<dl>
+ <dt>Mode</dt>
+ <dd>
+ Indicates the SNMP mode operation. Possible modes are:
+ <br><samp>Enabled</samp>: Enable SNMP mode operation.
+ <br><samp>Disabled</samp>: Disable SNMP mode operation.
+ </dd>
+
+ <dt>Version</dt>
+ <dd>
+ Indicates the SNMP supported version. Possible versions are:
+ <br><samp>SNMP v1</samp>: Set SNMP supported version 1.
+ <br><samp>SNMP v2c</samp>: Set SNMP supported version 2c.
+ </dd>
+ <dd class="SNMPV3_CTRL"><samp>SNMP v3</samp>: Set SNMP supported version 3.
+ </dd>
+
+ <dt>Read Community</dt>
+ <dd>
+ Indicates the community read access string to permit access to SNMP agent.
+ The allowed string length is 0 to 255, and the allowed content is the ASCII characters from 33 to 126.
+ </dd>
+ <dd class="SNMPV3_CTRL">
+ The field is applicable only when SNMP version is SNMPv1 or SNMPv2c. If SNMP version is SNMPv3, the community string will be associated with SNMPv3 communities table. It provides more flexibility to configure security name than a SNMPv1 or SNMPv2c community string. In addition to community string, a particular range of source addresses can be used to restrict source subnet. 
+ </dd>
+
+ <dt>Write Community</dt>
+ <dd>
+ Indicates the community write access string to permit access to SNMP agent.
+ The allowed string length is 0 to 255, and the allowed content is the ASCII characters from 33 to 126.
+ </dd>
+ <dd class="SNMPV3_CTRL">
+ The field is applicable only when SNMP version is SNMPv1 or SNMPv2c. If SNMP version is SNMPv3, the community string will be associated with SNMPv3 communities table. It provides more flexibility to configure security name than a SNMPv1 or SNMPv2c community string. In addition to community string, a particular range of source addresses can be used to restrict source subnet. 
+ </dd>
+
+ <dt class="SNMPV3_CTRL">Engine ID</dt>
+ <dd class="SNMPV3_CTRL">
+ Indicates the SNMPv3 engine ID.
+The string must contain an even number(in hexadecimal format) with number of digits between 10 and 64, but all-zeros and all-'F's are not allowed. Change of the Engine ID will clear all original local users.
+ </dd>
+</dl>
+
+<h2>SNMP Trap Configuration</h2>
+
+<p>Configure SNMP trap on this page.</p>
+
+<dl>
+ <dt>Trap Mode</dt>
+ <dd>
+ Indicates the SNMP trap mode operation. Possible modes are:
+ <br><samp>Enabled</samp>: Enable SNMP trap mode operation.
+ <br><samp>Disabled</samp>: Disable SNMP trap mode operation.
+ </dd>
+
+ <dt>Trap Version</dt>
+ <dd>
+ Indicates the SNMP trap supported version. Possible versions are:
+ <br><samp>SNMP v1</samp>: Set SNMP trap supported version 1.
+ <br><samp>SNMP v2c</samp>: Set SNMP trap supported version 2c.
+ </dd>
+ <dd class="SNMPV3_CTRL"><samp>SNMP v3</samp>: Set SNMP trap supported version 3.
+ </dd>
+
+ <dt>Trap Community</dt>
+ <dd>
+ Indicates the community access string when sending SNMP trap packet. The allowed string length is 0 to 255, and the allowed content is ASCII characters from 33 to 126. 
+ </dd>
+
+ <dt>Trap Destination Address</dt>
+ <dd>
+ Indicates the SNMP trap destination address. It allow a valid IP address in dotted decimal notation ('x.y.z.w').
+ </dd>
+ <dd class="has_dns">
+ And it also allow a valid hostname.
+ A valid hostname is a string drawn from the alphabet (A-Za-z), digits (0-9), dot (.), dash (-).
+ Spaces are not allowed, the first character must be an alpha character, and the first and last characters must not be a dot or a dash.
+ </dd>
+ 
+<dt class="has_ipv6">Trap Destination IPv6 Address</dt>
+ <dd class="has_ipv6">
+ Indicates the SNMP trap destination IPv6 address. IPv6 address is in 128-bit records represented as eight fields of up to four hexadecimal digits with a colon separating each field (:).
+ For example, 'fe80::215:c5ff:fe03:4dc7'.
+ The symbol '::' is a special syntax that can be used as a shorthand way of representing multiple 16-bit groups of contiguous zeros; but it can appear only once.
+ It can also represent a legally valid IPv4 address. For example, '::192.1.2.34'.
+ </dd>
+
+ <dt>Trap Authentication Failure</dt>
+ <dd>
+ Indicates that the SNMP entity is permitted to generate authentication failure traps.
+ Possible modes are:
+ <br><samp>Enabled</samp>: Enable SNMP trap authentication failure.
+ <br><samp>Disabled</samp>: Disable SNMP trap authentication failure.
+ </dd>
+
+ <dt>Trap Link-up and Link-down</dt>
+ <dd>
+  Indicates the SNMP trap link-up and link-down mode operation. Possible modes are:
+ <br><samp>Enabled</samp>: Enable SNMP trap link-up and link-down mode operation.
+ <br><samp>Disabled</samp>: Disable SNMP trap link-up and link-down mode operation.
+ </dd>
+
+ <dt>Trap Inform Mode</dt>
+ <dd>
+ Indicates the SNMP trap inform mode operation. Possible modes are:
+ <br><samp>Enabled</samp>: Enable SNMP trap inform mode operation.
+ <br><samp>Disabled</samp>: Disable SNMP trap inform mode operation.
+ </dd>
+
+ <dt>Trap Inform Timeout (seconds)</dt>
+ <dd>
+ Indicates the SNMP trap inform timeout.
+ The allowed range is <samp>0</samp> to <samp>2147</samp>.
+ </dd>
+
+ <dt>Trap Inform Retry Times</dt>
+ <dd>
+ Indicates the SNMP trap inform retry times.
+ The allowed range is <samp>0</samp> to <samp>255</samp>.
+ </dd>
+
+ <dt class="SNMPV3_CTRL">Trap Probe Security Engine ID</dt>
+ <dd class="SNMPV3_CTRL">
+ Indicates the SNMP trap probe security engine ID mode of operation. Possible values are:
+ <br><samp>Enabled</samp>: Enable SNMP trap probe security engine ID mode of operation.
+ <br><samp>Disabled</samp>: Disable SNMP trap probe security engine ID mode of operation.
+ </dd>
+
+ <dt class="SNMPV3_CTRL">Trap Security Engine ID</dt>
+ <dd class="SNMPV3_CTRL">
+ Indicates the SNMP trap security engine ID.
+ SNMPv3 sends traps and informs using USM for authentication and privacy. A unique engine ID
+ for these traps and informs is needed. When "Trap Probe Security Engine ID" is enabled,
+ the ID will be probed automatically. Otherwise, the ID specified in this field is used.
+ The string must contain an even number(in hexadecimal format) with number of digits between 10 and 64, but all-zeros and all-'F's are not allowed.
+ </dd>
+
+ <dt class="SNMPV3_CTRL">Trap Security Name</dt>
+ <dd class="SNMPV3_CTRL">
+ Indicates the SNMP trap security name.
+ SNMPv3 traps and informs using USM for authentication and privacy. A unique security
+ name is needed when traps and informs are enabled.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

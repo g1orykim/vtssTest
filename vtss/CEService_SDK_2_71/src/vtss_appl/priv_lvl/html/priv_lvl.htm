@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Privilege Levels Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_priv_lvl.htm";
+
+var adminPrivLevel = 15;
+var groupNameArray = Array();
+var group_name_idx = 0;
+var oTPrivLevel = genArrayStr(1, 15);
+var oVPrivLevel = genArrayInt(1, oTPrivLevel.length);
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var group_name = unescape(values[0]);
+
+    //group_name
+    groupNameArray[group_name_idx++] = group_name;
+    addTextCell(tr, group_name, "cl");
+
+    //cro, crw, sro, srw
+    addSelectCell(tr, oTPrivLevel, oVPrivLevel, parseInt(values[1], 10), "c", "cro_" + group_name);
+    addSelectCell(tr, oTPrivLevel, oVPrivLevel, parseInt(values[2], 10), "c", "crw_" + group_name);
+    addSelectCell(tr, oTPrivLevel, oVPrivLevel, parseInt(values[3], 10), "c", "sro_" + group_name);
+    addSelectCell(tr, oTPrivLevel, oVPrivLevel, parseInt(values[4], 10), "c", "srw_" + group_name);
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    //if (1) {
+        //var inputData = req.split(",");
+    if (req.responseText) {
+        var inputData = req.responseText.split(",");
+        adminPrivLevel = parseInt(inputData[0], 10);
+        var values = inputData[1].split("|");
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        for (var i = 0; i < values.length; i++) {
+            if (values[i]) {
+                addRow(i, frag, values[i].split("/"));
+            }
+        }
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+}
+
+function requestUpdate()
+{
+    // Format: [admin_priv_level],[group_name]/[cro]/[crw]/[sro]/[srw]|...
+    //var req = "14,System/1/10/5/10|Security/5/10/5/10"
+    //processUpdate(req, 'confData');
+    loadXMLDoc("/config/priv_lvl", processUpdate, 'confData');
+
+}
+
+function checkForm(form)
+{
+    var fld1, fld2, fld3, fld4;
+
+    // Check conflict condition
+    for (var i = 0; i < group_name_idx; i++) {
+        fld1 = document.getElementById("cro_" + groupNameArray[i]);
+        fld2 = document.getElementById("crw_" + groupNameArray[i]);
+        fld3 = document.getElementById("sro_" + groupNameArray[i]);
+        fld4 = document.getElementById("srw_" + groupNameArray[i]);
+
+        if (parseInt(fld1.value, 10) > parseInt(fld2.value, 10)) {
+            GiveAlert("The privilege level of 'Read-only' should be less or equal 'Read/write'.", fld1);
+            return false;
+        }
+
+        if (parseInt(fld3.value, 10) > parseInt(fld4.value, 10)) {
+            GiveAlert("The privilege level of 'Read-only' should be less or equal 'Read/write'.", fld3);
+            return false;
+        }
+
+        if (parseInt(fld2.value, 10) < parseInt(fld3.value, 10)) {
+            GiveAlert("The privilege level of 'Configuration/Execute Read/write' should be great or equal 'Status/Statistics Read-only'", fld2);
+            return false;
+        }
+
+        if (groupNameArray[i] == "Maintenance") {
+            if (parseInt(fld2.value, 10) > adminPrivLevel) {
+                GiveAlert("The privilege level of 'admin' is " + adminPrivLevel + ". Change to lower privilege level will lock youself out.", fld2);
+                return false;
+            }
+        }
+    }
+
+    return true; // Feed the chickens and go home
+}
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Privilege Level Configuration</h1>
+
+<form method="POST" action="/config/priv_lvl" onsubmit="return checkForm(this);">
+
+<table id="priv_level" summary="Privilege Level Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowspan=2>Group Name</th>
+   <th colspan=4>Privilege Levels</th>
+   </tr>
+   <tr class="config_header">
+   <th>Configuration<br>Read-only</th>
+   <th>Configuration/Execute<br>Read/write</th>
+   <th>Status/Statistics<br>Read-only</th>
+   <th>Status/Statistics<br>Read/write</th>
+  </tr>
+ </thead>
+ <tbody id="confData">
+ </tbody>
+</table>
+
+<p>
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

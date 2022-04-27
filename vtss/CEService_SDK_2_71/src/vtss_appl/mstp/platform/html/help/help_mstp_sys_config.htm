@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>STP Bridge Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>STP Bridge Configuration Help</h1>
+
+<p>This page allows you to configure STP system settings. The settings
+are used by all STP Bridge instances in the Switch
+<span class="SPOM_only"> Stack</span>.</p>
+
+<fieldset>
+ <legend>Basic Settings</legend>
+
+<dl>
+ <dt>Protocol Version</dt> 
+ <dd>
+   The 
+   <a href="glossary.htm#mstp" class="glossary">MSTP</a> /
+   <a href="glossary.htm#rstp" class="glossary">RSTP</a> /
+   <a href="glossary.htm#stp" class="glossary">STP</a> protocol
+   version setting. Valid values
+   are <samp>STP</samp>, <samp>RSTP</samp> and <samp>MSTP</samp>.
+ </dd>
+
+ <dt>Bridge Priority</dt> 
+ <dd>
+   Controls the bridge priority. Lower numeric values have better
+   priority. The bridge priority plus the MSTI instance number,
+   concatenated with the 6-byte MAC address of the switch forms
+   a <em>Bridge Identifier</em>.
+   <br>For <samp>MSTP</samp> operation, this is the priority of the
+   CIST. Otherwise, this is the priority of the STP/RSTP bridge.
+ </dd>
+
+ <dt>Forward Delay</dt>
+ <dd>
+    The delay used by STP Bridges to transit Root and Designated
+    Ports to Forwarding (used in STP compatible mode). Valid values are in the range 4 to 30 seconds.
+ </dd>
+
+ <dt>Max Age</dt>
+ <dd>
+   The maximum age of the information transmitted by the Bridge when
+   it is the Root Bridge. Valid values are in the range 6 to 40 seconds, 
+   <em>and</em> MaxAge must be <= (FwdDelay-1)*2.
+ </dd>
+
+ <dt>Maximum Hop Count</dt>
+ <dd>
+   This defines the initial value of remaining Hops for MSTI
+   information generated at the boundary of an MSTI region. It defines
+   how many bridges a root bridge can distribute its BPDU
+   information to. 
+   Valid values are in the range 6 to 40 hops.
+ </dd>
+
+ <dt>Transmit Hold Count</dt>
+ <dd>
+   The number of BPDU's a bridge port can send per second. When
+   exceeded, transmission of the next BPDU will be delayed. Valid
+   values are in the range 1 to 10 BPDU's per second.
+ </dd>
+
+</dl>
+
+</fieldset>
+
+<fieldset class="hasStpEnhancements">
+ <legend>Advanced Settings</legend>
+
+<dl>
+
+ <dt>Edge Port BPDU Filtering</dt>
+ <dd>
+   Control whether a port <em>explicitly</em> configured
+   as <samp>Edge</samp> will transmit and receive BPDUs.
+ </dd>
+
+ <dt>Edge Port BPDU Guard</dt>
+ <dd>
+   Control whether a port <em>explicitly</em> configured
+   as <samp>Edge</samp> will disable itself upon reception of a BPDU.
+   The port will enter the <em>error-disabled</em> state, and will be
+   removed from the active topology.
+ </dd>
+
+ <dt><a name="recovery">Port Error Recovery</a></dt>
+ <dd>
+   Control whether a port in the <em>error-disabled</em> state
+   automatically will be enabled after a certain time. If recovery is
+   not enabled, ports have to be disabled and re-enabled for normal
+   STP operation. The condition is also cleared by a system reboot.
+ </dd>
+
+ <dt>Port Error Recovery Timeout</dt>
+ <dd>
+   The time to pass before a port in the
+   <em>error-disabled</em> state can be enabled. Valid values are
+   between 30 and 86400 seconds (24 hours).
+ </dd>
+
+</dl>
+
+
+</fieldset>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

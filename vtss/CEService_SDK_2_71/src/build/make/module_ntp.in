@@ -1,0 +1,135 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files Location
+DIR_ntp := $(DIR_APPL)/ntp
+DIR_ntp_core := $(DIR_ntp)/base
+DIR_ntp_platform := $(DIR_ntp)/platform
+
+# Module lib objects
+OBJECTS_ntp_libntp :=              \
+  $(addprefix ntp_libntp_,         \
+  a_md5encrypt.o adjtime.o         \
+  atoint.o atolfp.o atouint.o      \
+  audio.o authkeys.o               \
+  authreadkeys.o authusekey.o      \
+  buftvtots.o caljulian.o          \
+  caltontp.o calyearstart.o        \
+  clocktime.o clocktypes.o         \
+  decodenetnum.o dofptoa.o         \
+  dolfptoa.o emalloc.o             \
+  findconfig.o fptoa.o fptoms.o    \
+  getopt.o hextoint.o hextolfp.o   \
+  humandate.o icom.o inttoa.o      \
+  iosignal.o lib_strbuf.o          \
+  machines.o md5c.o memmove.o      \
+  mfptoa.o mfptoms.o mktime.o      \
+  modetoa.o mstolfp.o msutotsf.o   \
+  netof.o                          \
+  numtoa.o numtohost.o octtoint.o  \
+  prettydate.o ntp_random.o        \
+  recvbuff.o refnumtoa.o           \
+  snprintf.o socktoa.o             \
+  socktohost.o statestr.o strdup.o \
+  strstr.o syssignal.o systime.o   \
+  tsftomsu.o tstotv.o tvtoa.o      \
+  tvtots.o uglydate.o uinttoa.o    \
+  utvtoa.o ymd2yd.o)
+
+OBJECTS_ntp_libisc :=           \
+  $(addprefix ntp_libisc_,      \
+  assertions.o                  \
+  error.o interfaceiter.o lib.o \
+  mem.o msgcat.o                \
+  inet_ntop.o                   \
+  inet_pton.o isc_strerror.o    \
+  net.o netaddr.o sockaddr.o    \
+  netscope.o)
+
+# Compiler rules
+$(OBJECTS_ntp_libntp): ntp_libntp_%.o: $(DIR_ntp_core)/libntp/%.c
+	$(call compile_c, $@, $<, -DNTP_ECOS)
+
+$(OBJECTS_ntp_libisc): ntp_libisc_%.o: $(DIR_ntp_core)/libisc/%.c
+	$(call compile_c, $@, $<, -DNTP_ECOS)
+
+# Include files
+INCLUDES += -I$(DIR_ntp_core)/libntp -I$(DIR_ntp_core)/include
+
+# Module core objects
+OBJECTS_ntp_core :=              \
+  $(addprefix ntp_,              \
+  ntp_control.o ntp_crypto.o     \
+  ntp_filegen.o ntp_intres.o     \
+  ntp_loopfilter.o ntp_monitor.o \
+  ntp_peer.o ntp_proto.o         \
+  ntp_refclock.o ntp_request.o   \
+  ntp_restrict.o ntp_timer.o     \
+  ntp_util.o refclock_acts.o     \
+  ntp_io.o ntpd.o)
+
+# Module platform objects
+OBJECTS_ntp_platform := vtss_ntp.o \
+  $(if $(MODULE_VCLI),ntp_cli.o)   \
+  $(if $(MODULE_WEB),ntp_web.o)    \
+  $(if $(MODULE_CONF_XML),ntp_xml.o) \
+  $(if $(MODULE_ICFG),vtss_ntp_icfg.o)
+
+# Module objects (Module lib objects + Module core objects + Module platform objects)
+OBJECTS_ntp := $(OBJECTS_ntp_libntp) $(OBJECTS_ntp_libisc) $(OBJECTS_ntp_core) $(OBJECTS_ntp_platform)
+
+# Built-in ICLI
+$(eval $(call add_icli,$(foreach m, ntp,$(DIR_ntp_platform)/$(m).icli)))
+
+# Compiler rules
+$(OBJECTS_ntp_core): ntp_%.o: $(DIR_ntp_core)/ntpd/%.c
+	$(call compile_c, $@, $<, -DNTP_ECOS)
+
+$(OBJECTS_ntp_platform): %.o: $(DIR_ntp_platform)/%.c
+	$(call compile_c, $@, $<)
+
+# Include files
+INCLUDES += -I$(DIR_ntp_core)/include -I$(DIR_ntp_core)/libntp -I$(DIR_ntp_platform)
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_ntp_platform)/html
+
+# Lint files
+LINT_FILES_ntp += $(DIR_ntp_platform)/vtss_ntp.c    \
+  $(if $(MODULE_VCLI),$(DIR_ntp_platform)/ntp_cli.c) \
+  $(if $(MODULE_WEB),$(DIR_ntp_platform)/ntp_web.c) \
+  $(if $(MODULE_CONF_XML),$(DIR_ntp_platform)/ntp_xml.c) \
+  $(if $(MODULE_ICFG),$(DIR_ntp_platform)/vtss_ntp_icfg.c)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_ntp += $(DIR_ntp_platform)/*.c $(DIR_ntp_platform)/*.h
+
+# Tidy files
+TIDY_FILES_ntp += $(DIR_ntp_platform)/html/*.htm $(DIR_ntp_platform)/html/help/*.htm
+
+# JSLINT files
+JSLINT_FILES_ntp += $(DIR_ntp_platform)/html/*.htm $(DIR_ntp_platform)/html/help/*.htm
+

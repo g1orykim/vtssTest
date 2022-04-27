@@ -1,0 +1,471 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>ECE Control List Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_evc_ece.htm";
+
+var eceIdArray = Array();
+var eceConfigIdx = 0;
+
+var timerID;
+var timeOut = settingsRefreshInterval();
+
+var oTEnable = Array("Disabled", "Enabled");
+var oTTagType = Array("Any", "Untagged", "C-Tagged", "S-Tagged", "Tagged");
+var oTAnyDei = Array("Any", "0", "1");
+var oTFilter = Array("Any", "Specific");
+var oTPcpFixed = Array("0", "1", "2", "3", "4", "5", "6", "7", "0-1", "2-3", "4-5", "6-7", "0-3", "4-7", "Any");
+var oTPreserve = Array("Fixed", "Preserved");
+var oTPcpMode = Array("Classified", "Fixed", "Mapped");
+var oTDeiMode = Array("Classified", "Fixed", "DP");
+var oTFrameType;
+if (configArchServal) {
+    oTFrameType = Array("Any", "Ethernet Type", "LLC", "SNAP", "IPv4", "IPv6", "L2CP");
+} else {
+    oTFrameType = Array("Any", "IPv4", "IPv6");
+}
+var oTDirection = Array("Both", "UNI-to-NNI", "NNI-to-UNI");
+var oTPopCnt = Array("0", "1", "2");
+var oTClass = genArrayStr(0, configQosClassMax - 1).concat("Disabled");
+var oTEvcFilter = Array("None", "Specific");
+var oTPolicerFilter = Array("Specific", "Discard", "None", "EVC");
+var oTConflict = Array("No", "Yes");
+var oTRangeFilter = Array("Any", "Specific", "Range");
+
+var idx = 0;
+var idx_ece_id              = idx++;
+var idx_next_ece_id         = idx++;
+var idx_uni_ports           = idx++;
+var idx_tag_type            = idx++;
+var idx_vid_filter          = idx++;
+var idx_vid_low             = idx++;
+var idx_vid_high            = idx++;
+var idx_pcp                 = idx++;
+var idx_dei                 = idx++;
+var idx_frame_type          = idx++;
+var idx_direction           = idx++;
+var idx_evc_id_filter       = idx++;
+var idx_evc_id              = idx++;
+var idx_policer_id_filter, idx_policer_id;
+if (configArchJaguar_1 || configArchServal) {
+    idx_policer_id_filter   = idx++;
+    idx_policer_id          = idx++;
+}
+var idx_pop                 = idx++;
+var idx_policy              = idx++;
+var idx_class;
+if (configArchLuton26) {
+    idx_class               = idx++;
+}
+var idx_ot_mode             = idx++;
+var idx_ot_vid;
+if (configArchJaguar_1 || configArchServal) {
+    idx_ot_vid              = idx++;
+}
+var idx_ot_preserve         = idx++;
+var idx_ot_pcp              = idx++;
+var idx_ot_dei_mode;
+if (configArchServal) {
+    idx_ot_dei_mode         = idx++;
+}
+var idx_ot_dei              = idx++;
+var idx_conflict            = idx;
+
+function CreateTableHeader(frag)
+{
+    var tr, td;
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"ECE ID", "hdrc", 1, 2);
+    addTextHeaderCell(tr, "Ingress Matching", "hdrc", 6);
+    addTextHeaderCell(tr, "Actions", "hdrc", 5);
+    if (configArchJaguar_1) {
+        addTextHeaderCell(tr, "Egress Outer Tag", "hdrc", 5);
+    } else {
+        addTextHeaderCell(tr, "Egress Outer Tag", "hdrc", 4);
+    }
+    addTextHeaderCell(tr,"Conflict", "hdrc", 1, 2);
+    addTextHeaderCell(tr, " ", "hdrc", 1, 2);
+    frag.appendChild(tr);       // Add row to fragment
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"UNI Ports", "hdrc");
+    td = addTextHeaderCell(tr, "Tag", "hdrc");
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("Type"));
+    addTextHeaderCell(tr, "VID", "hdrc");
+    addTextHeaderCell(tr, "PCP", "hdrc");
+    addTextHeaderCell(tr, "DEI", "hdrc");
+    td = addTextHeaderCell(tr, "Frame", "hdrc");
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("Type"));
+    addTextHeaderCell(tr, "Direction", "hdrc");
+    td = addTextHeaderCell(tr, "EVC", "hdrc");
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("ID"));
+    if (configArchJaguar_1 || configArchServal) {
+        td = addTextHeaderCell(tr, "Policer", "hdrc");
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("ID"));
+    }
+    td = addTextHeaderCell(tr, "Tag", "hdrc");
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("Pop"));
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("Count"));
+    td = addTextHeaderCell(tr, "Policy", "hdrc");
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("ID"));
+    if (configArchLuton26) {
+        addTextHeaderCell(tr, "Class", "hdrc");
+    }
+    addTextHeaderCell(tr, "Mode", "hdrc");
+    if (configArchJaguar_1 || configArchServal) {
+        addTextHeaderCell(tr, "VID", "hdrc");
+    }
+    if (!configArchServal) {
+        td = addTextHeaderCell(tr, "PCP/DEI", "hdrc");
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Preservation"));
+    }
+    addTextHeaderCell(tr, "PCP", "hdrc");
+    addTextHeaderCell(tr, "DEI", "hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addImageInline(frag, style, src, text, idx, click)
+{
+    var field = document.createElement('img');
+    var pval = text.split(" ");
+    field.id = pval[pval.length - 1] + "_" + (idx > 0 ? idx : 0);
+    field.src = src;
+    field.border = 0;
+    field.value = idx;
+    if (click) {
+        field.onclick = click;
+    }
+    field.title = field.alt = text;
+    frag.appendChild(field);
+    return field;
+}
+
+
+function eceEdit()
+{
+    // Format        : [eceEditFlag]/[selectEceId]
+    // <Edit>        :             1/[ece_id]
+    // <Insert>      :             2/[next_id]
+    // <Add to Last> :             3/0
+
+    document.location.href = "evc_ece_edit.htm?eceEditFlag=1&selectEceId=" + this.value;
+}
+
+function eceInsert()
+{
+    // Format        : [eceEditFlag]/[selectEceId]
+    // <Edit>        :             1/[ece_id]
+    // <Insert>      :             2/[next_id]
+    // <Add to Last> :             3/0
+
+    document.location.href = "evc_ece_edit.htm?eceEditFlag=2&selectEceId=" + this.value;
+}
+
+// Predeclare processUpdate(). This makes JSLint happy.
+var processUpdate;
+
+function addRowControlCol(tr, values, idx, first, last)
+{
+    var container = document.createElement("td");
+
+    //insert
+    addImageInline(container, "cl", "images/add.gif", "Insert new ECE before this ECE", values[idx_ece_id], eceInsert);
+
+    //move up
+    if (!first) {
+        addImageInline(container, "cl", "images/up.gif", "Move ECE up", idx - 1, function () {loadXMLDoc('/config/evc_ece?eceConfigFlag=2&selectEceId=' +  eceIdArray[this.value], processUpdate, 'eceTable');});
+    } else {
+        addImageInline(container, "cl", "images/up_gray.gif", "Move ECE up", -1, null);
+    }
+
+    container.appendChild(document.createElement("br"));
+
+    //edit
+    addImageInline(container, "cl", "images/edit.gif", "Edit ECE", values[idx_ece_id], eceEdit);
+
+    //move down
+    if (idx != (eceConfigIdx - 1) && !last) {
+       addImageInline(container, "cl", "images/down.gif", "Move ECE down", values[idx_ece_id], function () {loadXMLDoc('/config/evc_ece?eceConfigFlag=2&selectEceId=' +  this.value, processUpdate, 'eceTable');});
+    }  else {
+        addImageInline(container, "cl", "images/down_gray.gif", "Move ECE down", -1, null);
+    }
+
+    //del
+    addImageInline(container, "cl", "images/del.gif", "Delete ECE", values[idx_ece_id], function () {loadXMLDoc('/config/evc_ece?eceConfigFlag=1&selectEceId=' + this.value, processUpdate, 'eceTable');});
+
+    tr.appendChild(container);
+}
+
+function addRow(frag, values, idx, first, last)
+{
+    var tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+    var is_tagged = (oTTagType[parseInt(values[idx_tag_type], 10)] == "Any" ||
+                     oTTagType[parseInt(values[idx_tag_type], 10)] == "Untagged") ? 0 : 1;
+
+    eceIdArray[idx] = values[idx_ece_id];
+    addTextCell(tr, values[idx_ece_id], "cr");
+    //addTextCell(tr, values[idx_next_ece_id], "cr");
+    if (values[idx_uni_ports]) {
+        addTextCell(tr, values[idx_uni_ports], "cr");
+    } else {
+        addTextCell(tr, "None", "cr");
+    }
+    addTextCell(tr, oTTagType[parseInt(values[idx_tag_type], 10)], "cr");
+    if (is_tagged) {
+        if (oTRangeFilter[parseInt(values[idx_vid_filter], 10)] == "Specific") {
+            addTextCell(tr, values[idx_vid_low], "cr");
+        } else if (oTRangeFilter[parseInt(values[idx_vid_filter], 10)] == "Range") {
+            addTextCell(tr, values[idx_vid_low] + " - " + values[idx_vid_high], "cr");
+        } else {
+            addTextCell(tr, oTRangeFilter[parseInt(values[idx_vid_filter], 10)], "cr");
+        }
+        addTextCell(tr, oTPcpFixed[parseInt(values[idx_pcp], 10)], "cr");
+        addTextCell(tr, oTAnyDei[parseInt(values[idx_dei], 10)], "cr");
+    } else if (oTTagType[parseInt(values[idx_tag_type], 10)] == "Untagged") {
+        addTextCell(tr, "-", "c");
+        addTextCell(tr, "-", "c");
+        addTextCell(tr, "-", "c");
+    } else {
+        addTextCell(tr, "Any", "cr");
+        addTextCell(tr, "Any", "cr");
+        addTextCell(tr, "Any", "cr");
+    }
+    addTextCell(tr, oTFrameType[parseInt(values[idx_frame_type], 10)], "cr");
+    addTextCell(tr, oTDirection[parseInt(values[idx_direction], 10)], "cr");
+    if (oTEvcFilter[parseInt(values[idx_evc_id_filter], 10)] == "Specific") {
+        addTextCell(tr, values[idx_evc_id], "cr");
+    } else {
+        addTextCell(tr, oTEvcFilter[parseInt(values[idx_evc_id_filter], 10)], "cr");
+    }
+    if (configArchJaguar_1 || configArchServal) {
+        if (oTPolicerFilter[parseInt(values[idx_policer_id_filter], 10)] == "Specific") {
+            addTextCell(tr, values[idx_policer_id], "cr");
+        } else {
+            addTextCell(tr, oTPolicerFilter[parseInt(values[idx_policer_id_filter], 10)], "cr");
+        }
+    }
+    addTextCell(tr, oTPopCnt[parseInt(values[idx_pop], 10)], "cr");
+    addTextCell(tr, values[idx_policy], "cr");
+    if (configArchLuton26) {
+        addTextCell(tr, oTClass[parseInt(values[idx_class], 10)], "cr");
+    }
+    addTextCell(tr, oTEnable[parseInt(values[idx_ot_mode], 10)], "cr");
+    if (configArchJaguar_1 || configArchServal) {
+        addTextCell(tr, values[idx_ot_vid], "cr");
+    }
+    if (configArchServal) {
+        var pcp_mode = parseInt(values[idx_ot_preserve], 10);
+        var dei_mode = parseInt(values[idx_ot_dei_mode], 10);
+        addTextCell(tr, pcp_mode != 1 ? oTPcpMode[pcp_mode] : values[idx_ot_pcp], "cr");
+        addTextCell(tr, dei_mode != 1 ? oTDeiMode[dei_mode] : values[idx_ot_dei], "cr");
+    } else {
+        addTextCell(tr, oTPreserve[parseInt(values[idx_ot_preserve], 10)], "cr");
+        addTextCell(tr, values[idx_ot_pcp], "cr");
+        addTextCell(tr, values[idx_ot_dei], "cr");
+    }
+    addTextCell(tr, oTConflict[parseInt(values[idx_conflict], 10)], "cr");
+    addRowControlCol(tr, values, idx, first, last);
+    frag.appendChild(tr);   // Add row to fragment
+}
+
+function eceAddLast()
+{
+    // Format        : [eceEditFlag]/[selectEceId]
+    // <Edit>        :             1/[ece_id]
+    // <Insert>      :             2/[next_id]
+    // <Add to Last> :             3/0
+
+    document.location.href = "evc_ece_edit.htm?eceEditFlag=3&selectEceId=0";
+}
+
+processUpdate = function(req, ref)
+{
+    var tbody, frag, tr, td, image;
+    var rowwidth = 17;
+
+    if (configArchJaguar_1) {
+        ++rowwidth;
+    }
+
+    //create holder for accumulated tbody elements and text nodes
+    frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    if (req.responseText) {
+        eceConfig = req.responseText.split("|");
+        var eceConfigIdx = eceConfig.length;
+        var first = 1;
+        for (var i = 0; i < eceConfig.length; i++) {
+            if (eceConfig[i]) {
+                var pval = eceConfig[i].split("/");
+                addRow(frag, pval, i, first, eceConfig[i + 1] ? 0 : 1);
+                first = 0;
+            }
+        }
+
+        // Last Row - for new
+        tr = document.createElement("tr");
+        td = document.createElement("td");
+        td.setAttribute("colSpan", rowwidth);
+        tr.appendChild(td); // Add col to row
+        td = document.createElement("td");
+        img = addImageInline(td, "cl",  "images/add.gif", "Add ECE to end of list", 0, eceAddLast);
+        tr.appendChild(td); // Add col to row
+        frag.appendChild(tr);   // Add row to fragment
+    } else { //no ECE exist
+        tbody = document.getElementById(ref);
+        if (tbody) {
+            // Last Row - for new
+            tr = document.createElement("tr");
+            td = document.createElement("td");
+            td.setAttribute("colSpan", rowwidth);
+            tr.appendChild(td); // Add col to row
+            td = document.createElement("td");
+            img = addImageInline(td, "cl",  "images/add.gif", "Add ECE to end of list", 0, eceAddLast);
+            tr.appendChild(td); // Add col to row
+            frag.appendChild(tr);   // Add row to fragment
+        }
+    }
+
+    tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+};
+
+function requestRemoveAll()
+{
+    // Format       : [eceConfigFlag]/[selectEceId]
+    // <Delete>     :               1/[ece_id]
+    // <Move>       :               2/[ece_id]
+    // <Delete All> :               3/
+
+    if (!confirm("All ECEs will be removed.\nDo you want to proceed anyway?")) {
+        return false;
+    }
+    var url="/config/evc_ece?eceConfigFlag=3";
+    loadXMLDoc(url, processUpdate, 'eceTable');
+    return true;
+}
+
+function requestUpdate()
+{
+    // Format: [ece_id]/[next_ece_id]/[uni_ports]/[tag_type]/[vid_filter]/[vid_low]/[vid_high]/[pcp]/[dei]
+    //          /[frame_type]/[direction]/[evc_id_filter]/[evc_id]
+    //          /[policer_id_filter:JR1/SRVL]/[policer_id:JR1/SRVL]/[pop]/[policy]/[class:Lu26]
+    //          /[ot_mode]/[ot_vid:JR1/SRVL]/[ot_preserve]/[ot_pcp]/[ot_dei_mode:SRVL]/[ot_dei]/[conflict]|...
+
+    loadXMLDoc("/config/evc_ece", processUpdate, 'eceTable');
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button"   value="Refresh"    id="refresh"     onclick="requestUpdate();    this.blur();">
+  <input type="button"   value="Remove All" id="removeall"   onclick="requestRemoveAll(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<div id="control_bar_tbl">
+
+<h1>ECE Control List Configuration</h1>
+
+<table summary="ECE Control List Configuration" class="display">
+ <tbody id="eceTable">
+ </tbody>
+</table>
+
+</div>
+
+<!-- IE caching bug -->
+<div style="visibility: hidden;">
+ <img alt="" src="images/add.gif">
+ <img alt="" src="images/up.gif">
+ <img alt="" src="images/up_gray.gif">
+ <img alt="" src="images/edit.gif">
+ <img alt="" src="images/down.gif">
+ <img alt="" src="images/down_gray.gif">
+ <img alt="" src="images/del.gif">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

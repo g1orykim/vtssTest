@@ -1,0 +1,279 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page macic
+var help_page = "/help/help_main.htm";
+
+var timerID;
+var currData;
+
+function ShowPort(sid, port)
+{
+    SpomSetSelectorSid(sid);
+    document.location.href = "stat_detailed.htm?port=" + port;
+}
+
+function ImageFile(file)
+{
+    return "/images/" + file;
+}
+
+function setPos(img, xoff, yoff, width, height) 
+{
+    img.style.position = "absolute";
+    img.style.top = yoff + 'px';
+    img.style.left = xoff + 'px';
+    img.style.width = width + "px";
+    img.style.height = height + "px";
+}
+
+function AddLabel(frag, img, text, pos, style)
+{
+    var div = document.createElement('div');
+
+    div.style.position = "absolute";
+    div.style.zIndex = 2;
+    div.setAttribute("class", style); // For FF
+    div.setAttribute("className", style); // For MSIE
+
+    var top = parseInt(img.style.top, 10) + 
+        pos * parseInt(img.style.height, 10);
+
+    div.style.top = top + "px";
+    div.style.left = img.style.left;
+    div.style.width = img.style.width;
+    div.style.height = img.style.height;
+
+    div.appendChild(document.createTextNode(text));
+    frag.appendChild(div);    // Add text label
+}
+
+function addPort(frag, sid, values) 
+{
+    var portno = parseInt(values[0], 10);
+    var icon = values[1];
+    var icontitle = values[2];
+    var xoff = parseInt(values[3], 10);
+    var yoff = parseInt(values[4], 10);
+    var width = parseInt(values[5], 10);
+    var height = parseInt(values[6], 10);
+    var labelpos = parseInt(values[7], 10);
+    var portlabel = String(portno);
+
+    var img = document.createElement("img");
+
+    img.id = 'state_' + portno;
+    img.src = ImageFile(icon);
+    img.border = 0;
+    img.title = img.alt = icontitle;
+    setPos(img, xoff, yoff, width, height);
+
+    var link = document.createElement("a");
+    link.href = "javascript:ShowPort(" + sid + "," + portno + ");";
+    link.appendChild(img);       // Add Image
+    frag.appendChild(link);       // Add A
+    if(portlabel.length) {
+        AddLabel(frag, img, portlabel, labelpos, "portlabel");
+    }
+}
+
+function addDecoration(frag, values) 
+{
+    var icon = values[0];
+    var icontitle = values[1];
+    var xoff = parseInt(values[2], 10);
+    var yoff = parseInt(values[3], 10);
+    var width = parseInt(values[4], 10);
+    var height = parseInt(values[5], 10);
+    var label = values[6];
+    var labelstyle = values[7];
+    var labelpos = parseInt(values[8], 10);
+
+    var img = document.createElement("img");
+    img.src = ImageFile(icon);
+    img.border = 0;
+    img.title = img.alt = icontitle;
+    setPos(img, xoff, yoff, width, height);
+
+    frag.appendChild(img);       // Add Image
+    if(label.length) {
+        AddLabel(frag, img, label, labelpos, labelstyle);
+    }
+}
+
+function AddSwitch(tbody, data)
+{
+    var portconfig = data.split("|");
+    var sid = parseInt(portconfig[0], 10);
+
+    var img = document.createElement("img");
+    img.id = "switch_" + sid;
+    img.src = ImageFile(portconfig[1]);
+    img.border = 0;
+    img.title = img.alt = "Switch " + sid;
+
+    var container = document.createElement("div");        
+    container.id = "container_" + sid;
+    container.style.margin = "2px";
+    container.style.position = "relative";
+    container.appendChild(img);
+    tbody.appendChild(container);
+
+    var frag = document.createDocumentFragment();
+    for(var i = 2; i < portconfig.length; i++) {
+        if(portconfig[i]) {
+            var pval = portconfig[i].split("/");
+            if(!isNaN(parseInt(pval[0], 10))) {
+                addPort(frag, sid, pval);
+            } else {
+                addDecoration(frag, pval);
+            }
+        }
+    }
+    container.appendChild(frag);
+}
+
+function processUpdate(req, ref)
+{
+    var fields;
+    
+    if(req.responseText) {
+        if(req.responseText != currData) {
+            
+            /* parse alerts */
+            fields = req.responseText.split(";");
+
+            var tbody = document.getElementById('switchArea');
+            clearChildNodes(tbody);
+
+            var switchdata = fields[0].split(",");
+            for(var i = 0; i < switchdata.length; i++) {
+                if(switchdata[i]) {
+                    AddSwitch(tbody, switchdata[i]);
+                }
+            }
+            currData = fields[0];
+
+            /* display alerts */
+            if (fields[1])
+                window.alert(fields[1]);
+        }
+
+        var autorefresh = document.getElementById('autorefresh');
+	if(autorefresh.checked) {
+            if(timerID) {
+                clearTimeout(timerID);
+            }
+            timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+        }
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate() {
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc("/stat/portstate", processUpdate, 0);
+}
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+ </script>
+</head>
+
+<body id="body" class="content" onload="requestUpdate();">
+
+<h1>Port State Overview</h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<div id="switchArea"></div>
+
+<!-- IE caching bug -->
+<div style="display: none;">
+ <img alt="" src="images/switch.png">
+ <img alt="" src="images/led-green-small.gif">
+ <img alt="" src="images/led-off-small.gif">
+ <img alt="" src="images/jack_copper_disabled_bottom.png">
+ <img alt="" src="images/jack_copper_down_bottom.png">
+ <img alt="" src="images/jack_copper_link_bottom.png">
+ <img alt="" src="images/jack_copper_disabled_top.png">
+ <img alt="" src="images/jack_copper_down_top.png">
+ <img alt="" src="images/jack_copper_link_top.png">
+ <img alt="" src="images/jack_sfp_disabled_bottom.png">
+ <img alt="" src="images/jack_sfp_down_bottom.png">
+ <img alt="" src="images/jack_sfp_link_bottom.png">
+ <img alt="" src="images/jack_x2_disabled_bottom.png">
+ <img alt="" src="images/jack_x2_down_bottom.png">
+ <img alt="" src="images/jack_x2_link_bottom.png">
+ <img alt="" src="images/jack_sfp_sprout_bottom.png">
+ <img alt="" src="images/jack_hdmi_disabled_bottom.png">
+ <img alt="" src="images/jack_hdmi_down_bottom.png">
+ <img alt="" src="images/jack_hdmi_link_bottom.png">
+ <img alt="" src="images/jack_hdmi_sprout_bottom.png">
+ <img alt="" src="images/jack_sma_disabled_bottom.png">
+ <img alt="" src="images/jack_sma_enabled_bottom.png">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

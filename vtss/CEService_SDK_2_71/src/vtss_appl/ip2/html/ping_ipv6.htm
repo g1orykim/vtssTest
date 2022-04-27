@@ -1,0 +1,122 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>ICMPv6 Ping</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_diagnostics.htm#ping6";
+
+function checkForm()
+{
+    //ipv6_addr
+    if (!isIpv6Str("ipv6_addr", "'IP Address'", 0, 0)) {
+        return false;
+    }
+
+    // length
+    if (!isWithinRange("length", configPingLenMin, configPingLenMax, "'Ping Length'", " bytes")) {
+        return false;
+    }
+
+    // count
+    if (!isWithinRange("count", configPingCntMin, configPingCntMax, "'Ping Count'", " times")) {
+        return false;
+    }
+
+    // interval
+    if (!isWithinRange("interval", configPingIntervalMin, configPingIntervalMax, "'Ping Interval'", " seconds")) {
+        return false;
+    }
+
+    // interface index (VID)
+    var fld = document.getElementById("intfidx");
+    if (fld.value !== "") {
+        if (!isWithinRange("intfidx", 1, 4094, "'Egress Interface'", " VLAN index")) {
+            return false;
+        }
+    }
+
+    return true;
+}
+ </script>
+</head>
+
+<body class="content">
+
+<h1>ICMPv6 Ping</h1>
+
+<form method="POST" action="/config/ping_ipv6" onsubmit="return checkForm();">
+
+<table summary="ICMPv6 Ping" cellspacing="0" border="0">
+ <tr>
+  <td class="hdrl"><label for="ip_addr">IP Address</label></td>
+  <td class="cl"><input type="text" value="0:0:0:0:0:0:0:0" id="ipv6_addr" name="ipv6_addr" size="40" maxlength="40"></td>
+ </tr>
+ <tr>
+  <td class="hdrl"><label for="length">Ping Length</label></td>
+  <td class="cl"><input type="text" value="56" id="length" name="length" size="40" maxlength="4"></td>
+ </tr>
+ <tr>
+  <td class="hdrl"><label for="count">Ping Count</label></td>
+  <td class="cl"><input type="text" value="5" id="count" name="count" size="40" maxlength="2"></td>
+ </tr>
+ <tr>
+  <td class="hdrl"><label for="interval">Ping Interval</label></td>
+  <td class="cl"><input type="text" value="1" id="interval" name="interval" size="40" maxlength="2"></td>
+ </tr>
+ <tr>
+  <td class="hdrl"><label for="intfidx">Egress Interface</label></td>
+  <td class="cl"><input type="text" value="" id="intfidx" name="intfidx" size="40" maxlength="4"></td>
+ </tr>
+</table>
+
+<p>
+<input type="submit" value="Start">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

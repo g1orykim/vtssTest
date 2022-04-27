@@ -1,0 +1,402 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>EVC Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_evc_edit.htm";
+
+var pageEvcEditFlag = 3;
+var pageSelectEvcId = 0;
+var pageArgs = searchArgs(window.location.search);
+var pageArgsName = 'evcEditFlag';
+if (pageArgs[pageArgsName]) {
+    pageEvcEditFlag = parseInt(pageArgs[pageArgsName], 10);
+}
+pageArgsName = 'selectEvcId';
+if (pageArgs[pageArgsName]) {
+    pageSelectEvcId = parseInt(pageArgs[pageArgsName], 10);
+}
+
+var evcEditReq;
+var oldPolicerIdValue = 1;
+var singleEvcConfigDate;
+
+var style_width = "100%";
+var evcDataTable = Array("evcData_NniPorts", "evcData_Parameters", "evcData_Inner", "evcData_Outer");
+
+var oTEnable = Array("Disabled", "Enabled");
+var oTInType = Array("None", "C-tag", "S-tag", "S-custom-tag");
+var oTPreserve = Array("Fixed", "Preserved");
+var oTVlanMode = Array("Normal", "Tunnel");
+var oTPolicerFilter = Array("Specific", "Discard", "None");
+var oTPcp = genArrayInt(0, 7);
+var oTDei = genArrayInt(0, 1);
+var oVNormal = genArrayInt(0, 8);
+
+var idx = 0;
+var idx_evc_id              = idx++;
+var idx_vid                 = idx++;
+var idx_ivid                = idx++;
+var idx_learning            = idx++;
+var idx_policer_id_filter, idx_policer_id;
+if (configArchJaguar_1 || configArchServal) {
+    idx_policer_id_filter   = idx++;
+    idx_policer_id          = idx++;
+}
+var idx_it_type, idx_it_vid_mode, idx_it_vid, idx_it_preserve, idx_it_pcp, idx_it_dei, idx_ot_vid;
+if (configArchLuton26) {
+    idx_it_type             = idx++;
+    idx_it_vid_mode         = idx++;
+    idx_it_vid              = idx++;
+    idx_it_preserve         = idx++;
+    idx_it_pcp              = idx++;
+    idx_it_dei              = idx++;
+    idx_ot_vid              = idx++;
+}                   
+var idx_nni_port_0          = idx;
+
+function checkForm()
+{
+    //evc_id
+    fld = document.getElementById("evc_id");
+    if (fld && !isWithinRange("evc_id", 1, configEvcIdMax, "'EVC ID'")) {
+        return false;
+    }
+
+    //vid
+    fld = document.getElementById("vid");
+    if (fld && !isWithinRange("vid", configEvcVidMin, 4095, "'VID'")) {
+        return false;
+    }    
+
+    //ivid
+    fld = document.getElementById("ivid");
+    if (fld && !isWithinRange("ivid", 1, 4095, "'IVID'")) {
+        return false;
+    }  
+
+    //policer_id
+    fld = document.getElementById("policer_id");
+    if (fld && !isWithinRange("policer_id", 1, configEvcPolicerIdMax, "'Policer ID'")) {
+        return false;
+    }
+ 
+     //it_vid
+    fld = document.getElementById("it_vid");
+    if (fld && !isWithinRange("it_vid", 0, 4095, "'Inner VLAN ID'")) {
+        return false;
+    }
+
+    //ot_vid
+    fld = document.getElementById("ot_vid");
+    if (fld && !isWithinRange("ot_vid", 0, 4095, "'Outer VLAN ID'")) {
+        return false;
+    }
+    return true;
+}
+
+function evcSubmit()
+{
+    if (!checkForm()) {
+        return;
+    }
+    document.getElementById("buttons").style.visibility = "hidden";
+    document.getElementById("evc_id").disabled = false;
+    document.evcConfigForm.submit();
+}
+
+function evcCancel()
+{
+    document.location.href="evc.htm";
+}
+
+function changeFilter()
+{
+    var tbody, newChild;
+
+    //alert("changeFilter: " + this.id);
+    if (this.id == "policer_id_filter") {
+        tbody = document.getElementById("evcData_Parameters");
+        newChild = document.createElement("tr");
+        if (oTPolicerFilter[this.value] == "Specific") {
+            addLabelTextCell(newChild, "Policer ID Value", "param_label", "policer_id");
+            addInputCell(newChild, oldPolicerIdValue, "cl", "policer_id", 4, 4, style_width);
+        } else {
+            addTextCell(newChild, "", "cl", 2);
+        }
+        tbody.replaceChild(newChild, tbody.childNodes[5]);
+    } else {
+        alert("Cannot find " + this.id + " in changeFilter()");
+    }
+}
+
+function addRow(frag, values, ref)
+{
+    var tr, td, i;
+
+    switch (ref) {
+        case "evcData_NniPorts":
+            tr = document.createElement("tr");
+            for (i = configPortMin; i <= configNormalPortMax; i++) {
+                addTextCell(tr, i, "param_label");
+            }
+            frag.appendChild(tr);
+
+            tr = document.createElement("tr");
+            for (i = configPortMin, j = idx_nni_port_0; i <= configNormalPortMax; i++, j++) {
+                if (parseInt(values[j], 10) == 2) {
+                    td = addCheckBoxCell(tr, 0, "c", "nni_port_" + i);
+                    td.disabled = true;
+                } else {
+                    addCheckBoxCell(tr, parseInt(values[j], 10), "c", "nni_port_" + i);
+                }
+            }
+            frag.appendChild(tr);
+            break;
+
+       case "evcData_Parameters":
+            //evc_id
+            tr = document.createElement("tr");
+            addLabelTextCell(tr, "EVC ID", "param_label", "vid");
+            td = addInputCell(tr, values[idx_evc_id], "cl", "evc_id", 4, 4, style_width);
+            if (parseInt(values[idx_evc_id], 10)) {
+                td.disabled = true;
+            }
+            frag.appendChild(tr);
+            
+            //vid
+            tr = document.createElement("tr");
+            addLabelTextCell(tr, "VID", "param_label", "vid");
+            addInputCell(tr, values[idx_vid], "cl", "vid", 4, 4, style_width);
+            frag.appendChild(tr);
+            
+            //ivid
+            tr = document.createElement("tr");
+            addLabelTextCell(tr, "IVID", "param_label", "ivid");
+            addInputCell(tr, values[idx_ivid], "cl", "ivid", 4, 4, style_width);
+            frag.appendChild(tr);
+            
+            //learning
+            tr = document.createElement("tr");
+            addLabelTextCell(tr, "Learning", "param_label", "ivid");
+            addSelectCell(tr, oTEnable, oVNormal, parseInt(values[idx_learning], 10), "cl", "learning", style_width);
+            frag.appendChild(tr);
+            
+            if (configArchJaguar_1 || configArchServal) {
+                //policer_id_filter
+                tr = document.createElement("tr");
+                addTextCell(tr, "Policer ID Filter", "param_label");
+                td = addSelectCell(tr, oTPolicerFilter, oVNormal, parseInt(values[idx_policer_id_filter], 10), "cl", "policer_id_filter", style_width);
+                td.onchange = changeFilter;
+                frag.appendChild(tr);
+
+                //policer_id
+                tr = document.createElement("tr");
+                if (oTPolicerFilter[values[idx_policer_id_filter]] == "Specific") {
+                    addLabelTextCell(tr, "Policer ID Value", "param_label", "policer_id");
+                    addInputCell(tr, values[idx_policer_id], "cl", "policer_id", 4, 4, style_width);
+                } else {
+                    addTextCell(tr, "", "cl", 2);
+                }
+                frag.appendChild(tr);
+ 
+                if (values[idx_policer_id]) {
+                    oldPolicerIdValue = values[idx_policer_id];
+                }
+            }
+            break;
+
+       case "evcData_Inner":
+            if (configArchLuton26) {
+                //it_type
+                tr = document.createElement("tr");
+                addTextCell(tr, "Type", "param_label");
+                td = addSelectCell(tr, oTInType, oVNormal, parseInt(values[idx_it_type], 10), "cl", "it_type", style_width);
+                frag.appendChild(tr);
+
+                //it_vid_mode
+                tr = document.createElement("tr");
+                addTextCell(tr, "VID Mode", "param_label");
+                td = addSelectCell(tr, oTVlanMode, oVNormal, parseInt(values[idx_it_vid_mode], 10), "cl", "it_vid_mode", style_width);
+                frag.appendChild(tr);
+
+                //it_vid
+                tr = document.createElement("tr");
+                addLabelTextCell(tr, "VLAN ID", "param_label", "it_vid");
+                addInputCell(tr, values[idx_it_vid], "cl", "it_vid", 4, 4, style_width);
+                frag.appendChild(tr);
+
+                //it_preserve
+                tr = document.createElement("tr");
+                addTextCell(tr, "PCP/DEI Preservation", "param_label");
+                addSelectCell(tr, oTPreserve, oVNormal, parseInt(values[idx_it_preserve], 10), "cl", "it_preserve", style_width);
+                frag.appendChild(tr);
+
+                //it_pcp
+                tr = document.createElement("tr");
+                addTextCell(tr, "PCP", "param_label");
+                addSelectCell(tr, oTPcp, oVNormal, parseInt(values[idx_it_pcp], 10), "cl", "it_pcp", style_width);
+                frag.appendChild(tr);
+
+                //it_dei
+                tr = document.createElement("tr");
+                addTextCell(tr, "DEI", "param_label");
+                addSelectCell(tr, oTDei, oVNormal, parseInt(values[idx_it_dei], 10), "cl", "it_dei", style_width);
+                frag.appendChild(tr);
+            }
+            break;
+
+        case "evcData_Outer":
+            if (configArchLuton26) {
+                //ot_vid
+                tr = document.createElement("tr");
+                addLabelTextCell(tr, "VLAN ID", "param_label", "ot_vid");
+                addInputCell(tr, values[idx_ot_vid], "cl", "ot_vid", 4, 4, style_width);
+                frag.appendChild(tr);
+            }
+            break;
+ 
+        default:
+            return;
+    }
+}
+
+function processUpdate(req, ref)
+{
+    //Format: <evc_id>/<vid>/<ivid>/<learning>
+    //        /<policer_id_filter:JR1/SRVL>/<policer_id:JR1/SRVL>/<it_type:Lu26>/<it_vid_mode:Lu26>/<it_vid:Lu26>/<it_preserve:Lu26>/<it_pcp:Lu26>/<it_dei:Lu26>/<ot_vid:Lu26>
+    //        /<nni_port_0>/<nni_port_1>/...|...
+
+    //if (req) {
+    if (req.responseText) {
+        evcEditReq = req;
+
+        //singleEvcConfigDate = req;
+        singleEvcConfigDate = req.responseText;
+        var evcConfig = singleEvcConfigDate.split("/");
+
+        for (var i = 0; i < evcDataTable.length; i++) {
+            var frag = document.createDocumentFragment();
+            ref = evcDataTable[i];
+            addRow(frag, evcConfig, ref);
+            var tbody = document.getElementById(ref);
+            clearChildNodes(tbody);
+            if (!tbody.appendChild(frag)) { // Add Frag to table body
+                alert("This browser doesn't support dynamic tables.");
+            }
+        }
+    } else {
+        document.location.href = "evc.htm";
+    }
+}
+
+function evcReset()
+{
+    processUpdate(evcEditReq, null);
+}
+
+function requestUpdate()
+{
+    //var req = "13/66/2/0/1918/4042/7/2/2/0/1342/1642/5/0/0/2/0/60/2/0/83/2/124/2/1/0/85/0/1/1/3/2401/0/3/1/1/0/0/0/0/1/2/2/1/1/0/1/2/0/1/1/1/2/2/0/0/1/0/0";
+    //processUpdate(req, null);
+    loadXMLDoc("/config/evc_edit?evcEditFlag=" + pageEvcEditFlag + "&selectEvcId=" + pageSelectEvcId, processUpdate, null);
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+<form name="evcConfigForm" method="POST" action="/config/evc_edit">
+
+<h1>EVC Configuration</h1>
+<h1>NNI Ports</h1>
+<table summary="EVC Configuration - NniList Parameters" class="config">
+    <tbody id="evcData_NniPorts">
+    </tbody>
+</table>
+
+<table summary="EVC Configuration">
+<tr>
+<td valign="top" width="320">
+<h1>&nbsp;</h1>
+<h1>EVC Parameters</h1>
+<table summary="EVC Configuration - EVC Parameters" class="config">
+    <tbody id="evcData_Parameters">
+    </tbody>
+</table>
+</td>
+</tr>
+
+<tr>
+<td valign="top" width="320" class="has_arch_luton26">
+<h1>&nbsp;</h1>
+<h1>Inner Tag</h1>
+<table summary="EVC Configuration - Inner Tag" class="config">
+    <tbody id="evcData_Inner">
+    </tbody>
+</table>
+</td>
+
+<td valign="top" width="320" class="has_arch_luton26">
+<h1>&nbsp;</h1>
+<h1>Outer Tag</h1>
+<table summary="EVC Configuration - Outer Tag" class="config">
+    <tbody id="evcData_Outer">
+    </tbody>
+</table>
+</td>
+</tr>
+</table>
+
+<p id="buttons">
+<input type="button" value="Save" onclick="evcSubmit();">
+<input type="button" value="Reset" onclick="evcReset();">
+<input type="button" value="Cancel" onclick="evcCancel();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,1450 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_IP2) && defined(VTSS_SW_OPTION_IPV6)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "mgmt_api.h"
+#include "misc_api.h"
+#include "msg_api.h"
+#include "ip2_api.h"
+#include "ip2_iterators.h"
+#include "ip2_utils.h"
+#include "ip2_icli_priv.h"
+#include "icli_porting_util.h"
+#include "ping_api.h"
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+FUNCTION_END
+
+HELP_SHOW_VLAN              = VLAN of IPv6 interface
+HELP_SHOW_VLAN_LIST         = IPv6 interface VLAN list
+HELP_INTERFACE_IPV6_SUBNET  = IPv6 prefix x:x::y/z
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show ipv6 neighbor [ interface vlan <vlan_list> ]
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = has_interface
+CMD_VAR   =
+CMD_VAR   = v_vlan_list
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##ICLI_HELP_IPV6
+HELP      = IPv6 neighbors
+HELP      = ##ICLI_HELP_INTERFACE
+HELP      = ##HELP_SHOW_VLAN
+HELP      = ##HELP_SHOW_VLAN_LIST
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_interface) {
+        u32         mdx;
+        vtss_vid_t  vidx, bnd;
+
+        if (!v_vlan_list) {
+            ICLI_PRINTF("%% Invalid given VLAN list.\n\n");
+            return ICLI_RC_ERROR;
+        }
+
+        for (mdx = 0; mdx < v_vlan_list->cnt; mdx++) {
+            bnd = v_vlan_list->range[mdx].max;
+            for (vidx = v_vlan_list->range[mdx].min; vidx <= bnd; vidx++) {
+                icli_ip2_intf_neighbor_display(session_id,
+                                               VTSS_IP_TYPE_IPV6,
+                                               has_interface, vidx);
+            }
+        }
+    } else {
+        icli_ip2_intf_neighbor_display(session_id,
+                                       VTSS_IP_TYPE_IPV6,
+                                       has_interface, VTSS_VID_NULL);
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show ipv6 route [ interface vlan <vlan_list> ]
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = has_interface
+CMD_VAR   =
+CMD_VAR   = v_vlan_list
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##ICLI_HELP_IPV6
+HELP      = IPv6 routes
+HELP      = ##ICLI_HELP_INTERFACE
+HELP      = ##HELP_SHOW_VLAN
+HELP      = ##HELP_SHOW_VLAN_LIST
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_interface) {
+        u32         mdx;
+        vtss_vid_t  vidx, bnd;
+
+        if (!v_vlan_list) {
+            ICLI_PRINTF("%% Invalid given VLAN list.\n\n");
+            return ICLI_RC_ERROR;
+        }
+
+        for (mdx = 0; mdx < v_vlan_list->cnt; mdx++) {
+            bnd = v_vlan_list->range[mdx].max;
+            for (vidx = v_vlan_list->range[mdx].min; vidx <= bnd; vidx++) {
+                (void) vtss_ip2_route_print(VTSS_ROUTING_ENTRY_TYPE_IPV6_UC, icli_session_self_printf);
+            }
+        }
+    } else {
+        (void) vtss_ip2_route_print(VTSS_ROUTING_ENTRY_TYPE_IPV6_UC, icli_session_self_printf);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 route <ipv6_subnet> { <ipv6_ucast> | interface vlan <vlan_id> <ipv6_linklocal> }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ip2_ipv6_route_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ipv6
+! 2: route
+! 3: <ipv6_subnet>
+! 4: <ipv6_ucast>
+! 5: interface
+! 6: vlan
+! 7: <vlan_id>
+! 8: <ipv6_linklocal>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_ipv6_subnet
+CMD_VAR = v_ipv6_ucast
+CMD_VAR = has_interface
+CMD_VAR = 
+CMD_VAR = v_vlan_id
+CMD_VAR = v_ipv6_addr
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_ROUTE
+HELP = ##HELP_INTERFACE_IPV6_SUBNET
+HELP = IPv6 unicast address (except link-local address) of next-hop
+HELP = ##ICLI_HELP_INTERFACE
+HELP = VLAN Interface
+HELP = VLAN identifier(s): VID
+HELP = IPv6 link-local address of next-hop
+
+BYWORD = 
+BYWORD = 
+BYWORD = X:X:X:X::X/<0-128>
+BYWORD = X:X:X:X::X
+BYWORD = interface : Option
+BYWORD = 
+BYWORD = 
+BYWORD = FE80::X:X:X
+
+VARIABLE_BEGIN
+    vtss_ipv6_t             gateway;
+    vtss_routing_entry_t    rt;
+    vtss_routing_params_t   param;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    vtss_ipv6_t             gateway;
+    vtss_routing_entry_t    rt;
+    vtss_routing_params_t   param;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    memset(&param, 0x0, sizeof(vtss_routing_params_t));
+    memset(&gateway, 0x0, sizeof(vtss_ipv6_t));
+    if (has_interface) {
+        if (!vtss_ipv6_addr_is_link_local(&v_ipv6_addr)) {
+            ICLI_PRINTF("%% Invalid operation for gateway address assignment.\n\r");
+            ICLI_PRINTF("%% Only link-local address will be accepted.\n\n");
+            return ICLI_RC_ERROR;
+        }
+
+        memcpy(&gateway, &v_ipv6_addr, sizeof(vtss_ipv6_t));
+    } else {
+        if (vtss_ipv6_addr_is_link_local(&v_ipv6_ucast)) {
+            ICLI_PRINTF("%% Invalid operation for gateway address assignment.\n\r");
+            ICLI_PRINTF("%% Link-local address will not be accepted!\n\n");
+            return ICLI_RC_ERROR;
+        }
+
+        memcpy(&gateway, &v_ipv6_ucast, sizeof(vtss_ipv6_t));
+    }
+
+    if (vtss_build_ipv6_uc(&rt, &v_ipv6_subnet.ip, &v_ipv6_subnet.netmask, &gateway, v_vlan_id) != VTSS_RC_OK) {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    param.owner = VTSS_ROUTING_PARAM_OWNER_STATIC_USER;
+    if (vtss_ip2_route_add(&rt, &param) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to add IPv6 route.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    memset(&param, 0x0, sizeof(vtss_routing_params_t));
+    memset(&gateway, 0x0, sizeof(vtss_ipv6_t));
+    if (has_interface) {
+        if (!vtss_ipv6_addr_is_link_local(&v_ipv6_addr)) {
+            ICLI_PRINTF("%% Invalid operation for gateway address assignment.\n\r");
+            ICLI_PRINTF("%% Only link-local address will be accepted.\n\n");
+            return ICLI_RC_ERROR;
+        }
+
+        memcpy(&gateway, &v_ipv6_addr, sizeof(vtss_ipv6_t));
+    } else {
+        if (vtss_ipv6_addr_is_link_local(&v_ipv6_ucast)) {
+            ICLI_PRINTF("%% Invalid operation for gateway address assignment.\n\r");
+            ICLI_PRINTF("%% Link-local address will not be accepted!\n\n");
+            return ICLI_RC_ERROR;
+        }
+
+        memcpy(&gateway, &v_ipv6_ucast, sizeof(vtss_ipv6_t));
+    }
+
+    if (vtss_build_ipv6_uc(&rt, &v_ipv6_subnet.ip, &v_ipv6_subnet.netmask, &gateway, v_vlan_id) != VTSS_RC_OK) {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    param.owner = VTSS_ROUTING_PARAM_OWNER_STATIC_USER;
+    if (vtss_ip2_route_del(&rt, &param) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to delete IPv6 route.\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+IF_FLAG   =
+
+COMMAND   = ipv6 address <ipv6_subnet>
+
+FUNC_NAME = icli_ip2_ipv6_address_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = subnet
+
+BYWORD    =
+BYWORD    =
+BYWORD    = X:X:X:X::X/<0-128>
+
+HELP      = ##ICLI_HELP_IPV6
+HELP      = ##ICLI_HELP_IP6_ADRS
+HELP      = ##HELP_INTERFACE_IPV6_SUBNET
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR  = vlist
+
+VARIABLE_BEGIN
+    vtss_ip_network_t   net;
+    vtss_ip_conf_t      ipconf;
+    vtss_if_param_t     param;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!vtss_ipv6_addr_is_mgmt_support(&subnet.ip)) {
+        u32 prefix;
+        i8  adrString[40];
+
+        prefix = 0;
+        memset(adrString, 0x0, sizeof(adrString));
+        (void) icli_ipv6_to_str(subnet.ip, adrString);
+        (void) vtss_conv_ipv6mask_to_prefix(&subnet.netmask, &prefix);
+        ICLI_PRINTF("%% %s/%u can not be configured, %s\n\n",
+                    adrString, prefix,
+                    vtss_ipv6_addr_is_loopback(&subnet.ip) ? "invalid" : "unsupported");
+        return ICLI_RC_ERROR;
+    }
+
+    if (vtss_build_ipv6_network(&net, &subnet.ip, &subnet.netmask) != VTSS_RC_OK) {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    vtss_if_default_param(&param);
+    VTSS_ICLI_RANGE_FOREACH (vlist, u32, vid) {
+        if (!vtss_ip2_if_exists(vid) &&
+            (vtss_ip2_if_conf_set(vid, &param) != VTSS_OK)) {
+            ICLI_PRINTF("%% IP interfaces are full. VLAN %u is not configured\n", vid);
+            continue;
+        }
+
+        if (vtss_ip2_ipv6_conf_get(vid, &ipconf) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to get IPv6 interface configuration on VLAN %u.\n", vid);
+            continue;
+        }
+
+        ipconf.network = net;
+        if (vtss_ip2_ipv6_conf_set(vid, &ipconf) != VTSS_RC_OK) {
+            ICLI_PRINTF("%% Failed to set IPv6 interface address on VLAN %u.\n", vid);
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+IF_FLAG   =
+
+COMMAND   = no ipv6 address [ <ipv6_subnet> ]
+
+FUNC_NAME = icli_ip2_ipv6_address_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = 
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = X:X:X:X::X/<0-128>
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_IPV6
+HELP      = ##ICLI_HELP_IP6_ADRS
+HELP      = ##HELP_INTERFACE_IPV6_SUBNET
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR  = vlist
+
+VARIABLE_BEGIN
+    vtss_ip_conf_t  ip_conf;
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_RANGE_FOREACH (vlist, u32, vid) {
+        if ( vtss_ip2_if_exists(vid) == FALSE ) {
+            continue;
+        }
+        if ( vtss_ip2_ipv4_conf_get(vid, &ip_conf) == VTSS_RC_OK &&
+             (ip_conf.dhcpc || ip_conf.network.address.type == VTSS_IP_TYPE_IPV4) ) {
+            ip_conf.network.address.type = VTSS_IP_TYPE_NONE;
+            (void)vtss_ip2_ipv6_conf_set( vid, &ip_conf );
+        } else {
+            (void)vtss_ip2_if_conf_del( vid );
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show ipv6 interface [ vlan <vlan_list> { brief | statistics } ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ip2_ipv6_interface_show
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: ipv6
+! 3: interface
+! 4: vlan
+! 5: <vlan_list>
+! 6: brief
+! 7: statistics
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_vlan
+CMD_VAR = v_vlan_list
+CMD_VAR = has_brief
+CMD_VAR = has_statistics
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_INTERFACE
+HELP = ##HELP_SHOW_VLAN
+HELP = ##HELP_SHOW_VLAN_LIST
+HELP = Brief summary of IPv6 status and configuration
+HELP = ##ICLI_HELP_STATISTICS
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = vlan : Option
+BYWORD = 
+BYWORD = brief : Option
+BYWORD = statistics : Option
+
+VARIABLE_BEGIN
+    vtss_rc                     ifrc;
+    BOOL                        first_pr;
+    vtss_if_id_vlan_t           ifvdx;
+    vtss_if_status_ip_stat_t    ipstat_intf;
+    vtss_ip_type_t              version;
+    ip2_iter_intf_ifinf_t       if_info;
+VARIABLE_END
+
+CODE_BEGIN
+    version = VTSS_IP_TYPE_IPV6;
+    if (has_vlan) {
+        u32         mdx;
+        vtss_vid_t  vidx, bnd;
+        BOOL        bypassing;
+
+        if (!v_vlan_list) {
+            ICLI_PRINTF("%% Invalid given VLAN list.\n\n");
+            return ICLI_RC_ERROR;
+        }
+
+        first_pr = TRUE;
+        bypassing = FALSE;
+        for (mdx = 0; mdx < v_vlan_list->cnt; mdx++) {
+            bnd = v_vlan_list->range[mdx].max;
+            for (vidx = v_vlan_list->range[mdx].min; vidx <= bnd; vidx++) {
+                if (!VTSS_IP2_ITER_INTF6_INFO(ifrc, vidx, &if_info)) {
+                    continue;
+                }
+
+                if (has_statistics) {
+                    memset(&ipstat_intf, 0x0, sizeof(vtss_if_status_ip_stat_t));
+                    ifvdx = vidx;
+                    if (vtss_ip2_cntr_intf_stat_iter_get(&version, &ifvdx, &ipstat_intf) != VTSS_OK) {
+                        ICLI_PRINTF("%% Failed to get IPv6 VLAN %u statistics.\n\n", vidx);
+                    } else {
+                        icli_ip2_stat_ip_intf_display(session_id, &first_pr, &ipstat_intf);
+                    }
+                } else if (has_brief) {
+                    icli_ip2_intf_status_display(session_id, has_brief, &if_info);
+                } else {
+                    icli_ip2_intf_status_display(session_id, TRUE, &if_info);
+
+                    first_pr = FALSE;
+                    memset(&ipstat_intf, 0x0, sizeof(vtss_if_status_ip_stat_t));
+                    ifvdx = vidx;
+                    if (vtss_ip2_cntr_intf_stat_iter_get(&version, &ifvdx, &ipstat_intf) == VTSS_OK) {
+                        icli_ip2_stat_ip_intf_display(session_id, &first_pr, &ipstat_intf);
+                    }
+                }
+
+                bypassing = (icli_session_printf(session_id, "%s", "") == ICLI_RC_ERR_BYPASS);
+                if (bypassing) {
+                    break;
+                }
+            }
+
+            if (bypassing) {
+                break;
+            }
+        }
+    } else {
+        if (VTSS_IP2_ITER_INTF6_INFO_FIRST(ifrc, &if_info)) {
+            first_pr = FALSE;
+            do {
+                icli_ip2_intf_status_display(session_id, FALSE, &if_info);
+
+                ifvdx = if_info.ifidx;
+                memset(&ipstat_intf, 0x0, sizeof(vtss_if_status_ip_stat_t));
+                if (vtss_ip2_cntr_intf_stat_iter_get(&version, &ifvdx, &ipstat_intf) == VTSS_OK) {
+                    icli_ip2_stat_ip_intf_display(session_id, &first_pr, &ipstat_intf);
+                }
+
+                if (icli_session_printf(session_id, "%s", "") == ICLI_RC_ERR_BYPASS) {
+                    break;
+                }
+            } while (VTSS_IP2_ITER_INTF6_INFO_NEXT(ifrc, if_info.ifidx, &if_info));
+        }
+    }
+
+    if (ifrc) {}
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 0
+
+COMMAND = ipv6 mtu <1280-1500>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ip2_ipv6_interface_mtu_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+! 1: ipv6
+! 2: mtu
+! 3: <1280-1500>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mtubytes
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##ICLI_HELP_IPV6
+HELP = Maximum transmission unit
+HELP = MTU value in bytes
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Bytes : 1280-1500>
+
+VARIABLE_BEGIN
+vtss_if_param_t ip6param;
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_RANGE_FOREACH (vlist, u32, vidx) {
+        if (!vtss_ip2_if_exists(vidx)) {
+            ICLI_PRINTF("%% Invalid operation on given VLAN %u.\n\n", vidx);
+            continue;
+        }
+        if (vtss_ip2_if_conf_get(vidx, &ip6param) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to get IPv6 interface parameters on VLAN %u.\n", vidx);
+            continue;
+        }
+
+        ip6param.mtu = mtubytes;
+        if (vtss_ip2_if_conf_set(vidx, &ip6param) != VTSS_RC_OK) {
+            ICLI_PRINTF("%% Failed to set IPv6 interface MTU on VLAN %u.\n", vidx);
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 0
+
+COMMAND = no ipv6 mtu
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ip2_ipv6_interface_mtu_default
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+! 1: no
+! 2: ipv6
+! 3: mtu
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_IPV6
+HELP = Maximum transmission unit
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+vtss_if_param_t ip6param, defparam;
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_RANGE_FOREACH (vlist, u32, vidx) {
+        if (!vtss_ip2_if_exists(vidx)) {
+            ICLI_PRINTF("%% Invalid operation on given VLAN %u.\n\n", vidx);
+            continue;
+        }
+        if (vtss_ip2_if_conf_get(vidx, &ip6param) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to get IPv6 interface parameters on VLAN %u.\n", vidx);
+            continue;
+        }
+
+        vtss_if_default_param(&defparam);
+        ip6param.mtu = defparam.mtu;
+        if (vtss_ip2_if_conf_set(vidx, &ip6param) != VTSS_RC_OK) {
+            ICLI_PRINTF("%% Failed to set IPv6 interface MTU on VLAN %u.\n", vidx);
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug ipv6 nd
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ip2_ipv6_nd_debug_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: debug
+! 2: ipv6
+! 3: nd
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##ICLI_HELP_DEBUG
+HELP = ##ICLI_HELP_IPV6
+HELP = IPv6 Neighbor Discovery debugging
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+vtss_ip2_global_param_t conf_on;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+vtss_ip2_global_param_t conf_off;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (vtss_ip2_global_param_get(&conf_on) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to get parameters before setting.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    conf_on.dbg_flag |= VTSS_IP_DBG_FLAG_ND6_LOG;
+    if (vtss_ip2_global_param_set(&conf_on) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to enable IPv6 ND debugging.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    ICLI_PRINTF("\r  IPv6 Neighbor Discovery events debugging is on\n\r");
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (vtss_ip2_global_param_get(&conf_off) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to get parameters before setting.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    conf_off.dbg_flag &= ~VTSS_IP_DBG_FLAG_ND6_LOG;
+    if (vtss_ip2_global_param_set(&conf_off) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to disable IPv6 ND debugging.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    ICLI_PRINTF("\r  IPv6 Neighbor Discovery events debugging is off\n\r");
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear ipv6 neighbors
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ip2_ipv6_neighbor_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: clear
+! 2: ipv6
+! 3: neighbors
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##ICLI_HELP_CLEAR
+HELP = ##ICLI_HELP_IPV6
+HELP = IPv6 neighbors
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (vtss_ip2_nb_clear(VTSS_IP_TYPE_IPV6) != VTSS_RC_OK) {
+        ICLI_PRINTF("%% Failed to clear IPv6 neighbor cache.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ping ipv6 <ipv6_addr> [ repeat <1-60> ] [ size <2-1452> ] [ interval <0-30> ] [ interface vlan <vlan_id> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ip2_ping6_utility
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: ping
+! 2: ipv6
+! 3: <ipv6_addr>
+! 4: repeat
+! 5: <1-60>
+! 6: size
+! 7: <2-1452>
+! 8: interval
+! 9: <0-30>
+! 10: interface
+! 11: vlan
+! 12: <vlan_id>
+
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_ipv6_addr
+CMD_VAR = has_repeat
+CMD_VAR = count
+CMD_VAR = has_size
+CMD_VAR = size
+CMD_VAR = has_interval
+CMD_VAR = seconds
+CMD_VAR = has_interface
+CMD_VAR = 
+CMD_VAR = v_vlan_id
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##ICLI_HELP_PING
+HELP = IPv6 (ICMPv6) echo
+HELP = ICMPv6 destination address
+HELP = Specify repeat count
+HELP = 1-60; Default is 5
+HELP = Specify datagram size
+HELP = 2-1452; Default is 56 (excluding MAC, IP and ICMP headers)
+HELP = Specify repeat interval
+HELP = 0-30; Default is 0
+HELP = ##ICLI_HELP_INTERFACE
+HELP = VLAN Interface
+HELP = VLAN identifier(s): VID
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = repeat : Option
+BYWORD = <Count : 1-60>
+BYWORD = size : Option
+BYWORD = <Size : 2-1452>
+BYWORD = interval : Option
+BYWORD = <Seconds : 0-30>
+BYWORD = <Interface : option>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_vid_t          vdx;
+    i32                 len, cnt, itv, irc;
+    icli_line_mode_t    line_mode;
+VARIABLE_END
+
+CODE_BEGIN
+    len = PING_DEF_PACKET_LEN;
+    cnt = PING_DEF_PACKET_CNT;
+    itv = PING_DEF_PACKET_INTERVAL;
+    vdx = PING_DEF_EGRESS_INTF_VID;
+
+    if (has_repeat) {
+        cnt = count;
+    }
+    if (has_size) {
+        len = size;
+    }
+    if (has_interval) {
+        itv = seconds;
+    }
+    if (has_interface) {
+        vdx = v_vlan_id;
+    }
+
+    irc = ICLI_LINE_MODE_GET(&line_mode);
+    if (irc != ICLI_RC_OK) {
+        ICLI_PRINTF("%% Invalid line mode operation.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    irc = ICLI_LINE_MODE_SET(ICLI_LINE_MODE_FLOOD);
+    if (irc != ICLI_RC_OK) {
+        ICLI_PRINTF("%% Invalid line mode operation.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if (!ping6_test(icli_session_self_printf, &v_ipv6_addr, len, cnt, itv, vdx)) {
+        if (has_interface) {
+            ICLI_PRINTF("%% Invalid given PING6 interface vlan %u.\n", v_vlan_id);
+        }
+
+        ICLI_PRINTF("\n\r");
+        (void) ICLI_LINE_MODE_SET(line_mode);
+        return ICLI_RC_ERROR;
+    }
+
+    (void) ICLI_LINE_MODE_SET(line_mode);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear ipv6 statistics [ system ] [ interface vlan <vlan_list> ] [ icmp ] [ icmp-msg <0~255> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ip2_stat_ipv6_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: clear
+! 2: ipv6
+! 3: statistics
+! 4: system
+! 5: interface
+! 6: vlan
+! 7: <vlan_list>
+! 8: icmp
+! 9: icmp-msg
+! 10: <0~255>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_system
+CMD_VAR = has_interface
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = has_icmp
+CMD_VAR = has_icmp_msg
+CMD_VAR = type
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##ICLI_HELP_CLEAR
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_STATISTICS
+HELP = IPv6 system traffic
+HELP = ##ICLI_HELP_INTERFACE
+HELP = IPv6 interface traffic
+HELP = VLAN identifier(s): VID
+HELP = IPv6 ICMP traffic
+HELP = IPv6 ICMP traffic for designated message type
+HELP = ICMP message type ranges from 0 to 255
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = system : Option
+BYWORD = interface : Option
+BYWORD = 
+BYWORD = 
+BYWORD = icmp : Option
+BYWORD = icmp-msg : Option
+BYWORD = <Type : 0~255>
+
+VARIABLE_BEGIN
+    BOOL            clear_all;
+    vtss_ip_type_t  version;
+VARIABLE_END
+
+CODE_BEGIN
+    clear_all = TRUE;
+    if (has_system || has_interface || has_icmp || has_icmp_msg) {
+        clear_all = FALSE;
+    }
+
+    if (has_system || clear_all) {
+        if (vtss_ip2_stat_syst_cntr_clear(VTSS_IP_TYPE_IPV6) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to clear IPv6 system statistics.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+
+    if (has_interface || clear_all) {
+        vtss_if_id_t    ifidx;
+
+        if (has_interface) {
+            u32         mdx;
+            vtss_vid_t  vidx, bnd;
+
+            if (!v_vlan_list) {
+                ICLI_PRINTF("%% Invalid given VLAN list.\n\n");
+                return ICLI_RC_ERROR;
+            }
+
+            for (mdx = 0; mdx < v_vlan_list->cnt; mdx++) {
+                bnd = v_vlan_list->range[mdx].max;
+                for (vidx = v_vlan_list->range[mdx].min; vidx <= bnd; vidx++) {
+                    memset(&ifidx, 0x0, sizeof(vtss_if_id_t));
+                    ifidx.type = VTSS_ID_IF_TYPE_VLAN;
+                    ifidx.u.vlan = vidx;
+                    if (vtss_ip2_stat_intf_cntr_clear(VTSS_IP_TYPE_IPV6, &ifidx) != VTSS_OK) {
+                        ICLI_PRINTF("%% Failed to clear IPv6 VLAN %u statistics.\n\n", vidx);
+                    }
+                }
+            }
+        } else {
+            vtss_if_status_ip_stat_t    ipstat_intf;
+            vtss_if_id_vlan_t           ifvdx;
+
+            memset(&ipstat_intf, 0x0, sizeof(vtss_if_status_ip_stat_t));
+            version = VTSS_IP_TYPE_IPV6;
+            ifvdx = VTSS_VID_NULL;
+            while (vtss_ip2_cntr_intf_stat_iter_next(&version, &ifvdx, &ipstat_intf) == VTSS_OK) {
+                version = ipstat_intf.IPVersion;
+                ifvdx = ipstat_intf.IfIndex.u.vlan;
+                if (ipstat_intf.IPVersion != VTSS_IP_TYPE_IPV6) {
+                    break;
+                }
+
+                memset(&ifidx, 0x0, sizeof(vtss_if_id_t));
+                ifidx.type = VTSS_ID_IF_TYPE_VLAN;
+                ifidx.u.vlan = ifvdx;
+                if (vtss_ip2_stat_intf_cntr_clear(VTSS_IP_TYPE_IPV6, &ifidx) != VTSS_OK) {
+                    ICLI_PRINTF("%% Failed to clear IPv6 VLAN %u statistics.\n\n", ifvdx);
+                }
+            }
+        }
+    }
+
+    if (has_icmp || clear_all) {
+        if (vtss_ip2_stat_icmp_cntr_clear(VTSS_IP_TYPE_IPV6) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to clear ICMPv6 statistics.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+
+    if (has_icmp_msg || clear_all) {
+        char    buf[IP2_MAX_ICMP_TXT_LEN];
+
+        if (has_icmp_msg) {
+            u32 mdx, idx, bnd;
+
+            if (!type) {
+                ICLI_PRINTF("%% Invalid given type value list.\n\n");
+                return ICLI_RC_ERROR;
+            }
+
+            for (mdx = 0; mdx < type->cnt; mdx++) {
+                bnd = type->range[mdx].max;
+                for (idx = type->range[mdx].min; idx <= bnd; idx++) {
+                    if ((vtss_ip2_stat_imsg_cntr_clear(VTSS_IP_TYPE_IPV6, idx) != VTSS_OK) &&
+                        vtss_ip2_stat_icmp_type_txt(buf, IP2_MAX_ICMP_TXT_LEN, VTSS_IP_TYPE_IPV6, idx)) {
+                        ICLI_PRINTF("%% Failed to clear ICMPv6 message %s statistics.\n\n", buf);
+                    }
+                }
+            }
+        } else {
+            vtss_ips_icmp_stat_t    icmp_msg;
+            u32                     imsg;
+
+            version = VTSS_IP_TYPE_IPV4;
+            memset(&imsg, 0xFF, sizeof(u32));
+            memset(&icmp_msg, 0x0, sizeof(vtss_ips_icmp_stat_t));
+            while (vtss_ip2_cntr_icmp_msg_iter_next(&version, &imsg, &icmp_msg) == VTSS_OK) {
+                version = icmp_msg.IPVersion;
+                imsg = icmp_msg.Type;
+                if (version != VTSS_IP_TYPE_IPV6) {
+                    break;
+                }
+
+                if ((vtss_ip2_stat_imsg_cntr_clear(VTSS_IP_TYPE_IPV6, imsg) != VTSS_OK) &&
+                    vtss_ip2_stat_icmp_type_txt(buf, IP2_MAX_ICMP_TXT_LEN, VTSS_IP_TYPE_IPV6, imsg)) {
+                    ICLI_PRINTF("%% Failed to clear ICMPv6 message %s statistics.\n\n", buf);
+                }
+            }
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show ipv6 statistics [ system ] [ interface vlan <vlan_list> ] [ icmp ] [ icmp-msg <0~255> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ip2_stat_ipv6_show
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: ipv6
+! 3: statistics
+! 4: system
+! 5: interface
+! 6: vlan
+! 7: <vlan_list>
+! 8: icmp
+! 9: icmp-msg
+! 10: <0~255>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_system
+CMD_VAR = has_interface
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = has_icmp
+CMD_VAR = has_icmp_msg
+CMD_VAR = type
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_STATISTICS
+HELP = IPv6 system traffic
+HELP = ##ICLI_HELP_INTERFACE
+HELP = IPv6 interface traffic
+HELP = VLAN identifier(s): VID
+HELP = IPv6 ICMP traffic
+HELP = IPv6 ICMP traffic for designated message type
+HELP = ICMP message type ranges from 0 to 255
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = system : Option
+BYWORD = interface : Option
+BYWORD = 
+BYWORD = 
+BYWORD = icmp : Option
+BYWORD = icmp-msg : Option
+BYWORD = <Type : 0~255>
+
+VARIABLE_BEGIN
+    BOOL            show_all, first_pr;
+    vtss_ip_type_t  version;
+VARIABLE_END
+
+CODE_BEGIN
+    show_all = TRUE;
+    if (has_system || has_interface || has_icmp || has_icmp_msg) {
+        show_all = FALSE;
+    }
+
+    if (has_system || show_all) {
+        vtss_ips_ip_stat_t  ipstat_syst;
+
+        memset(&ipstat_syst, 0x0, sizeof(vtss_ips_ip_stat_t));
+        version = VTSS_IP_TYPE_IPV6;
+        if (vtss_ip2_cntr_syst_stat_iter_get(&version, &ipstat_syst) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to get IPv6 statistics.\n\n");
+            return ICLI_RC_ERROR;
+        }
+
+        icli_ip2_stat_ip_syst_display(session_id, &ipstat_syst);
+    }
+
+    if (has_interface || show_all) {
+        vtss_if_status_ip_stat_t    ipstat_intf;
+        vtss_if_id_vlan_t           ifvdx;
+        u32                         mdx;
+        vtss_vid_t                  vidx, bnd;
+
+        first_pr = TRUE;
+        if (has_interface) {
+            BOOL    bypassing;
+
+            if (!v_vlan_list) {
+                ICLI_PRINTF("%% Invalid given VLAN list.\n\n");
+                return ICLI_RC_ERROR;
+            }
+
+            bypassing = FALSE;
+            for (mdx = 0; mdx < v_vlan_list->cnt; mdx++) {
+                bnd = v_vlan_list->range[mdx].max;
+                for (vidx = v_vlan_list->range[mdx].min; vidx <= bnd; vidx++) {
+                    memset(&ipstat_intf, 0x0, sizeof(vtss_if_status_ip_stat_t));
+                    version = VTSS_IP_TYPE_IPV6;
+                    ifvdx = vidx;
+                    if (vtss_ip2_cntr_intf_stat_iter_get(&version, &ifvdx, &ipstat_intf) != VTSS_OK) {
+                        ICLI_PRINTF("%% Failed to get IPv6 VLAN %u statistics.\n\n", vidx);
+                        continue;
+                    }
+
+                    icli_ip2_stat_ip_intf_display(session_id, &first_pr, &ipstat_intf);
+                    bypassing = (icli_session_printf(session_id, "%s", "") == ICLI_RC_ERR_BYPASS);
+                    if  (bypassing) {
+                        break;
+                    }
+                }
+
+                if  (bypassing) {
+                    break;
+                }
+            }
+        } else {
+            memset(&ipstat_intf, 0x0, sizeof(vtss_if_status_ip_stat_t));
+            version = VTSS_IP_TYPE_IPV6;
+            ifvdx = VTSS_VID_NULL;
+            while (vtss_ip2_cntr_intf_stat_iter_next(&version, &ifvdx, &ipstat_intf) == VTSS_OK) {
+                version = ipstat_intf.IPVersion;
+                ifvdx = ipstat_intf.IfIndex.u.vlan;
+                if (ipstat_intf.IPVersion != VTSS_IP_TYPE_IPV6) {
+                    break;
+                }
+
+                icli_ip2_stat_ip_intf_display(session_id, &first_pr, &ipstat_intf);
+                if (icli_session_printf(session_id, "%s", "") == ICLI_RC_ERR_BYPASS) {
+                    break;
+                }
+            }
+        }
+    }
+
+    if (has_icmp || show_all) {
+        vtss_ips_icmp_stat_t    icmp_sys;
+
+        memset(&icmp_sys, 0x0, sizeof(vtss_ips_icmp_stat_t));
+        version = VTSS_IP_TYPE_IPV6;
+        if (vtss_ip2_cntr_icmp_ver_iter_get(&version, &icmp_sys) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to get ICMPv6 statistics.\n\n");
+            return ICLI_RC_ERROR;
+        }
+
+        icli_ip2_stat_icmp_syst_display(session_id, &icmp_sys);
+    }
+
+    if (has_icmp_msg || show_all) {
+        vtss_ips_icmp_stat_t    icmp_msg;
+        u32                     imsg;
+        u32                     mdx, idx, bnd;
+        char                    buf[IP2_MAX_ICMP_TXT_LEN];
+
+        first_pr = TRUE;
+        if (has_icmp_msg) {
+            BOOL    bypassing;
+
+            if (!type) {
+                ICLI_PRINTF("%% Invalid given type value list.\n\n");
+                return ICLI_RC_ERROR;
+            }
+
+            bypassing = FALSE;
+            for (mdx = 0; mdx < type->cnt; mdx++) {
+                bnd = type->range[mdx].max;
+                for (idx = type->range[mdx].min; idx <= bnd; idx++) {
+                    memset(&icmp_msg, 0x0, sizeof(vtss_ips_icmp_stat_t));
+                    version = VTSS_IP_TYPE_IPV6;
+                    imsg = idx;
+                    if ((vtss_ip2_cntr_icmp_msg_iter_get(&version, &imsg, &icmp_msg) != VTSS_OK) &&
+                        vtss_ip2_stat_icmp_type_txt(buf, IP2_MAX_ICMP_TXT_LEN, VTSS_IP_TYPE_IPV6, idx)) {
+                        ICLI_PRINTF("%% Failed to get ICMPv6 message %s statistics.\n\n", buf);
+                    } else {
+                        icli_ip2_stat_icmp_type_display(session_id, TRUE, &first_pr, &icmp_msg);
+                    }
+
+                    bypassing = (icli_session_printf(session_id, "%s", "") == ICLI_RC_ERR_BYPASS);
+                    if (bypassing) {
+                        break;
+                    }
+                }
+
+                if (bypassing) {
+                    break;
+                }
+            }
+        } else {
+            version = VTSS_IP_TYPE_IPV4;
+            memset(&imsg, 0xFF, sizeof(u32));
+            memset(&icmp_msg, 0x0, sizeof(vtss_ips_icmp_stat_t));
+            while (vtss_ip2_cntr_icmp_msg_iter_next(&version, &imsg, &icmp_msg) == VTSS_OK) {
+                version = icmp_msg.IPVersion;
+                imsg = icmp_msg.Type;
+                if (version != VTSS_IP_TYPE_IPV6) {
+                    break;
+                }
+
+                icli_ip2_stat_icmp_type_display(session_id, FALSE, &first_pr, &icmp_msg);
+                if (icli_session_printf(session_id, "%s", "") == ICLI_RC_ERR_BYPASS) {
+                    break;
+                }
+            }
+        }
+
+        ICLI_PRINTF("\n\r");
+    }
+CODE_END
+
+CMD_END

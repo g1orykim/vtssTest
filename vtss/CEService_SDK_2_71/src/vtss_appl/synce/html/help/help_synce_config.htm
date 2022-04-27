@@ -1,0 +1,194 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Synchronous Ethernet Configuration And State Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Synchronous Ethernet Configuration Help</h1>
+
+<p>This page allows the user to inspect and configure the current <a href="glossary.htm#SyncE" class="glossary">SyncE</a> port
+settings.</p>
+
+<h2>Clock Source Nomination and State</h2>
+<h2>For each possible clock source the following can be configured.</h2>
+
+<dl>
+<dt><b>Clock Source</b></dt>
+<dd>This is the instance number of the clock source. This has to be referenced when selecting 'Manual' Mode</dd>
+
+<dt><b>Nominated</b></dt>
+<dd>When a clock source is nominated, the clock output from the related <a href="glossary.htm#PHY" class="glossary">PHY</a> (Port) is 
+enabled against the clock controller. This makes it available as a possible source in the clock selection process. 
+If it is supported by the actual HW configuration, The Station clock input can be nominated as a Clock Source.</dd>
+
+<dt><b>Port</b></dt> 
+<dd>In this drop down box, the ports that are possible to select for this clock source, is presented.
+The PCB104 Synce module supports 10MHz station clock input. The station clock input is indicated by a port number = 'Number of ethernet ports' + 1</dd>
+
+<dt><b>Priority</b></dt> 
+<dd>The priority for this clock source. Lowest number (0) is the highest priority. If two clock sources has the same priority, 
+the lowest clock source number gets the highest priority in the clock selection process.</dd>
+
+<dt><b>SSM Overwrite</b></dt> 
+<dd>A selectable clock source Quality Level <a href="glossary.htm#QL" class="glossary">(QL)</a> to overwrite any QL received 
+in a <a href="glossary.htm#SSM" class="glossary">SSM</a>. If QL is not Received in a SSM (SSM is not enabled on this port), the 
+SSM Overwrite QL is used as if received. The SSM Overwrite can be set to QL_NONE, indicating that the clock source is without any 
+know quality (Lowest compared to clock source with known quality)</dd>
+
+<dt><b>Hold Off</b></dt> 
+<dd>The Hold Off timer value. Active loss of clock Source will be delayed the selected amount of time. 
+The clock selector will not change clock source if the loss of clock condition is cleared within this time </dd>
+
+<dt><b>ANEG Mode</b></dt> 
+<dd>This is relevant for 1000BaseT ports only. In order to recover clock from port it must be negotiated to 'Slave' mode. 
+In order to distribute clock the port must be negotiated to 'Master' mode.</dd>
+<dd>This different ANEG modes can be activated on a Clock Source port:</dd>
+<dd>
+<p><b>Prefer Slave:</b> The Port will be negotiated to 'Slave' mode if possible.</p>
+<p><b>Prefer Master:</b> The Port will be negotiated to 'Master' mode if possible.</p>
+<p><b>Forced Slave:</b> The Port will be forced to 'Master' mode.</p>
+</dd>
+<dd>The selected port in 'Locked' state will always be negotiated to 'Slave' if possible.</dd>
+
+<dt><b>LOCS</b></dt>
+<dd>Signal is lost on this clock source.</dd>
+
+<dt><b>SSM</b></dt> 
+<dd>If SSM is enabled and not received properly. Type of SSM fail will be indicated in the 'Rx SSM' field</dd>
+
+<dt><b>WTR</b></dt> 
+<dd>Wait To Restore timer is active.</dd>
+
+<dt><b>Clear WTR</b></dt> 
+<dd>Clears the WTR timer and makes this clock source available to the clock selection process.</dd>
+</dl>
+
+<h2>Clock Selection Mode and State</h2>
+<h2>The Clock Selector is only in one instance - the one who selects between the nominated clock sources.</h2>
+
+<dl>
+<dt><b>Mode</b></dt> 
+<dd>The definition of the 'best' clock source is firstly the one with the highest <a href="glossary.htm#QL" class="glossary">(QL)</a> 
+and secondly (the ones with equal QL) the highest priority. </dd>
+<dd>Clock Selector can be in different modes:</dd>
+<dd>
+<p><b>Manual:</b> Clock selector will select the clock source stated in Source (see below). If this manually selected clock source
+is failing, the clock selector will go into holdover state.</p>
+<p><b>Manual To Selected:</b> Same as Manual mode where the pt. selected clock source will become Source.</p>
+<p><b>Auto NonRevertive:</b> Clock Selection of the best clock source is only done when the selected clock fails.</p>
+<p><b>Auto Revertive:</b> Clock Selection of the best clock source is constantly done.</p>
+<p><b>Force Hold Over:</b> Clock Selector is forced to Hold Over State.</p>
+<p><b>Force Free Run:</b> Clock Selector is forced to Free Run State.</p>
+</dd>
+
+<dt><b>Source</b></dt> 
+<dd>Only relevant if Manual mode is selected (see above).</dd>
+
+<dt><b>WTR Time</b></dt> 
+<dd><a href="glossary.htm#WTR" class="glossary">WTR</a> is the Wait To Restore timer value in minutes. The WTR time is activated on the falling edge
+of a clock source failure (in Revertive mode). This means that the clock source is first available for clock selection after WTR Time (can be cleared).</dd>
+
+<dt><b>SSM Hold Over</b></dt> 
+<dd>This is the transmitted SSM QL value when clock selector is in Hold Over State.</dd>
+
+<dt><b>SSM Free Run</b></dt> 
+<dd>This is the transmitted SSM QL value when clock selector is in Free Run State.</dd>
+
+<dt><b>EEC Option</b></dt> 
+<dd>The ZL30xxx based Synce modules support both EEC1 and EEC2 option. The difference is: EEC1 => DPLL bandwidth = 3,5 Hz,
+EEC2 => DPLL bandwidth = 0,1 Hz.</dd>
+
+<dt><b>State</b></dt> 
+<dd>This is indicating the state of the clock selector. Possible states are:.</dd>
+<dd>
+<p><b>Free Run:</b> There is no external clock sources to lock to (unlocked state). The Clock Selector has never been locked to a clock source 
+long enough to calculate the hold over frequency offset to local oscillator. The frequency of this node is the frequency of the local 
+oscillator.</p>
+<p><b>Hold Over:</b> There is no external clock sources to lock to (unlocked state). The Clock Selector has calculate the holdover frequency offset 
+to local oscillator. The frequency of this node is hold to the frequency of the clock source previous locked to.</p>
+<p><b>Locked:</b> Clock selector is locked to the clock source indicated (See next).</p>
+</dd>
+
+<dt><b>Clock Source</b></dt> 
+<dd>The clock source locked to when clock selector is in locked state.</dd>
+
+<dt><b>LOL</b></dt> 
+<dd>Clock selector has raised the Los Of Lock alarm.</dd>
+
+<dt><b>DHOLD</b></dt> 
+<dd>Clock selector has not yet calculated the holdover frequency offset to local oscillator. This becomes active for about 10 s. 
+when a new clock source is selected</dd>
+</dl>
+
+<h2>Station Clock Configuration</h2>
+<h2>The Synce module may have a Station clock input and/or a Station clock output.</h2>
+
+<dl>
+<dt><b>Clock input frequency</b></dt> 
+<dd>If supported by the Synce HW, the station clock input frequency can be configured, the possible frequencies are:</dd>
+<dd>1,544 MHz, 2,048 MHz or 10 MHz</dd>
+
+<dt><b>Clock Output frequency</b></dt> 
+<dd>If supported by the Synce HW, the station clock output frequency can be configured, the possible frequencies are:</dd>
+<dd>1,544 MHz, 2,048 MHz or 10 MHz</dd>
+
+</dl>
+
+
+<h2>SyncE Ports</h2>
+<h2>For each possible port on switch.</h2>
+
+<dl>
+<dt><b>Port</b></dt> 
+<dd>The port number to configure.</dd>
+
+<dt><b>SSM Enable</b></dt> 
+<dd>Enable and disable of <a href="glossary.htm#SSM" class="glossary">SSM</a> functionality on this port.</dd>
+
+<dt><b>Tx SSM</b></dt> 
+<dd>Monitoring of the transmitted SSM <a href="glossary.htm#QL" class="glossary">QL</a> on this port. Transmitted QL should be the 
+Quality Level of the clock generated by this node. This means the QL of the clock source this node is locked to</dd>
+
+<dt><b>Rx SSM</b></dt> 
+<dd>Monitoring of the received SSM QL on this port. If link is down on port, QL_LINK is indicated. If no SSM is received, QL_FAIL is indicated</dd>
+
+<dt><b>1000BaseT Mode</b></dt> 
+<dd>If <a href="glossary.htm#PHY" class="glossary">PHY</a> is in 1000BaseT Mode then this is monitoring the master/slave mode. 
+In order to receive clock on a port, it has to be in slave mode. In order to transmit clock on a port, it has to be in master mode</dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+</body>
+</html>
+

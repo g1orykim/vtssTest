@@ -1,0 +1,264 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Ingress Port Classification Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_qos_port_classification_map.htm";
+
+var oTClass = genArrayStr(0, 7);
+var oVClass = genArrayInt(0, 7);
+var oTDPL;
+var oVDPL;
+if (configArchJaguar_1) {
+  oTDPL = genArrayStr(0, 3);
+  oVDPL = genArrayInt(0, 3);
+} else {
+  oTDPL = genArrayStr(0, 1);
+  oVDPL = genArrayInt(0, 1);
+}
+var oTTagClass = ["Disabled", "Enabled"];
+var oVTagClass = genArrayInt(0, 1);
+
+var selectedPort = configPortMin; // The default selected port
+var pageArgs = searchArgs(window.location.search);
+if (pageArgs.port) {
+    selectedPort = parseInt(pageArgs.port, 10);
+}
+
+function addMap(config)
+{
+    var map_values = config.split("/");
+    if (map_values.length != 16) {
+        alert("Invalid 'map_values' parameter length. Expected 16, got " + map_values.length);
+    }
+    else {
+        var tr;
+        var fld;
+        var frag = document.createDocumentFragment();
+        tr = document.createElement("tr");
+        addTextHeaderCell(tr, "PCP", "cl");
+        addTextHeaderCell(tr, "DEI", "cl");
+        addTextHeaderCell(tr, "QoS class", "cl");
+        addTextHeaderCell(tr, "DP level", "cl");
+        frag.appendChild(tr);
+        var thead = document.getElementById("map_thead");
+        clearChildNodes(thead);
+        thead.appendChild(frag);
+
+        frag = document.createDocumentFragment();
+        for (var i = 0; i < 16; i++) {
+            var class_dpl = map_values[i].split("|");
+            tr = CreateStyledElement("tr", i % 2 ? "config_odd" : "config_even");
+            addTextCell(tr, Math.floor(i/2), "cl");
+            addTextCell(tr, i%2, "cl");
+            fld = addSelectCell(tr, oTClass, oVClass, parseInt(class_dpl[0], 10), "c", "default_class_" + i);
+            fld.style.cssText = "width: 4em";
+            fld = addSelectCell(tr, oTDPL, oVDPL, parseInt(class_dpl[1], 10), "c", "default_dpl_" + i);
+            fld.style.cssText = "width: 4em";
+            frag.appendChild(tr);
+        }
+        var tbody = document.getElementById("map_tbody");
+        clearChildNodes(tbody);
+        tbody.appendChild(frag);
+        var cBar = new MasterControlBar([{text: "*", className: "cl"},
+                                         {text: "*", className: "cl"},
+                                         {name: "default_class_"},
+                                         {name: "default_dpl_"}]);
+        cBar.construct('map_tbody');
+    }
+}
+
+/* Format:
+ * <port_no>#<tag_class>#<map>
+ *
+ * port_no       :== 1..max
+ * tag_class     :== 0..1 // 0: Disabled, 1: Enabled
+ * map           :== <entry_0>/<entry_1>/...<entry_n> // n is 15.
+ *   entry_x     :== <class|dpl>
+ *     class     :== 0..7
+ *     dpl       :== 0..3 on jaguar, 0..1 on luton26
+ *
+ * The map is organized as follows:
+ * Entry corresponds to PCP,       DEI
+ *  0                   0          0
+ *  1                   0          1
+ *  2                   1          0
+ *  3                   1          1
+ *  4                   2          0
+ *  5                   2          1
+ *  6                   3          0
+ *  7                   3          1
+ *  8                   4          0
+ *  9                   4          1
+ * 10                   5          0
+ * 11                   5          1
+ * 12                   6          0
+ * 13                   6          1
+ * 14                   7          0
+ * 15                   7          1
+ */
+
+function processUpdate(req, ref)
+{
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        var tr;
+        var fld;
+        var frag;
+        var cfg = req.responseText.split("#");
+        if (cfg.length != 3) {
+            alert("Invalid parameter length. Expected 3, got " + cfg.length);
+            return;
+        }
+        var port_no = parseInt(cfg[0], 10);
+
+        frag = document.createDocumentFragment();
+
+        tr = document.createElement("tr");
+        addLabelTextCell(tr, "Tag Classification", "param_label", "tag_class");
+        fld = addSelectCell(tr, oTTagClass, oVTagClass, parseInt(cfg[1], 10), "c", "tag_class");
+        frag.appendChild(tr);
+
+        var tbody = document.getElementById("tag_tbody");
+        clearChildNodes(tbody);
+        tbody.appendChild(frag);
+
+        addMap(cfg[2]);
+        UpdateIdValue('submit_port', port_no);
+        UpdateId("display_port", configPortName(port_no, 1));
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate() {
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/qos_port_classification_map?port=" + selectedPort), processUpdate);
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function PortSelect(sel)
+{
+    selectedPort = sel.options[sel.selectedIndex].value; 
+    requestUpdate();
+}
+
+function checkForm()
+{
+    return true;
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+    requestUpdate();            // Update page to reflect selector
+}
+
+function docLoad()
+{
+    selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+    requestUpdate();
+}
+
+function goBack()
+{
+    document.location.href = "qos_port_classification.htm";
+}
+
+ </script>
+</head>
+
+<body class="content" onload="docLoad();">
+
+<div class="refreshbar">
+ <form action="#">
+  <select id="portselect" onchange="PortSelect(this);">
+    <option value="1">Port 1</option>
+    <option value="99">Port 99</option>
+   </select>
+ </form>
+</div>
+
+<form id="qos_port_classification_map" method="POST" onsubmit="return checkForm();" action="/config/qos_port_classification_map">
+
+<h1>QoS Ingress Port Tag Classification <span id="display_sid"></span><span>&nbsp;</span><span id="display_port"></span></h1>
+
+<h2>Tagged Frames Settings</h2>
+<table summary="Tag Classification" class="config">
+ <tbody id="tag_tbody">
+ </tbody>
+</table>
+
+<h2>(PCP, DEI) to (QoS class, DP level) Mapping</h2>
+<table summary="(PCP, DEI) to (QoS class, DP level) Mapping" class="config">
+ <thead id="map_thead">
+ </thead>
+ <tbody id="map_tbody">
+ </tbody>
+</table>
+
+<p>
+ <input type="hidden" id="submit_sid" name="sid">    
+ <input type="hidden" id="submit_port" name="port">
+ <input type="submit" value="Save">
+ <input type="reset"  value="Reset">
+ <input type="button" value="Cancel" onclick="goBack();">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

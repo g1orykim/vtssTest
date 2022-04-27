@@ -1,0 +1,80 @@
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ICLI Command Generation & Register begin
+ICLI_SCRIPT_GEN_DIR := $(OBJ)
+ICLI_SCRIPT_CMD     := $(OBJ)/icli_tool_cmdgen
+
+OBJECTS_icli_modules =
+OBJECTS_icli_ireg    =
+OBJECTS_icli_htm     =
+OBJECTS_icli_txt     =
+# ICLI Command Generation & Register end
+
+# Add ICLI module
+# $1 = ICLI file (full path)
+define add_icli_single
+# Boilerplate command generation
+$(patsubst %.icli,%_icli.c,$(notdir $1)): $1 $(ICLI_SCRIPT_CMD)
+	$(call what,Generating ICLI module: $(notdir $1))
+	$(Q)$(ICLI_SCRIPT_CMD) $1 -L -G $(ICLI_SCRIPT_GEN_DIR) -I $(DIR_APPL)/icli/platform/icli_porting_help.h
+
+# C-to-obj compile dependency
+$(patsubst %.icli,%_icli.o,$(notdir $1)): $(patsubst %.icli,%_icli.c,$(notdir $1))
+        $(call compile_c, $@, $<)
+
+# Add ICLI-module-obj to list of object files
+OBJECTS_icli_modules += $(patsubst %.icli,%_icli.o,$(notdir $1))
+
+# icli-to-ireg compile dependency
+$(patsubst %.icli,%.ireg,$(notdir $1)): $(patsubst %.icli,%_icli.o,$(notdir $1))
+
+# Add ireg files
+OBJECTS_icli_ireg += $(patsubst %.icli,%.ireg,$(notdir $1))
+
+# icli-to-htm compile dependency
+$(patsubst %.icli,%.htm,$(notdir $1)): $(patsubst %.icli,%_icli.o,$(notdir $1))
+
+# Add htm files
+OBJECTS_icli_htm += $(patsubst %.icli,%.htm,$(notdir $1))
+
+# icli-to-htm compile dependency
+$(patsubst %.icli,%.txt,$(notdir $1)): $(patsubst %.icli,%_icli.o,$(notdir $1))
+
+# Add txt files
+OBJECTS_icli_txt += $(patsubst %.icli,%.txt,$(notdir $1))
+
+# Add lint files
+# We add all the ICLI files to the icli hat of files to lint
+# in order to be able to do a "M=icli make lint" rather than
+# having to lint all files.
+LINT_FILES_icli += $(patsubst %.icli,$(OBJ)/%_icli.c,$(notdir $1))
+
+endef
+
+# Add ICLI module
+# $1 = ICLI files (full path)
+define add_icli
+$(foreach C,$1,$(call add_icli_single,$C))
+endef
+

@@ -1,0 +1,47 @@
+diff -r 45a89104a20c config/arch/mips.in.2
+--- a/config/arch/mips.in.2	Thu Jan 31 21:07:48 2013 +0100
++++ b/config/arch/mips.in.2	Tue Aug 06 14:43:01 2013 +0200
+@@ -11,6 +11,13 @@
+     help
+       This is the -mabi=32 gcc option.
+ 
++config ARCH_mips_eabi
++    bool
++    prompt "eabi"
++    depends on ARCH_32
++    help
++      This is the -mabi=eabi gcc option.
++
+ config ARCH_mips_n32
+     bool
+     prompt "n32"
+@@ -34,5 +41,6 @@
+ config ARCH_mips_ABI
+     string
+     default "32"    if ARCH_mips_o32
++    default "eabi"  if ARCH_mips_eabi
+     default "n32"   if ARCH_mips_n32
+     default "64"    if ARCH_mips_n64
+diff -r 45a89104a20c config/cc/gcc.in
+--- a/config/cc/gcc.in	Thu Jan 31 21:07:48 2013 +0100
++++ b/config/cc/gcc.in	Tue Aug 06 14:43:01 2013 +0200
+@@ -42,6 +42,11 @@
+     depends on CC_GCC_SHOW_LINARO
+     select CC_GCC_4_7
+ 
++config CC_V_4_7_3
++    bool
++    prompt "4.7.3"
++    select CC_GCC_4_7
++
+ config CC_V_4_7_2
+     bool
+     prompt "4.7.2"
+@@ -382,6 +387,7 @@
+ # Don't remove next line
+ # CT_INSERT_VERSION_STRING_BELOW
+     default "linaro-4.7-2013.01" if CC_V_linaro_4_7
++    default "4.7.3" if CC_V_4_7_3
+     default "4.7.2" if CC_V_4_7_2
+     default "4.7.1" if CC_V_4_7_1
+     default "4.7.0" if CC_V_4_7_0

@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RFC2544 Test Start</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Help page magic
+var help_page = "/help/help_rfc2544_test_start.htm";
+
+//------------------------------------------------------------------------------
+// processUpdate()
+//------------------------------------------------------------------------------
+function processUpdate(req, ref)
+{
+
+  // Format: [Housekeeping]#[ProfilesNames]
+  //         [Housekeeping] = err_msg/saved_report_name/saved_dscr/saved_profile_name
+  //         [ProfileNames] = ProfileName_1/ProfileName_2/.../ProfileName_N
+  var values = req.responseText.split("#");
+  var hk       = values[0].split("/");
+  var profiles = values[1].split("/");
+  var saved_profile_name = "";
+  var empty = profiles.length == 1 && profiles[0] === ""; // Split on an empty string produces an array with one element
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  if (hk[0] !== "") {
+    $("report_name").value = unescape(hk[1]);
+    $("report_dscr").value = unescape(hk[2]);
+    saved_profile_name     = unescape(hk[3]);
+  }
+
+  clearChildNodes($('report_profile'));
+  var sel = $("report_profile");
+  var frag = document.createDocumentFragment();
+  for (var x = 0; x < profiles.length; x++) {
+    var opt = document.createElement('option');
+    var name = empty ? "<No Profiles>" : unescape(profiles[x]);
+    var same = !empty && saved_profile_name === name;
+    opt.appendChild(document.createTextNode(name));
+    opt.setAttribute("value", name);
+    if (empty || same || (!same && x === 0)) {
+      opt.setAttribute("selected", true);
+    }
+    frag.appendChild(opt);
+  }
+  sel.appendChild(frag);
+
+  if (hk[0] !== "") {
+    $('report_name').focus();
+    alert(unescape(hk[0]));
+  }
+
+  $("run_button").disabled = empty;
+}
+
+//------------------------------------------------------------------------------
+// checkForm()
+//------------------------------------------------------------------------------
+function checkForm()
+{
+  var fld, str, i;
+
+  fld = $('report_name');
+  str = fld.value;
+  if (str.length === 0) {
+    GiveAlert("Report name cannot be empty", fld);
+    return false;
+  }
+
+  for (i = 0; i < str.length; i++) {
+    if (str.charCodeAt(i) < 33 || str.charCodeAt(i) > 126) {
+      GiveAlert("Report Name may only contain characters in the ASCII code range [33; 126]. Found \"" + str.charAt(i) + "\" which is ASCII code " + str.charCodeAt(i), fld);
+      return false;
+    }
+  }
+
+  fld = $('report_dscr');
+  str = fld.value;
+  for (i = 0; i < str.length; i++) {
+    if (str.charCodeAt(i) < 32 || str.charCodeAt(i) > 126) {
+      GiveAlert("Description may only contain characters in the ASCII code range [32; 126]. Found \"" + str.charAt(i) + "\" which is ASCII code " + str.charCodeAt(i), fld);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
+// docLoad()
+//------------------------------------------------------------------------------
+function docLoad()
+{
+  var slashIx;
+  var referrer;
+
+  // Figure out which page referred to us.
+  if (document.referrer && (document.referrer.search(document.location.pathname) === -1)) {
+    slashIx = document.referrer.lastIndexOf('/');
+    if (slashIx === -1) {
+      referrer = document.referrer; // Use whole string
+    } else {
+      referrer = document.referrer.substring(slashIx + 1); // Use substring after last '/'
+    }
+    parent.setPageData("rfc2544", "referrer", referrer);
+  }
+  loadXMLDoc("/config/rfc2544_test_start", processUpdate, null);
+}
+
+//------------------------------------------------------------------------------
+// goBack()
+//------------------------------------------------------------------------------
+function goBack()
+{
+  // Go back to the page that referred to this one (page data saved in docLoad()).
+  document.location.href = parent.getPageData("rfc2544", "referrer");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="docLoad();">
+
+<h1>RFC2544 Test Start</h1>
+<form method="POST" onsubmit="return checkForm();" action="/config/rfc2544_test_start">
+
+<table summary="RFC2544 Test Start" cellspacing="0" class="config">
+  <tbody>
+    <tr class="config"><td class="param_label">Report Name</td><td class="cl"><input id="report_name" name="report_name" style="width: 400px" maxlength="32"/></td></tr>
+    <tr class="config"><td class="param_label">Description</td><td class="cl"><input id="report_dscr" name="report_dscr" style="width: 400px" maxlength="128"/></td></tr>
+    <tr class="config"><td class="param_label">Profile</td><td class="cl"><select id="report_profile" name="report_profile" style="width: 405px"/></td></tr>
+  </tbody>
+</table>
+
+<p>
+<input type="submit" value="Run" id="run_button">
+<input type="button" value="Cancel" onclick="goBack();">
+</p>
+
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,465 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+####### Ancestor
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG =  defined(VTSS_SW_OPTION_USERS)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments. 
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file. 
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_porting_help.h"
+#include "vtss_users_api.h"
+#include "sysutil_api.h"
+#include "cyg/athttpd/auth.h"
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files. 
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+
+#define USERS_ICLI_BUF_SIZE    80
+
+/*lint -esym(459,USERS_ICLI_runtime_username_txt) */
+static BOOL USERS_ICLI_runtime_username(u32                session_id,
+                                        icli_runtime_ask_t ask,
+                                        icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+        break;
+    case ICLI_ASK_BYWORD:
+        icli_sprintf(runtime->byword, "<Username : word%u>", VTSS_SYS_INPUT_USERNAME_LEN);
+        return TRUE;
+    case ICLI_ASK_RANGE:
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt = 1;
+        runtime->range.u.sr.range[0].min = 1;
+        runtime->range.u.sr.range[0].max = VTSS_SYS_INPUT_USERNAME_LEN;
+        return TRUE; 
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+/*lint -esym(459,USERS_ICLI_runtime_password_txt) */
+static BOOL USERS_ICLI_runtime_password(u32                session_id,
+                                        icli_runtime_ask_t ask,
+                                        icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+        break;
+    case ICLI_ASK_BYWORD:
+        icli_sprintf(runtime->byword, "<Password : line%u>", VTSS_SYS_INPUT_PASSWD_LEN);
+        return TRUE;
+    case ICLI_ASK_RANGE:
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt = 1;
+        runtime->range.u.sr.range[0].min = 1;
+        runtime->range.u.sr.range[0].max = VTSS_SYS_INPUT_PASSWD_LEN;
+        return TRUE; 
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+/*lint -esym(459,USERS_ICLI_runtime_encrypted_password_txt) */
+static BOOL USERS_ICLI_runtime_encrypted_password(u32                session_id,
+                                                  icli_runtime_ask_t ask,
+                                                  icli_runtime_t     *runtime)
+{
+    u32 max_password_length = ((VTSS_SYS_INPUT_PASSWD_LEN / 3 + ((VTSS_SYS_INPUT_PASSWD_LEN % 3) ? 1 : 0)) * 4);
+
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+        break;
+    case ICLI_ASK_BYWORD:
+        icli_sprintf(runtime->byword, "<Password : word4-%u>", max_password_length);
+        return TRUE;
+    case ICLI_ASK_RANGE:
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt = 1;
+        runtime->range.u.sr.range[0].min = 4;
+        runtime->range.u.sr.range[0].max = max_password_length;
+        return TRUE; 
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL _is_printable_string(char *encry_password)
+{
+    int idx, len = strlen(encry_password);
+    for (idx = 0; idx < len; idx++) {
+        if (encry_password[idx] < 32 || encry_password[idx] > 126) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+static i32 _username_set(
+    IN u32      session_id,
+    IN char     *username,
+    IN int      priv,
+    IN char     *password
+)
+{
+    users_conf_t    conf;
+    vtss_rc         rc;
+
+    if (icli_str_cmp(username, VTSS_SYS_ADMIN_NAME) == 0 && priv != 15) {
+        ICLI_PRINTF("%% the privilege level of '%s' cannot be changed\n", VTSS_SYS_ADMIN_NAME);
+        return ICLI_RC_ERROR;
+    }
+    
+    memset(&conf, 0, sizeof(conf));
+
+    conf.valid = 1;
+    (void)icli_str_cpy(conf.username, username);
+    conf.privilege_level = priv;
+    
+    if ( password ) {
+        (void)icli_str_cpy(conf.password, password);
+    }
+
+    rc = vtss_users_mgmt_conf_set(&conf);
+    switch( rc ) {
+        case VTSS_OK:
+            break;
+        
+        case VTSS_USERS_ERROR_USERS_TABLE_FULL:
+            ICLI_PRINTF("%% Fail to configure the user\n");
+            ICLI_PRINTF("%% The number(%d) of users is full\n", VTSS_USERS_NUMBER_OF_USERS);
+            return ICLI_RC_ERROR;
+        
+        default:
+            ICLI_PRINTF("%% Fail to configure the user\n");
+            ICLI_PRINTF("%% (%s)\n", error_txt(rc));
+            return ICLI_RC_ERROR;
+    }
+    return ICLI_RC_OK;
+}
+FUNCTION_END
+
+//
+// Export Segment
+//   This segment contains the API declarations of the global functions in
+//   Function Segment. This will be pasted exactly to the generated H file.
+//   So, others can include the H file to use the global functions.
+//
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_USERNAME           = Establish User Name Authentication
+HELP_USERNAME_WORD      = User name allows letters, numbers and underscores
+HELP_PRIVILEGE          = Set user privilege level
+HELP_PRIVILEGE_LEVEL    = User privilege level
+HELP_PASSWORD           = Specify the password for the user
+HELP_UNENCRYPTED        = Specifies an UNENCRYPTED password will follow
+HELP_UNENCRYPTED_PWD   = The UNENCRYPTED (Plain Text) user password. Any printable characters including space is accepted. Notice that you have no chance to get the Plain Text password after this command. The system will always display the ENCRYPTED password.
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = username <word31> privilege <0-15> password unencrypted <line31>
+
+DOC_CMD_DESC    = Use the username <username> privilege <level> password encrypted <password> global configuration command \
+                  to add a user with unencrypted password for the local switch access.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Add a user for the local switch access.
+DOC_CMD_EXAMPLE = This example shows how to add a user named usertest with unencrypted password of testuser:
+DOC_CMD_EXAMPLE = Switch(config)# username testuser privilege 5 password unencrypted testuser
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show running-config privileged EXEC command.
+
+FUNC_NAME = icli_users_add_unencrypted
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+RUNTIME   = 
+RUNTIME   = USERS_ICLI_runtime_username
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = USERS_ICLI_runtime_password
+
+CMD_VAR   = 
+CMD_VAR   = username
+CMD_VAR   = 
+CMD_VAR   = priv
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = password
+
+HELP      = ##HELP_USERNAME
+HELP      = ##HELP_USERNAME_WORD
+HELP      = ##HELP_PRIVILEGE
+HELP      = ##HELP_PRIVILEGE_LEVEL
+HELP      = ##HELP_PASSWORD
+HELP      = ##HELP_UNENCRYPTED
+HELP      = ##HELP_UNENCRYPTED_PWD
+
+BYWORD    =
+BYWORD    = <Username : word31>
+BYWORD    =
+BYWORD    = <privilegeLevel : 0-15>
+BYWORD    =
+BYWORD    =
+BYWORD    = <UnencryptedPassword : line31>
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( _username_set(session_id, username, priv, password) != ICLI_RC_OK ) {
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_ENCRYPTED        = Specifies an ENCRYPTED password will follow
+HELP_ENCRYPTED_PWD    = The ENCRYPTED (hidden) user password. Notice the ENCRYPTED password will be decoded by system internally. You cannot directly use it as same as the Plain Text and it is not human-readable text normally.
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = username <word31> privilege <0-15> password encrypted <word4-44>
+
+DOC_CMD_DESC    = Use the username <username> privilege <level> password encrypted <password> global configuration command \
+                  to add a user with encrypted password for the local switch access.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Add a user for the local switch access.
+DOC_CMD_EXAMPLE = This example shows how to add a user named usertest with encrypted password of testuser:
+DOC_CMD_EXAMPLE = Switch(config)# username testuser privilege 5 password encrypted dGVzdHVzZXI=
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show running-config privileged EXEC command.
+
+FUNC_NAME = icli_users_add_encrypted
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+RUNTIME   = 
+RUNTIME   = USERS_ICLI_runtime_username
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = USERS_ICLI_runtime_encrypted_password
+
+CMD_VAR   = 
+CMD_VAR   = username
+CMD_VAR   = 
+CMD_VAR   = priv
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = encry_password
+
+HELP      = ##HELP_USERNAME
+HELP      = ##HELP_USERNAME_WORD
+HELP      = ##HELP_PRIVILEGE
+HELP      = ##HELP_PRIVILEGE_LEVEL
+HELP      = ##HELP_PASSWORD
+HELP      = ##HELP_ENCRYPTED
+HELP      = ##HELP_ENCRYPTED_PWD
+
+BYWORD    =
+BYWORD    = <Username : word31>
+BYWORD    =
+BYWORD    = <privilegeLevel : 0-15>
+BYWORD    =
+BYWORD    =
+BYWORD    = <EncryptedPassword : word4-44>
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    char    password[VTSS_SYS_INPUT_PASSWD_LEN];
+VARIABLE_END
+
+CODE_BEGIN
+    memset(password, 0, sizeof(password));
+    if (cyg_httpd_base64_decode(password, encry_password, icli_str_len(encry_password)) <= 0 ||
+        !_is_printable_string(password)) {
+        ICLI_PRINTF("%% The UNENCRYPTED password is not accepted\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if (_username_set(session_id, username, priv, password) != ICLI_RC_OK) {
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = username <word31> privilege <0-15> password none
+
+DOC_CMD_DESC    = Use the username <username> privilege <level> password none global configuration command \
+                  to remove the password for specific username.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Remove the password for specific username.
+DOC_CMD_EXAMPLE = This example shows how to remove the password for username testuser:
+DOC_CMD_EXAMPLE = Switch(config)# no username testuser privilege 5 password none
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show running-config privileged EXEC command.
+
+FUNC_NAME = icli_users_clear_password
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+RUNTIME   = 
+RUNTIME   = USERS_ICLI_runtime_username
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+
+CMD_VAR   = 
+CMD_VAR   = username
+CMD_VAR   = 
+CMD_VAR   = priv
+CMD_VAR   = 
+CMD_VAR   = 
+
+HELP      = ##HELP_USERNAME
+HELP      = ##HELP_USERNAME_WORD
+HELP      = ##HELP_PRIVILEGE
+HELP      = ##HELP_PRIVILEGE_LEVEL
+HELP      = ##HELP_PASSWORD
+HELP      = NULL password
+
+BYWORD    =
+BYWORD    = <Username : word31>
+BYWORD    =
+BYWORD    = <privilegeLevel : 0-15>
+BYWORD    =
+BYWORD    =
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( _username_set(session_id, username, priv, NULL) != ICLI_RC_OK ) {
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no username <word31>
+
+DOC_CMD_DESC    = Use the no username <username> global configuration command \
+                  to delete a local user.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Delete a local user.
+DOC_CMD_EXAMPLE = This example shows how to delete a user named testuser:
+DOC_CMD_EXAMPLE = Switch(config)# no username testuser
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show running-config privileged EXEC command.
+
+FUNC_NAME = icli_users_del
+FUNC_REUSE = 
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = USERS_ICLI_runtime_username
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = username
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_USERNAME
+HELP      = ##HELP_USERNAME_WORD
+
+BYWORD    =
+BYWORD    =
+BYWORD    = <Username : word31>
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (icli_str_cmp(username, VTSS_SYS_ADMIN_NAME) == 0) {
+        ICLI_PRINTF("%% The user name, %s, is not allowed to delete\n", VTSS_SYS_ADMIN_NAME);
+        return ICLI_RC_ERROR;
+    }
+
+    ICLI_RC_CHECK(vtss_users_mgmt_conf_del(username), "%% Fail to delete the user\n");
+CODE_END
+
+CMD_END

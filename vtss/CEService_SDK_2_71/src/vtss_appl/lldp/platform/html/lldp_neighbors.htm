@@ -1,0 +1,246 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>LLDP Neighbors Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_lldp_neighbors.htm";
+
+//
+// Global variables
+//
+
+var lldp_neighbor_infomation = Array();
+
+// Refresh timer
+var timerID;
+
+//
+// Java script functions
+//
+
+function UpdateTable (ref, frag)
+{
+    var tr;
+
+    // Check that data is available
+
+    if (lldp_neighbor_infomation.length > 1 && lldp_neighbor_infomation[0] != "") {
+	// Loop though all data
+        for(var index = 0; index < lldp_neighbor_infomation.length -1 ; index++) {
+	    // Change color for every 2nd row.
+	    tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+
+
+	    var pval = lldp_neighbor_infomation[index].split("?");
+	    addTextCell(tr, pval[0], "c");  // Local Port
+	    addTextCell(tr, pval[1], "c");  // Chassis ID
+	    addTextCell(tr, pval[2], "c");  // Port ID
+	    addTextCell(tr, pval[4], "c");  // Port Description
+	    addTextCell(tr, pval[3], "c");  // System Name
+	    addTextCell(tr, pval[5], "c");  // Capabilities supported
+	    
+	    var mgmt_addresses = pval[6].split("¤");
+
+	    var td = CreateStyledElement("td", "c");
+	    for (var mgmt_addr_index = 0; mgmt_addr_index < mgmt_addresses.length; mgmt_addr_index++) {
+		
+		// If we get multiple management address we seperate with a comma.
+		if (mgmt_addr_index > 0) {
+		    var txt = ',';
+		    var text = document.createTextNode(txt);
+		    td.appendChild(text);
+		}
+		
+
+                // Add the management addr
+		// first remove the type ( Requires that there must be a space between ip addr and type,
+		// so this must be made sure in web.c )
+		var temp = Array();
+		temp = mgmt_addresses[mgmt_addr_index].split(' ');
+
+		// Add the link
+		var link = document.createElement("a");
+		link.href = "http://" + temp[0] ;
+		link.target = "_top";
+		link.appendChild(document.createTextNode(mgmt_addresses[mgmt_addr_index])); // Add Text
+		td.appendChild(link);       // Add link to cell
+
+	    } // End for loop
+	    tr.appendChild(td);         // Add cell to row
+
+	    frag.appendChild(tr);       // Add row to fragment
+	}
+    } else {
+	var tr = CreateStyledElement("tr", "display_even");
+	addTextCell(tr,"No neighbor information found", "c", 7);
+	frag.appendChild(tr);       // Add row to fragment
+    }
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+
+    FinishTable(frag,ref);
+}
+
+function createTableHeader(frag)
+{
+    var tr, td, elm;
+    tr = CreateStyledElement("tr", "config_header");
+    if (parent.paths) {
+        td = addTextHeaderCell(tr, "Remote Device Summary", "hdrl", 7);
+    } else { // It is a sub-frame in support file
+        td = addTextHeaderCell(tr, "LLDP Remote Device Summary", "hdrl", 7);
+    }
+    elm = CreateStyledElement("hr", "captionline");
+    td.appendChild(elm);
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Local Port", "c");
+    addTextHeaderCell(tr, "Chassis ID", "c");
+    addTextHeaderCell(tr, "Port ID", "c");
+    addTextHeaderCell(tr, "Port Description", "c");
+    addTextHeaderCell(tr, "System Name", "c");
+    addTextHeaderCell(tr, "System Capabilities", "c");
+    addTextHeaderCell(tr, "Management Address", "c");
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req)) {
+        return;
+    }
+    if(req.responseText) {
+
+    // Get number of entries
+    lldp_neighbor_infomation = req.responseText.split("|");
+
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+
+    // Create the table header
+    createTableHeader(frag);
+
+    // Create the table
+    UpdateTable(ref, frag);
+
+    } else {
+        SpomHandleError();
+    }
+    document.getElementById("update").style.visibility = "hidden";
+
+    // Update the timer
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+}
+
+function requestUpdate(type) {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/config/lldp_neighbors"), processUpdate, 'LLDPData');
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function chkRefresh(fld)
+{
+  if(!fld.checked) {
+    if(timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = null;
+  } else {
+      requestUpdate();
+  }
+}
+
+// Update when SID is changed.
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>LLDP Neighbor Information <span id="display_sid"></span></h1>
+
+<form name="LLDPNeighborsForm" method="POST" action="/config/lldp_neighbors" onsubmit="return checkForm(this);"> </form>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<table id="LLDPNeighborsTable" summary="LLDP Neighbors Table" cellspacing="0" class="display">
+ <tbody id="LLDPData">
+ </tbody>
+</table>
+<div>&nbsp;</div>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

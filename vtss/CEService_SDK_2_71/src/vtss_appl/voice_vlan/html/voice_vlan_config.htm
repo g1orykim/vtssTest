@@ -1,0 +1,269 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Voice VLAN Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+var mgmtVid = 1, mvrVid = 0;
+var pVid = Array();
+var vlanAware = Array();
+var lldpMode = Array();
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = Array(0, 1);
+var oTPortMode = Array("Disabled", "Auto", "Forced");
+var oVPortMode = Array(0, 1, 2);
+var oTDiscoveryProtocol = Array("OUI", "LLDP", "Both");
+var oVDiscoveryProtocol = Array(0, 1, 2);
+var oTClass, oVClass;
+if (configQosClassMax > 4) {
+    oTClass = Array("0 (Low)", "1", "2", "3", "4", "5", "6", "7 (High)");
+    oVClass = genArrayInt(0, oTClass.length);
+}
+else {
+    oTClass = Array("Low", "Normal", "Medium", "High");
+    oVClass = genArrayInt(1, oTClass.length);
+}
+
+// Help page magic
+var help_page = "/help/help_voice_vlan_config.htm";
+
+function checkForm(form)
+{
+    var fld, fld1, fld2, fld3;
+
+    //vid
+    fld = document.getElementById("vid");
+    if (!isWithinRange("vid", 1, 4095, "'VLAN ID'", " ")) {
+        return false;
+    }
+    if (fld.value == mgmtVid) {
+        GiveAlert("The Voice VLAN ID should not equal switch management VLAN ID", fld);
+        return false;
+    }
+    if (fld.value == mvrVid) {
+        GiveAlert("The Voice VLAN ID should not equal MVR VLAN ID", fld);
+        return false;
+    }
+    for (var i = configPortMin; i <= configNormalPortMax; i++) {
+        if (fld.value == pVid[i]) {
+            GiveAlert("The Voice VLAN ID should not equal Port " + configPortName(i, 0) + " PVID", fld);
+            return false;
+        }
+    }
+
+    //age_time
+    if (!isWithinRange("age_time", 10, 10000000, "'Aging Time'", " ")) {
+        return false;
+    }
+
+    /*
+    fld1 = document.getElementById("voice_vlan_mode");
+    if (fld1 && fld1.value == 1) {
+        for (var i = configPortMin; i <= configNormalPortMax; i++) {
+            //lldp_mode
+            fld2 = document.getElementById("port_mode_" + i);
+            fld3 = document.getElementById("discovery_protocol_" + i);
+            if (fld2 && fld3) {
+                if (fld2.value == 1 && fld3.value != 2 && lldpMode[i] == 0) {
+                    //support LLDP auto mode but LLDP mode is disabled
+                    GiveAlert("The LLDP mode is disabled on Port " + configPortName(i, 0), fld2);
+                    return false;
+                }
+            }
+
+            //vlan_aware
+            if (fld2 && fld2.value != 0 && vlanAware[i] == 0) {
+                //port mode is enabled but vlan awareness is disabled
+                GiveAlert("The VLAN awareness is disabled on Port " + configPortName(i, 0) + " PVID", fld2);
+                return false;
+            }
+        }
+    }
+    */
+
+    return true;                // Feed the chickens and go home
+}
+
+function addPortHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Port", "param_label");
+    addTextHeaderCell(tr, "Mode", "param_label");
+    addTextHeaderCell(tr, "Security", "param_label");
+    addTextHeaderCell(tr, "Discovery Protocol", "param_label hasLLDPVoiceVlan");
+    frag.appendChild(tr);
+
+    elem = document.getElementById("portConfHead");
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+}
+
+function addPortRow(frag, i, values)
+{
+    var tr = CreateStyledElement("tr", i % 2 ? "config_odd" : "config_even");
+    addTextCell(tr, configPortName(values[0], 0), "cr");
+    addSelectCell(tr, oTPortMode, oVPortMode, parseInt(values[1], 10), "c", "port_mode_" + values[0]);
+    addSelectCell(tr, oTMode, oVMode, parseInt(values[2], 10), "c", "security_" + values[0]);
+    var td = addSelectCell(tr, oTDiscoveryProtocol, oVDiscoveryProtocol, parseInt(values[3], 10), "c hasLLDPVoiceVlan", "discovery_protocol_" + values[0]);
+    td.style.width = "10em";
+    pVid[parseInt(values[0], 10)] = parseInt(values[4], 10);
+    lldpMode[parseInt(values[0], 10)] = parseInt(values[5], 10);
+    vlanAware[parseInt(values[0], 10)] = parseInt(values[6], 10);
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    if (typeof(configHasVoiceVlanClass) == "function") {
+        document.getElementById("config_class").style.display = "none";
+    } else {
+        document.getElementById("config_class").style.display = "";
+    }
+    if (req.responseText) {
+        var configData = req.responseText.split(",");
+        UpdateIdSelect("voice_vlan_mode", oTMode, oVMode, parseInt(configData[0], 10));
+        UpdateIdValue("vid", configData[1]);
+        UpdateIdValue("age_time", configData[2]);
+        UpdateIdSelect("traffic_class", oTClass, oVClass, parseInt(configData[3], 10));
+        mgmtVid = parseInt(configData[4], 10);
+        mvrVid = parseInt(configData[5], 10);
+
+
+        // Create Table Header
+        var frag = document.createDocumentFragment();
+        addPortHeader(frag);
+
+        // Create Table Body
+        frag = document.createDocumentFragment();
+        var portConfigData = configData[6].split("|");
+        for (var i = 0; i < portConfigData.length; i++) {
+            if (portConfigData[i]) {
+                addPortRow(frag, i, portConfigData[i].split("/"));
+            }
+        }
+
+        var tbody = document.getElementById("portConfTable");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+        var cBar = new MasterControlBar([{text: "*", className: "cr"},{name: "port_mode_"},{name: "security_"}, {name:"discovery_protocol_"}]);
+        cBar.construct('portConfCtrl','config_odd');
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate()
+{
+    /* Format: [voice_vlan_mode],[vid],[age_time],[traffic_class],[mgmt_vid],[mvr_vid],[port_no]/[port_mode]/[security]/[discovery_protocol]/[pvid]/[lldp_mode]/[vlan_aware]|...
+     */
+
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    loadXMLDoc(SpomAddSidArg("/config/voice_vlan_config"), processUpdate, "");
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/voice_vlan_config" onsubmit="return checkForm(this);">
+
+<h1>Voice VLAN Configuration</h1>
+<h2 class="SPOM_only">Stack Global Settings</h2>
+<table summary="Configuration" cellspacing="0" class="config">
+ <tr class="config">
+  <td class="param_label">Mode</td>
+  <td class="cl"><select id="voice_vlan_mode" name="voice_vlan_mode" style="width: 10em;"><option value=0>Disabled</option><option value=1>Enabled</option></select></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label">VLAN ID</td>
+  <td class="cl"><input type="text" id="vid" name="vid" value="1000" size="14" maxlength="4"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label">Aging Time</td>
+  <td class="cl"><input type="text" id="age_time" name="age_time" value="86400" size="8" maxlength="8"> seconds</td>
+ </tr>
+ <tr class="config" id="config_class" style="display:none;">
+  <td class="param_label">Traffic Class</td>
+  <td class="cl"><select id="traffic_class" name="traffic_class" style="width: 10em;"><option value=0>Low</option><option value=1>Enabled</option></select></td>
+ </tr>
+</table>
+
+<p>&nbsp;</p>
+
+<h1>Port Configuration <span id="display_sid"></span></h1>
+<table summary="Port Configuration" cellspacing="0" class="config">
+ <thead id="portConfHead">
+ </thead>
+ <tbody id="portConfCtrl">
+ </tbody>
+ <tbody id="portConfTable">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

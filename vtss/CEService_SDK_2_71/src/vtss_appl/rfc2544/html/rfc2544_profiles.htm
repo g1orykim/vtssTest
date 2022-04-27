@@ -1,0 +1,174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RFC2544 Profile Overview</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Help page magic
+var help_page = "/help/help_rfc2544_profiles.htm";
+
+var PARM_IDX_PROFILE_NAME = 0;
+var PARM_IDX_PROFILE_DSCR = 1;
+var PARM_PROFILE_CNT      = PARM_IDX_PROFILE_DSCR + 1;
+
+//------------------------------------------------------------------------------
+// add_profile_row()
+//------------------------------------------------------------------------------
+function add_profile_row(frag, values, idx)
+{
+  var fld, tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+  var unescaped_name = values[PARM_IDX_PROFILE_NAME];
+  var name = unescape(unescaped_name);
+  var dscr = unescape(values[PARM_IDX_PROFILE_DSCR]);
+
+  // Delete-button
+  fld = document.createElement('input');
+  fld.setAttribute('type', 'button');
+  fld.setAttribute('value', 'Delete');
+  fld.onclick = function () {
+    if (confirm("Warning: You are about to permanently delete this profile.\nContinue?")) {
+      requestUpdate("profile=" + unescaped_name);
+    }
+  };
+
+  var td = CreateTd("c");
+  td.appendChild(fld);
+  tr.appendChild(td);
+
+  // Profile name with href
+  td = CreateStyledElement("td", "cl");
+  var txt = document.createTextNode(name);
+  var link = document.createElement("a");
+  link.href = "rfc2544_profile_edit.htm?profile=" + unescaped_name;
+  link.appendChild(txt);
+  td.appendChild(link);
+  tr.appendChild(td);
+
+  // Description
+  addTextCell(tr, dscr, "cl");
+
+  frag.appendChild(tr);
+}
+
+//------------------------------------------------------------------------------
+// processUpdate()
+//------------------------------------------------------------------------------
+function processUpdate(req, ref)
+{
+  // Format: err_msg#MaxProfileCnt#[ProfileConfigs]
+  //         [ProfileConfigs] = [ProfileConfig1]#[ProfileConfig2]#...#[ProfileConfigN]
+  //         [ProfileConfig]  = Name/Description
+  var values = req.responseText.split("#");
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  // Error message
+  var err_msg = unescape(values[0]);
+  if (err_msg !== "") {
+    alert(err_msg);
+  }
+
+  var max_profile_cnt = parseInt(values[1], 10);
+  var act_profile_cnt = values.length - 2;
+  $("add_profile_button").disabled = act_profile_cnt >= max_profile_cnt;
+
+  var frag = document.createDocumentFragment();
+  if (act_profile_cnt === 0) {
+      var tr = CreateStyledElement("tr", "config_even");
+      addTypedTextCell(tr, "td", "<No profiles>", "cl", 3, 1);
+      frag.appendChild(tr);
+  } else {
+    for (var idx = 2; idx < values.length; idx++) {
+      var profile_values = values[idx].split("/");
+      if (profile_values.length != PARM_PROFILE_CNT) {
+        return;
+      }
+      add_profile_row(frag, profile_values, idx);
+    }
+  }
+
+  var tbody = $('profile_data');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag);
+}
+
+//------------------------------------------------------------------------------
+// requestUpdate()
+//------------------------------------------------------------------------------
+function requestUpdate(params)
+{
+  var url = "/config/rfc2544_profiles";
+  if (params) {
+    url += "?" + params;
+  }
+  loadXMLDoc(url, processUpdate, null);
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>RFC2544 Profile Overview</h1>
+
+<table summary="RFC2544 Profiles" cellspacing="0" class="config">
+  <thead>
+    <tr>
+      <th>Delete</th>
+      <th>Name</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody id="profile_data"></tbody>
+</table>
+
+<p>
+<input type="button" id="add_profile_button" value="Add New Profile" onclick="document.location.href='rfc2544_profile_edit.htm'"/>
+<input type="hidden" id="submit_sid" name="sid"/>
+</p>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

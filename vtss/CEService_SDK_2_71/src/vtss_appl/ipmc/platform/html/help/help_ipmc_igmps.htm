@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IGMP Snooping Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>IGMP Snooping Configuration Help</h1>
+
+<p>This page provides <a href="glossary.htm#igmp" class="glossary">IGMP</a> Snooping related configuration.</p>
+
+<p class="SPOM_only">Most of the settings are global, whereas the <a href="glossary.htm#router_port" class="glossary">Router Port</a> configuration is related to the currently selected stack unit, as reflected by the page header.</p>
+
+<dl>
+ <dt>Snooping Enabled</dt>
+ <dd>
+ Enable the Global IGMP Snooping.
+ </dd>
+
+ <dt>Unregistered IPMCv4 Flooding Enabled</dt>
+ <dd>
+ Enable unregistered IPMCv4 traffic flooding.<br/>
+ The flooding control takes effect only when IGMP Snooping is enabled.<br/>
+ When IGMP Snooping is disabled, unregistered IPMCv4
+ traffic flooding is always active in spite of this setting.
+ </dd>
+
+ <dt class="has_smb_ipmc">IGMP SSM Range</dt>
+ <dd class="has_smb_ipmc">
+ SSM (Source-Specific Multicast) Range allows the SSM-aware hosts and routers run the SSM service model for the groups in the address range.
+ </dd>
+
+ <dt class="has_smb_ipmc">Leave Proxy Enabled</dt>
+ <dd class="has_smb_ipmc">
+ Enable IGMP Leave Proxy. This feature can be used to avoid forwarding unnecessary leave messages to the router side.
+ </dd>
+
+ <dt class="has_smb_ipmc">Proxy Enabled</dt>
+ <dd class="has_smb_ipmc">
+ Enable IGMP Proxy. This feature can be used to avoid forwarding unnecessary join and leave messages to the router side.
+ </dd>
+
+ <dt>Router Port</dt>
+ <dd>
+ Specify which ports act as router ports. A router port is a port on the Ethernet switch that leads towards the Layer 3 multicast device or <a href="glossary.htm#igmp_querier" class="glossary">IGMP querier</a>.
+ <br>If an <a href="glossary.htm#aggregation" class="glossary">aggregation</a> member port is selected as a router port, the whole aggregation will act as a router port.
+ </dd>
+
+ <dt><a href="glossary.htm#multicast_fastleave" class="glossary">Fast Leave</a></dt>
+ <dd>
+ Enable the fast leave on the port.
+ </dd>
+
+ <dt class="has_smb_ipmc">Throttling</dt>
+ <dd class="has_smb_ipmc">
+ Enable to limit the number of multicast groups to which a switch port can belong.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

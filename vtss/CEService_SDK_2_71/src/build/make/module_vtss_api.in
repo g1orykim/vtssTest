@@ -1,0 +1,144 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_vtss_api := $(TOP)/vtss_api
+DIR_base     := $(DIR_vtss_api)/base
+
+OBJECTS_vtss_api_core := vtss_api.o vtss_util.o vtss_common.o vtss_mpls_common.o vtss_l3.o vtss_port_api.o
+OBJECTS_vtss_api_core += vtss_qos_api.o vtss_vcap_api.o vtss_l2_api.o vtss_evc_api.o vtss_packet_api.o
+OBJECTS_vtss_api_core += vtss_ts_api.o vtss_oam_api.o vtss_mpls_api.o vtss_misc_api.o
+OBJECTS_vtss_api_core += vtss_fdma.o vtss_fdma_common.o vtss_vcoreiii_fdma.o vtss_phy_10g_api.o
+OBJECTS_vtss_api_core += vtss_aneg_api.o vtss_xfi_api.o vtss_otn_api.o vtss_upi_api.o vtss_tfi5_api.o
+OBJECTS_vtss_api_core += vtss_sfi4_api.o vtss_xaui_api.o vtss_gfp_api.o vtss_ae_api.o vtss_mac10g_api.o 
+OBJECTS_vtss_api_core += vtss_wis_api.o vtss_pcs_10gbase_r_api.o vtss_rab_api.o vtss_i2c_api.o vtss_oha_api.o
+
+OBJECTS_vtss_api_os :=
+
+OBJECTS_vtss_api_phy_1g     := vtss_phy.o vtss_phy_veriphy.o vtss_phy_init_scripts.o
+OBJECTS_vtss_api_phy_10g    := vtss_phy_10g.o vtss_phy_10g_venice.o 
+OBJECTS_vtss_api_phy_ts     := vtss_phy_ts_api.o vtss_phy_ewis.o
+OBJECTS_vtss_api_phy_macsec :=   vtss_macsec_api.o
+
+OBJECTS_vtss_api_b2 := vtss_b2.o
+
+OBJECTS_vtss_api_luton26 := vtss_luton26.o vtss_luton26_port.o vtss_luton26_vcap.o vtss_luton26_qos.o
+OBJECTS_vtss_api_luton26 += vtss_luton26_l2.o vtss_luton26_packet.o vtss_luton26_evc.o vtss_luton26_ts.o
+OBJECTS_vtss_api_luton26 += vtss_luton26_misc.o
+
+OBJECTS_vtss_api_jaguar1 := vtss_jaguar1.o vtss_jaguar1_port.o vtss_jaguar1_vcap.o vtss_jaguar1_qos.o
+OBJECTS_vtss_api_jaguar1 += vtss_jaguar1_l2.o vtss_jaguar1_packet.o vtss_jaguar1_evc.o vtss_jaguar1_ts.o
+OBJECTS_vtss_api_jaguar1 += vtss_jaguar1_misc.o vtss_jaguar1_l3.o
+
+OBJECTS_vtss_api_serval  := vtss_serval.o vtss_serval_fdma.o vtss_serval_port.o vtss_serval_vcap.o
+OBJECTS_vtss_api_serval  += vtss_serval_qos.o vtss_serval_mpls.o vtss_serval_l2.o vtss_serval_packet.o
+OBJECTS_vtss_api_serval  += vtss_serval_evc.o vtss_serval_ts.o vtss_serval_oam.o vtss_serval_misc.o
+
+OBJECTS_vtss_api_daytona := vtss_daytona.o vtss_daytona_basics.o vtss_daytona_wis.o vtss_daytona_aneg.o
+OBJECTS_vtss_api_daytona += vtss_daytona_xfi.o vtss_daytona_otn.o vtss_daytona_upi.o vtss_daytona_xaui.o
+OBJECTS_vtss_api_daytona += vtss_daytona_tfi5.o vtss_daytona_sfi4.o vtss_daytona_gfp.o vtss_daytona_ae.o
+OBJECTS_vtss_api_daytona += vtss_daytona_mac10g.o vtss_daytona_pcs_10gbase_r.o vtss_daytona_rab.o
+OBJECTS_vtss_api_daytona += vtss_daytona_i2c.o vtss_daytona_oha.o
+
+OBJECTS_vtss_api := $(OBJECTS_vtss_api_core) $(OBJECTS_vtss_api_os) $(OBJECTS_vtss_api_phy_1g) $(OBJECTS_vtss_api_phy_10g) $(OBJECTS_vtss_api_phy_ts) $(OBJECTS_vtss_api_phy_macsec)
+OBJECTS_vtss_api += $(OBJECTS_vtss_api_b2) $(OBJECTS_vtss_api_luton26)
+OBJECTS_vtss_api += $(OBJECTS_vtss_api_jaguar1) $(OBJECTS_vtss_api_serval) $(OBJECTS_vtss_api_daytona)
+
+DOXYGEN_FILES += $(wildcard $(DIR_vtss_api)/include/*.h)
+
+$(OBJECTS_vtss_api_core): %.o: $(DIR_base)/ail/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vtss_api_phy_1g): %.o: $(DIR_base)/phy/phy_1g/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vtss_api_phy_10g): %.o: $(DIR_base)/phy/phy_10g/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vtss_api_phy_ts): %.o: $(DIR_base)/phy/ts/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vtss_api_phy_macsec): %.o: $(DIR_base)/phy/macsec/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vtss_api_b2): %.o: $(DIR_base)/b2/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vtss_api_luton26): %.o: $(DIR_base)/luton26/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vtss_api_jaguar1): %.o: $(DIR_base)/jaguar1/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vtss_api_serval): %.o: $(DIR_base)/serval/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vtss_api_daytona): %.o: $(DIR_base)/daytona/%.c
+	$(call compile_c, $@, $<)
+
+INCLUDES += -I$(DIR_vtss_api)/include
+
+# Lint files
+API_FILES := $(addprefix $(DIR_base)/ail/,vtss_util.c vtss_common.c vtss_mpls_common.c vtss_l3.c)
+API_FILES += $(addprefix $(DIR_base)/ail/,vtss_api.c vtss_port_api.c vtss_misc_api.c vtss_l2_api.c)
+API_FILES += $(addprefix $(DIR_base)/ail/,vtss_mpls_api.c vtss_evc_api.c vtss_qos_api.c vtss_packet_api.c)
+API_FILES += $(addprefix $(DIR_base)/ail/,vtss_vcap_api.c vtss_oam_api.c vtss_ts_api.c)
+API_FILES += $(addprefix $(DIR_base)/ail/,vtss_fdma.c vtss_fdma_common.c vtss_vcoreiii_fdma.c)
+API_FILES += $(addprefix $(DIR_base)/ail/,vtss_aneg_api.c vtss_xfi_api.c vtss_otn_api.c vtss_upi_api.c vtss_tfi5_api.c)
+API_FILES += $(addprefix $(DIR_base)/ail/,vtss_sfi4_api.c vtss_xaui_api.c vtss_gfp_api.c vtss_ae_api.c vtss_mac10g_api.c)
+API_FILES += $(addprefix $(DIR_base)/ail/,vtss_wis_api.c vtss_pcs_10gbase_r_api.c vtss_rab_api.c vtss_i2c_api.c)
+API_FILES += $(addprefix $(DIR_base)/ail/,vtss_phy_10g_api.c)
+
+API_FILES += $(addprefix $(DIR_base)/phy/phy_1g/,vtss_phy.c vtss_phy_init_scripts.c)
+API_FILES += $(addprefix $(DIR_base)/phy/phy_10g/, vtss_phy_10g.c vtss_phy_10g_venice.c)
+API_FILES += $(addprefix $(DIR_base)/phy/ts/,vtss_phy_ts_api.c)
+API_FILES += $(addprefix $(DIR_base)/phy/macsec/,vtss_macsec_api.c)
+
+API_FILES += $(addprefix $(DIR_base)/b2/,vtss_b2.c )
+
+API_FILES += $(addprefix $(DIR_base)/luton26/,vtss_luton26.c vtss_luton26_port.c vtss_luton26_l2.c)
+API_FILES += $(addprefix $(DIR_base)/luton26/,vtss_luton26_qos.c vtss_luton26_vcap.c vtss_luton26_packet.c)
+API_FILES += $(addprefix $(DIR_base)/luton26/,vtss_luton26_evc.c vtss_luton26_ts.c vtss_luton26_misc.c)
+
+API_FILES += $(addprefix $(DIR_base)/jaguar1/,vtss_jaguar1.c vtss_jaguar1_port.c vtss_jaguar1_l2.c vtss_jaguar1_qos.c)
+API_FILES += $(addprefix $(DIR_base)/jaguar1/,vtss_jaguar1_vcap.c vtss_jaguar1_packet.c vtss_jaguar1_evc.c)
+API_FILES += $(addprefix $(DIR_base)/jaguar1/,vtss_jaguar1_ts.c vtss_jaguar1_misc.c vtss_jaguar1_l3.c)
+
+API_FILES += $(addprefix $(DIR_base)/serval/,vtss_serval.c vtss_serval_fdma.c vtss_serval_port.c vtss_serval_misc.c)
+API_FILES += $(addprefix $(DIR_base)/serval/,vtss_serval_l2.c vtss_serval_mpls.c vtss_serval_oam.c vtss_serval_vcap.c)
+API_FILES += $(addprefix $(DIR_base)/serval/,vtss_serval_evc.c vtss_serval_qos.c vtss_serval_packet.c vtss_serval_ts.c)
+
+API_FILES += $(addprefix $(DIR_base)/daytona/,vtss_daytona.c vtss_daytona_basics.c vtss_daytona_wis.c vtss_daytona_aneg.c)
+API_FILES += $(addprefix $(DIR_base)/daytona/,vtss_daytona_xfi.c vtss_daytona_otn.c vtss_daytona_upi.c vtss_daytona_xaui.c)
+API_FILES += $(addprefix $(DIR_base)/daytona/,vtss_daytona_tfi5.c vtss_daytona_sfi4.c vtss_daytona_gfp.c vtss_daytona_ae.c)
+API_FILES += $(addprefix $(DIR_base)/daytona/,vtss_daytona_mac10g.c vtss_daytona_pcs_10gbase_r.c vtss_daytona_rab.c vtss_daytona_i2c.c)
+
+LINT_FILES_vtss_api += $(API_FILES)
+
+
+# Code style checking
+VTSS_CODE_STYLE_CHK_FILES_vtss_api += $(DIR_base)/phy/phy_1g/*.*
+VTSS_CODE_STYLE_CHK_FILES_vtss_api += $(DIR_base)/phy/macsec/*.*
+VTSS_CODE_STYLE_CHK_FILES_vtss_api += $(DIR_base)/phy/ts/*.*

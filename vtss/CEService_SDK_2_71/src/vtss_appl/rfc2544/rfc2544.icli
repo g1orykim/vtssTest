@@ -1,0 +1,2101 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "rfc2544_xcli.h"
+#if defined(VTSS_SW_OPTION_ICFG)
+#include "icfg_api.h"
+#include "misc_api.h" /* For misc_mac2str() */
+#endif
+#include "icli_porting_util.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+static void RFC2544_icli_r_init(rfc2544_xcli_req_t *r, char *profile_name)
+{
+    memset(r, 0, sizeof(*r));
+    strcpy(r->profile.common.name, profile_name);
+}
+
+// Convert from vtss_rc to icli_rc. Return only if result is ICLI_RC_ERROR,
+// because ICLI's auto-generated code returns ICLI_RC_OK as its last statement
+// in every function. If we always returned (no matter RC code), we would get
+// "unreachable code" compilation warnings :(
+#define RFC2544_RC(expr) {if ((expr) != VTSS_RC_OK) {return ICLI_RC_ERROR;}}
+
+#define RFC2544_ICLI_PROFILE_VAL_TRANSFER(_n_, _v_) do { \
+    r._n_ ## _seen = TRUE;                               \
+    r.profile._n_ = (_v_);                               \
+} while (0)
+
+#define RFC2544_ICLI_PROFILE_CHANGE(_n_, _v_) do {            \
+    rfc2544_xcli_req_t r;                                     \
+    RFC2544_icli_r_init(&r, profile_name);                    \
+    RFC2544_ICLI_PROFILE_VAL_TRANSFER(_n_, _v_);              \
+    RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r)); \
+} while (0)
+
+#if defined(VTSS_SW_OPTION_ICFG)
+/******************************************************************************/
+// RFC2544_icfg_synthesize()
+// This is the function that synthesizes the running configuration.
+/******************************************************************************/
+vtss_rc RFC2544_icfg_synthesize(vtss_icfg_query_result_t *result, BOOL all, rfc2544_profile_t *profile, rfc2544_profile_t *default_profile)
+{
+    i8   interface_str[ICLI_PORTING_STR_BUF_SIZE];
+    int  i;
+    BOOL differ, vid_differ, pcp_differ, test_differ, dei_differ, dur_differ, min_differ, max_differ, step_differ, loss_differ, dmm_differ, cnt_differ;
+
+    // Commmon test parameters
+    differ = strcmp(profile->common.dscr, default_profile->common.dscr) != 0;
+    if (all || differ) {
+        if (profile->common.dscr[0] != '\0') {
+            VTSS_RC(vtss_icfg_printf(result, " description %s\n", profile->common.dscr));
+        } else {
+            // The non-no-form doesn't take an empty string.
+            VTSS_RC(vtss_icfg_printf(result, " no description\n"));
+        }
+    }
+
+    // These complex parameter settings are hard to get synthesized correctly.
+    vid_differ = profile->common.vlan_tag.vid != default_profile->common.vlan_tag.vid;
+    if (profile->common.vlan_tag.vid == VTSS_VID_NULL) {
+        // When vid is NULL, we don't care about differences in PCP and DEI,
+        // since these can't be expressed with ICLI syntax.
+        pcp_differ = dei_differ = FALSE;
+    } else {
+        pcp_differ = profile->common.vlan_tag.pcp != default_profile->common.vlan_tag.pcp;
+        dei_differ = profile->common.vlan_tag.dei != default_profile->common.vlan_tag.dei;
+    }
+
+    if (all || vid_differ || pcp_differ || dei_differ) {
+        if (profile->common.vlan_tag.vid == VTSS_VID_NULL) {
+            // The non-no-form doesn't take setting vid = 0.
+            VTSS_RC(vtss_icfg_printf(result, " no test-vlan\n"));
+        } else {
+            VTSS_RC(vtss_icfg_printf(result, " test-vlan %u", profile->common.vlan_tag.vid));
+            if (all || pcp_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " pcp %u", profile->common.vlan_tag.pcp));
+            }
+            if (all || dei_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " dei %u", profile->common.vlan_tag.dei));
+            }
+            VTSS_RC(vtss_icfg_printf(result, "\n"));
+        }
+    }
+
+    // My goodness. Why does icli_port_info_txt() operate on usids and uports?
+    differ = profile->common.egress_port_no != default_profile->common.egress_port_no;
+    if (all || differ) {
+        VTSS_RC(vtss_icfg_printf(result, " test-interface %s\n", icli_port_info_txt(VTSS_USID_START, iport2uport(profile->common.egress_port_no), interface_str)));
+    }
+
+    differ = profile->common.meg_level != default_profile->common.meg_level;
+    if (all || differ) {
+        VTSS_RC(vtss_icfg_printf(result, " meg-level %u\n", profile->common.meg_level));
+    }
+
+    differ = memcmp(&profile->common.dmac, &default_profile->common.dmac, sizeof(profile->common.dmac)) != 0;
+    if (all || differ) {
+        VTSS_RC(vtss_icfg_printf(result, " dmac %s\n", misc_mac2str(profile->common.dmac.addr)));
+    }
+
+    differ = FALSE;
+    for (i = 0; i < ARRSZ(profile->common.selected_frame_sizes); i++) {
+        if (profile->common.selected_frame_sizes[i] != default_profile->common.selected_frame_sizes[i]) {
+            differ = TRUE;
+            break;
+        }
+    }
+    if (all || differ) {
+        VTSS_RC(vtss_icfg_printf(result, " frame-sizes"));
+        for (i = 0; i < ARRSZ(profile->common.selected_frame_sizes); i++) {
+            if (profile->common.selected_frame_sizes[i]) {
+                VTSS_RC(vtss_icfg_printf(result, " %u", rfc2544_mgmt_util_frame_size_enum_to_number(i)));
+            }
+        }
+        VTSS_RC(vtss_icfg_printf(result, "\n"));
+    }
+
+    differ = profile->common.dwell_time_secs != default_profile->common.dwell_time_secs;
+    if (all || differ) {
+        VTSS_RC(vtss_icfg_printf(result, " dwell-time %u\n", profile->common.dwell_time_secs));
+    }
+
+    // True BOOL, hence support for synthesizing the "no"-form.
+    differ = profile->common.sequence_number_check != default_profile->common.sequence_number_check;
+    if (all || differ) {
+        VTSS_RC(vtss_icfg_printf(result, " %ssequence-check\n", profile->common.sequence_number_check ? "" : "no "));
+    }
+
+    // Latency test
+    test_differ = (profile->common.selected_tests & RFC2544_TEST_TYPE_LATENCY) != (default_profile->common.selected_tests & RFC2544_TEST_TYPE_LATENCY);
+    if ((profile->common.selected_tests & RFC2544_TEST_TYPE_LATENCY) == 0) {
+        // When test is disabled, sub-parameters don't matter
+        dur_differ = dmm_differ = loss_differ = FALSE;
+    } else {
+        dur_differ  = profile->latency.trial_duration_secs     != default_profile->latency.trial_duration_secs;
+        dmm_differ  = profile->latency.dmm_interval_secs       != default_profile->latency.dmm_interval_secs;
+        loss_differ = profile->latency.pass_criterion_permille != default_profile->latency.pass_criterion_permille;
+    }
+
+    if (all || test_differ || dur_differ || dmm_differ || loss_differ) {
+        // The non-no-form doesn't allow for disabling test.
+        if ((profile->common.selected_tests & RFC2544_TEST_TYPE_LATENCY) == 0) {
+            // The non-no-form doesn't allow for disabling test.
+            VTSS_RC(vtss_icfg_printf(result, " no latency\n"));
+        } else {
+            VTSS_RC(vtss_icfg_printf(result, " latency"));
+            if (all || dur_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " duration %u", profile->latency.trial_duration_secs));
+            }
+            if (all || dmm_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " interval %u", profile->latency.dmm_interval_secs));
+            }
+            if (all || loss_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " allowed-loss %u", profile->latency.pass_criterion_permille));
+            }
+            VTSS_RC(vtss_icfg_printf(result, "\n"));
+        }
+    }
+
+    // Frame-loss test
+    test_differ = (profile->common.selected_tests & RFC2544_TEST_TYPE_FRAME_LOSS) != (default_profile->common.selected_tests & RFC2544_TEST_TYPE_FRAME_LOSS);
+    if ((profile->common.selected_tests & RFC2544_TEST_TYPE_FRAME_LOSS) == 0) {
+        // When test is disabled, sub-parameters don't matter
+        dur_differ = min_differ = max_differ = step_differ = FALSE;
+    } else {
+        dur_differ  = profile->frame_loss.trial_duration_secs     != default_profile->frame_loss.trial_duration_secs;
+        min_differ  = profile->frame_loss.rate_min_permille       != default_profile->frame_loss.rate_min_permille;
+        max_differ  = profile->frame_loss.rate_max_permille       != default_profile->frame_loss.rate_max_permille;
+        step_differ = profile->frame_loss.rate_step_permille      != default_profile->frame_loss.rate_step_permille;
+    }
+
+    if (all || test_differ || dur_differ || min_differ || max_differ || step_differ) {
+        // The non-no-form doesn't allow for disabling test.
+        if ((profile->common.selected_tests & RFC2544_TEST_TYPE_FRAME_LOSS) == 0) {
+            // The non-no-form doesn't allow for disabling test.
+            VTSS_RC(vtss_icfg_printf(result, " no frame-loss\n"));
+        } else {
+            VTSS_RC(vtss_icfg_printf(result, " frame-loss"));
+            if (all || dur_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " duration %u", profile->frame_loss.trial_duration_secs));
+            }
+            if (all || min_differ || max_differ || step_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " rate"));
+            }
+            if (all || min_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " min %u", profile->frame_loss.rate_min_permille));
+            }
+            if (all || max_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " max %u", profile->frame_loss.rate_max_permille));
+            }
+            if (all || step_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " step %u", profile->frame_loss.rate_step_permille));
+            }
+            VTSS_RC(vtss_icfg_printf(result, "\n"));
+        }
+    }
+
+    // Back-to-back test
+    test_differ = (profile->common.selected_tests & RFC2544_TEST_TYPE_BACK_TO_BACK) != (default_profile->common.selected_tests & RFC2544_TEST_TYPE_BACK_TO_BACK);
+    if ((profile->common.selected_tests & RFC2544_TEST_TYPE_BACK_TO_BACK) == 0) {
+        // When test is disabled, sub-parameters don't matter
+        dur_differ = cnt_differ = FALSE;
+    } else {
+        dur_differ = profile->back_to_back.trial_duration_msecs != default_profile->back_to_back.trial_duration_msecs;
+        cnt_differ = profile->back_to_back.trial_cnt            != default_profile->back_to_back.trial_cnt;
+    }
+
+    if (all || test_differ || dur_differ || cnt_differ) {
+        // The non-no-form doesn't allow for disabling test.
+        if ((profile->common.selected_tests & RFC2544_TEST_TYPE_BACK_TO_BACK) == 0) {
+            // The non-no-form doesn't allow for disabling test.
+            VTSS_RC(vtss_icfg_printf(result, " no back-to-back\n"));
+        } else {
+            VTSS_RC(vtss_icfg_printf(result, " back-to-back"));
+            if (all || dur_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " duration %u", profile->back_to_back.trial_duration_msecs));
+            }
+            if (all || cnt_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " count %u", profile->back_to_back.trial_cnt));
+            }
+            VTSS_RC(vtss_icfg_printf(result, "\n"));
+        }
+    }
+
+    // Throughput test
+    // Notice: This test must come last, because it is not possible to disable the throughput test as
+    // the first thing (with "no throughput") on a default profile, because the throughput test is mandatory
+    // when the latency test is enabled, and it happens that the latency test is selected by default.
+    test_differ = (profile->common.selected_tests & RFC2544_TEST_TYPE_THROUGHPUT) != (default_profile->common.selected_tests & RFC2544_TEST_TYPE_THROUGHPUT);
+    if ((profile->common.selected_tests & RFC2544_TEST_TYPE_THROUGHPUT) == 0) {
+        // When test is disabled, sub-parameters don't matter
+        dur_differ = min_differ = max_differ = step_differ = loss_differ = FALSE;
+    } else {
+        dur_differ  = profile->throughput.trial_duration_secs     != default_profile->throughput.trial_duration_secs;
+        min_differ  = profile->throughput.rate_min_permille       != default_profile->throughput.rate_min_permille;
+        max_differ  = profile->throughput.rate_max_permille       != default_profile->throughput.rate_max_permille;
+        step_differ = profile->throughput.rate_step_permille      != default_profile->throughput.rate_step_permille;
+        loss_differ = profile->throughput.pass_criterion_permille != default_profile->throughput.pass_criterion_permille;
+    }
+
+    if (all || test_differ || dur_differ || min_differ || max_differ || step_differ || loss_differ) {
+        // The non-no-form doesn't allow for disabling test.
+        if ((profile->common.selected_tests & RFC2544_TEST_TYPE_THROUGHPUT) == 0) {
+            // The non-no-form doesn't allow for disabling test.
+            VTSS_RC(vtss_icfg_printf(result, " no throughput\n"));
+        } else {
+            VTSS_RC(vtss_icfg_printf(result, " throughput"));
+            if (all || dur_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " duration %u", profile->throughput.trial_duration_secs));
+            }
+            if (all || min_differ || max_differ || step_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " rate"));
+            }
+            if (all || min_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " min %u", profile->throughput.rate_min_permille));
+            }
+            if (all || max_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " max %u", profile->throughput.rate_max_permille));
+            }
+            if (all || step_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " accuracy %u", profile->throughput.rate_step_permille));
+            }
+            if (all || loss_differ) {
+                VTSS_RC(vtss_icfg_printf(result, " allowed-loss %u", profile->throughput.pass_criterion_permille));
+            }
+            VTSS_RC(vtss_icfg_printf(result, "\n"));
+        }
+    }
+
+    return VTSS_RC_OK;
+}
+#endif /* VTSS_SW_OPTION_ICFG */
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_RFC2544 = RFC2544 perfomance tests
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = show rfc2544 profile [ <word32> ]
+
+DOC_CMD_DESC    = Display specific profile or a list of defined profiles.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+! show
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! rfc2544
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_RFC2544
+BYWORD  =
+
+! profile
+CMD_VAR =
+RUNTIME =
+HELP    = Display specific profile or a list of defined profiles.
+BYWORD  =
+
+! <word32>
+CMD_VAR = profile_name
+RUNTIME =
+HELP    = Name of existing profile to display.
+BYWORD  = <ProfileName : word32>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_RC(RFC2544_xcli_cmd_profile_show(session_id, profile_name));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = rfc2544 start <word32> profile <word32> [ desc <line128> ]
+
+DOC_CMD_DESC    = Start execution of a pre-configured profile.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+! rfc2544
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_RFC2544
+BYWORD  =
+
+! start
+CMD_VAR =
+RUNTIME =
+HELP    = Start execution of a pre-configured profile
+BYWORD  =
+
+! <word32>
+CMD_VAR = report_name
+RUNTIME =
+HELP    = Unique name of resulting report
+BYWORD  = <ReportName : word32>
+
+! profile
+CMD_VAR =
+RUNTIME =
+HELP    = Profile to execute
+BYWORD  =
+
+! <word32>
+CMD_VAR = profile_name
+RUNTIME =
+HELP    = Name of existing profile to execute
+BYWORD  = <Name : word32>
+
+! desc
+CMD_VAR = has_dscr
+RUNTIME =
+HELP    = Optionally provide a description of the test
+BYWORD  = desc : Option
+
+! <line128>
+CMD_VAR = report_dscr
+RUNTIME =
+HELP    = Description that will appear in the report
+BYWORD  = <Description : line128>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_RC(RFC2544_xcli_cmd_test_start(session_id, profile_name, report_name, has_dscr ? report_dscr : ""));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = rfc2544 stop <word32>
+
+DOC_CMD_DESC    = Stop execution of an ongoing test.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+! rfc2544
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_RFC2544
+BYWORD  =
+
+! stop
+CMD_VAR =
+RUNTIME =
+HELP    = Stop execution of an ongoing test
+BYWORD  =
+
+! <word32>
+CMD_VAR = report_name
+RUNTIME =
+HELP    = Report name to stop execution of
+BYWORD  = <ReportName : word32>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_RC(RFC2544_xcli_cmd_test_stop(session_id, report_name));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = show rfc2544 report [ <word32> ]
+
+DOC_CMD_DESC    = Display specific report or a list of reports.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+! show
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! rfc2544
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_RFC2544
+BYWORD  =
+
+! report
+CMD_VAR =
+RUNTIME =
+HELP    = Display specific report or a list or reports
+BYWORD  =
+
+! <word32>
+CMD_VAR = report_name
+RUNTIME =
+HELP    = Name of existing report to display.
+BYWORD  = <ReportName : word32>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_RC(RFC2544_xcli_cmd_report_show(session_id, report_name));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = rfc2544 save <word32> <word>
+
+DOC_CMD_DESC    = Save a report to a file on a TFTP server.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+! rfc2544
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_RFC2544
+BYWORD  =
+
+! save
+CMD_VAR =
+RUNTIME =
+HELP    = Save a report to a file on a TFTP server
+BYWORD  =
+
+! <word32>
+CMD_VAR = report_name
+RUNTIME =
+HELP    = Name of existing report to save
+BYWORD  = <ReportName : word32>
+
+! <word>
+CMD_VAR = tftp_url
+RUNTIME =
+HELP    = TFTP server URL on the form tftp://server[:port]/path-to-file
+BYWORD  = <TftpUrl : word>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_RC(RFC2544_xcli_cmd_report_save(session_id, report_name, tftp_url));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = rfc2544 delete <word32>
+
+DOC_CMD_DESC    = Permanently delete an existing report.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+! rfc2544
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_RFC2544
+BYWORD  =
+
+! delete
+CMD_VAR =
+RUNTIME =
+HELP    = Permanently delete an existing report
+BYWORD  =
+
+! <word32>
+CMD_VAR = report_name
+RUNTIME =
+HELP    = Name of existing report to delete
+BYWORD  = <ReportName : word32>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_RC(RFC2544_xcli_cmd_report_del(session_id, report_name));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no rfc2544 profile <word32>
+
+DOC_CMD_DESC    = Delete an existing profile.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+DESTROY_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+
+MODE_VAR =
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! rfc2544
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_RFC2544
+BYWORD  =
+
+! profile
+CMD_VAR =
+RUNTIME =
+HELP    = Delete an existing profile
+BYWORD  =
+
+! <word32>
+CMD_VAR = profile_name
+RUNTIME =
+HELP    = Name of existing profile to delete
+BYWORD  = <ProfileName : word32>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_RC(RFC2544_xcli_cmd_profile_del(session_id, profile_name));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = rfc2544 rename profile <word32> <word32>
+
+DOC_CMD_DESC    = Rename an existing profile.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+! rfc2544
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_RFC2544
+BYWORD  =
+
+! rename
+CMD_VAR =
+RUNTIME =
+HELP    = Rename an existing profile
+BYWORD  =
+
+! profile
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! <word32>
+CMD_VAR = old_profile_name
+RUNTIME =
+HELP    = Name of existing profile to rename.
+BYWORD  = <OldName : word32>
+
+! <word32>
+CMD_VAR = new_profile_name
+RUNTIME =
+HELP    = New name of profile.
+BYWORD  = <NewName : word32>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_RC(RFC2544_xcli_cmd_profile_rename(session_id, old_profile_name ? old_profile_name : "", new_profile_name ? new_profile_name : ""));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = description <line128>
+
+DOC_CMD_DESC    = Add a description to a profile.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! description
+CMD_VAR =
+RUNTIME =
+HELP    = Add a description to profile
+BYWORD  =
+
+! <line128>
+CMD_VAR = dscr
+RUNTIME =
+HELP    = Profile description.
+BYWORD  = <Desc : line128>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.common.dscr_seen = TRUE;
+        if (dscr == NULL) {
+            return ICLI_RC_ERROR;
+        }
+        strcpy(r.profile.common.dscr, dscr);
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no description
+
+DOC_CMD_DESC    = Clear profile description.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! description
+CMD_VAR =
+RUNTIME =
+HELP    = Clear profile description
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.common.dscr_seen = TRUE;
+        r.profile.common.dscr[0] = '\0';
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = meg-level <'RFC2544_COMMON_MEG_LEVEL_MIN'-'RFC2544_COMMON_MEG_LEVEL_MAX'>
+
+DOC_CMD_DESC    = Set profile MEG level used in TST PDUs.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! meg-level
+CMD_VAR =
+RUNTIME =
+HELP    = Set profile MEG level used in TST PDUs.
+BYWORD  =
+
+! <'RFC2544_COMMON_MEG_LEVEL_MIN'-'RFC2544_COMMON_MEG_LEVEL_MAX'>
+CMD_VAR = mel
+RUNTIME =
+HELP    = MEG level
+BYWORD  = <Mel : 'RFC2544_COMMON_MEG_LEVEL_MIN'-'RFC2544_COMMON_MEG_LEVEL_MAX'>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_ICLI_PROFILE_CHANGE(common.meg_level, mel);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no meg-level
+
+DOC_CMD_DESC    = Set profile MEG level to default value.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! meg-level
+CMD_VAR =
+RUNTIME =
+HELP    = Set profile MEG level to default value
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_ICLI_PROFILE_CHANGE(common.meg_level, RFC2544_COMMON_MEG_LEVEL_DEFAULT);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = test-interface <port_type_id>
+
+DOC_CMD_DESC    = Set the egress interface on which PDUs are transmitted.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! interface
+CMD_VAR =
+RUNTIME =
+HELP    = Set the egress interface on which PDUs are transmitted
+BYWORD  =
+
+! <port_type_id>
+CMD_VAR = ifc
+RUNTIME =
+HELP    = Egress interface
+BYWORD  = <Ifc : port_type_id>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_ICLI_PROFILE_CHANGE(common.egress_port_no, ifc.begin_iport);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no test-interface
+
+DOC_CMD_DESC    = Set the egress interface on which PDUs are transmitted to default interface.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! test-interface
+CMD_VAR =
+RUNTIME =
+HELP    = Set the egress interface on which PDUs are transmitted to default interface
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_ICLI_PROFILE_CHANGE(common.egress_port_no, VTSS_PORT_NO_START);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = sequence-check
+
+DOC_CMD_DESC    = Enable sequence number checking of TST PDUs.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+NO_FORM_DOC_CMD_DESC    = Disable sequence number checking of looped TST PDUs.
+NO_FORM_DOC_CMD_DEFAULT =
+NO_FORM_DOC_CMD_USAGE   =
+NO_FORM_DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! sequence-check
+CMD_VAR =
+RUNTIME =
+HELP    = Enable (no-form disables) sequence number checking of looped TST PDUs
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_ICLI_PROFILE_CHANGE(common.sequence_number_check, TRUE);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    RFC2544_ICLI_PROFILE_CHANGE(common.sequence_number_check, FALSE);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = dwell-time <'RFC2544_COMMON_DWELL_TIME_MIN'-'RFC2544_COMMON_DWELL_TIME_MAX'>
+
+DOC_CMD_DESC    = Controls the number of seconds that the execution waits after each trial before reading counters and status from hardware.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! dwell-time
+CMD_VAR =
+RUNTIME =
+HELP    = Controls the number of seconds that the execution pauses after each trial before reading counters and status from hardware
+BYWORD  =
+
+! <'RFC2544_COMMON_DWELL_TIME_MIN'-'RFC2544_COMMON_DWELL_TIME_MAX'>
+CMD_VAR = dwell
+RUNTIME =
+HELP    = Dwell time measured in seconds
+BYWORD  = <Dwell : 'RFC2544_COMMON_DWELL_TIME_MIN'-'RFC2544_COMMON_DWELL_TIME_MAX'>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_ICLI_PROFILE_CHANGE(common.dwell_time_secs, dwell);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no dwell-time
+
+DOC_CMD_DESC    = Reset the number of seconds that the execution waits after each trial before reading counters and status from hardware to its default value.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! dwell-time
+CMD_VAR =
+RUNTIME =
+HELP    = Reset the number of seconds that the execution pauses after each trial before reading counters and status from hardware to its default value
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_ICLI_PROFILE_CHANGE(common.dwell_time_secs, RFC2544_COMMON_DWELL_TIME_DEFAULT);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = test-vlan <vlan_id> [ pcp <0-7> ] [ dei <0-1> ]
+
+DOC_CMD_DESC    = Create a VLAN Down-MEP. All PDUs will then be transmitted with a VLAN tag.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! test-vlan
+CMD_VAR =
+RUNTIME =
+HELP    = Create a VLAN Down-MEP. All PDUs will then be transmitted with a VLAN tag
+BYWORD  =
+
+! <vlan_id>
+CMD_VAR = vid
+RUNTIME =
+HELP    = The VLAN ID used in transmitted PDUs
+BYWORD  = <Vid : vlan_id>
+
+! pcp
+CMD_VAR = has_pcp
+RUNTIME =
+HELP    = Control the VLAN tag's PCP value
+BYWORD  = pcp : Option
+
+! <0-7>
+CMD_VAR = pcp
+RUNTIME =
+HELP    = The PCP value used in the VLAN tag in transmitted PDUs
+BYWORD  = <Pcp : 0-7>
+
+! dei
+CMD_VAR = has_dei
+RUNTIME =
+HELP    = Control the VLAN tag's DEI value
+BYWORD  = dei : Option
+
+! <0-1>
+CMD_VAR = dei
+RUNTIME =
+HELP    = The DEI value used in the VLAN tag in transmitted PDUs
+BYWORD  = <Dei : 0-1>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(common.vlan_tag.vid, vid);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(common.vlan_tag.pcp, has_pcp ? pcp : 0);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(common.vlan_tag.dei, has_dei ? dei : 0);
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no test-vlan
+
+DOC_CMD_DESC    = Create a Port Down-MEP. All PDUs will then be transmitted without a VLAN tag.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! test-vlan
+CMD_VAR =
+RUNTIME =
+HELP    = Create a Port Down-MEP. All PDUs will then be transmitted without a VLAN tag
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    RFC2544_ICLI_PROFILE_CHANGE(common.vlan_tag.vid, VTSS_VID_NULL);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = dmac <mac_addr>
+
+DOC_CMD_DESC    = Set the destination MAC address of all transmitted PDUs. This should be the MAC address of the peer.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! dmac
+CMD_VAR =
+RUNTIME =
+HELP    = Set the destination MAC address of all transmitted PDUs. This should be the MAC address of the peer
+BYWORD  =
+
+! <mac_addr>
+CMD_VAR = dmac
+RUNTIME =
+HELP    = MAC address of peer.
+BYWORD  = <Dmac : mac_addr>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.common.dmac_seen = TRUE;
+        r.profile.common.dmac = dmac;
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no dmac
+
+DOC_CMD_DESC    = Sets the MAC address used as DMAC in transmitted PDUs to all-zeroes.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! dmac
+CMD_VAR =
+RUNTIME =
+HELP    = Sets the MAC address used as DMAC in transmitted PDUs to all-zeroes
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.common.dmac_seen = TRUE;
+        memset(&r.profile.common.dmac, 0, sizeof(r.profile.common.dmac));
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = frame-sizes { [ 64 ] [ 128 ] [ 256 ] [ 512 ] [ 1024 ] [ 1280 ] [ 1518 ] [ 2000 ] [ 9600 ] }*1
+
+DOC_CMD_DESC    = Select the frame sizes that the enabled tests will loop through.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! frame-sizes
+CMD_VAR =
+RUNTIME =
+HELP    = Select the frame sizes that the enabled tests will loop through
+BYWORD  =
+
+! 64
+CMD_VAR = has_64
+RUNTIME =
+HELP    = Enable testing with 64-byte TST PDUs
+BYWORD  = 64 : Option
+
+! 128
+CMD_VAR = has_128
+RUNTIME =
+HELP    = Enable testing with 128-byte TST PDUs
+BYWORD  = 128 : Option
+
+! 256
+CMD_VAR = has_256
+RUNTIME =
+HELP    = Enable testing with 256-byte TST PDUs
+BYWORD  = 256 : Option
+
+! 512
+CMD_VAR = has_512
+RUNTIME =
+HELP    = Enable testing with 512-byte TST PDUs
+BYWORD  = 512 : Option
+
+! 1024
+CMD_VAR = has_1024
+RUNTIME =
+HELP    = Enable testing with 1024-byte TST PDUs
+BYWORD  = 1024 : Option
+
+! 1280
+CMD_VAR = has_1280
+RUNTIME =
+HELP    = Enable testing with 1280-byte TST PDUs
+BYWORD  = 1280 : Option
+
+! 1518
+CMD_VAR = has_1518
+RUNTIME =
+HELP    = Enable testing with 1518-byte TST PDUs
+BYWORD  = 1518 : Option
+
+! 2000
+CMD_VAR = has_2000
+RUNTIME =
+HELP    = Enable testing with 2000-byte TST PDUs
+BYWORD  = 2000 : Option
+
+! 9600
+CMD_VAR = has_9600
+RUNTIME =
+HELP    = Enable testing with 9600-byte TST PDUs
+BYWORD  = 9600 : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.common.frame_sizes_seen = TRUE;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_64]   = has_64;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_128]  = has_128;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_256]  = has_256;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_512]  = has_512;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_1024] = has_1024;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_1280] = has_1280;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_1518] = has_1518;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_2000] = has_2000;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_9600] = has_9600;
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no frame-sizes
+
+DOC_CMD_DESC    = Selects the default set of frame sizes that the enabled tests will loop through.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! frame-sizes
+CMD_VAR =
+RUNTIME =
+HELP    = Selects the default set of frame sizes that the enabled tests will loop through
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.common.frame_sizes_seen = TRUE;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_64]   = TRUE;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_128]  = TRUE;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_256]  = TRUE;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_512]  = TRUE;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_1024] = TRUE;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_1280] = TRUE;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_1518] = TRUE;
+        r.profile.common.selected_frame_sizes[RFC2544_FRAME_SIZE_2000] = TRUE;
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = throughput [ duration <'RFC2544_THROUGHPUT_TRIAL_DURATION_MIN'-'RFC2544_THROUGHPUT_TRIAL_DURATION_MAX'> ] [ rate { [ min <'RFC2544_THROUGHPUT_RATE_MIN_MIN'-'RFC2544_THROUGHPUT_RATE_MIN_MAX'> ] [ max <'RFC2544_THROUGHPUT_RATE_MAX_MIN'-'RFC2544_THROUGHPUT_RATE_MAX_MAX'> ] [ accuracy <'RFC2544_THROUGHPUT_RATE_STEP_MIN'-'RFC2544_THROUGHPUT_RATE_STEP_MAX'> ] }*1 ] [ allowed-loss <'RFC2544_THROUGHPUT_PASS_CRITERION_MIN'-'RFC2544_THROUGHPUT_PASS_CRITERION_MAX'> ]
+
+DOC_CMD_DESC    = Enable throughput test and optionally set its parameters.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! throughput
+CMD_VAR =
+RUNTIME =
+HELP    = Enable throughput test and optionally set its parameters
+BYWORD  =
+
+! duration
+CMD_VAR = has_duration
+RUNTIME =
+HELP    = Set the duration of one trial
+BYWORD  = duration : Option
+
+! <'RFC2544_THROUGHPUT_TRIAL_DURATION_MIN'-'RFC2544_THROUGHPUT_TRIAL_DURATION_MAX'>
+CMD_VAR = tp_duration
+RUNTIME =
+HELP    = Duration - in seconds - of one trial
+BYWORD  = <TpDuration : 'RFC2544_THROUGHPUT_TRIAL_DURATION_MIN'-'RFC2544_THROUGHPUT_TRIAL_DURATION_MAX'>
+
+! rate
+CMD_VAR = has_rate
+RUNTIME =
+HELP    = Set the minimum, maximum, and/or rate steps
+BYWORD  = rate : Option
+
+! min
+CMD_VAR = has_min
+RUNTIME =
+HELP    = Set the minimum rate
+BYWORD  = min : Option
+
+! <'RFC2544_THROUGHPUT_RATE_MIN_MIN'-'RFC2544_THROUGHPUT_RATE_MIN_MAX'>
+CMD_VAR = tp_min
+RUNTIME =
+HELP    = The minimum rate - in permille of link speed - to run test at
+BYWORD  = <TpMin : 'RFC2544_THROUGHPUT_RATE_MIN_MIN'-'RFC2544_THROUGHPUT_RATE_MIN_MAX'>
+
+! max
+CMD_VAR = has_max
+RUNTIME =
+HELP    = Set the maximum rate
+BYWORD  = max : Option
+
+! <'RFC2544_THROUGHPUT_RATE_MAX_MIN'-'RFC2544_THROUGHPUT_RATE_MAX_MAX'>
+CMD_VAR = tp_max
+RUNTIME =
+HELP    = The maximum rate - in permille of link speed - to run test at
+BYWORD  = <TpMax : 'RFC2544_THROUGHPUT_RATE_MAX_MIN'-'RFC2544_THROUGHPUT_RATE_MAX_MAX'>
+
+! step
+CMD_VAR = has_step
+RUNTIME =
+HELP    = Set the accuracy (stop criterion)
+BYWORD  = step : Option
+
+! <'RFC2544_THROUGHPUT_RATE_STEP_MIN'-'RFC2544_THROUGHPUT_RATE_STEP_MAX'>
+CMD_VAR = tp_step
+RUNTIME =
+HELP    = When two consecutive trials are less than the accuracy (in permille of link speed) apart, the test stops
+BYWORD  = <TpStep : 'RFC2544_THROUGHPUT_RATE_STEP_MIN'-'RFC2544_THROUGHPUT_RATE_STEP_MAX'>
+
+! allowed-loss
+CMD_VAR = has_allowed_loss
+RUNTIME =
+HELP    = Set the maximum allowed TST PDU loss at which the test is considered successful
+BYWORD  = allowed-loss : Option
+
+! <'RFC2544_THROUGHPUT_PASS_CRITERION_MIN'-'RFC2544_THROUGHPUT_PASS_CRITERION_MAX'>
+CMD_VAR = tp_allowed_loss
+RUNTIME =
+HELP    = The maximum allowed loss in permille at which the test is considered successful
+BYWORD  = <TpLoss : 'RFC2544_THROUGHPUT_PASS_CRITERION_MIN'-'RFC2544_THROUGHPUT_PASS_CRITERION_MAX'>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.throughput.ena_dis_seen = TRUE;
+        r.profile.common.selected_tests |= RFC2544_TEST_TYPE_THROUGHPUT;
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(throughput.trial_duration_secs,     has_duration         ? tp_duration     : RFC2544_THROUGHPUT_TRIAL_DURATION_DEFAULT);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(throughput.rate_min_permille,       has_rate && has_min  ? tp_min          : RFC2544_THROUGHPUT_RATE_MIN_DEFAULT);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(throughput.rate_max_permille,       has_rate && has_max  ? tp_max          : RFC2544_THROUGHPUT_RATE_MAX_DEFAULT);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(throughput.rate_step_permille,      has_rate && has_step ? tp_step         : RFC2544_THROUGHPUT_RATE_STEP_DEFAULT);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(throughput.pass_criterion_permille, has_allowed_loss     ? tp_allowed_loss : RFC2544_THROUGHPUT_PASS_CRITERION_DEFAULT);
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no throughput
+
+DOC_CMD_DESC    = Disable throughput test.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! throughput
+CMD_VAR =
+RUNTIME =
+HELP    = Disable throughput test
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.throughput.ena_dis_seen = TRUE;
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = latency [ duration <'RFC2544_LATENCY_TRIAL_DURATION_MIN'-'RFC2544_LATENCY_TRIAL_DURATION_MAX'> ] [ interval <'RFC2544_LATENCY_DMM_INTERVAL_MIN'-'RFC2544_LATENCY_DMM_INTERVAL_MAX'> ] [ allowed-loss <'RFC2544_LATENCY_PASS_CRITERION_MIN'-'RFC2544_LATENCY_PASS_CRITERION_MAX'> ]
+
+DOC_CMD_DESC    = Enable latency test and optionally set its parameters.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! latency
+CMD_VAR =
+RUNTIME =
+HELP    = Enable latency test and optionally set its parameters
+BYWORD  =
+
+! duration
+CMD_VAR = has_duration
+RUNTIME =
+HELP    = Set the duration of one trial
+BYWORD  = duration : Option
+
+! <'RFC2544_LATENCY_TRIAL_DURATION_MIN'-'RFC2544_LATENCY_TRIAL_DURATION_MAX'>
+CMD_VAR = la_duration
+RUNTIME =
+HELP    = Duration - in seconds - of one trial
+BYWORD  = <LaDuration : 'RFC2544_LATENCY_TRIAL_DURATION_MIN'-'RFC2544_LATENCY_TRIAL_DURATION_MAX'>
+
+! interval
+CMD_VAR = has_interval
+RUNTIME =
+HELP    = Interval between sending delay measurement frames
+BYWORD  = interval : Option
+
+! <'RFC2544_LATENCY_DMM_INTERVAL_MIN'-'RFC2544_LATENCY_DMM_INTERVAL_MAX'>
+CMD_VAR = la_interval
+RUNTIME =
+HELP    = The interval - in seconds - between sending delay measurement frames
+BYWORD  = <LaInterval : 'RFC2544_LATENCY_DMM_INTERVAL_MIN'-'RFC2544_LATENCY_DMM_INTERVAL_MAX'>
+
+! allowed-loss
+CMD_VAR = has_allowed_loss
+RUNTIME =
+HELP    = Set the maximum allowed TST PDU loss at which the test is consideres successful
+BYWORD  = allowed-loss : Option
+
+! <'RFC2544_LATENCY_PASS_CRITERION_MIN'-'RFC2544_LATENCY_PASS_CRITERION_MAX'>
+CMD_VAR = la_allowed_loss
+RUNTIME =
+HELP    = The maximum allowed loss in permille at which the test is considered successful
+BYWORD  = <LaLoss : 'RFC2544_LATENCY_PASS_CRITERION_MIN'-'RFC2544_LATENCY_PASS_CRITERION_MAX'>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.latency.ena_dis_seen = TRUE;
+        r.profile.common.selected_tests |= RFC2544_TEST_TYPE_LATENCY;
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(latency.trial_duration_secs,     has_duration     ? la_duration     : RFC2544_LATENCY_TRIAL_DURATION_DEFAULT);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(latency.dmm_interval_secs,       has_interval     ? la_interval     : RFC2544_LATENCY_DMM_INTERVAL_DEFAULT);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(latency.pass_criterion_permille, has_allowed_loss ? la_allowed_loss : RFC2544_LATENCY_PASS_CRITERION_DEFAULT);
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no latency
+
+DOC_CMD_DESC    = Disable latency test.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! latency
+CMD_VAR =
+RUNTIME =
+HELP    = Disable latency test
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.latency.ena_dis_seen = TRUE;
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = frame-loss [ duration <'RFC2544_FRAME_LOSS_TRIAL_DURATION_MIN'-'RFC2544_FRAME_LOSS_TRIAL_DURATION_MAX'> ] [ rate { [ min <'RFC2544_FRAME_LOSS_RATE_MIN_MIN'-'RFC2544_FRAME_LOSS_RATE_MIN_MAX'> ] [ max <'RFC2544_FRAME_LOSS_RATE_MAX_MIN'-'RFC2544_FRAME_LOSS_RATE_MAX_MAX'> ] [ step <'RFC2544_FRAME_LOSS_RATE_STEP_MIN'-'RFC2544_FRAME_LOSS_RATE_STEP_MAX'> ] }*1 ]
+
+DOC_CMD_DESC    = Enable frame-loss test and optionally set its parameters.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! frame-loss
+CMD_VAR =
+RUNTIME =
+HELP    = Enable frame-loss test and optionally set its parameters
+BYWORD  =
+
+! duration
+CMD_VAR = has_duration
+RUNTIME =
+HELP    = Set the duration of one trial
+BYWORD  = duration : Option
+
+! <'RFC2544_FRAME_LOSS_TRIAL_DURATION_MIN'-'RFC2544_FRAME_LOSS_TRIAL_DURATION_MAX'>
+CMD_VAR = fl_duration
+RUNTIME =
+HELP    = Duration - in seconds - of one trial
+BYWORD  = <FlDuration : 'RFC2544_FRAME_LOSS_TRIAL_DURATION_MIN'-'RFC2544_FRAME_LOSS_TRIAL_DURATION_MAX'>
+
+! rate
+CMD_VAR = has_rate
+RUNTIME =
+HELP    = Set the minimum, maximum, and/or rate steps
+BYWORD  = rate : Option
+
+! min
+CMD_VAR = has_min
+RUNTIME =
+HELP    = Set the minimum rate
+BYWORD  = min : Option
+
+! <'RFC2544_FRAME_LOSS_RATE_MIN_MIN'-'RFC2544_FRAME_LOSS_RATE_MIN_MAX'>
+CMD_VAR = fl_min
+RUNTIME =
+HELP    = The minimum rate - in permille of link speed - to run test at.
+BYWORD  = <FlMin : 'RFC2544_FRAME_LOSS_RATE_MIN_MIN'-'RFC2544_FRAME_LOSS_RATE_MIN_MAX'>
+
+! max
+CMD_VAR = has_max
+RUNTIME =
+HELP    = Set the maximum rate
+BYWORD  = max : Option
+
+! <'RFC2544_FRAME_LOSS_RATE_MAX_MIN'-'RFC2544_FRAME_LOSS_RATE_MAX_MAX'>
+CMD_VAR = fl_max
+RUNTIME =
+HELP    = The maximum rate - in permille of link speed - to run test at.
+BYWORD  = <FlMax : 'RFC2544_FRAME_LOSS_RATE_MAX_MIN'-'RFC2544_FRAME_LOSS_RATE_MAX_MAX'>
+
+! step
+CMD_VAR = has_step
+RUNTIME =
+HELP    = Set the step rate
+BYWORD  = step : Option
+
+! <'RFC2544_FRAME_LOSS_RATE_STEP_MIN'-'RFC2544_FRAME_LOSS_RATE_STEP_MAX'>
+CMD_VAR = fl_step
+RUNTIME =
+HELP    = The step - in permille of link speed - to decrement the rate by for each trial
+BYWORD  = <FlStep : 'RFC2544_FRAME_LOSS_RATE_STEP_MIN'-'RFC2544_FRAME_LOSS_RATE_STEP_MAX'>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.frame_loss.ena_dis_seen = TRUE;
+        r.profile.common.selected_tests |= RFC2544_TEST_TYPE_FRAME_LOSS;
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(frame_loss.trial_duration_secs, has_duration         ? fl_duration : RFC2544_FRAME_LOSS_TRIAL_DURATION_DEFAULT);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(frame_loss.rate_min_permille,   has_rate && has_min  ? fl_min      : RFC2544_FRAME_LOSS_RATE_MIN_DEFAULT);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(frame_loss.rate_max_permille,   has_rate && has_max  ? fl_max      : RFC2544_FRAME_LOSS_RATE_MAX_DEFAULT);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(frame_loss.rate_step_permille,  has_rate && has_step ? fl_step     : RFC2544_FRAME_LOSS_RATE_STEP_DEFAULT);
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no frame-loss
+
+DOC_CMD_DESC    = Disable frame-loss test.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! frame-loss
+CMD_VAR =
+RUNTIME =
+HELP    = Disable frame-loss test
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.frame_loss.ena_dis_seen = TRUE;
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = back-to-back [ duration <'RFC2544_BACK_TO_BACK_TRIAL_DURATION_MIN'-'RFC2544_BACK_TO_BACK_TRIAL_DURATION_MAX'> ] [ count <'RFC2544_BACK_TO_BACK_TRIAL_CNT_MIN'-'RFC2544_BACK_TO_BACK_TRIAL_CNT_MAX'> ]
+
+DOC_CMD_DESC    = Enable back-to-back test and optionally set its parameters.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! back-to-back
+CMD_VAR =
+RUNTIME =
+HELP    = Enable back-to-back test and optionally set its parameters
+BYWORD  =
+
+! duration
+CMD_VAR = has_duration
+RUNTIME =
+HELP    = Set the duration of one trial
+BYWORD  = duration : Option
+
+! <'RFC2544_BACK_TO_BACK_TRIAL_DURATION_MIN'-'RFC2544_BACK_TO_BACK_TRIAL_DURATION_MAX'>
+CMD_VAR = bb_duration
+RUNTIME =
+HELP    = Duration - in milliseconds - of one trial.
+BYWORD  = <BbDuration : 'RFC2544_BACK_TO_BACK_TRIAL_DURATION_MIN'-'RFC2544_BACK_TO_BACK_TRIAL_DURATION_MAX'>
+
+! count
+CMD_VAR = has_count
+RUNTIME =
+HELP    = Set the number of trials (bursts)
+BYWORD  = count : Option
+
+! <'RFC2544_BACK_TO_BACK_TRIAL_CNT_MIN'-'RFC2544_BACK_TO_BACK_TRIAL_CNT_MAX'>
+CMD_VAR = bb_cnt
+RUNTIME =
+HELP    = Number of trials to run for every selected frame size.
+BYWORD  = <BbCnt : 'RFC2544_BACK_TO_BACK_TRIAL_CNT_MIN'-'RFC2544_BACK_TO_BACK_TRIAL_CNT_MAX'>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.back_to_back.ena_dis_seen = TRUE;
+        r.profile.common.selected_tests |= RFC2544_TEST_TYPE_BACK_TO_BACK;
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(back_to_back.trial_duration_msecs, has_duration ? bb_duration : RFC2544_BACK_TO_BACK_TRIAL_DURATION_DEFAULT);
+        RFC2544_ICLI_PROFILE_VAL_TRANSFER(back_to_back.trial_cnt,            has_count    ? bb_cnt      : RFC2544_BACK_TO_BACK_TRIAL_CNT_DEFAULT);
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no back-to-back
+
+DOC_CMD_DESC    = Disable back-to-back test.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+MODE_VAR = profile_name
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! back-to-back
+CMD_VAR =
+RUNTIME =
+HELP    = Disable back-to-back test
+BYWORD  =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    {
+        rfc2544_xcli_req_t r;
+        RFC2544_icli_r_init(&r, profile_name);
+        r.back_to_back.ena_dis_seen = TRUE;
+        RFC2544_RC(RFC2544_xcli_cmd_profile_add(session_id, &r));
+    }
+CODE_END
+
+CMD_END
+

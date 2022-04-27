@@ -1,0 +1,75 @@
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+if(NOT TARGET @PROJECT_NAME@)
+
+find_file(@CMAKE_PROJECT_NAME@_DEPENDFILE @CMAKE_PROJECT_NAME@Depends.cmake
+      @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_DIR@
+)
+include(${@CMAKE_PROJECT_NAME@_DEPENDFILE})
+
+find_path(@CMAKE_PROJECT_NAME@_INCLUDE_DIRS vtss_api.h
+    @CMAKE_INSTALL_PREFIX@/@INCLUDE_INSTALL_DIR@/@PROJECT_NAME@
+)
+
+# Project dependencies
+# find_package(Boost COMPONENTS filesystem thread chrono REQUIRED)
+
+# Configure link libraries
+set(@CMAKE_PROJECT_NAME@_LIBRARIES vtss_api)
+list(REMOVE_DUPLICATES @CMAKE_PROJECT_NAME@_LIBRARIES)
+
+# Configure include directories
+set(@CMAKE_PROJECT_NAME@_INCLUDE_DIRS
+    ${@CMAKE_PROJECT_NAME@_INCLUDE_DIRS}
+
+    # add includes from dependend projects
+    # ${Boost_INCLUDE_DIRS}
+)
+
+
+# Include the configuration of the prebuild API
+set(VTSS_PHY_API_ONLY @VTSS_PHY_API_ONLY@)
+set(VTSS_OPT_VCORE_III  @VTSS_OPT_VCORE_III@)
+set(VTSS_CHIP_10G_PHY   @VTSS_CHIP_10G_PHY@)
+set(VTSS_FEATURE_MACSEC @VTSS_FEATURE_MACSEC@)
+
+# Produce some nice prints when this library is includeed
+message(STATUS "@CMAKE_PROJECT_NAME@-config (SHARED) version @version@")
+foreach(f ${@CMAKE_PROJECT_NAME@_INCLUDE_DIRS})
+    message(STATUS "  Include: ${f}")
+endforeach()
+foreach(f ${@CMAKE_PROJECT_NAME@_LIBRARIES})
+    #GET_PROPERTY(p TARGET ${f} PROPERTY LOCATION)
+    #message(STATUS "  Library: ${p}")
+    GET_TARGET_PROPERTY(p ${f} LOCATION)
+    if(${p} MATCHES "p-NOTFOUND")
+        message(STATUS "  Library-file:   ${f}")
+    else(${p} MATCHES "p-NOTFOUND")
+        message(STATUS "  Library-target: ${p}")
+    endif(${p} MATCHES "p-NOTFOUND")
+endforeach()
+
+set(@CMAKE_PROJECT_NAME@_FOUND true)
+
+endif(NOT TARGET @PROJECT_NAME@)

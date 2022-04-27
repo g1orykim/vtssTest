@@ -1,0 +1,161 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_SSH)
+
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "vtss_ssh_api.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+
+static i32 VTSS_SSH_ICLI_global_mode_set(u32 session_id, BOOL mode)
+{
+    ssh_conf_t  conf;
+    BOOL        original_mode;
+
+    //get global configuration
+    ICLI_RC_CHECK(ssh_mgmt_conf_get(&conf), "%% Failed to get SSH configuration.\n");
+
+    //set global configuration
+    original_mode = conf.mode;
+    conf.mode = mode;
+    if (mode != original_mode) {
+        ICLI_RC_CHECK(ssh_mgmt_conf_set(&conf), "%% Failed to set SSH configuration.\n");
+    }
+
+    return ICLI_RC_OK;
+}
+
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show ip ssh
+
+DOC_CMD_DESC    = Use the show ip ssh privileged EXEC \
+                  command to display the SSH status.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use this command to show status information about the SSH.
+DOC_CMD_EXAMPLE = This is an example of output from the show ip ssh command:
+DOC_CMD_EXAMPLE = Switch# show ip ssh
+DOC_CMD_EXAMPLE = Switch SSH is enabled
+
+FUNC_NAME = icli_ssh_status
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR =
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_SSH
+
+VARIABLE_BEGIN
+    ssh_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_RC_CHECK(ssh_mgmt_conf_get(&conf), "%% Failed to get SSH configuration.\n");
+    ICLI_PRINTF("Switch SSH is %s\n", icli_bool_txt(conf.mode));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ip ssh
+
+DOC_CMD_DESC    = Use the ip ssh global configuration command to \
+                  enable the SSH. Use the no form of this \
+                  command to disable the SSH.
+DOC_CMD_DEFAULT = The SSH is enabled.
+DOC_CMD_USAGE   = Enable the SSH.
+DOC_CMD_EXAMPLE = This example shows how to enable the SSH:
+DOC_CMD_EXAMPLE = Switch(config)# ip ssh
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip ssh privileged EXEC command.
+
+NO_FORM_DOC_CMD_DESC    = Use the no ip ssh global configuration command to \
+                          disable the SSH.
+NO_FORM_DOC_CMD_DEFAULT = The SSH is enabled.
+NO_FORM_DOC_CMD_USAGE   = Disable the SSH.
+NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable the SSH:
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# no ip ssh
+NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip ssh privileged EXEC command.
+
+FUNC_NAME = icli_ssh_mode
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_SSH
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* enable global mode */
+    (void) VTSS_SSH_ICLI_global_mode_set(session_id, TRUE);
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    /* disable global mode */
+    (void) VTSS_SSH_ICLI_global_mode_set(session_id, FALSE);
+NO_FORM_CODE_END
+
+CMD_END

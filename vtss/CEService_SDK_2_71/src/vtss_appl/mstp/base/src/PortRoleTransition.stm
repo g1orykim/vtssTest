@@ -1,0 +1,246 @@
+########################################################-*- mode: text -*-
+# 
+# Vitesse Switch Software.
+# 
+# Copyright (c) 2009 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+# 
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+# 
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+# 
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+# 
+# ------------------------------------------------------------------------
+# 
+
+# PRT - Port Role Transition - 13.34 - Fig. 13-15 (Disabled), 
+#                                           13-16 (Master),
+#                                           13-17 (Root),
+#                                           13-18 (Designated), 
+#                                           13-19 (Alternate+Backup)
+
+stm PortRoleTransition(MSTI)
+
+# Default transition guard qualifier (exept UCT)
+>>GUARD: (selected && !updtInfo)
+
+BEGIN:
+        >> INIT_PORT
+
+GLOBAL:
+        when (selectedRole == DisabledPort) && (role != selectedRole) >> DISABLE_PORT
+        when (selectedRole == MasterPort) && (role != selectedRole) >> MASTER_PORT
+        when (selectedRole == RootPort) && (role != selectedRole) >> ROOT_PORT
+        when (selectedRole == DesignatedPort) && (role != selectedRole) >> DESIGNATED_PORT
+        when ((selectedRole == AlternatePort) || (selectedRole == BackupPort)) && (role != selectedRole) >> BLOCK_PORT
+
+# Fig. 13-15 (Disabled)
+
+INIT_PORT:
+        role = DisabledPort;     
+        learn = forward = FALSE;   
+        synced = FALSE;   
+        sync = reRoot = TRUE;    
+        rrWhile = FwdDelay;       
+        fdWhile = MaxAge;
+        rbWhile = 0;                
+        >> DISABLE_PORT
+
+DISABLE_PORT:
+        role = selectedRole;
+        learn = forward = FALSE;
+        when !learning && !forwarding >> DISABLED_PORT
+
+DISABLED_PORT:
+        fdWhile = MaxAge;
+        synced = TRUE; rrWhile = 0;
+        sync = reRoot = FALSE;
+        when (fdWhile != MaxAge) || sync || reRoot || !synced >> DISABLED_PORT
+
+# Fig. 13-16 (Master)
+
+MASTER_PORT:
+        role = MasterPort;
+        loop_protect 10
+        when proposed && !agree >> MASTER_PROPOSED
+        when (!agree && allSynced(tree, port)) || (agree && proposed) >> MASTER_AGREED
+        when (!synced && (agreed || operEdge || (!learning && !forwarding))) || (synced && sync) >> MASTER_SYNCED
+        when reRoot && (rrWhile == 0) >> MASTER_RETIRED
+        when ((sync && !synced) || (reRoot && (rrWhile != 0)) || disputed) && !operEdge && (learn || forward) >> MASTER_DISCARD
+        when ((fdWhile == 0) || allSynced(tree, port)) && !learn >> MASTER_LEARN
+        when ((fdWhile == 0) || allSynced(tree, port)) && (learn && !forward) >> MASTER_FORWARD
+
+MASTER_PROPOSED:
+        setSyncTree(tree);
+        proposed = FALSE;
+        >> MASTER_PORT
+
+MASTER_AGREED:
+        proposed = sync = FALSE;
+        agree = TRUE;
+        >> MASTER_PORT
+
+MASTER_SYNCED:
+        rrWhile = 0;
+        synced = TRUE;
+        sync = FALSE;
+        >> MASTER_PORT
+
+MASTER_RETIRED:
+        reRoot = FALSE;
+        >> MASTER_PORT
+
+MASTER_DISCARD:
+        learn = forward = disputed = FALSE;
+        fdWhile = forwardDelay;
+        >> MASTER_PORT
+
+MASTER_LEARN:
+        learn = TRUE;
+        fdWhile = forwardDelay;
+        >> MASTER_PORT
+
+MASTER_FORWARD:
+        forward = TRUE; fdWhile = 0;
+        agreed = sendRSTP;
+        >> MASTER_PORT
+
+# Fig. 13-17 (Root)
+
+ROOT_PORT:
+        role = RootPort;        
+        rrWhile = FwdDelay;
+        loop_protect 10
+        when proposed && !agree >> ROOT_PROPOSED
+        when (!agree && allSynced(tree, port)) || (agree && proposed) >> ROOT_AGREED
+        when (agreed && !synced) || (sync && synced) >> ROOT_SYNCED
+        when !forward && !reRoot >> REROOT
+        when rrWhile != FwdDelay >> ROOT_PORT
+        when reRoot && forward >> REROOTED
+        when !learn && ((fdWhile == 0) || (rstpVersion(bridge) && (rbWhile == 0) && (reRooted(port)))) >> ROOT_LEARN
+        when learn && !forward && ((fdWhile == 0) || (rstpVersion(bridge) && (rbWhile == 0) && (reRooted(port)))) >> ROOT_FORWARD
+
+ROOT_PROPOSED:
+        setSyncTree(tree);
+        proposed = FALSE;
+        >> ROOT_PORT
+
+ROOT_AGREED:
+        proposed = sync = FALSE;
+        agree = TRUE;
+        newInfoXst(port,TRUE);
+        >> ROOT_PORT
+
+ROOT_SYNCED:
+        synced = TRUE;
+        sync = FALSE;
+        >> ROOT_PORT
+
+REROOT:
+        setReRootTree(tree);
+        >> ROOT_PORT
+
+REROOTED:
+        reRoot = FALSE;
+        >> ROOT_PORT
+
+ROOT_LEARN:
+        fdWhile = forwardDelay;
+        learn = TRUE;
+        >> ROOT_PORT
+
+ROOT_FORWARD:
+        fdWhile = 0;
+        forward = TRUE;
+        >> ROOT_PORT
+
+# Fig. 13-18 (Designated)
+
+DESIGNATED_PORT:
+        role = DesignatedPort;
+        loop_protect 10
+        when !forward && !agreed && !proposing && !operEdge >> DESIGNATED_PROPOSE
+        when (proposed || !agree) && allSynced(tree, port) >> DESIGNATED_AGREED
+        when (!learning && !forwarding && !synced) || (agreed && !synced) || (operEdge && !synced) || (sync && synced) >> DESIGNATED_SYNCED
+        when reRoot && (rrWhile == 0) >> DESIGNATED_RETIRED
+        when ((sync && !synced) || (reRoot && (rrWhile != 0)) || disputed) && !operEdge && (learn || forward) >> DESIGNATED_DISCARD
+        when ((fdWhile == 0) || agreed || operEdge) && ((rrWhile == 0) || !reRoot) && !sync && !learn >> DESIGNATED_LEARN
+        when ((fdWhile == 0) || agreed || operEdge) && ((rrWhile == 0) || !reRoot) && !sync && (learn && !forward) >> DESIGNATED_FORWARD
+
+DESIGNATED_PROPOSE:
+        proposing = TRUE;
+        if(isCistPort(port)) { edgeDelayWhile = EdgeDelay; }
+        newInfoXst(port,TRUE);
+        >> DESIGNATED_PORT
+
+DESIGNATED_AGREED:
+        proposed = sync = FALSE;
+        agree = TRUE;
+        newInfoXst(port,TRUE);
+        >> DESIGNATED_PORT
+
+DESIGNATED_SYNCED:
+        rrWhile = 0; synced = TRUE;
+        sync = FALSE;
+        >> DESIGNATED_PORT
+
+DESIGNATED_RETIRED:
+        reRoot = FALSE;
+        >> DESIGNATED_PORT
+
+DESIGNATED_DISCARD:
+        learn = forward = disputed = FALSE;
+        fdWhile = forwardDelay;
+        >> DESIGNATED_PORT
+
+DESIGNATED_LEARN:
+        learn = TRUE;
+        fdWhile = forwardDelay;
+        >> DESIGNATED_PORT
+
+DESIGNATED_FORWARD:
+        forward = TRUE; fdWhile = 0;
+        agreed = sendRSTP;
+        >> DESIGNATED_PORT
+
+# Fig. 13-19 (Alternate+Backup)
+
+ALTERNATE_PORT:
+        fdWhile = forwardDelay; synced = TRUE; rrWhile = 0; sync = reRoot = FALSE;
+        loop_protect 10
+        when proposed && !agree >> ALTERNATE_PROPOSED
+        when (!agree && allSynced(tree, port)) || (agree && proposed) >> ALTERNATE_AGREED
+        when (fdWhile != forwardDelay) || sync || reRoot || !synced >> ALTERNATE_PORT
+        when (rbWhile != (timer)(2*HelloTime)) && (role == BackupPort) >> BACKUP_PORT
+
+ALTERNATE_PROPOSED:
+        setSyncTree(tree);
+        proposed = FALSE;
+        >> ALTERNATE_PORT
+
+ALTERNATE_AGREED:
+        proposed = FALSE;
+        agree = TRUE;
+        newInfoXst(port,TRUE);
+        >> ALTERNATE_PORT
+
+BACKUP_PORT:
+        rbWhile = (timer)(2*HelloTime);
+        >> ALTERNATE_PORT
+
+BLOCK_PORT:
+        role = selectedRole;
+        learn = forward = FALSE;
+        when !learning && !forwarding >> ALTERNATE_PORT

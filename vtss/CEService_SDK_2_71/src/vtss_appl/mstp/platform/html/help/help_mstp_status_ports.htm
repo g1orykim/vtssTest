@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>STP Port Status Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+   $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+
+<body>
+<h1>STP Port Status Help</h1>
+
+<p>This page displays the <a href="glossary.htm#rstp"
+class="glossary">STP</a> CIST port status for physical ports of
+the
+<span class="SPOM_only">currently selected</span>
+switch.
+</p>
+
+<p>STP port status is:</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>
+ The switch port number of the logical STP port.
+ </dd>
+
+ <dt>CIST Role</dt>
+ <dd>
+ The current STP port role of the CIST port. The port role can be one
+ of the following values:
+ <samp>AlternatePort</samp> <samp>BackupPort</samp> <samp>RootPort</samp> <samp>DesignatedPort</samp> <samp>Disabled</samp>. 
+ </dd>
+
+ <dt>CIST State</dt>
+ <dd>
+ The current STP port state of the CIST port. The port state can be
+ one of the following values:
+ <samp>Discarding</samp> <samp>Learning</samp> <samp>Forwarding</samp>.
+ </dd>
+
+ <dt>Uptime</dt>
+ <dd>
+   The time since the bridge port was last initialized.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+
+</body>
+</html>

@@ -1,0 +1,75 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Pointer to fan source code directory
+DIR_fan := $(DIR_APPL)/green_ethernet/fan
+
+
+# Built-in ICLI
+$(eval $(call add_icli,$(DIR_fan)/platform/fan.icli))
+
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_fan)/platform/html
+
+# Fan module interface (= sources in platform)
+OBJECTS_fan := fan.o                        \
+  $(if $(MODULE_VCLI),fan_cli.o)            \
+  $(if $(MODULE_WEB),fan_web.o)             \
+  $(if $(MODULE_ICLI),fan_icli_functions.o) \
+  $(if $(MODULE_CONF_XML),fan_xml.o)
+
+# Compile/dependencies
+$(OBJECTS_fan): %.o: $(DIR_fan)/platform/%.c
+	$(call compile_c, $@, $<,)
+
+#$(FAN_LIB): %.o: $(DIR_fan)/base/src/%.c
+#	$(call compile_c, $@, $<,-I$(DIR_fan)/base/src)
+
+# Include files
+INCLUDES += -I$(DIR_fan)/platform
+
+# Files to be linted
+LINT_FILES_fan += $(addprefix $(DIR_fan)/platform/,$(OBJECTS_fan:.o=.c))
+
+# Code style files
+VTSS_CODE_STYLE_CHK_FILES_fan += $(DIR_fan)/platform/fan_api.h 
+VTSS_CODE_STYLE_CHK_FILES_fan += $(DIR_fan)/platform/fan.c 
+VTSS_CODE_STYLE_CHK_FILES_fan += $(DIR_fan)/platform/fan_cli.c 
+VTSS_CODE_STYLE_CHK_FILES_fan += $(DIR_fan)/platform/fan_custom_api.h 
+VTSS_CODE_STYLE_CHK_FILES_fan += $(DIR_fan)/platform/fan.h
+VTSS_CODE_STYLE_CHK_FILES_fan += $(if $(MODULE_WEB), $(DIR_fan)/platform/fan_web.c)
+VTSS_CODE_STYLE_CHK_FILES_fan += $(DIR_fan)/platform/fan_xml.c
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_fan += $(DIR_fan)/platform/fan_icli_functions.c 
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_fan += $(DIR_fan)/platform/fan_icli_functions.h 
+
+
+# Tidy files
+TIDY_FILES_fan += $(DIR_fan)/platform/html/*.htm $(DIR_fan)/platform/html/help/*.htm
+
+# JSlint files
+JSLINT_FILES_fan += $(TIDY_FILES_fan)
+

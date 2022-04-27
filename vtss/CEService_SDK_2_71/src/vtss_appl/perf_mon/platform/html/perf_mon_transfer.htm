@@ -1,0 +1,441 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>PM Transfer Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_perf_mon_transfer.htm";
+
+var reqObject;
+var dynaPerfMonData = Array();
+
+function UpdateTable(frag)
+{
+    var ppval;
+    var j;
+    for (var i = 0; i <= dynaPerfMonData.length - 1; i++) {
+        if (dynaPerfMonData[i]) {
+            var pval = dynaPerfMonData[i].split("/");
+
+            if (i === 0) {
+                document.getElementById("pm_gmode").value = pval[0];
+            } else if (i == 1) {
+                ppval = pval[0].split(",");
+
+                for (j = 0; j <= ppval.length - 1; j++) {
+                    if (parseInt(ppval[j], 10)) {
+                        document.getElementById("pm_hours").options[j].selected = true;
+                    } else {
+                        document.getElementById("pm_hours").options[j].selected = false;
+                    }
+                }
+            } else if (i == 2) {
+                ppval = pval[0].split(",");
+
+                if (parseInt(ppval[0], 10)) {
+                    document.getElementById("pm_minutes_0").checked = true;
+                } else {
+                    document.getElementById("pm_minutes_0").checked = false;
+                }
+
+                if (parseInt(ppval[1], 10)) {
+                    document.getElementById("pm_minutes_1").checked = true;
+                } else {
+                    document.getElementById("pm_minutes_1").checked = false;
+                }
+
+                if (parseInt(ppval[2], 10)) {
+                    document.getElementById("pm_minutes_2").checked = true;
+                } else {
+                    document.getElementById("pm_minutes_2").checked = false;
+                }
+
+                if (parseInt(ppval[3], 10)) {
+                    document.getElementById("pm_minutes_3").checked = true;
+                } else {
+                    document.getElementById("pm_minutes_3").checked = false;
+                }
+
+            } else if (i == 3) {
+                document.getElementById("pm_soffset").value = parseInt(pval[0], 10);
+            } else if (i == 4) {
+                document.getElementById("pm_roffset").value = parseInt(pval[0], 10);
+            } else if (i == 5) {
+                document.getElementById("pm_url").value = unescape(pval[0]);
+            } else if (i == 6) {
+                ppval = pval[0].split(",");
+
+                for (j = 0; j <= ppval.length - 1; j++) {
+                    if (parseInt(ppval[j], 10)) {
+                        document.getElementById("pm_mode_" + j).checked = true;
+                    } else {
+                        document.getElementById("pm_mode_" + j).checked = false;
+                    }
+                }
+            } else if (i == 7) {
+                document.getElementById("pm_interval_num").value = parseInt(pval[0], 10);
+            } else if (i == 8) {
+                if (parseInt(pval[0], 10)) {
+                    document.getElementById("pm_options").checked = true;
+                } else {
+                    document.getElementById("pm_options").checked = false;
+                }
+            }
+        }
+    }
+
+    // Set start vid to the last VID showned in the table
+    var tbody = document.getElementById('inputData');
+    clearChildNodes(tbody);
+
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function processUpdate(req, ref)
+{
+    //Format 1: <transfer mode>|
+    //Format 2: <0,0,1,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0>|
+    //Format 3: <0,1,0,1>|
+    //Format 4: <scheduled offset>|
+    //Format 5: <random offset>|
+    //Format 6: <server url>|
+    //Format 7: <1,0,0>|
+    //Format 8: <interval num>|
+    //Format 9: <options>
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (reqObject != req) {
+        reqObject = req;
+    }
+
+    if (req.responseText) {
+        dynaPerfMonData = req.responseText.split("|");
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+
+        // Make table header
+        //CreateTableHeader(frag);
+
+        // Create the table
+        UpdateTable(frag);
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "inputDataMode");
+}
+
+function checkForm()
+{
+    // Make sure that input box contains a correct value.
+    if (!isWithinRange("pm_soffset", 0, 15, "'Scheduled offset'")) {
+        return false;
+    }
+
+    if (!isWithinRange("pm_roffset", 0, 900, "'Random offset'")) {
+        return false;
+    }
+
+    if (!isWithinRange("pm_interval_num", 1, 96, "'Number of intervals'")) {
+        return false;
+    }
+
+    return true;                // Feed the chickens and go home
+}
+
+function requestUpdate()
+{
+    loadXMLDoc("/config/perf_mon_transfer", processUpdate, 'inputDataMode');
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>PM Transfer Configuration</h1>
+
+<form method="POST" action="/config/perf_mon_transfer" onsubmit="return checkForm(this);">
+
+<table summary="pm_transfer_mode_t">
+  <tbody id="inputDataMode">
+    <tr>
+      <td width="180" valign="top">
+      <table class="config" summary="pm_transfer_mode_table_summary">
+      <tbody id="pm_transfer_mode_tbody">
+        <tr>
+            <td class="param_label">PM Transfer Mode :</td>
+        </tr>
+      </tbody>
+      </table>
+      </td>
+
+      <td width="600" valign="top">
+      <table class="config" summary="pm_transfer_mode_sumary">
+      <tbody id="pm_transfer_mode">
+        <tr>
+            <td class="cl">
+                <select id="pm_gmode" name="pm_gmode">
+                  <option value="0" selected="">Disabled</option>
+                  <option value="1">Enabled</option>
+                </select>
+            </td>
+        </tr>
+      </tbody>
+      </table>
+      </td>
+
+    </tr>
+  </tbody>
+</table>
+
+<br>
+
+<table summary="PM scheduled">
+  <tbody id="inputDataScheduled">
+    <tr>
+      <td width="300" valign="top">
+      <table class="config" summary="pm_hours_summary">
+      <tbody id="pm_hours_tbody">
+        <tr>
+            <td class="param_label">Scheduled hours:</td>
+        </tr>
+        <tr>
+            <td class="cl">
+                <select multiple name="pm_hours" id="pm_hours" style="width: 100%;" size="7">
+                    <option value="0">00:00 HRS</option>
+                    <option value="1">01:00 HRS</option>
+                    <option value="2">02:00 HRS</option>
+                    <option value="3">03:00 HRS</option>
+                    <option value="4">04:00 HRS</option>
+                    <option value="5">05:00 HRS</option>
+                    <option value="6">06:00 HRS</option>
+                    <option value="7">07:00 HRS</option>
+                    <option value="8">08:00 HRS</option>
+                    <option value="9">09:00 HRS</option>
+                    <option value="10">10:00 HRS</option>
+                    <option value="11">11:00 HRS</option>
+                    <option value="12">12:00 HRS</option>
+                    <option value="13">13:00 HRS</option>
+                    <option value="14">14:00 HRS</option>
+                    <option value="15">15:00 HRS</option>
+                    <option value="16">16:00 HRS</option>
+                    <option value="17">17:00 HRS</option>
+                    <option value="18">18:00 HRS</option>
+                    <option value="19">19:00 HRS</option>
+                    <option value="20">20:00 HRS</option>
+                    <option value="21">21:00 HRS</option>
+                    <option value="22">22:00 HRS</option>
+                    <option value="23">23:00 HRS</option>
+                </select>
+            </td>
+        </tr>
+      </tbody>
+      </table>
+      </td>
+
+      <td width="300" valign="top">
+      <table class="config" summary="pm_minutes">
+      <tbody id="pm_minutes">
+        <tr>
+            <td class="param_label">Scheduled minutes:</td>
+        </tr>
+        <tr>
+            <td class="cl">
+                <input id="pm_minutes_0" type="checkbox" name="pm_minutes_0">Every 00:00
+                <br>
+                <input id="pm_minutes_1" type="checkbox" name="pm_minutes_1">Every 00:15
+                <br>
+                <input id="pm_minutes_2" type="checkbox" name="pm_minutes_2">Every 00:30
+                <br>
+                <input id="pm_minutes_3" type="checkbox" name="pm_minutes_3">Every 00:45
+                <br>
+            </td>
+        </tr>
+      </tbody>
+      </table>
+      </td>
+
+      <td width="300" valign="top">
+      <table class="config" summary="pm_offset">
+      <tbody id="pm_soffset_tbody">
+        <tr>
+            <td class="param_label">Scheduled offset:</td>
+        </tr>
+        <tr>
+            <td class="cl">
+                <input id="pm_soffset" name="pm_soffset" size="2" value="0" maxlength="2" style="width: 4em;"> minutes
+            </td>
+        </tr>
+      </tbody>
+      <tbody id="pm_roffset_tbody">
+        <tr>
+            <td class="param_label">Random offset:</td>
+        </tr>
+        <tr>
+            <td class="cl">
+                <input id="pm_roffset" name="pm_roffset" size="2" value="0" maxlength="3" style="width: 4em;"> seconds
+            </td>
+        </tr>
+      </tbody>
+      </table>
+      </td>
+
+    </tr>
+  </tbody>
+</table>
+
+<br>
+<br>
+
+<table summary="pm_url_summary">
+  <tbody id="inputDataUrl">
+    <tr>
+      <td width="180" valign="top">
+      <table class="config" summary="pm_url_table_summary">
+      <tbody id="pm_url_tbody_title">
+        <tr>
+            <td class="param_label">Server Directory URL :</td>
+        </tr>
+      </tbody>
+      </table>
+      </td>
+
+      <td width="600" valign="top">
+      <table class="config" summary="pm_url_summary">
+      <tbody id="pm_url_tbody">
+        <tr>
+            <td class="cl">
+                <input id="pm_url" name="pm_url" size="64" value="" maxlength="64" style="width: 40em;">
+            </td>
+        </tr>
+      </tbody>
+      </table>
+      </td>
+
+    </tr>
+  </tbody>
+</table>
+
+<br>
+<br>
+
+<table summary="PM interval mode">
+  <tbody id="inputDataIntervalMode">
+    <tr>
+      <td width="180" valign="top">
+      <table class="config" summary="pm_interval">
+      <tbody id="pm_interval">
+        <tr>
+            <td class="param_label">Transfer Interval Mode :</td>
+        </tr>
+      </tbody>
+      </table>
+      </td>
+
+      <td width="600" valign="top">
+      <table class="config" summary="pm_mode_summary">
+      <tbody id="pm_mode_tbody">
+        <tr>
+            <td class="cl">
+                <input type="radio" name="pm_mode" id="pm_mode_0" value="pm_mode_0">All available intervals
+                <br>
+                <input type="radio" name="pm_mode" id="pm_mode_1" value="pm_mode_1">New intervals since last transfer
+                <br>
+                <input type="radio" name="pm_mode" id="pm_mode_2" value="pm_mode_2">Fixed number of intervals
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                Number of intervals &nbsp;&nbsp;&nbsp;&nbsp;
+                <input id="pm_interval_num" name="pm_interval_num" size="4" value="" maxlength="2" style="width: 4em;">
+            </td>
+        </tr>
+      </tbody>
+      </table>
+      </td>
+
+    </tr>
+  </tbody>
+</table>
+
+<table summary="pm options">
+  <tbody id="inputDataOptions">
+    <tr>
+      <td width="180" valign="top">
+      <table class="config" summary="pm_options_table_summary">
+      <tbody id="pm_options_tbody_title">
+        <tr>
+            <td class="param_label">Transfer Option :</td>
+        </tr>
+      </tbody>
+      </table>
+      </td>
+
+      <td width="600" valign="top">
+      <table class="config" summary="pm_options_summary">
+      <tbody id="pm_options_tbody">
+        <tr>
+            <td class="cl">
+                <input id="pm_options" type="checkbox" name="pm_options">Include intervals from previous incomplete transfers
+            </td>
+        </tr>
+      </tbody>
+      </table>
+      </td>
+
+    </tr>
+  </tbody>
+</table>
+
+<table id="pm_tmp" summary="pm_tmp" cellspacing="0" class="display">
+  <tbody id="inputData"></tbody>
+</table>
+
+<br>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>

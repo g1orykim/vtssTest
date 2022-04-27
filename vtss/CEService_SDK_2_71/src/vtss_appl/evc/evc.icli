@@ -1,0 +1,3177 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "evc_api.h"
+#include "evc_icli_util.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+#define EVC_ICLI_CARACAL  0x01
+#define EVC_ICLI_JAGUAR_1 0x02
+#define EVC_ICLI_SERVAL   0x04
+
+/* Determine whether a parameter is present on a given platform */
+static BOOL evc_present(icli_runtime_ask_t ask, icli_runtime_t *runtime, u32 platform)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_ARCH_CARACAL)
+        if (platform & EVC_ICLI_CARACAL)
+            runtime->present = TRUE;
+#endif /* VTSS_ARCH_CARACAL */
+#if defined(VTSS_ARCH_JAGUAR_1)
+        if (platform & EVC_ICLI_JAGUAR_1)
+            runtime->present = TRUE;
+#endif /* VTSS_ARCH_JAGUAR_1 */
+#if defined(VTSS_ARCH_SERVAL)
+        if (platform & EVC_ICLI_SERVAL)
+            runtime->present = TRUE;
+#endif /* VTSS_ARCH_SERVAL */
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL evc_present_crcl(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_present(ask, runtime, EVC_ICLI_CARACAL);
+}
+
+static BOOL evc_present_jr1(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_present(ask, runtime, EVC_ICLI_JAGUAR_1);
+}
+
+static BOOL evc_present_srvl(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_present(ask, runtime, EVC_ICLI_SERVAL);
+}
+
+static BOOL evc_present_crcl_jr1(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_present(ask, runtime, EVC_ICLI_CARACAL | EVC_ICLI_JAGUAR_1);
+}
+
+static BOOL evc_present_crcl_srvl(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_present(ask, runtime, EVC_ICLI_CARACAL | EVC_ICLI_SERVAL);
+}
+
+static BOOL evc_present_jr1_srvl(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_present(ask, runtime, EVC_ICLI_JAGUAR_1 | EVC_ICLI_SERVAL);
+}
+
+static BOOL evc_icli_runtime_u32(icli_runtime_ask_t ask, icli_runtime_t *runtime,
+                                 const char *name, u32 min, u32 max)
+{
+    if (ask == ICLI_ASK_BYWORD) {
+        icli_sprintf(runtime->byword, "<%s : %u-%u>", name, min, max);
+        return TRUE;
+    } else if (ask == ICLI_ASK_RANGE) {
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt = 1;
+        runtime->range.u.sr.range[0].min = min;
+        runtime->range.u.sr.range[0].max = max;
+        return TRUE;
+    } 
+    return FALSE;
+}
+
+static BOOL evc_icli_runtime_policer_id(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime) 
+{
+    return evc_icli_runtime_u32(ask, runtime, "PolicerId", 1, EVC_POL_COUNT);
+}
+
+static BOOL evc_icli_runtime_policer_id_jr1_srvl(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return (ask == ICLI_ASK_PRESENT ? evc_present_jr1_srvl(session_id, ask, runtime) :
+            evc_icli_runtime_policer_id(session_id, ask, runtime));
+}
+
+static BOOL evc_icli_runtime_cir(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_icli_runtime_u32(ask, runtime, "Cir", 0, EVC_POLICER_RATE_MAX);
+}
+
+static BOOL evc_icli_runtime_eir(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_icli_runtime_u32(ask, runtime, "Eir", 0, EVC_POLICER_RATE_MAX);
+}
+
+static BOOL evc_icli_runtime_cbs(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_icli_runtime_u32(ask, runtime, "Cbs", 0, EVC_POLICER_LEVEL_MAX);
+}
+
+static BOOL evc_icli_runtime_ebs(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_icli_runtime_u32(ask, runtime, "Ebs", 0, EVC_POLICER_LEVEL_MAX);
+}
+
+static BOOL evc_icli_runtime_evc_id(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_icli_runtime_u32(ask, runtime, "EvcId", 1, EVC_ID_COUNT);
+}
+
+static BOOL evc_icli_runtime_evc_id_jr1_srvl(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return (ask == ICLI_ASK_PRESENT ? evc_present_jr1_srvl(session_id, ask, runtime) :
+            evc_icli_runtime_evc_id(session_id, ask, runtime));
+}
+
+static BOOL evc_icli_runtime_ece_id(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_icli_runtime_u32(ask, runtime, "EceId", 1, EVC_ECE_COUNT);
+}
+
+static BOOL evc_icli_runtime_ece_id_jr1_srvl(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return (ask == ICLI_ASK_PRESENT ? evc_present_jr1_srvl(session_id, ask, runtime) :
+            evc_icli_runtime_ece_id(session_id, ask, runtime));
+}
+
+static BOOL evc_icli_runtime_policy(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime) 
+{
+    return evc_icli_runtime_u32(ask, runtime, "PolicyNo", 0, VTSS_ACL_POLICIES - 1);
+}
+
+static BOOL evc_icli_runtime_vr(icli_runtime_ask_t ask, icli_runtime_t *runtime,
+                                const char *name, u32 min, u32 max, BOOL odd_range)
+{
+#if defined(VTSS_ARCH_JAGUAR_1)
+    /* No odd ranges on Jaguar-1 */
+    odd_range = 0;
+#endif /* VTSS_ARCH_JAGUAR_1 */
+
+    if (ask == ICLI_ASK_VCAP_VR) {
+        runtime->vcap_vr.min = min;
+        runtime->vcap_vr.max = max;
+        runtime->vcap_vr.b_odd_range = odd_range;
+        return TRUE;
+    }
+    return evc_icli_runtime_u32(ask, runtime, name, min, max);
+}
+
+static BOOL evc_icli_runtime_dscp(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_icli_runtime_vr(ask, runtime, "Dscp", 0, 63, 1);
+}
+
+static BOOL evc_icli_runtime_evc_vid(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_icli_runtime_u32(ask, runtime, "EvcVid", EVC_VID_MIN, 4095);
+}
+
+static BOOL evc_icli_runtime_vid(icli_runtime_ask_t ask, icli_runtime_t *runtime, BOOL odd_range)
+{
+    return evc_icli_runtime_vr(ask, runtime, "Vid", 0, 4095, odd_range);
+}
+
+static BOOL evc_icli_runtime_ovid(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_icli_runtime_vid(ask, runtime, 1);
+}
+
+static BOOL evc_icli_runtime_ivid(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return (ask == ICLI_ASK_PRESENT ? evc_present_jr1_srvl(session_id, ask, runtime) :
+    	    evc_icli_runtime_vid(ask, runtime, 0));
+}
+
+static BOOL evc_icli_runtime_port(u32 session_id, icli_runtime_ask_t ask,
+                                  icli_runtime_t *runtime, BOOL dport)
+{
+    return (ask == ICLI_ASK_PRESENT ? evc_present_crcl_srvl(session_id, ask, runtime) :
+            evc_icli_runtime_vr(ask, runtime, dport ? "Dport" : "Sport", 0, 0xffff, 1));
+}
+
+static BOOL evc_icli_runtime_sport(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_icli_runtime_port(session_id, ask, runtime, 0);
+}
+
+static BOOL evc_icli_runtime_dport(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return evc_icli_runtime_port(session_id, ask, runtime, 1);
+}
+
+static void evc_icli_req_init(evc_icli_req_t *req, u32 session_id)
+{
+    memset(req, 0, sizeof(*req));
+    req->session_id = session_id;
+    req->header = 1;
+}
+
+static void evc_icli_req_init_evc_ece(evc_icli_req_t *req, u32 session_id,
+                                      u32 evc_id, BOOL has_all,
+                                      BOOL has_ece, u32 ece_id)
+{
+    evc_icli_req_init(req, session_id);
+    if (evc_id || has_all) {
+        req->evc.valid = 1;
+        req->evc.value = evc_id;
+    }
+    if (has_ece) {
+        req->ece.valid = 1;
+        req->ece.value = ece_id;        
+    }
+    if (req->evc.valid == 0 && req->ece.valid == 0) {
+        /* Process all EVCs and ECEs */
+        req->evc.valid = 1;
+        req->ece.valid = 1;
+    }
+}
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_EVC                    = Ethernet Virtual Connections
+HELP_EVC_ID                 = EVC identifier
+HELP_EVC_ALL                = Process all EVCs
+HELP_ECE                    = EVC Control Entry
+HELP_ECE_ID                 = ECE idenfifier
+HELP_STATISTICS             = Statistic counters
+HELP_GREEN                  = Process green counters only
+HELP_YELLOW                 = Process yellow counters only
+HELP_RED                    = Process red counters only
+HELP_DISCARD                = Process discard counters only
+HELP_FRAMES                 = Process frame counters only
+HELP_BYTES                  = Process byte counters only
+HELP_INTERFACE              = Interface
+HELP_HAS_COS                = Setup Class of Service
+HELP_COS                    = Class of Service
+HELP_UPDATE                 = Update existing entry
+HELP_POLICER                = Policer (ingress bandwith profile)
+HELP_POLICER_ID             = Policer ID
+HELP_OUTER_TAG              = Setup outer tag options
+HELP_OT_MATCH               = Setup outer tag match properties
+HELP_OT_ADD                 = Setup outer tag add properties
+HELP_INNER_TAG              = Setup inner tag options
+HELP_IT_MATCH               = Setup inner tag match properties
+HELP_IT_ADD                 = Setup inner tag add properties
+HELP_TAG_MATCH_TYPE         = Setup matched tag type
+HELP_TAG_MATCH_UNTAGGED     = Match untagged frames
+HELP_TAG_MATCH_TAGGED       = Match tagged frames
+HELP_TAG_MATCH_C_TAGGED     = Match C-tagged frames
+HELP_TAG_MATCH_S_TAGGED     = Match S-tagged frames
+HELP_TAG_MATCH_TYPE_ANY     = Match tagged and untagged frames
+HELP_HAS_TAG_MATCH_VID      = Setup matched VLAN ID
+HELP_TAG_MATCH_VID          = Matched VLAN ID value/range
+HELP_TAG_MATCH_VID_ANY      = Match any VLAN ID
+HELP_HAS_TAG_MATCH_PCP      = Setup matched PCP
+HELP_TAG_MATCH_PCP          = Matched PCP value/range
+HELP_TAG_MATCH_PCP_ANY      = Match any PCP
+HELP_HAS_TAG_MATCH_DEI      = Setup matched DEI
+HELP_TAG_MATCH_DEI          = Matched DEI
+HELP_TAG_MATCH_DEI_ANY      = Match any DEI
+HELP_HAS_TAG_ADD_VID        = Setup added tag VLAN ID
+HELP_TAG_ADD_VID            = Added tag VLAN ID
+HELP_TAG_PRESERVE           = Setup tag PCP/DEI preservation
+HELP_TAG_PRESERVE_DISABLE   = Disable PCP/DEI preservation
+HELP_TAG_ADD_PCP_MODE       = Setup tag PCP mode
+HELP_TAG_ADD_PCP_CLASSIFIED = Use classified PCP
+HELP_TAG_ADD_PCP_FIXED      = Use fixed PCP
+HELP_TAG_ADD_PCP_MAPPED     = Use mapped PCP
+HELP_TAG_ADD_DEI_MODE       = Setup tag DEI mode
+HELP_TAG_ADD_DEI_CLASSIFIED = Use classified DEI
+HELP_TAG_ADD_DEI_FIXED      = Use fixed DEI
+HELP_TAG_ADD_DEI_DP         = Use drop precedence level
+HELP_HAS_TAG_ADD_PCP        = Setup added tag PCP
+HELP_TAG_ADD_PCP            = Added tag PCP
+HELP_HAS_TAG_ADD_DEI        = Setup added tag DEI
+HELP_TAG_ADD_DEI            = Added tag DEI
+HELP_TAG_ADD_TYPE           = Setup added tag type
+HELP_TAG_ADD_NONE           = No tag added
+HELP_TAG_ADD_C              = Add C-tag
+HELP_TAG_ADD_S              = Add S-tag
+HELP_TAG_ADD_S_CUSTOM       = Add custom S-tag
+HELP_POLICER_NONE           = Map to policer allowing all frames
+HELP_POLICER_DISCARD        = Map to policer discarding all frames
+HELP_HAS_PROTO              = Setup matched IP protocol
+HELP_PROTO                  = Matched IP protocol
+HELP_PROTO_UDP              = Match UDP frames
+HELP_PROTO_TCP              = Match TCP frames
+HELP_PROTO_ANY              = Match any IP protocol
+HELP_HAS_SIP                = Setup match source IP address
+HELP_SIP4                   = Matched source IP address
+HELP_SIP6                   = Matched source IP address (32 LSB in IPv4 format)
+HELP_SIP_ANY                = Match any source IP address
+HELP_HAS_DIP                = Setup match destination IP address
+HELP_DIP4                   = Matched destination IP address
+HELP_DIP6                   = Matched destination IP address (32 LSB in IPv4 format)
+HELP_DIP_ANY                = Match any destination IP address
+HELP_HAS_DSCP               = Setup matched DSCP
+HELP_DSCP                   = Matched DSCP value/range
+HELP_DSCP_ANY               = Match any DSCP
+HELP_HAS_SPORT              = Setup matched UDP/TCP source port
+HELP_SPORT                  = Matched UDP/TCP source port value/range
+HELP_SPORT_ANY              = Match any UDP/TCP source port
+HELP_HAS_DPORT              = Setup matched UDP/TCP destination port
+HELP_DPORT                  = Matched UDP/TCP destination port value/range
+HELP_DPORT_ANY              = Match any UDP/TCP destination port
+HELP_KEY_DOUBLE_TAG         = Match outer tag, inner tag, IP protocol, DSCP and DPORT
+HELP_KEY_NORMAL             = Match outer tag, SMAC/DMAC, IP protocol, DSCP, SIP/DIP, SPORT and DPORT
+HELP_KEY_IP_ADDR            = Match outer tag, SMAC/DMAC, IP protocol, DSCP, SIP and DIP
+HELP_KEY_MAC_IP_ADDR        = Match outer tag, inner tag, SMAC, DMAC, IP protocol, DSCP, SIP, DIP, SPORT and DPORT
+HELP_ADDR_SOURCE            = Match SMAC and SIP
+HELP_ADDR_DEST              = Match DMAC and DIP
+HELP_L2CP_LIST              = Select BPDU addresses (0-15) and GARP addresses (16-31)
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show evc { [ <uint> | all ] } [ ece [ <uint> ] ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! show
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! evc
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_EVC
+BYWORD  = 
+
+! <uint>
+CMD_VAR = evc_id
+RUNTIME = evc_icli_runtime_evc_id
+HELP    = ##HELP_EVC_ID
+BYWORD  = <EvcId : uint>
+
+! all
+CMD_VAR = has_all
+RUNTIME = 
+HELP    = ##HELP_EVC_ALL
+BYWORD  = all : Option
+
+! ece
+CMD_VAR = has_ece
+RUNTIME = 
+HELP    = ##HELP_ECE
+BYWORD  = ece : Option
+
+! <uint>
+CMD_VAR = ece_id
+RUNTIME = evc_icli_runtime_ece_id
+HELP    = ##HELP_ECE_ID
+BYWORD  = <EceId : uint>
+
+VARIABLE_BEGIN
+    evc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    evc_icli_req_init_evc_ece(&req, session_id, evc_id, has_all, has_ece, ece_id);
+    evc_icli_evc_show(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show evc statistics { [ <uint> | all ] } [ ece [ <uint> ] ] [ interface <port_type_list> ] [ cos <0~7> ] [ green | yellow | red | discard ] [ frames | bytes ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! show
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! evc
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_EVC
+BYWORD  = 
+
+! statistics
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_STATISTICS
+BYWORD  = 
+
+! <uint>
+CMD_VAR = evc_id
+RUNTIME = evc_icli_runtime_evc_id_jr1_srvl
+HELP    = ##HELP_EVC_ID
+BYWORD  = <EvcId : uint>
+
+! all
+CMD_VAR = has_all
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_EVC_ALL
+BYWORD  = all : Option
+
+! ece
+CMD_VAR = has_ece
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_ECE
+BYWORD  = ece : Option
+
+! <uint>
+CMD_VAR = ece_id
+RUNTIME = evc_icli_runtime_ece_id_jr1_srvl
+HELP    = ##HELP_ECE_ID
+BYWORD  = <EceId : uint>
+
+! interface
+CMD_VAR = has_interface
+RUNTIME = 
+HELP    = ##HELP_INTERFACE
+BYWORD  = interface : Option
+
+! <port_type_list>
+CMD_VAR = port_list
+RUNTIME = 
+HELP    = 
+BYWORD  = <PortList : port_type_list>
+
+! cos
+CMD_VAR = has_cos
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_HAS_COS
+BYWORD  = cos : Option
+
+! <0~7>
+CMD_VAR = cos
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_COS
+BYWORD  = <Cos : 0~7>
+
+! green
+CMD_VAR = has_green
+RUNTIME = 
+HELP    = Green counters
+BYWORD  = green : Option
+
+! yellow
+CMD_VAR = has_yellow
+RUNTIME = 
+HELP    = Yellow counters
+BYWORD  = yellow : Option
+
+! red
+CMD_VAR = has_red
+RUNTIME = 
+HELP    = Red counters
+BYWORD  = red : Option
+
+! discard
+CMD_VAR = has_discard
+RUNTIME = 
+HELP    = Discard counters
+BYWORD  = discard : Option
+
+! frames
+CMD_VAR = has_frames
+RUNTIME = evc_present_jr1_srvl
+HELP    = Frame counters
+BYWORD  = frames : Option
+
+! bytes
+CMD_VAR = has_bytes
+RUNTIME = evc_present_jr1_srvl
+HELP    = Byte counters
+BYWORD  = bytes : Option
+
+VARIABLE_BEGIN
+    evc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    evc_icli_req_init_evc_ece(&req, session_id, evc_id, has_all, has_ece, ece_id);
+    req.dummy = has_interface;
+    req.port_list = port_list;
+    req.dummy = has_cos;
+    req.cos_list = cos;
+    req.green = has_green;
+    req.yellow = has_yellow;
+    req.red = has_red;
+    req.discard = has_discard;
+    req.bytes = has_bytes;
+    req.frames = has_frames;
+    evc_icli_evc_stats(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear evc statistics { [ <uint> | all ] } [ ece [ <uint> ] ] [ interface <port_type_list> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! clear
+CMD_VAR = 
+RUNTIME = 
+HELP    = Clear
+BYWORD  = 
+
+! evc
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_EVC
+BYWORD  = 
+
+! statistics
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_STATISTICS
+BYWORD  = 
+
+! <uint>
+CMD_VAR = evc_id
+RUNTIME = evc_icli_runtime_evc_id_jr1_srvl
+HELP    = ##HELP_EVC_ID
+BYWORD  = <EvcId : uint>
+
+! all
+CMD_VAR = has_all
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_EVC_ALL
+BYWORD  = all : Option
+
+! ece
+CMD_VAR = has_ece
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_ECE
+BYWORD  = ece : Option
+
+! <uint>
+CMD_VAR = ece_id
+RUNTIME = evc_icli_runtime_ece_id_jr1_srvl
+HELP    = ##HELP_ECE_ID
+BYWORD  = <EceId : uint>
+
+! interface
+CMD_VAR = has_interface
+RUNTIME = 
+HELP    = ##HELP_INTERFACE
+BYWORD  = interface : Option
+
+! <port_type_list>
+CMD_VAR = port_list
+RUNTIME = 
+HELP    = 
+BYWORD  = <PortList : port_type_list>
+
+VARIABLE_BEGIN
+    evc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    evc_icli_req_init_evc_ece(&req, session_id, evc_id, has_all, has_ece, ece_id);
+    req.dummy = has_interface;
+    req.port_list = port_list;
+    req.clear = 1;
+    evc_icli_evc_stats(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = evc policer [ update ] <uint> [ { enable | disable } ] [ type { mef | single } ] [ mode { coupled | aware | blind } ] [ rate-type { line | data } ] [ cir <uint> ] [ cbs <uint> ] [ eir <uint> ] [ ebs <uint> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! evc
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_EVC
+BYWORD  = 
+
+! policer
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_POLICER
+BYWORD  = 
+
+! update
+CMD_VAR = has_update
+RUNTIME = 
+HELP    = ##HELP_UPDATE
+BYWORD  = update : Option
+
+! <uint>
+CMD_VAR = policer_id
+RUNTIME = evc_icli_runtime_policer_id
+HELP    = ##HELP_POLICER_ID
+BYWORD  = <PolicerId : uint>
+
+! enable
+CMD_VAR = has_enable
+RUNTIME = 
+HELP    = Enable policer
+BYWORD  = enable : Option
+
+! disable
+CMD_VAR = has_disable
+RUNTIME = 
+HELP    = Disable policer
+BYWORD  = disable : Option
+
+! type
+CMD_VAR = has_type
+RUNTIME = 
+HELP    = Setup policer type
+BYWORD  = type : Option
+
+! mef
+CMD_VAR = has_mef
+RUNTIME = 
+HELP    = MEF ingress bandwidth profile
+BYWORD  = mef : Option
+
+! single
+CMD_VAR = has_single
+RUNTIME = 
+HELP    = Single bucket policer
+BYWORD  = single : Option
+
+! mode
+CMD_VAR = has_mode
+RUNTIME = 
+HELP    = Setup policer mode
+BYWORD  = mode : Option
+
+! coupled
+CMD_VAR = has_coupled
+RUNTIME = 
+HELP    = Coupling mode
+BYWORD  = coupled : Option
+
+! aware
+CMD_VAR = has_aware
+RUNTIME = 
+HELP    = Color-aware mode
+BYWORD  = aware : Option
+
+! blind
+CMD_VAR = has_blind
+RUNTIME = evc_present_jr1
+HELP    = Color-blind mode
+BYWORD  = blind : Option
+
+! rate-type
+CMD_VAR = has_rate_type
+RUNTIME = 
+HELP    = Setup rate type
+BYWORD  = rate-type : Option
+
+! line
+CMD_VAR = has_line
+RUNTIME = 
+HELP    = Line rate policing
+BYWORD  = line : Option
+
+! data
+CMD_VAR =
+RUNTIME = 
+HELP    = Data rate policing
+BYWORD  = data : Option
+
+! cir
+CMD_VAR = has_cir
+RUNTIME = 
+HELP    = Setup CIR
+BYWORD  = cir : Option
+
+! <uint>
+CMD_VAR = cir
+RUNTIME = evc_icli_runtime_cir
+HELP    = Committed Information Rate [kbps]
+BYWORD  = <Cir : uint>
+
+! cbs
+CMD_VAR = has_cbs
+RUNTIME = 
+HELP    = Setup CBS
+BYWORD  = cbs : Option
+
+! <uint>
+CMD_VAR = cbs
+RUNTIME = evc_icli_runtime_cbs
+HELP    = Committed Burst Size [bytes]
+BYWORD  = <Cbs : uint>
+
+! eir
+CMD_VAR = has_eir
+RUNTIME = 
+HELP    = Setup EIR for MEF policer
+BYWORD  = eir : Option
+
+! <uint>
+CMD_VAR = eir
+RUNTIME = evc_icli_runtime_eir
+HELP    = Excess Information Rate [kbps]
+BYWORD  = <Eir : uint>
+
+! ebs
+CMD_VAR = has_ebs
+RUNTIME = 
+HELP    = Setup EBS for MEF policer
+BYWORD  = ebs : Option
+
+! <uint>
+CMD_VAR = ebs
+RUNTIME = evc_icli_runtime_ebs
+HELP    = Excess Burst Size [bytes]
+BYWORD  = <Ebs : uint>
+
+VARIABLE_BEGIN
+    evc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    evc_icli_req_init(&req, session_id);
+    req.update = has_update;
+    req.pol.value = policer_id;
+    req.pol.enable = has_enable;
+    req.pol.disable = has_disable;
+    req.pol.type = has_type;
+    req.pol.mef = has_mef;
+    req.pol.single = has_single;
+    req.pol.mode = has_mode;
+    req.pol.coupled = has_coupled;
+    req.pol.aware = has_aware;
+    req.pol.blind = has_blind;
+    req.pol.rate_type.valid = has_rate_type;
+    req.pol.rate_type.value = has_line;
+    req.pol.cir = has_cir;
+    req.pol_conf.cir = cir;
+    req.pol.cbs = has_cbs;
+    req.pol_conf.cbs = cbs;
+    req.pol.eir = has_eir;
+    req.pol_conf.eir = eir;
+    req.pol.ebs = has_ebs;
+    req.pol_conf.ebs = ebs;
+    evc_icli_evc_policer(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = evc [ update ] <uint> { [ vid <uint> ] } [ ivid <vlan_id> ] [ interface <port_type_list> ] [ learning [ disable ] ] [ policer { <uint> | none | discard } ] [ inner-tag add { [ type { none | c-tag | s-tag | s-custom-tag } ] [ vid-mode { normal | tunnel } ] [ vid <vlan_id> ] [ preserve [ disable ] ] [ pcp <0-7> ] [ dei <0-1> ] }*1 ] [ outer-tag add vid <vlan_id> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! evc
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_EVC
+BYWORD  = 
+
+! update
+CMD_VAR = has_update
+RUNTIME = 
+HELP    = ##HELP_UPDATE
+BYWORD  = update : Option
+
+! <uint>
+CMD_VAR = evc_id
+RUNTIME = evc_icli_runtime_evc_id
+HELP    = ##HELP_EVC_ID
+BYWORD  = <EvcId : uint>
+
+! vid
+CMD_VAR = has_evc_vid
+RUNTIME = 
+HELP    = Setup EVC VLAN ID
+BYWORD  = vid : Option
+
+! <uint>
+CMD_VAR = evc_vid
+RUNTIME = evc_icli_runtime_evc_vid
+HELP    = EVC VLAN ID
+BYWORD  =
+
+! ivid
+CMD_VAR = has_ivid
+RUNTIME = 
+HELP    = Setup internal EVC VLAN ID
+BYWORD  = ivid : Option
+
+! <vlan_id>
+CMD_VAR = ivid
+RUNTIME = 
+HELP    = Internal VLAN ID
+BYWORD  = <Ivid : vlan_id>
+
+! interface
+CMD_VAR = has_interface
+RUNTIME = 
+HELP    = Setup NNI
+BYWORD  = interface : Option
+
+! <port_type_list>
+CMD_VAR = port_list
+RUNTIME = 
+HELP    = 
+BYWORD  = <PortList : port_type_list>
+
+! learning
+CMD_VAR = has_learning
+RUNTIME = 
+HELP    = Setup learning
+BYWORD  = learning : Option
+
+! disable
+CMD_VAR = has_learning_disable
+RUNTIME = 
+HELP    = Disable learning
+BYWORD  = disable : Option
+
+! policer
+CMD_VAR = has_policer
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_POLICER 
+BYWORD  = policer : Option
+
+! <uint>
+CMD_VAR = policer_id
+RUNTIME = evc_icli_runtime_policer_id_jr1_srvl
+HELP    = ##HELP_POLICER_ID
+BYWORD  = <PolicerId : uint>
+
+! none
+CMD_VAR = has_policer_none
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_POLICER_NONE
+BYWORD  = none : Option
+
+! discard
+CMD_VAR = has_discard
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_POLICER_DISCARD
+BYWORD  = discard : Option
+
+! inner-tag
+CMD_VAR = has_inner_tag
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_INNER_TAG
+BYWORD  = inner-tag : Option
+
+! add
+CMD_VAR = 
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_IT_ADD
+BYWORD  = 
+
+! type
+CMD_VAR = has_it_add_type
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_TAG_ADD_TYPE
+BYWORD  = type : Option
+
+! none
+CMD_VAR = has_none
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_TAG_ADD_NONE
+BYWORD  = none : Option
+
+! c-tag
+CMD_VAR = has_c_tag
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_TAG_ADD_C
+BYWORD  = c-tag : Option
+
+! s-tag
+CMD_VAR = has_s_tag
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_TAG_ADD_S
+BYWORD  = s-tag : Option
+
+! s-custom-tag
+CMD_VAR = has_s_custom_tag
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_TAG_ADD_S_CUSTOM
+BYWORD  = s-custom-tag : Option
+
+! vid-mode
+CMD_VAR = has_vid_mode
+RUNTIME = evc_present_crcl
+HELP    = Setup inner tag VLAN ID mode
+BYWORD  = vid-mode : Option
+
+! normal
+CMD_VAR = has_normal
+RUNTIME = evc_present_crcl
+HELP    = Use EVC VLAN ID in outer tag
+BYWORD  = normal : Option
+
+! tunnel
+CMD_VAR = has_tunnel
+RUNTIME = evc_present_crcl
+HELP    = Use EVC VLAN ID in inner tag
+BYWORD  = tunnel : Option
+
+! vid
+CMD_VAR = has_it_add_vid
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_HAS_TAG_ADD_VID
+BYWORD  = vid : Option
+
+! <vlan_id>
+CMD_VAR = it_add_vid
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_TAG_ADD_VID
+BYWORD  = <AddVid : vlan_id>
+
+! preserve
+CMD_VAR = has_it_preserve
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_TAG_PRESERVE
+BYWORD  = preserve : Option
+
+! disable
+CMD_VAR = has_it_preserve_disable
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_TAG_PRESERVE_DISABLE
+BYWORD  = disable : Option
+
+! pcp
+CMD_VAR = has_it_add_pcp
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_HAS_TAG_ADD_PCP
+BYWORD  = pcp : Option
+
+! <0-7>
+CMD_VAR = it_add_pcp
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_TAG_ADD_PCP
+BYWORD  = <AddPcp : 0-7>
+
+! dei
+CMD_VAR = has_it_add_dei
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_HAS_TAG_ADD_DEI
+BYWORD  = dei : Option
+
+! <0-1>
+CMD_VAR = it_add_dei
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_TAG_ADD_DEI
+BYWORD  = <AddDei : 0-1>
+
+! outer-tag
+CMD_VAR = has_outer_tag
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_OUTER_TAG
+BYWORD  = outer-tag : Option
+
+! add
+CMD_VAR = 
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_OT_ADD
+BYWORD  = 
+
+! vid
+CMD_VAR = has_ot_add_vid
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_HAS_TAG_ADD_VID
+BYWORD  = vid : Option
+
+! <vlan_id>
+CMD_VAR = ot_add_vid
+RUNTIME = evc_present_crcl
+HELP    = ##HELP_TAG_ADD_VID
+BYWORD  = <AddVid : vlan_id>
+
+VARIABLE_BEGIN
+    evc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    evc_icli_req_init(&req, session_id);
+    req.update = has_update;
+    req.evc.value = evc_id;
+    req.vid.valid = has_evc_vid;
+    req.vid.value = evc_vid;
+    req.ivid.valid = has_ivid;
+    req.ivid.value = ivid;
+    req.dummy = has_interface;
+    req.port_list = port_list;
+    req.learning.valid = has_learning;
+    req.learning.value = has_learning_disable;
+    req.pol.valid = has_policer;
+    req.pol.value = policer_id;
+    req.pol.none = has_policer_none;
+    req.pol.discard = has_discard;
+    req.dummy = has_inner_tag;
+    req.it.a.type.valid = has_it_add_type;
+    req.it.a.type.untag = has_none;
+    req.it.a.type.c_tag = has_c_tag;
+    req.it.a.type.s_tag = has_s_tag;
+    req.it.a.type.s_custom_tag = has_s_custom_tag;
+    req.tag_inner.valid = has_vid_mode;
+    req.tag_inner.value = has_tunnel;
+    req.dummy = has_normal;
+    req.it.a.vid.valid = has_it_add_vid;
+    req.it.a.vid.value = it_add_vid;
+    req.it.a.pcp.mode = has_it_preserve;
+    req.it.a.pcp.fixed = has_it_preserve_disable;
+    req.it.a.pcp.valid = has_it_add_pcp;
+    req.it.a.pcp.value = it_add_pcp;
+    req.it.a.dei.valid = has_it_add_dei;
+    req.it.a.dei.value = it_add_dei;
+    req.dummy = has_outer_tag;
+    req.ot.a.vid.valid = has_ot_add_vid;
+    req.ot.a.vid.value = ot_add_vid;
+    evc_icli_evc_add(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no evc <uint>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! evc
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_EVC
+BYWORD  = 
+
+! <uint>
+CMD_VAR = evc_id
+RUNTIME = evc_icli_runtime_evc_id
+HELP    = ##HELP_EVC_ID
+BYWORD  = <EvcId : uint>
+
+VARIABLE_BEGIN
+    evc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    evc_icli_req_init(&req, session_id);
+    req.evc.value = evc_id;
+    evc_icli_evc_del(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = evc ece [ update ] <uint> [ next { <uint> | last } ] [ lookup { basic | advanced } ] [ interface <port_type_list> ] [ smac { <mac_addr> | any } ] [ dmac { <mac_addr> | unicast | multicast | broadcast | any } ] [ outer-tag { [ match { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { <vcap_vr> | any } ] [ pcp { <pcp> | any } ] [ dei { <0-1> | any } ] }*1 ] [ add { [ mode { enable | disable } ] [ vid <vlan_id> ] [ preserve [ disable ] ] [ pcp-mode { classified | fixed | mapped } ] [ pcp <0-7> ] [ dei-mode { classified | fixed | dp } ] [ dei <0-1> ] }*1 ] }*1 ] [ inner-tag { [ match { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { <vcap_vr> | any } ] [ pcp { <pcp> | any } ] [ dei { <0-1> | any } ] }*1 ] [ add { [ type { none | c-tag | s-tag | s-custom-tag } ] [ vid <vlan_id> ] [ preserve [ disable ] ] [ pcp-mode { classified | fixed | mapped } ] [ pcp <0-7> ] [ dei-mode { classified | fixed | dp } ] [ dei <0-1> ] }*1 ] }*1 ] [ frame-type { any | { ipv4 [ proto { <0-255> | udp | tcp | any } ] [ dscp { <vcap_vr> | any } ] [ sip { <ipv4_subnet> | any } ] [ dip { <ipv4_subnet> | any } ] [ fragment { yes | no | any } ] [ sport { <vcap_vr> | any } ] [ dport { <vcap_vr> | any } ] } | { ipv6 [ proto { <0-255> | udp | tcp | any } ] [ dscp { <vcap_vr> | any } ] [ sip { <ipv4_subnet> | any } ] [ dip { <ipv4_subnet> | any } ] [ sport { <vcap_vr> | any } ] [ dport { <vcap_vr> | any } ] } | { etype [ etype-value { <0x600-0x7ff,0x801-0x86dc,0x86de-0xffff> | any } ] [ etype-data { <0x0000-0xffff> | any } [ <0x0000-0xffff> ] ] } | { llc [ dsap { <0x00-0xff> | any } ] [ ssap { <0x00-0xff> | any } ] [ control { <0x00-0xff> | any } ] [ llc-data { <0x0000-0xffff> | any } [ <0x0000-0xffff> ] ] } | { snap [ oui { <0x000000-0xffffff> | any } ] [ pid { <0x0000-0xffff> | any } ] } | { l2cp { stp | pause | lacp | lamp | loam | dot1x | elmi | pb | pb-gvrp | lldp | gmrp | gvrp | uld | pagp | pvst | cisco-vlan | cdp | vtp | dtp | cisco-stp | cisco-cfm } } } ] [ direction { both | uni-to-nni | nni-to-uni } ] [ rule-type { both | rx | tx } ] [ tx-lookup { vid | pcp-vid | isdx } ] [ l2cp { [ mode { tunnel | peer | forward | discard } ] [ tmac { cisco | custom } ] }*1 ] [ evc { <uint> | none } ] [ policer { <uint> | none | discard | evc } ] [ pop <0-2> ] [ policy <uint> ] [ cos { <0-7> | disable } ] [ dpl { <dpl> | disable } ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! evc
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_EVC
+BYWORD  = 
+
+! ece
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_ECE
+BYWORD  = 
+
+! update
+CMD_VAR = has_update
+RUNTIME = 
+HELP    = ##HELP_UPDATE
+BYWORD  = update : Option
+
+! <uint>
+CMD_VAR = ece_id
+RUNTIME = evc_icli_runtime_ece_id
+HELP    = ##HELP_ECE_ID
+BYWORD  = <EceId : uint>
+
+! next
+CMD_VAR = has_next
+RUNTIME = 
+HELP    = Setup the ECE ID of the next entry
+BYWORD  = next : Option
+
+! <uint>
+CMD_VAR = ece_id_next
+RUNTIME = evc_icli_runtime_ece_id
+HELP    = Select ECE ID of an existing entry
+BYWORD  = <EceIdNext : uint>
+
+! last
+CMD_VAR = has_last
+RUNTIME = 
+HELP    = Make the ECE the last entry
+BYWORD  = last : Option
+
+! lookup
+CMD_VAR = has_lookup
+RUNTIME = evc_present_srvl
+HELP    = Setup the ingress lookup
+BYWORD  = lookup : Option
+
+! basic
+CMD_VAR = has_basic
+RUNTIME = evc_present_srvl
+HELP    = Select basic (first) ingress lookup
+BYWORD  = basic : Option
+
+! advanced
+CMD_VAR = has_advanced
+RUNTIME = evc_present_srvl
+HELP    = Select advanced (second) ingress lookup
+BYWORD  = advanced : Option
+
+! interface
+CMD_VAR = has_interface
+RUNTIME = 
+HELP    = Setup UNI
+BYWORD  = interface : Option
+
+! <port_type_list>
+CMD_VAR = port_list
+RUNTIME = 
+HELP    = 
+BYWORD  = <PortList : port_type_list>
+
+! smac
+CMD_VAR = has_smac
+RUNTIME = evc_present_crcl_srvl
+HELP    = Setup matched SMAC
+BYWORD  = smac : Option
+
+! <mac_addr>
+CMD_VAR = smac
+RUNTIME = evc_present_crcl_srvl
+HELP    = Matched SMAC
+BYWORD  = <Smac : mac_addr>
+
+! any
+CMD_VAR = has_smac_any
+RUNTIME = evc_present_crcl_srvl
+HELP    = Match any SMAC
+BYWORD  = any : Option
+
+! dmac
+CMD_VAR = has_dmac
+RUNTIME = evc_present_crcl_srvl
+HELP    = Setup matched DMAC
+BYWORD  = dmac : Option
+
+! <mac_addr>
+CMD_VAR = dmac
+RUNTIME = evc_present_srvl
+HELP    = Matched DMAC
+BYWORD  = <Dmac : mac_addr>
+
+! unicast
+CMD_VAR = has_unicast
+RUNTIME = evc_present_crcl_srvl
+HELP    = Match unicast DMAC
+BYWORD  = unicast : Option
+
+! multicast
+CMD_VAR = has_multicast
+RUNTIME = evc_present_crcl_srvl
+HELP    = Match multicast DMAC
+BYWORD  = multicast : Option
+
+! broadcast
+CMD_VAR = has_broadcast
+RUNTIME = evc_present_crcl_srvl
+HELP    = Match broadcast DMAC
+BYWORD  = broadcast : Option
+
+! any
+CMD_VAR = has_dmac_any
+RUNTIME = evc_present_crcl_srvl
+HELP    = Match any DMAC
+BYWORD  = any : Option
+
+! outer-tag
+CMD_VAR = has_outer_tag
+RUNTIME = 
+HELP    = ##HELP_OUTER_TAG
+BYWORD  = outer-tag : Option
+
+! match
+CMD_VAR = has_ot_match
+RUNTIME = 
+HELP    = ##HELP_OT_MATCH
+BYWORD  = match : Option
+
+! type
+CMD_VAR = has_ot_match_type
+RUNTIME = 
+HELP    = ##HELP_TAG_MATCH_TYPE
+BYWORD  = type : Option
+
+! untagged
+CMD_VAR = has_ot_untagged
+RUNTIME = 
+HELP    = ##HELP_TAG_MATCH_UNTAGGED
+BYWORD  = untagged : Option
+
+! tagged
+CMD_VAR = has_ot_tagged
+RUNTIME = 
+HELP    = ##HELP_TAG_MATCH_TAGGED
+BYWORD  = tagged : Option
+
+! c-tagged
+CMD_VAR = has_ot_c_tagged
+RUNTIME = 
+HELP    = ##HELP_TAG_MATCH_C_TAGGED
+BYWORD  = c-tagged : Option
+
+! s-tagged
+CMD_VAR = has_ot_s_tagged
+RUNTIME = 
+HELP    = ##HELP_TAG_MATCH_S_TAGGED
+BYWORD  = s-tagged : Option
+
+! any
+CMD_VAR = has_ot_type_any
+RUNTIME = 
+HELP    = ##HELP_TAG_MATCH_TYPE_ANY
+BYWORD  = any : Option
+
+! vid
+CMD_VAR = has_ot_match_vid
+RUNTIME = 
+HELP    = ##HELP_HAS_TAG_MATCH_VID
+BYWORD  = vid : Option
+
+! <vcap_vr>
+CMD_VAR = ot_match_vid
+RUNTIME = evc_icli_runtime_ovid
+HELP    = ##HELP_TAG_MATCH_VID
+BYWORD  = 
+
+! any
+CMD_VAR = has_ot_vid_any
+RUNTIME = 
+HELP    = ##HELP_TAG_MATCH_VID_ANY
+BYWORD  = any : Option
+
+! pcp
+CMD_VAR = has_ot_match_pcp
+RUNTIME = 
+HELP    = ##HELP_HAS_TAG_MATCH_PCP
+BYWORD  = pcp : Option
+
+! <pcp>
+CMD_VAR = ot_match_pcp
+RUNTIME = 
+HELP    = ##HELP_TAG_MATCH_PCP
+BYWORD  = <MatchPcp : pcp>
+
+! any
+CMD_VAR = has_ot_pcp_any
+RUNTIME = 
+HELP    = ##HELP_TAG_MATCH_PCP_ANY
+BYWORD  = any : Option
+
+! dei
+CMD_VAR = has_ot_match_dei
+RUNTIME = 
+HELP    = ##HELP_HAS_TAG_MATCH_DEI
+BYWORD  = dei : Option
+
+! <0-1>
+CMD_VAR = ot_match_dei
+RUNTIME = 
+HELP    = ##HELP_TAG_MATCH_DEI
+BYWORD  = <MatchDei : 0-1>
+
+! any
+CMD_VAR = has_ot_dei_any
+RUNTIME = 
+HELP    = ##HELP_TAG_MATCH_DEI_ANY
+BYWORD  = any : Option
+
+! add
+CMD_VAR = has_ot_add
+RUNTIME = 
+HELP    = ##HELP_OT_ADD
+BYWORD  = add : Option
+
+! mode
+CMD_VAR = has_ot_mode
+RUNTIME = 
+HELP    = Setup NNI-to-UNI outer tag add mode
+BYWORD  = mode : Option
+
+! enable
+CMD_VAR = has_ot_mode_enable
+RUNTIME = 
+HELP    = Add tag when forwarding to UNI
+BYWORD  = enable : Option
+
+! disable
+CMD_VAR = has_ot_mode_disable
+RUNTIME = 
+HELP    = No tag added when forwarding to UNI
+BYWORD  = disable : Option
+
+! vid
+CMD_VAR = has_ot_add_vid
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_HAS_TAG_ADD_VID
+BYWORD  = vid : Option
+
+! <vlan_id>
+CMD_VAR = ot_add_vid
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_ADD_VID
+BYWORD  = <AddVid : vlan_id>
+
+! preserve
+CMD_VAR = has_ot_preserve
+RUNTIME = evc_present_crcl_jr1
+HELP    = ##HELP_TAG_PRESERVE
+BYWORD  = preserve : Option
+
+! disable
+CMD_VAR = has_ot_preserve_disable
+RUNTIME = evc_present_crcl_jr1
+HELP    = ##HELP_TAG_PRESERVE_DISABLE
+BYWORD  = disable : Option
+
+! pcp-mode
+CMD_VAR = has_ot_pcp_mode
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_PCP_MODE
+BYWORD  = pcp-mode : Option
+
+! classified
+CMD_VAR = has_ot_pcp_classified
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_PCP_CLASSIFIED
+BYWORD  = classified : Option
+
+! fixed
+CMD_VAR = has_ot_pcp_fixed
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_PCP_FIXED
+BYWORD  = fixed : Option
+
+! mapped
+CMD_VAR = has_ot_pcp_mapped
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_PCP_MAPPED
+BYWORD  = mapped : Option
+
+! pcp
+CMD_VAR = has_ot_add_pcp
+RUNTIME = 
+HELP    = ##HELP_HAS_TAG_ADD_PCP
+BYWORD  = pcp : Option
+
+! <0-7>
+CMD_VAR = ot_add_pcp
+RUNTIME = 
+HELP    = ##HELP_TAG_ADD_PCP
+BYWORD  = <AddPcp : 0-7>
+
+! dei-mode
+CMD_VAR = has_ot_dei_mode
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_DEI_MODE
+BYWORD  = dei-mode : Option
+
+! classified
+CMD_VAR = has_ot_dei_classified
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_DEI_CLASSIFIED
+BYWORD  = classified : Option
+
+! fixed
+CMD_VAR = has_ot_dei_fixed
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_DEI_FIXED
+BYWORD  = fixed : Option
+
+! dp
+CMD_VAR = has_ot_dei_dp
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_DEI_DP
+BYWORD  = dp : Option
+
+! dei
+CMD_VAR = has_ot_add_dei
+RUNTIME = 
+HELP    = ##HELP_HAS_TAG_ADD_DEI
+BYWORD  = dei : Option
+
+! <0-1>
+CMD_VAR = ot_add_dei
+RUNTIME = 
+HELP    = ##HELP_TAG_ADD_DEI
+BYWORD  = <AddDei : 0-1>
+
+! inner-tag
+CMD_VAR = has_inner_tag
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_INNER_TAG
+BYWORD  = inner-tag : Option
+
+! match
+CMD_VAR = has_it_match
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_IT_MATCH
+BYWORD  = match : Option
+
+! type
+CMD_VAR = has_it_match_type
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_MATCH_TYPE
+BYWORD  = type : Option
+
+! untagged
+CMD_VAR = has_it_untagged
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_MATCH_UNTAGGED
+BYWORD  = untagged : Option
+
+! tagged
+CMD_VAR = has_it_tagged
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_MATCH_TAGGED
+BYWORD  = tagged : Option
+
+! c-tagged
+CMD_VAR = has_it_c_tagged
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_MATCH_C_TAGGED
+BYWORD  = c-tagged : Option
+
+! s-tagged
+CMD_VAR = has_it_s_tagged
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_MATCH_S_TAGGED
+BYWORD  = s-tagged : Option
+
+! any
+CMD_VAR = has_it_type_any
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_MATCH_TYPE_ANY
+BYWORD  = any : Option
+
+! vid
+CMD_VAR = has_it_match_vid
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_HAS_TAG_MATCH_VID
+BYWORD  = vid : Option
+
+! <vcap_vr>
+CMD_VAR = it_match_vid
+RUNTIME = evc_icli_runtime_ivid
+HELP    = ##HELP_TAG_MATCH_VID
+BYWORD  =
+
+! any
+CMD_VAR = has_it_vid_any
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_MATCH_VID_ANY
+BYWORD  = any : Option
+
+! pcp
+CMD_VAR = has_it_match_pcp
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_HAS_TAG_MATCH_PCP
+BYWORD  = pcp : Option
+
+! <pcp>
+CMD_VAR = it_match_pcp
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_MATCH_PCP
+BYWORD  = <MatchPcp : pcp>
+
+! any
+CMD_VAR = has_it_pcp_any
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_MATCH_PCP_ANY
+BYWORD  = any : Option
+
+! dei
+CMD_VAR = has_it_match_dei
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_HAS_TAG_MATCH_DEI
+BYWORD  = dei : Option
+
+! <0-1>
+CMD_VAR = it_match_dei
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_MATCH_DEI
+BYWORD  = <MatchDei : 0-1>
+
+! any
+CMD_VAR = has_it_dei_any
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_MATCH_DEI_ANY
+BYWORD  = any : Option
+
+! add
+CMD_VAR = has_it_add
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_IT_ADD
+BYWORD  = add : Option
+
+! type
+CMD_VAR = has_it_add_type
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_ADD_TYPE
+BYWORD  = type : Option
+
+! none
+CMD_VAR = has_none
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_ADD_NONE
+BYWORD  = none : Option
+
+! c-tag
+CMD_VAR = has_c_tag
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_ADD_C
+BYWORD  = c-tag : Option
+
+! s-tag
+CMD_VAR = has_s_tag
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_ADD_S
+BYWORD  = s-tag : Option
+
+! s-custom-tag
+CMD_VAR = has_s_custom_tag
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_ADD_S_CUSTOM
+BYWORD  = s-custom-tag : Option
+
+! vid
+CMD_VAR = has_it_add_vid
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_HAS_TAG_ADD_VID
+BYWORD  = vid : Option
+
+! <vlan_id>
+CMD_VAR = it_add_vid
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_ADD_VID
+BYWORD  = <AddVid : vlan_id>
+
+! preserve
+CMD_VAR = has_it_preserve
+RUNTIME = evc_present_jr1
+HELP    = ##HELP_TAG_PRESERVE
+BYWORD  = preserve : Option
+
+! disable
+CMD_VAR = has_it_preserve_disable
+RUNTIME = evc_present_jr1
+HELP    = ##HELP_TAG_PRESERVE_DISABLE
+BYWORD  = disable : Option
+
+! pcp-mode
+CMD_VAR = has_it_pcp_mode
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_PCP_MODE
+BYWORD  = pcp-mode : Option
+
+! classified
+CMD_VAR = has_it_pcp_classified
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_PCP_CLASSIFIED
+BYWORD  = classified : Option
+
+! fixed
+CMD_VAR = has_it_pcp_fixed
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_PCP_FIXED
+BYWORD  = fixed : Option
+
+! mapped
+CMD_VAR = has_it_pcp_mapped
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_PCP_MAPPED
+BYWORD  = mapped : Option
+
+! pcp
+CMD_VAR = has_it_add_pcp
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_HAS_TAG_ADD_PCP
+BYWORD  = pcp : Option
+
+! <0-7>
+CMD_VAR = it_add_pcp
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_ADD_PCP
+BYWORD  = <AddPcp : 0-7>
+
+! dei-mode
+CMD_VAR = has_it_dei_mode
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_DEI_MODE
+BYWORD  = dei-mode : Option
+
+! classified
+CMD_VAR = has_it_dei_classified
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_DEI_CLASSIFIED
+BYWORD  = classified : Option
+
+! fixed
+CMD_VAR = has_it_dei_fixed
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_DEI_FIXED
+BYWORD  = fixed : Option
+
+! dp
+CMD_VAR = has_it_dei_dp
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_TAG_ADD_DEI_DP
+BYWORD  = dp : Option
+
+! dei
+CMD_VAR = has_it_add_dei
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_HAS_TAG_ADD_DEI
+BYWORD  = dei : Option
+
+! <0-1>
+CMD_VAR = it_add_dei
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_TAG_ADD_DEI
+BYWORD  = <AddDei : 0-1>
+
+! frame-type
+CMD_VAR = has_frame_type
+RUNTIME = 
+HELP    = Setup matched frame type
+BYWORD  = frame-type : Option
+
+! any
+CMD_VAR = has_frame_type_any
+RUNTIME = 
+HELP    = Match any frame type
+BYWORD  = any : Option
+
+! ipv4
+CMD_VAR = has_ipv4
+RUNTIME = 
+HELP    = Match IPv4 frames
+BYWORD  = ipv4 : Option
+
+! proto
+CMD_VAR = has_pr4
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_HAS_PROTO
+BYWORD  = proto : Option
+
+! <0-255>
+CMD_VAR = pr4
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_PROTO
+BYWORD  = <Pr4 : 0-255>
+
+! udp
+CMD_VAR = has_udp4
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_PROTO_UDP
+BYWORD  = udp : Option
+
+! tcp
+CMD_VAR = has_tcp4
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_PROTO_TCP
+BYWORD  = tcp : Option
+
+! any
+CMD_VAR = has_pr4_any
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_PROTO_ANY
+BYWORD  = any : Option
+
+! dscp
+CMD_VAR = has_dscp4
+RUNTIME = 
+HELP    = ##HELP_HAS_DSCP
+BYWORD  = dscp : Option
+
+! <vcap_vr>
+CMD_VAR = dscp4
+RUNTIME = evc_icli_runtime_dscp
+HELP    = ##HELP_DSCP
+BYWORD  =
+
+! any
+CMD_VAR = has_dscp4_any
+RUNTIME = 
+HELP    = ##HELP_DSCP_ANY
+BYWORD  = any : Option
+
+! sip
+CMD_VAR = has_sip4
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_HAS_SIP
+BYWORD  = sip : Option
+
+! <ipv4_subnet>
+CMD_VAR = sip4
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_SIP4
+BYWORD  = <Sip4 : ipv4_subnet>
+
+! any
+CMD_VAR = has_sip4_any
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_SIP_ANY
+BYWORD  = any : Option
+
+! dip
+CMD_VAR = has_dip4
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_HAS_DIP
+BYWORD  = dip : Option
+
+! <ipv4_subnet>
+CMD_VAR = dip4
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_DIP4
+BYWORD  = <Dip4 : ipv4_subnet>
+
+! any
+CMD_VAR = has_dip4_any
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_DIP_ANY
+BYWORD  = any : Option
+
+! fragment
+CMD_VAR = has_fragment
+RUNTIME = evc_present_crcl_srvl
+HELP    = Setup matched IPv4 fragments
+BYWORD  = fragment : Option
+
+! yes
+CMD_VAR = has_yes
+RUNTIME = evc_present_crcl_srvl
+HELP    = Match IPv4 fragments
+BYWORD  = yes : Option
+
+! no
+CMD_VAR = has_no
+RUNTIME = evc_present_crcl_srvl
+HELP    = Match IPv4 non-fragments
+BYWORD  = no : Option
+
+! any
+CMD_VAR = has_fragment_any
+RUNTIME = evc_present_crcl_srvl
+HELP    = Match any IPv4 fragments
+BYWORD  = any : Option
+
+! sport
+CMD_VAR = has_sp4
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_HAS_SPORT
+BYWORD  = sport : Option
+
+! <vcap_vr>
+CMD_VAR = sp4
+RUNTIME = evc_icli_runtime_sport
+HELP    = ##HELP_SPORT
+BYWORD  =
+
+! any
+CMD_VAR = has_sp4_any
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_SPORT_ANY
+BYWORD  = any : Option
+
+! dport
+CMD_VAR = has_dp4
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_HAS_DPORT
+BYWORD  = dport : Option
+
+! <vcap_vr>
+CMD_VAR = dp4
+RUNTIME = evc_icli_runtime_dport
+HELP    = ##HELP_DPORT
+BYWORD  =
+
+! any
+CMD_VAR = has_dp4_any
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_DPORT_ANY
+BYWORD  = any : Option
+
+! ipv6
+CMD_VAR = has_ipv6
+RUNTIME = 
+HELP    = Match IPv6 frames
+BYWORD  = ipv6 : Option
+
+! proto
+CMD_VAR = has_pr6
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_HAS_PROTO
+BYWORD  = proto : Option
+
+! <0-255>
+CMD_VAR = pr6
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_PROTO
+BYWORD  = <Pr6 : 0-255>
+
+! udp
+CMD_VAR = has_udp6
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_PROTO_UDP
+BYWORD  = udp : Option
+
+! tcp
+CMD_VAR = has_tcp6
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_PROTO_TCP
+BYWORD  = tcp : Option
+
+! any
+CMD_VAR = has_pr6_any
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_PROTO_ANY
+BYWORD  = any : Option
+
+! dscp
+CMD_VAR = has_dscp6
+RUNTIME = 
+HELP    = ##HELP_HAS_DSCP
+BYWORD  = dscp : Option
+
+! <vcap_vr>
+CMD_VAR = dscp6
+RUNTIME = evc_icli_runtime_dscp
+HELP    = ##HELP_DSCP
+BYWORD  =
+
+! any
+CMD_VAR = has_dscp6_any
+RUNTIME = 
+HELP    = ##HELP_DSCP_ANY
+BYWORD  = any : Option
+
+! sip
+CMD_VAR = has_sip6
+RUNTIME = evc_present_crcl_srvl 
+HELP    = ##HELP_HAS_SIP
+BYWORD  = sip : Option
+
+! <ipv4_subnet>
+CMD_VAR = sip6
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_SIP6
+BYWORD  = <Sip6 : ipv4_subnet>
+
+! any
+CMD_VAR = has_sip6_any
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_SIP_ANY
+BYWORD  = any : Option
+
+! dip
+CMD_VAR = has_dip6
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_HAS_DIP
+BYWORD  = dip : Option
+
+! <ipv4_subnet>
+CMD_VAR = dip6
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_DIP6
+BYWORD  = <Dip6 : ipv4_subnet>
+
+! any
+CMD_VAR = has_dip6_any
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_DIP_ANY
+BYWORD  = any : Option
+
+! sport
+CMD_VAR = has_sp6
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_HAS_SPORT
+BYWORD  = sport : Option
+
+! <vcap_vr>
+CMD_VAR = sp6
+RUNTIME = evc_icli_runtime_sport
+HELP    = ##HELP_SPORT
+BYWORD  =
+
+! any
+CMD_VAR = has_sp6_any
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_SPORT_ANY
+BYWORD  = any : Option
+
+! dport
+CMD_VAR = has_dp6
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_HAS_DPORT
+BYWORD  = dport : Option
+
+! <vcap_vr>
+CMD_VAR = dp6
+RUNTIME = evc_icli_runtime_dport
+HELP    = ##HELP_DPORT
+BYWORD  =
+
+! any
+CMD_VAR = has_dp6_any
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_DPORT_ANY
+BYWORD  = any : Option
+
+! etype
+CMD_VAR = has_etype
+RUNTIME = evc_present_srvl
+HELP    = Match Ethernet Type frames
+BYWORD  = etype : Option
+
+! etype-value
+CMD_VAR = has_etype_value
+RUNTIME = evc_present_srvl
+HELP    = Setup matched Ethernet Type
+BYWORD  = etype-value : Option
+
+! <0x600-0x7ff,0x801-0x86dc,0x86de-0xffff>
+CMD_VAR = etype_value
+RUNTIME = evc_present_srvl
+HELP    = Matched Ethernet Type
+BYWORD  = <EtypeValue : 0x600-0x7ff,0x801-0x86dc,0x86de-0xffff>
+
+! any
+CMD_VAR = has_etype_any
+RUNTIME = evc_present_srvl
+HELP    = Match any Ethernet Type
+BYWORD  = any : Option
+
+! etype-data
+CMD_VAR = has_etype_data
+RUNTIME = evc_present_srvl
+HELP    = Setup matched Ethernet Type data
+BYWORD  = etype-data : Option
+
+! <0x0000-0xffff>
+CMD_VAR = etype_data
+RUNTIME = evc_present_srvl
+HELP    = Matched Ethernet Type data
+BYWORD  = <EtypeData : 0x0000-0xffff>
+
+! any
+CMD_VAR = has_etype_data_any
+RUNTIME = evc_present_srvl
+HELP    = Match any Ethernet Type data
+BYWORD  = any : Option
+
+! <0x0000-0xffff>
+CMD_VAR = etype_mask
+RUNTIME = evc_present_srvl
+HELP    = Matched Ethernet Type data mask
+BYWORD  = <EtypeMask : 0x0000-0xffff>
+
+! llc
+CMD_VAR = has_llc
+RUNTIME = evc_present_srvl
+HELP    = Match LLC frames
+BYWORD  = llc : Option
+
+! dsap
+CMD_VAR = has_dsap
+RUNTIME = evc_present_srvl
+HELP    = Setup matched DSAP
+BYWORD  = dsap : Option
+
+! <0x00-0xff>
+CMD_VAR = dsap
+RUNTIME = evc_present_srvl
+HELP    = Matched DSAP
+BYWORD  = <Dsap : 0x00-0xff>
+
+! any
+CMD_VAR = has_dsap_any
+RUNTIME = evc_present_srvl
+HELP    = Match any DSAP
+BYWORD  = any : Option
+
+! ssap
+CMD_VAR = has_ssap
+RUNTIME = evc_present_srvl
+HELP    = Setup matched SSAP
+BYWORD  = ssap : Option
+
+! <0x00-0xff>
+CMD_VAR = ssap
+RUNTIME = evc_present_srvl
+HELP    = Matched SSAP
+BYWORD  = <Ssap : 0x00-0xff>
+
+! any
+CMD_VAR = has_ssap_any
+RUNTIME = evc_present_srvl
+HELP    = Match any SSAP
+BYWORD  = any : Option
+
+! control
+CMD_VAR = has_control
+RUNTIME = evc_present_srvl
+HELP    = Setup matched LLC Control
+BYWORD  = control : Option
+
+! <0x00-0xff>
+CMD_VAR = control
+RUNTIME = evc_present_srvl
+HELP    = Matched LLC Control
+BYWORD  = <Control : 0x00-0xff>
+
+! any
+CMD_VAR = has_control_any
+RUNTIME = evc_present_srvl
+HELP    = Match any LLC Control
+BYWORD  = any : Option
+
+! llc-data
+CMD_VAR = has_llc_data
+RUNTIME = evc_present_srvl
+HELP    = Setup matched LLC data
+BYWORD  = llc-data : Option
+
+! <0x0000-0xffff>
+CMD_VAR = llc_data
+RUNTIME = evc_present_srvl
+HELP    = Matched LLC data
+BYWORD  = <LlcData : 0x0000-0xffff>
+
+! any
+CMD_VAR = has_llc_data_any
+RUNTIME = evc_present_srvl
+HELP    = Match any LLC data
+BYWORD  = any : Option
+
+! <0x0000-0xffff>
+CMD_VAR = llc_mask
+RUNTIME = evc_present_srvl
+HELP    = Matched LLC data mask
+BYWORD  = <LlcMask : 0x0000-0xffff>
+
+! snap
+CMD_VAR = has_snap
+RUNTIME = evc_present_srvl
+HELP    = Match SNAP frames
+BYWORD  = snap : Option
+
+! oui
+CMD_VAR = has_oui
+RUNTIME = evc_present_srvl
+HELP    = Setup matched OUI
+BYWORD  = oui : Option
+
+! <0x000000-0xffffff>
+CMD_VAR = oui
+RUNTIME = evc_present_srvl
+HELP    = Matched OUI
+BYWORD  = <Oui : 0x000000-0xffffff>
+
+! any
+CMD_VAR = has_oui_any
+RUNTIME = evc_present_srvl
+HELP    = Match any OUI
+BYWORD  = any : Option
+
+! pid
+CMD_VAR = has_pid
+RUNTIME = evc_present_srvl
+HELP    = Setup matched PID
+BYWORD  = pid : Option
+
+! <0x0000-0xffff>
+CMD_VAR = pid
+RUNTIME = evc_present_srvl
+HELP    = Matched PID
+BYWORD  = <Pid : 0x0000-0xffff>
+
+! any
+CMD_VAR = has_pid_any
+RUNTIME = evc_present_srvl
+HELP    = Match any PID
+BYWORD  = any : Option
+
+! l2cp
+CMD_VAR = has_l2cp
+RUNTIME = evc_present_srvl
+HELP    = Match L2CP frame
+BYWORD  = l2cp : Option
+
+! stp
+CMD_VAR = has_stp
+RUNTIME = evc_present_srvl
+HELP    = Match STP frames
+BYWORD  = stp : Option
+
+! pause
+CMD_VAR = has_pause
+RUNTIME = evc_present_srvl
+HELP    = Match Pause frames
+BYWORD  = pause : Option
+
+! lacp
+CMD_VAR = has_lacp
+RUNTIME = evc_present_srvl
+HELP    = Match LACP frames
+BYWORD  = lacp : Option
+
+! lamp
+CMD_VAR = has_lamp
+RUNTIME = evc_present_srvl
+HELP    = Match LAMP frames
+BYWORD  = lamp : Option
+
+! loam
+CMD_VAR = has_loam
+RUNTIME = evc_present_srvl
+HELP    = Match Link OAM frames
+BYWORD  = loam : Option
+
+! dot1x
+CMD_VAR = has_dot1x
+RUNTIME = evc_present_srvl
+HELP    = Match 802.1X frames
+BYWORD  = dot1x : Option
+
+! elmi
+CMD_VAR = has_elmi
+RUNTIME = evc_present_srvl
+HELP    = Match E-LMI frames
+BYWORD  = elmi : Option
+
+! pb
+CMD_VAR = has_pb
+RUNTIME = evc_present_srvl
+HELP    = Match PB frames
+BYWORD  = pb : Option
+
+! pb-gvrp
+CMD_VAR = has_pb_gvrp
+RUNTIME = evc_present_srvl
+HELP    = Match PB GVRP frames
+BYWORD  = pb-gvrp : Option
+
+! lldp
+CMD_VAR = has_lldp
+RUNTIME = evc_present_srvl
+HELP    = Match LLDP frames
+BYWORD  = lldp : Option
+
+! gmrp
+CMD_VAR = has_gmrp
+RUNTIME = evc_present_srvl
+HELP    = Match GMRP frames
+BYWORD  = gmrp : Option
+
+! gvrp
+CMD_VAR = has_gvrp
+RUNTIME = evc_present_srvl
+HELP    = Match GVRP frames
+BYWORD  = gvrp : Option
+
+! uld
+CMD_VAR = has_uld
+RUNTIME = evc_present_srvl
+HELP    = Match ULD frames
+BYWORD  = uld : Option
+
+! pagp
+CMD_VAR = has_pagp
+RUNTIME = evc_present_srvl
+HELP    = Match PAgP frames
+BYWORD  = pagp : Option
+
+! pvst
+CMD_VAR = has_pvst
+RUNTIME = evc_present_srvl
+HELP    = Match PVST frames
+BYWORD  = pvst : Option
+
+! cisco-vlan
+CMD_VAR = has_cisco_vlan
+RUNTIME = evc_present_srvl
+HELP    = Match Cisco VLAN bridge frames
+BYWORD  = cisco-vlan : Option
+
+! cdp
+CMD_VAR = has_cdp
+RUNTIME = evc_present_srvl
+HELP    = Match CDP frames
+BYWORD  = cdp : Option
+
+! vtp
+CMD_VAR = has_vtp
+RUNTIME = evc_present_srvl
+HELP    = Match VTP frames
+BYWORD  = vtp : Option
+
+! dtp
+CMD_VAR = has_dtp
+RUNTIME = evc_present_srvl
+HELP    = Match DTP frames
+BYWORD  = dtp : Option
+
+! cisco-stp
+CMD_VAR = has_cisco_stp
+RUNTIME = evc_present_srvl
+HELP    = Match Cisco STP Uplink Fast frames
+BYWORD  = cisco-stp : Option
+
+! cisco-cfm
+CMD_VAR = has_cisco_cfm
+RUNTIME = evc_present_srvl
+HELP    = Match Cisco CFM frames
+BYWORD  = cisco-cfm : Option
+
+! direction
+CMD_VAR = has_direction
+RUNTIME = 
+HELP    = Setup ECE direction
+BYWORD  = direction : Option
+
+! both
+CMD_VAR = has_dir_both
+RUNTIME = 
+HELP    = Bidirectional traffic flow
+BYWORD  = both : Option
+
+! uni-to-nni
+CMD_VAR = has_uni_to_nni
+RUNTIME = 
+HELP    = UNI-to-NNI traffic flow
+BYWORD  = uni-to-nni : Option
+
+! nni-to-uni
+CMD_VAR = has_nni_to_uni
+RUNTIME = 
+HELP    = NNI-to-UNI traffic flow
+BYWORD  = nni-to-uni : Option
+
+! rule-type
+CMD_VAR = has_rule_type
+RUNTIME = evc_present_srvl
+HELP    = Setup ECE rule type
+BYWORD  = rule-type : Option
+
+! both
+CMD_VAR = has_rule_both
+RUNTIME = evc_present_srvl
+HELP    = Ingress and egress rules
+BYWORD  = both : Option
+
+! rx
+CMD_VAR = has_rx
+RUNTIME = evc_present_srvl
+HELP    = Ingress rules only
+BYWORD  = rx : Option
+
+! tx
+CMD_VAR = has_tx
+RUNTIME = evc_present_srvl
+HELP    = Egress rules only
+BYWORD  = tx : Option
+
+! tx-lookup
+CMD_VAR = has_tx_lookup
+RUNTIME = evc_present_srvl
+HELP    = Setup egress lookup key
+BYWORD  = tx-lookup : Option
+
+! vid
+CMD_VAR = has_tx_vid
+RUNTIME = evc_present_srvl
+HELP    = Use VLAN ID as egress lookup key
+BYWORD  = vid : Option
+
+! pcp-vid
+CMD_VAR = has_pcp_vid
+RUNTIME = evc_present_srvl
+HELP    = Use VLAN ID and PCP as egress lookup key
+BYWORD  = pcp_vid : Option
+
+! isdx
+CMD_VAR = has_isdx
+RUNTIME = evc_present_srvl
+HELP    = Use ISDX as egress lookup key
+BYWORD  = isdx : Option
+
+! l2cp
+CMD_VAR = has_l2cp_action
+RUNTIME = evc_present_srvl
+HELP    = Setup L2CP frame options
+BYWORD  = l2cp : Option
+
+! mode
+CMD_VAR = has_l2cp_mode
+RUNTIME = evc_present_srvl
+HELP    = Setup L2CP mode
+BYWORD  = mode : Option
+
+! tunnel
+CMD_VAR = has_tunnel
+RUNTIME = evc_present_srvl
+HELP    = Tunnel L2CP frames
+BYWORD  = tunnel : Option
+
+! peer
+CMD_VAR = has_peer
+RUNTIME = evc_present_srvl
+HELP    = Peer L2CP frames
+BYWORD  = peer : Option
+
+! forward
+CMD_VAR = has_forward
+RUNTIME = evc_present_srvl
+HELP    = Forward L2CP frames
+BYWORD  = forward : Option
+
+! discard
+CMD_VAR = has_discard
+RUNTIME = evc_present_srvl
+HELP    = Discard L2CP frames
+BYWORD  = discard : Option
+
+! tmac
+CMD_VAR = has_l2cp_dmac
+RUNTIME = evc_present_srvl
+HELP    = Setup L2CP tunnel DMAC
+BYWORD  = dmac : Option
+
+! cisco
+CMD_VAR = has_cisco
+RUNTIME = evc_present_srvl
+HELP    = Use Cisco Generic BPDU Tunneling DMAC
+BYWORD  = cisco : Option
+
+! custom
+CMD_VAR = has_custom
+RUNTIME = evc_present_srvl
+HELP    = Use custom DMAC
+BYWORD  = custom : Option
+
+! evc
+CMD_VAR = has_evc_ece
+RUNTIME = 
+HELP    = EVC mapping
+BYWORD  = evc : Option
+
+! <uint>
+CMD_VAR = evc_id
+RUNTIME = evc_icli_runtime_evc_id
+HELP    = ##HELP_EVC_ID
+BYWORD  = <EvcId : uint>
+
+! none
+CMD_VAR = has_evc_none
+RUNTIME = 
+HELP    = Map to no EVC ID
+BYWORD  = none : Option
+
+! policer
+CMD_VAR = has_policer
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_POLICER 
+BYWORD  = policer : Option
+
+! <uint>
+CMD_VAR = policer_id
+RUNTIME = evc_icli_runtime_policer_id_jr1_srvl
+HELP    = ##HELP_POLICER_ID
+BYWORD  = <PolicerId : uint>
+
+! none
+CMD_VAR = has_policer_none
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_POLICER_NONE
+BYWORD  = none : Option
+
+! discard
+CMD_VAR = has_policer_discard
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_POLICER_DISCARD
+BYWORD  = discard : Option
+
+! evc
+CMD_VAR = has_policer_evc
+RUNTIME = evc_present_jr1_srvl
+HELP    = Use policer setup for EVC
+BYWORD  = evc : Option
+
+! pop
+CMD_VAR = has_pop
+RUNTIME = 
+HELP    = Setup tag popping
+BYWORD  = pop : Option
+
+! <0-2>
+CMD_VAR = pop
+RUNTIME = 
+HELP    = Number of tags popped
+BYWORD  = <Pop : 0-2>
+
+! policy
+CMD_VAR = has_policy
+RUNTIME = 
+HELP    = Setup ACL policy
+BYWORD  = policy : Option
+
+! <uint>
+CMD_VAR = policy_no
+RUNTIME = evc_icli_runtime_policy
+HELP    = ACL policy
+BYWORD  = <PolicyNo : uint>
+
+! cos
+CMD_VAR = has_cos
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_HAS_COS
+BYWORD  = cos : Option
+
+! <0-7>
+CMD_VAR = cos
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_COS
+BYWORD  = <Cos : 0-7>
+
+! disable
+CMD_VAR = has_cos_disable
+RUNTIME = evc_present_crcl_srvl
+HELP    = Disable ECE CoS classification
+BYWORD  = disable : Option
+
+! dpl
+CMD_VAR = has_dpl
+RUNTIME = evc_present_srvl
+HELP    = Setup drop precedence level
+BYWORD  = dpl : Option
+
+! <dpl>
+CMD_VAR = dpl
+RUNTIME = evc_present_srvl
+HELP    = Drop precedence level
+BYWORD  = <Dpl : dpl>
+
+! disable
+CMD_VAR = has_dpl_disable
+RUNTIME = evc_present_srvl
+HELP    = Disable ECE DPL classification
+BYWORD  = disable : Option
+
+VARIABLE_BEGIN
+    evc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    evc_icli_req_init(&req, session_id);
+    req.update = has_update;
+    req.ece.value = ece_id;
+    req.ece_next.valid = has_next;
+    req.ece_next.value = ece_id_next;
+    req.dummy = has_last;
+    req.lookup.valid = has_lookup;
+    req.dummy = has_basic;
+    req.lookup.value = has_advanced;
+    req.dummy = has_interface;
+    req.port_list = port_list;
+    req.smac.valid = has_smac;
+    req.smac.value = smac;
+    req.smac.any = has_smac_any;
+    req.dmac.valid = has_dmac;
+    req.dmac.value = dmac;
+    req.dmac.unicast = has_unicast;
+    req.dmac.multicast = has_multicast;
+    req.dmac.broadcast = has_broadcast;
+    req.dmac.any = has_dmac_any;
+    req.dummy = has_outer_tag;
+    req.dummy = has_ot_match;
+    req.ot.m.type.valid = has_ot_match_type;
+    req.ot.m.type.untag = has_ot_untagged;
+    req.ot.m.type.tag = has_ot_tagged;
+    req.ot.m.type.c_tag = has_ot_c_tagged;
+    req.ot.m.type.s_tag = has_ot_s_tagged;
+    req.ot.m.type.any = has_ot_type_any;
+    req.ot.m.vid.valid = has_ot_match_vid;
+    req.ot.m.vid.value = ot_match_vid;
+    req.ot.m.vid.any = has_ot_vid_any;
+    req.dummy = has_ot_match_pcp;
+    req.ot.m.pcp.list = ot_match_pcp;
+    req.ot.m.pcp.any = has_ot_pcp_any;
+    req.ot.m.dei.valid = has_ot_match_dei;
+    req.ot.m.dei.value = ot_match_dei;
+    req.ot.m.dei.any = has_ot_dei_any;
+    req.dummy = has_ot_add;
+    req.dummy = has_ot_mode;
+    req.ot.a.enable = has_ot_mode_enable;
+    req.ot.a.disable = has_ot_mode_disable;
+    req.ot.a.vid.valid = has_ot_add_vid;
+    req.ot.a.vid.value = ot_add_vid;
+    req.ot.a.preserve.valid = has_ot_preserve;
+    req.ot.a.preserve.value = has_ot_preserve_disable;
+    req.ot.a.pcp.mode = has_ot_pcp_mode;
+    req.ot.a.pcp.classified = has_ot_pcp_classified;
+    req.dummy = has_ot_pcp_mapped;
+    req.ot.a.pcp.fixed = has_ot_pcp_fixed;
+    req.ot.a.pcp.valid = has_ot_add_pcp;
+    req.ot.a.pcp.value = ot_add_pcp;
+    req.ot.a.dei.mode = has_ot_dei_mode;
+    req.ot.a.dei.classified = has_ot_dei_classified;
+    req.ot.a.dei.fixed = has_ot_dei_fixed;
+    req.dummy = has_ot_dei_dp;
+    req.ot.a.dei.valid = has_ot_add_dei;
+    req.ot.a.dei.value = ot_add_dei;
+    req.dummy = has_inner_tag;
+    req.dummy = has_it_match;
+    req.it.m.type.valid = has_it_match_type;
+    req.it.m.type.untag = has_it_untagged;
+    req.it.m.type.tag = has_it_tagged;
+    req.it.m.type.c_tag = has_it_c_tagged;
+    req.it.m.type.s_tag = has_it_s_tagged;
+    req.it.m.type.any = has_it_type_any;
+    req.it.m.vid.valid = has_it_match_vid;
+    req.it.m.vid.value = it_match_vid;
+    req.it.m.vid.any = has_it_vid_any;
+    req.dummy = has_it_match_pcp;
+    req.it.m.pcp.list = it_match_pcp;
+    req.it.m.pcp.any = has_it_pcp_any;
+    req.it.m.dei.valid = has_it_match_dei;
+    req.it.m.dei.value = it_match_dei;
+    req.it.m.dei.any = has_it_dei_any;
+    req.dummy = has_it_add;
+    req.it.a.type.valid = has_it_add_type;
+    req.it.a.type.untag = has_none;
+    req.it.a.type.c_tag = has_c_tag;
+    req.it.a.type.s_tag = has_s_tag;
+    req.it.a.type.s_custom_tag = has_s_custom_tag;
+    req.it.a.vid.valid = has_it_add_vid;
+    req.it.a.vid.value = it_add_vid;
+    req.it.a.preserve.valid = has_it_preserve;
+    req.it.a.preserve.value = has_it_preserve_disable;
+    req.it.a.pcp.mode = has_it_pcp_mode;
+    req.it.a.pcp.classified = has_it_pcp_classified;
+    req.it.a.pcp.fixed = has_it_pcp_fixed;
+    req.dummy = has_it_pcp_mapped;
+    req.it.a.pcp.valid = has_it_add_pcp;
+    req.it.a.pcp.value = it_add_pcp;
+    req.it.a.dei.mode = has_it_dei_mode;
+    req.it.a.dei.classified = has_it_dei_classified;
+    req.it.a.dei.fixed = has_it_dei_fixed;
+    req.dummy = has_it_dei_dp;
+    req.it.a.dei.valid = has_it_add_dei;
+    req.it.a.dei.value = it_add_dei;
+    req.frame.valid = has_frame_type;
+    req.frame.any = has_frame_type_any;
+    if (has_ipv4) {
+        req.frame.ipv4 = 1;
+        req.frame.proto.valid = has_pr4;
+        req.frame.proto.udp = has_udp4;
+        req.frame.proto.tcp = has_tcp4;
+        req.frame.proto.value = pr4;	
+        req.frame.proto.any = has_pr4_any;
+        req.frame.sip.valid = has_sip4;
+        req.frame.sip.value = sip4;
+        req.dummy = has_sip4_any;
+        req.frame.dip.valid = has_dip4;
+        req.frame.dip.value = dip4;
+        req.dummy = has_dip4_any;
+        req.frame.dscp.valid = has_dscp4;
+        req.frame.dscp.value = dscp4;
+        req.frame.dscp.any = has_dscp4_any;
+        req.frame.frag.valid = has_fragment;
+        req.frame.frag.yes = has_yes;
+        req.frame.frag.no = has_no;
+        req.frame.frag.any = has_fragment_any;
+        req.frame.sport.valid = has_sp4;
+        req.frame.sport.value = sp4;
+        req.frame.sport.any = has_sp4_any;
+        req.frame.dport.valid = has_dp4;
+        req.frame.dport.value = dp4;
+        req.frame.dport.any = has_dp4_any;
+    } else if (has_ipv6) {
+        req.frame.ipv6 = 1;
+        req.frame.proto.valid = has_pr6;
+        req.frame.proto.udp = has_udp6;
+        req.frame.proto.tcp = has_tcp6;
+        req.frame.proto.value = pr6;	
+        req.frame.proto.any = has_pr6_any;
+        req.frame.sip.valid = has_sip6;
+        req.frame.sip.value = sip6;
+        req.dummy = has_sip6_any;
+        req.frame.dip.valid = has_dip6;
+        req.frame.dip.value = dip6;
+        req.dummy = has_dip6_any;
+        req.frame.dscp.valid = has_dscp6;
+        req.frame.dscp.value = dscp6;
+        req.frame.dscp.any = has_dscp6_any;
+        req.frame.sport.valid = has_sp6;
+        req.frame.sport.value = sp6;
+        req.frame.sport.any = has_sp6_any;
+        req.frame.dport.valid = has_dp6;
+        req.frame.dport.value = dp6;
+        req.frame.dport.any = has_dp6_any;
+    } else if (has_etype) {
+        req.frame.etype.valid = 1;
+	req.frame.etype.etype.valid = has_etype_value;
+	req.frame.etype.etype.value = etype_value;
+	req.frame.etype.etype.mask = (has_etype_any ? 0 : 0xffff);
+	req.frame.etype.data.valid = has_etype_data;
+	req.frame.etype.data.value = etype_data;
+	req.frame.etype.data.mask = (has_etype_data_any ? 0 : etype_mask ? etype_mask : 0xffff);
+    } else if (has_llc) {
+        req.frame.llc.valid = 1;
+        req.frame.llc.dsap.valid = has_dsap;
+        req.frame.llc.dsap.value = dsap;
+        req.frame.llc.dsap.mask = (has_dsap_any ? 0 : 0xff);
+        req.frame.llc.ssap.valid = has_ssap;
+        req.frame.llc.ssap.value = ssap;
+        req.frame.llc.ssap.mask = (has_ssap_any ? 0 : 0xff);
+        req.frame.llc.control.valid = has_control;
+        req.frame.llc.control.value = control;
+        req.frame.llc.control.mask = (has_control_any ? 0 : 0xff);
+        req.frame.llc.data.valid = has_llc_data;
+        req.frame.llc.data.value = llc_data;
+        req.frame.llc.data.mask = (has_llc_data_any ? 0 : llc_mask ? llc_mask : 0xffff);
+    } else if (has_snap) {
+        req.frame.snap.valid = 1;
+	req.frame.snap.oui.valid = has_oui;
+	req.frame.snap.oui.value = oui;
+	req.frame.snap.oui.mask = (has_oui_any ? 0 : 0xffffff);
+	req.frame.snap.pid.valid = has_pid;
+	req.frame.snap.pid.value = pid;
+	req.frame.snap.pid.mask = (has_pid_any ? 0 : 0xffff);
+    } else if (has_l2cp) {
+        req.frame.l2cp.valid = 1;
+	req.frame.l2cp.stp = has_stp;
+	req.frame.l2cp.pause = has_pause;
+	req.frame.l2cp.lacp = has_lacp;
+	req.frame.l2cp.lamp = has_lamp;
+	req.frame.l2cp.loam = has_loam;
+	req.frame.l2cp.dot1x = has_dot1x;
+	req.frame.l2cp.elmi = has_elmi;
+	req.frame.l2cp.pb = has_pb;
+	req.frame.l2cp.pb_gvrp = has_pb_gvrp;
+	req.frame.l2cp.lldp = has_lldp;
+	req.frame.l2cp.gmrp = has_gmrp;
+	req.frame.l2cp.gvrp = has_gvrp;
+	req.frame.l2cp.uld = has_uld;
+	req.frame.l2cp.pagp = has_pagp;
+	req.frame.l2cp.pvst = has_pvst;
+	req.frame.l2cp.cisco_vlan = has_cisco_vlan;
+	req.frame.l2cp.cdp = has_cdp;
+	req.frame.l2cp.vtp = has_vtp;
+	req.frame.l2cp.dtp = has_dtp;
+	req.frame.l2cp.cisco_stp = has_cisco_stp;
+	req.frame.l2cp.cisco_cfm = has_cisco_cfm;
+    }
+    req.dir.valid = has_direction;
+    req.dir.both = has_dir_both;
+    req.dir.uni_to_nni = has_uni_to_nni;
+    req.dir.nni_to_uni = has_nni_to_uni;
+    req.rule.valid = has_rule_type;
+    req.rule.both = has_rule_both;
+    req.rule.rx = has_rx;
+    req.rule.tx = has_tx;
+    req.tx.valid = has_tx_lookup;
+    req.tx.vid = has_tx_vid;
+    req.tx.pcp_vid = has_pcp_vid;
+    req.tx.isdx = has_isdx;
+    req.dummy = has_l2cp_action;
+    req.l2cp_mode.valid = has_l2cp_mode;
+    req.l2cp_mode.tunnel = has_tunnel;
+    req.l2cp_mode.peer = has_peer;
+    req.dummy = has_forward;
+    req.l2cp_mode.discard = has_discard;
+    req.l2cp_dmac.valid = has_l2cp_dmac;
+    req.l2cp_dmac.cisco = has_cisco;
+    req.dummy = has_custom;
+    req.evc.valid = has_evc_ece;
+    req.evc.value = (has_evc_none ? VTSS_EVC_ID_NONE : evc_id);
+    req.pol.valid = has_policer;
+    req.pol.value = policer_id;
+    req.pol.none = has_policer_none;
+    req.pol.discard = has_policer_discard;
+    req.pol.evc = has_policer_evc;
+    req.pop.valid = has_pop;
+    req.pop.value = pop;
+    req.policy.valid = has_policy;
+    req.policy.value = policy_no;
+    req.cos.valid = has_cos;
+    req.cos.disable = has_cos_disable;
+    req.cos.value = cos;
+    req.dpl.valid = has_dpl;
+    req.dpl.disable = has_dpl_disable;
+    req.dpl.value = dpl;
+    evc_icli_ece_add(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no evc ece <uint>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! evc
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_EVC
+BYWORD  = 
+
+! ece
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_ECE
+BYWORD  = 
+
+! <uint>
+CMD_VAR = ece_id
+RUNTIME = evc_icli_runtime_ece_id
+HELP    = ##HELP_ECE_ID
+BYWORD  = <EceId : uint>
+
+VARIABLE_BEGIN
+    evc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    evc_icli_req_init(&req, session_id);
+    req.ece.value = ece_id;
+    evc_icli_ece_del(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = evc [ update ] [ dei { colored | fixed } ] [ tag { inner | outer } ] [ key { double-tag | normal | ip-addr | mac-ip-addr } ] [ key-advanced { double-tag | normal | ip-addr | mac-ip-addr } ] [ addr { source | destination } ] [ addr-advanced { source | destination } ] [ l2cp { [ peer [ <0~31> ] ] [ forward [ <0~31> ] ] [ discard [ <0~31> ] ] }*1 ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! evc
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##HELP_EVC
+BYWORD  = 
+
+! update
+CMD_VAR = has_update
+RUNTIME = 
+HELP    = ##HELP_UPDATE
+BYWORD  = update : Option
+
+! dei
+CMD_VAR = has_dei
+RUNTIME = evc_present_crcl_jr1
+HELP    = Setup DEI mode
+BYWORD  = dei : Option
+
+! colored
+CMD_VAR = has_colored
+RUNTIME = evc_present_crcl_jr1
+HELP    = Allow policer to set DEI
+BYWORD  = colored : Option
+
+! fixed
+CMD_VAR = has_fixed
+RUNTIME = evc_present_crcl_jr1
+HELP    = Use classified DEI
+BYWORD  = fixed : Option
+
+! tag
+CMD_VAR = has_tag
+RUNTIME = evc_present_crcl
+HELP    = Setup tag match mode
+BYWORD  = tag : Option
+
+! inner
+CMD_VAR = has_inner
+RUNTIME = evc_present_crcl
+HELP    = Match inner tag
+BYWORD  = inner : Option
+
+! outer
+CMD_VAR = has_outer
+RUNTIME = evc_present_crcl
+HELP    = Match outer tag
+BYWORD  = outer : Option
+
+! key
+CMD_VAR = has_key
+RUNTIME = evc_present_srvl
+HELP    = Setup basic (first) ingress lookup key type
+BYWORD  = key : Option
+
+! double-tag
+CMD_VAR = has_double_tag
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_KEY_DOUBLE_TAG
+BYWORD  = double-tag : Option
+
+! normal
+CMD_VAR = has_normal
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_KEY_NORMAL
+BYWORD  = normal : Option
+
+! ip-addr
+CMD_VAR = has_ip_addr
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_KEY_IP_ADDR
+BYWORD  = ip-addr : Option
+
+! mac-ip-addr
+CMD_VAR = has_mac_ip_addr
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_KEY_MAC_IP_ADDR
+BYWORD  = mac-ip-addr : Option
+
+! key-advanced
+CMD_VAR = has_key_advanced
+RUNTIME = evc_present_srvl
+HELP    = Setup advanced (second) ingress lookup key type
+BYWORD  = key-advanced : Option
+
+! double-tag
+CMD_VAR = has_double_tag_1
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_KEY_DOUBLE_TAG
+BYWORD  = double-tag : Option
+
+! normal
+CMD_VAR = has_normal_1
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_KEY_NORMAL
+BYWORD  = normal : Option
+
+! ip-addr
+CMD_VAR = has_ip_addr_1
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_KEY_IP_ADDR
+BYWORD  = ip-addr : Option
+
+! mac-ip-addr
+CMD_VAR = has_mac_ip_addr_1
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_KEY_MAC_IP_ADDR
+BYWORD  = mac-ip-addr : Option
+
+! addr
+CMD_VAR = has_addr
+RUNTIME = evc_present_crcl_srvl
+HELP    = Setup address match mode
+BYWORD  = addr : Option
+
+! source
+CMD_VAR = has_source
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_ADDR_SOURCE
+BYWORD  = source : Option
+
+! destination
+CMD_VAR = has_destination
+RUNTIME = evc_present_crcl_srvl
+HELP    = ##HELP_ADDR_DEST
+BYWORD  = destination : Option
+
+! addr-advanced
+CMD_VAR = has_addr_advanced
+RUNTIME = evc_present_srvl
+HELP    = Setup advanced (second) ingress lookup address match mode
+BYWORD  = addr-advanced : Option
+
+! source
+CMD_VAR = has_source_1
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_ADDR_SOURCE
+BYWORD  = source : Option
+
+! destination
+CMD_VAR = has_destination_1
+RUNTIME = evc_present_srvl
+HELP    = ##HELP_ADDR_DEST
+BYWORD  = destination : Option
+
+! l2cp
+CMD_VAR = has_l2cp
+RUNTIME = 
+HELP    = Setup L2CP forwarding
+BYWORD  = l2cp : Option
+
+! peer
+CMD_VAR = has_peer
+RUNTIME = 
+HELP    = Redirect L2CP frames to local protocol entity
+BYWORD  = peer : Option
+
+! <0~31>
+CMD_VAR = l2cp_peer_list
+RUNTIME = 
+HELP    = ##HELP_L2CP_LIST
+BYWORD  = <L2cpPeerList : 0~31>
+
+! forward
+CMD_VAR = has_forward
+RUNTIME = 
+HELP    = Allow forwarding of L2CP frames
+BYWORD  = forward : Option
+
+! <0~31>
+CMD_VAR = l2cp_forward_list
+RUNTIME = 
+HELP    = ##HELP_L2CP_LIST
+BYWORD  = <L2cpForwardList : 0~31>
+
+! discard
+CMD_VAR = has_discard
+RUNTIME = evc_present_jr1_srvl
+HELP    = Discard L2CP frames
+BYWORD  = discard : Option
+
+! <0~31>
+CMD_VAR = l2cp_discard_list
+RUNTIME = evc_present_jr1_srvl
+HELP    = ##HELP_L2CP_LIST
+BYWORD  = <L2cpDiscardList : 0~31>
+
+VARIABLE_BEGIN
+    evc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    evc_icli_req_init(&req, session_id);
+    req.port_list = plist;
+    req.update = has_update;
+    req.dei_colour.valid = has_dei;
+    req.dei_colour.value = has_colored;
+    req.dummy = has_fixed;   
+    req.tag_inner.valid = has_tag;
+    req.tag_inner.value = has_inner;
+    req.dummy = has_outer;
+    req.key.valid = has_key;
+    req.key.double_tag = has_double_tag;
+    req.key.normal = has_normal;
+    req.key.ip_addr = has_ip_addr;
+    req.dummy = has_mac_ip_addr;
+    req.key_adv.valid = has_key_advanced;
+    req.key_adv.double_tag = has_double_tag_1;
+    req.key_adv.normal = has_normal_1;
+    req.key_adv.ip_addr = has_ip_addr_1;
+    req.dummy = has_mac_ip_addr_1;
+    req.addr.valid = has_addr;
+    req.dummy = has_source;
+    req.addr.value = has_destination;
+    req.addr_adv.valid = has_addr_advanced;
+    req.dummy = has_source_1;
+    req.addr_adv.value = has_destination_1;
+    req.dummy = has_l2cp;
+    req.dummy = has_peer;
+    req.l2cp.peer_list = l2cp_peer_list;
+    req.dummy = has_forward;
+    req.l2cp.forward_list = l2cp_forward_list;
+    req.dummy = has_discard;
+    req.l2cp.discard_list = l2cp_discard_list;
+    evc_icli_port(&req);
+CODE_END
+
+CMD_END
+
+

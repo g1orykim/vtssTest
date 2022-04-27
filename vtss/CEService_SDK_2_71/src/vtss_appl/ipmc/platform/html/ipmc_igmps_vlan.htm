@@ -1,0 +1,519 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IGMP Snooping VLAN Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_ipmc_igmps_vlan.htm";
+
+var reqObject;
+var NewVidArray = Array();  //Store Index
+var OldVidArray = Array();  //Store VID
+var oTCompatibilityE = Array("IGMP-Auto", "Forced IGMPv1", "Forced IGMPv2", "Forced IGMPv3");
+var oVCompatibilityE = Array(0, 1, 2, 3);
+var oTCompatibilityD = Array("-", "IGMP-Auto", "Forced IGMPv1", "Forced IGMPv2", "Forced IGMPv3");
+var oVCompatibilityD = Array(-1, 0, 1, 2, 3);
+var oTIntfPri = Array("0", "1", "2", "3", "4", "5", "6", "7");
+var oVIntfPri = Array(0, 1, 2, 3, 4, 5, 6, 7);
+var LastVlanVal = 1;
+var ipmc_smb = false;
+var oldEntriesNum, newEntriesNum;
+
+function CreateTableHeader (frag)
+{
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Delete", "hdrc");
+    addTextHeaderCell(tr, "VLAN ID", "hdrc");
+    addTextHeaderCell(tr, "Snooping Enabled", "hdrc");
+    addTextHeaderCell(tr, "Querier Election", "hdrc");
+    addTextHeaderCell(tr, "Querier Address", "hdrc");
+
+    if (ipmc_smb) {
+        addTextHeaderCell(tr, "Compatibility", "hdrc");
+        addTextHeaderCell(tr, "PRI", "hdrc");
+        addTextHeaderCell(tr, "RV", "hdrc");
+        addTextHeaderCell(tr, "QI (sec)", "hdrc");
+        addTextHeaderCell(tr, "QRI (0.1 sec)", "hdrc");
+        addTextHeaderCell(tr, "LLQI (0.1 sec)", "hdrc");
+        addTextHeaderCell(tr, "URI (sec)", "hdrc");
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRow(index, frag, values)
+{
+    var td, tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var rowIdx, vid_val = values[0];
+
+    rowIdx = oldEntriesNum;
+    OldVidArray[oldEntriesNum++] = vid_val;
+
+    // Store the last VID in the table shown ( Used when the ">>" button
+    // is pressed to find out where to start the lookup)
+    LastVlanVal = parseInt(vid_val, 10) + 1;
+
+    td = addHiddenInputCell(tr, vid_val, "cr", "mvid_ipmc_vlan_" + rowIdx);
+    td.readOnly = true;
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addCheckBoxCell(tr, 0, "c", "delete_ipmc_vlan_" + vid_val);
+    addTextCell(tr, vid_val, "cr");
+
+    addCheckBoxCell(tr, parseInt(values[1], 10), "c", "vlan_mode_" + vid_val);
+    addCheckBoxCell(tr, parseInt(values[2], 10), "c", "vlan_query_" + vid_val);
+    if (values[3]) {
+        td = addInputCell(tr, values[3], "cr", "vlan_qradr_" + vid_val, 15);
+    } else {
+        td = addInputCell(tr, "0.0.0.0", "cr", "vlan_qradr_" + vid_val, 15);
+    }
+    td.setAttribute("maxLength", 15);
+
+    if (ipmc_smb) {
+        if (values[4]) {
+            addSelectCell(tr, oTCompatibilityE, oVCompatibilityE, parseInt(values[4], 10), "c", "vlan_compat_" + vid_val);
+        } else {
+            addSelectCell(tr, oTCompatibilityD, oVCompatibilityD, 0, "c", "vlan_compat_" + vid_val);
+        }
+        if (values[10]) {
+            td = addSelectCell(tr, oTIntfPri, oVIntfPri, parseInt(values[10], 10), "cr", "vlan_pri_" + vid_val);
+        } else {
+            td = addSelectCell(tr, oTIntfPri, oVIntfPri, 0, "cr", "vlan_pri_" + vid_val);
+        }
+
+        if (values[5]) {
+            td = addInputCell(tr, parseInt(values[5], 10), "cr", "vlan_rv_" + vid_val, 3);
+        } else {
+            td = addInputCell(tr, 2, "cr", "vlan_rv_" + vid_val, 3);
+        }
+        td.setAttribute("maxLength", 3);
+        if (values[6]) {
+            td = addInputCell(tr, parseInt(values[6], 10), "cr", "vlan_qi_" + vid_val, 5);
+        } else {
+            td = addInputCell(tr, 125, "cr", "vlan_qi_" + vid_val, 5);
+        }
+        td.setAttribute("maxLength", 5);
+        if (values[7]) {
+            td = addInputCell(tr, parseInt(values[7], 10), "cr", "vlan_qri_" + vid_val, 5);
+        } else {
+            td = addInputCell(tr, 100, "cr", "vlan_qri_" + vid_val, 5);
+        }
+        td.setAttribute("maxLength", 5);
+        if (values[8]) {
+            td = addInputCell(tr, parseInt(values[8], 10), "cr", "vlan_llqi_" + vid_val, 5);
+        } else {
+            td = addInputCell(tr, 10, "cr", "vlan_llqi_" + vid_val, 5);
+        }
+        td.setAttribute("maxLength", 5);
+        if (values[9]) {
+            td = addInputCell(tr, parseInt(values[9], 10), "cr", "vlan_uri_" + vid_val, 5);
+        } else {
+            td = addInputCell(tr, 1, "cr", "vlan_uri_" + vid_val, 5);
+        }
+        td.setAttribute("maxLength", 5);
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    oldEntriesNum = newEntriesNum = 0;
+    if (reqObject !== req) {
+        reqObject = req;
+    }
+
+    // Format: [start_vid],[num_of_entries],[ipmc_smb],[vid]/[vlan_mode]/[vlan_query]/[querier_adrs]/[compat]/[rv]/[qi]/[qri]/[llqi]/[uri]|...
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        var fld, inputConfig = req.responseText.split(",");
+
+        fld = document.getElementById("StartVid");
+        fld.value = fld.defaultValue = parseInt(inputConfig[0], 10);
+
+        fld = document.getElementById("NumberOfEntries");
+        fld.value = fld.defaultValue = parseInt(inputConfig[1], 10);
+
+        ipmc_smb = parseInt(inputConfig[2], 10);
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        CreateTableHeader(frag);
+
+        // Determine if there are any entries
+        if (inputConfig[3] !== "NoEntries") {
+            var vlanval = inputConfig[3].split("|");
+            for (var i = 0; i < vlanval.length; i++) {
+                if (vlanval[i]) {
+                    addRow(i, frag, vlanval[i].split("/"));
+                }
+            }
+        }
+
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+}
+
+function requestUpdate(type)
+{
+    if (type == "GetFirstEntry") {
+        loadXMLDoc(SpomAddSidArg("/config/ipmc_vlan?ipmc_version=1&DynStartVid=1" + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value),
+                   processUpdate, 'vlanData');
+    } else if (type == "NextEntries") {
+        if ((LastVlanVal >= configVlanIdMin) && (LastVlanVal <= configVlanIdMax)) {
+            loadXMLDoc(SpomAddSidArg("/config/ipmc_vlan?ipmc_version=1&DynStartVid=" + LastVlanVal  + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value),
+                       processUpdate, 'vlanData');
+        } else {
+            alert("The value of VLAN is restricted to 1 - 4095");
+        }
+    } else if (type == "Refresh") {
+        loadXMLDoc(SpomAddSidArg("/config/ipmc_vlan?ipmc_version=1&DynStartVid=" + document.getElementById("StartVid").value  + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value),
+                   processUpdate, 'vlanData');
+    } else {
+        // This happens when the save button is pressed
+        loadXMLDoc(SpomAddSidArg("/config/ipmc_vlan?ipmc_version=1"), processUpdate, 'vlanData');
+    }
+    SpomUpdateFormSid("submit_sid");
+}
+
+function addEntryIdx()
+{
+    var i, fld, cnt, idx;
+
+    cnt = idx = 0;
+    for (i = 1; i <= configIpmcVLANsMax; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            if (idx === 0) {
+                idx = i;
+            }
+        } else {
+            cnt++;
+        }
+    }
+
+    if (idx) {
+        if ((oldEntriesNum + cnt + 1) > configIpmcVLANsMax) {
+            idx = 0;
+        } else {
+            NewVidArray[newEntriesNum++] = idx;
+        }
+    }
+
+    return idx;
+}
+
+function delEntryIdx(id, trBody)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == NewVidArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                NewVidArray[j] = NewVidArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById("vlanData").removeChild(trBody);
+}
+
+function AddNewRow()
+{
+    var entryIdx = addEntryIdx();
+    if (entryIdx === 0) {
+        alert("The maximum number of entries is " + configIpmcVLANsMax);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var newRowIndex = oldEntriesNum + entryIdx + 1;    //+1: Header is the first row
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", newRowIndex % 2 ? "config_odd" : "config_even");
+
+    var button = document.createElement('input');
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    button.onclick = function() { delEntryIdx(this.id, tr);};
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+
+    td = addInputCell(tr, "", "cr", "new_mvid_ipmc_vlan_" + entryIdx, 4);
+    td.setAttribute("maxLength", 4);
+    addCheckBoxCell(tr, 0, "c", "new_vmode_ipmc_vlan_" + entryIdx);
+    addCheckBoxCell(tr, 1, "c", "new_vqry_ipmc_vlan_" + entryIdx);
+    td = addInputCell(tr, "0.0.0.0", "cr", "new_vqradr_ipmc_vlan_" + entryIdx, 15);
+    td.setAttribute("maxLength", 15);
+
+    if (ipmc_smb) {
+        addSelectCell(tr, oTCompatibilityE, oVCompatibilityE, 0, "c", "new_vcompat_ipmc_vlan_" + entryIdx);
+        addSelectCell(tr, oTIntfPri, oVIntfPri, 0, "c", "new_vpri_ipmc_vlan_" + entryIdx);
+        td = addInputCell(tr, 2, "cr", "new_vrv_ipmc_vlan_" + entryIdx, 3);
+        td.setAttribute("maxLength", 3);
+        td = addInputCell(tr, 125, "cr", "new_vqi_ipmc_vlan_" + entryIdx, 5);
+        td.setAttribute("maxLength", 5);
+        td = addInputCell(tr, 100, "cr", "new_vqri_ipmc_vlan_" + entryIdx, 5);
+        td.setAttribute("maxLength", 5);
+        td = addInputCell(tr, 10, "cr", "new_vllqi_ipmc_vlan_" + entryIdx, 5);
+        td.setAttribute("maxLength", 5);
+        td = addInputCell(tr, 1, "cr", "new_vuri_ipmc_vlan_" + entryIdx, 5);
+        td.setAttribute("maxLength", 5);
+    }
+    frag.appendChild(tr);
+
+    var tbody = document.getElementById("vlanData");
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function checkForm()
+{
+    var i, j, fld, matchCnt, mvid, idx, intf_qi, intf_qri;
+
+    if (!isWithinRange("StartVid", 1, 4095, "'Start Vid'", " ")) {
+        return false;
+    }
+    if (!isWithinRange("NumberOfEntries", 1, 99, "'Number of entries'", " ")) {
+        return false;
+    }
+
+    matchCnt = 0;
+    for (i = 0; i < oldEntriesNum; i++) {
+        mvid = OldVidArray[i];
+
+        fld = document.getElementById("delete_ipmc_vlan_" + mvid);
+        if (fld.checked) {
+            continue;
+        }
+
+        fld = document.getElementById("vlan_qradr_" + mvid);
+        if (fld && !isIpStr("vlan_qradr_" + mvid, 0, "'Querier Address'")) {
+            return false;
+        }
+
+        fld = document.getElementById("vlan_rv_" + mvid);
+        if (fld) {
+            if (!isWithinRange("vlan_rv_" + mvid, 1, 255, "'RV'", " ")) {
+                return false;
+            }
+
+            if (String(fld.value) == "1") {
+                if (confirm("Robustness Variable SHOULD NOT be one.") === false) {
+                    return false;
+                }
+            }
+        }
+
+        intf_qi = 0;
+        fld = document.getElementById("vlan_qi_" + mvid);
+        if (fld) {
+            intf_qi = fld.value;
+            if (!isWithinRange("vlan_qi_" + mvid, 1, 31744, "'QI'", " ")) {
+                return false;
+            }
+        }
+        intf_qri = 0;
+        fld = document.getElementById("vlan_qri_" + mvid);
+        if (fld) {
+            intf_qri = fld.value;
+            if (!isWithinRange("vlan_qri_" + mvid, 0, 31744, "'QRI'", " ")) {
+                return false;
+            }
+        }
+        if (intf_qi && intf_qri && (intf_qri >= (intf_qi * 10))) {
+            alert("The number of seconds represented by QRI must be less than QI!\nPlease assign a proper QI value (Greater than " + Math.floor(intf_qri / 10) + ").");
+            return false;
+        }
+
+        fld = document.getElementById("vlan_uri_" + mvid);
+        if (fld && !isWithinRange("vlan_uri_" + mvid, 0, 31744, "'URI'", " ")) {
+            return false;
+        }
+
+        matchCnt++;
+    }
+
+    for (i = 0; i < newEntriesNum; i++) {
+        idx = NewVidArray[i];
+        fld = document.getElementById("new_mvid_ipmc_vlan_" + idx);
+        if (fld) {
+            mvid = fld.value;
+
+            if (!isWithinRange("new_mvid_ipmc_vlan_" + idx, 1, 4095, "'IPMC VID'", " ")) {
+                return false;
+            }
+
+            for (j = 0; j < oldEntriesNum; j++) {
+                fld = document.getElementById("delete_ipmc_vlan_" + OldVidArray[j]);
+                if (fld.checked) {
+                    continue;
+                }
+
+                if (parseInt(fld.value, 10) == parseInt(mvid, 10)) {
+                    alert("An entry already exists with IPMC VID equal to " + mvid);
+                    return false;
+                }
+            }
+
+            fld = document.getElementById("new_vqradr_ipmc_vlan_" + idx);
+            if (fld && !isIpStr("new_vqradr_ipmc_vlan_" + idx, 0, "'Querier Address'")) {
+                return false;
+            }
+
+            fld = document.getElementById("new_vrv_ipmc_vlan_" + idx);
+            if (fld) {
+                if (!isWithinRange("new_vrv_ipmc_vlan_" + idx, 1, 255, "'RV'", " ")) {
+                    return false;
+                }
+
+                if (String(fld.value) == "1") {
+                    if (confirm("Robustness Variable SHOULD NOT be one.") === false) {
+                        return false;
+                    }
+                }
+            }
+
+            intf_qi = 0;
+            fld = document.getElementById("new_vqi_ipmc_vlan_" + idx);
+            if (fld) {
+                intf_qi = fld.value;
+                if (!isWithinRange("new_vqi_ipmc_vlan_" + idx, 1, 31744, "'QI'", " ")) {
+                    return false;
+                }
+            }
+            intf_qri = 0;
+            fld = document.getElementById("new_vqri_ipmc_vlan_" + idx);
+            if (fld) {
+                intf_qri = fld.value;
+                if (!isWithinRange("new_vqri_ipmc_vlan_" + idx, 0, 31744, "'QRI'", " ")) {
+                    return false;
+                }
+            }
+            if (intf_qi && intf_qri && (intf_qri >= (intf_qi * 10))) {
+                alert("The number of seconds represented by QRI must be less than QI!\nPlease assign a proper QI value (Greater than " + Math.floor(intf_qri / 10) + ").");
+                return false;
+            }
+
+            fld = document.getElementById("new_vuri_ipmc_vlan_" + idx);
+            if (fld && !isWithinRange("new_vuri_ipmc_vlan_" + idx, 0, 31744, "'URI'", " ")) {
+                return false;
+            }
+
+            if (matchCnt < configIpmcVLANsMax) {
+                matchCnt++;
+            } else {
+                alert("The maximum number of entries is " + configMvrVlanMax);
+                return false;
+            }
+        }
+    }
+
+    return true;    // Feed the chickens and go home
+}
+
+function clickCtrlButton(type)
+{
+    if (checkForm()) {
+        requestUpdate(type);
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "vlanData");
+}
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate('GetFirstEntry');">
+
+<h1>IGMP Snooping VLAN Configuration</h1>
+
+<form method="POST" action="/config/ipmc_vlan" onsubmit="return checkForm();">
+
+<div class="refreshbar">
+  <input type="button" value="Refresh" onclick="clickCtrlButton('Refresh');">
+  <input type="button" value=" |<< " title="First page" onclick="requestUpdate('GetFirstEntry');">
+  <input type="button" value=" >> " title="Next page" onclick="clickCtrlButton('NextEntries');">
+</div>
+
+<p class="config">
+  <span class="displaytext">Start from VLAN</span>
+  <input type="text" id="StartVid" name="StartVid" maxlength="4" value="1" size = "4">
+  <span class="displaytext"> with </span>
+  <input type="text" id="NumberOfEntries" name="NumberOfEntries" maxlength="2" value = "20" size = "2">
+  <span class="displaytext"> entries per page. </span>
+</p>
+
+<table id="vlanConfig" summary="VLAN IGMP Snooping Configuration" cellspacing="0" class="config">
+ <tbody id="vlanData">
+ </tbody>
+</table>
+
+<p>
+  <input type="hidden" id="submit_sid" name="sid">
+  <input type="hidden" id="ipmc_version" name="ipmc_version" value="1">
+  <input type="button" id="addNewEntry" value="Add New IGMP VLAN" onclick="AddNewRow();">
+</p>
+<p>
+  <input type="submit" value="Save">
+  <input type="reset" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

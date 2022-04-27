@@ -1,0 +1,65 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files location
+DIR_priv_lvl := $(DIR_APPL)/priv_lvl
+
+# Built-in ICLI
+$(eval $(call add_icli, $(foreach m, vtss_privilege, $(DIR_priv_lvl)/$(m).icli)))
+
+# Module platform objects
+OBJECTS_priv_lvl := vtss_privilege.o \
+$(if $(MODULE_VCLI),vtss_privilege_cli.o) \
+$(if $(MODULE_WEB),vtss_privilege_web.o) \
+$(if $(MODULE_CONF_XML),vtss_privilege_xml.o) \
+$(if $(MODULE_ICFG),vtss_privilege_icfg.o)
+
+# Compiler rules
+$(OBJECTS_priv_lvl): %.o: $(DIR_priv_lvl)/%.c
+	$(call compile_c, $@, $<)
+
+# Include files
+INCLUDES += -I$(DIR_priv_lvl)
+
+# Web content generation
+WEB_CONTENT += $(DIR_priv_lvl)/html
+
+# Lint files
+LINT_FILES_priv_lvl += $(DIR_priv_lvl)/vtss_privilege.c    \
+  $(if $(MODULE_VCLI),$(DIR_priv_lvl)/vtss_privilege_cli.c) \
+  $(if $(MODULE_WEB),$(DIR_priv_lvl)/vtss_privilege_web.c) \
+  $(if $(MODULE_CONF_XML),$(DIR_priv_lvl)/vtss_privilege_xml.c) \
+  $(if $(MODULE_ICFG),$(DIR_priv_lvl)/vtss_privilege_icfg.c)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_priv_lvl += $(DIR_priv_lvl)/*.c $(DIR_priv_lvl)/*.h
+
+# Tidy files
+TIDY_FILES_priv_lvl += $(DIR_priv_lvl)/html/*.htm $(DIR_priv_lvl)/html/help/*.htm
+
+# JSLINT files
+JSLINT_FILES_priv_lvl += $(DIR_priv_lvl)/html/*.htm $(DIR_priv_lvl)/html/help/*.htm
+

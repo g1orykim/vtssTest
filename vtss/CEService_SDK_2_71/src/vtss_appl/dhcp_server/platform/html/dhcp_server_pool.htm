@@ -1,0 +1,346 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DHCP Server Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript" src="lib/deviceid.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_dhcp_server_pool.htm";
+
+var reqObject;
+
+var pool_frag;
+var pool_id      = 0;
+var pool_cnt     = 0;
+var pool_max_cnt = 64;
+
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = Array(0, 1);
+
+var name_style_width   = "20em";
+var lease_style_width  = "16em";
+var delete_style_width = "6em";
+var txt_style_width    = "6em";
+
+function CreatePoolTableHeader( frag )
+{
+    var tr;
+
+    tr = CreateStyledElement("tr", "config_header");
+
+    addTextHeaderCell(tr, "Delete",      "hdrc");
+    addTextHeaderCell(tr, "Name",        "hdrc");
+    addTextHeaderCell(tr, "Type",        "hdrc");
+    addTextHeaderCell(tr, "IP",          "hdrc");
+    addTextHeaderCell(tr, "Subnet Mask", "hdrc");
+    addTextHeaderCell(tr, "Lease Time",  "hdrc");
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addPoolRow( index, frag, values )
+{
+    var tr, i, pool_name, td, txt, link;
+
+    // create a row
+    tr = CreateStyledElement("tr", index % 2 ? "config_even" : "config_odd");
+
+    // Delete
+    i = 0;
+    pool_name = values[i++]; // name in escape
+
+    td = addCheckBoxCell(tr, 0, "c", "pool_delete_" + unescape(pool_name));
+    td.style.width = delete_style_width;
+
+    // Name
+    addLink(tr, "cl", "dhcp_server_pool_config.htm?pool_name=" + pool_name, unescape(pool_name));
+
+    //txt  = document.createTextNode( unescape(pool_name) );
+    //link = document.createElement("a");
+    //link.href = "dhcp_server_pool_config.htm?pool_name=" + pool_name;
+    //link.appendChild( txt );  // Add Text
+
+    //td = CreateStyledElement("td", "cl");
+    //td.appendChild( link );   // Add link to cell
+
+    //td.style.width = name_style_width;
+    //td.setAttribute("class", "cl"); // For FF
+    //td.setAttribute("className", "cl"); // For MSIE
+    //tr.appendChild( td );     // Add cell to row
+
+    // Type
+    td = addTextCell(tr, values[i++], "cl");
+    td.style.width = txt_style_width;
+
+    // IP
+    td = addTextCell(tr, values[i++], "cl");
+    td.style.width = txt_style_width;
+
+    // Netmask
+    td = addTextCell(tr, values[i++], "cl");
+    td.style.width = txt_style_width;
+
+    // Lease Time
+    td = addTextCell(tr, values[i++], "cl");
+    td.style.width = lease_style_width;
+
+    // Add row to fragment
+    frag.appendChild( tr );
+}
+
+function processUpdate( req, ref )
+{
+    var i, n, configData, pool_list, tbody;
+
+    if ( req.responseText === null ) {
+        return;
+    }
+
+    if ( reqObject != req ) {
+        reqObject = req;
+    }
+
+    //
+    //  Format: <pool_list>
+    //      <pool_list>     : <pool_entry>|<pool_entry>|...
+    //      <pool_entry>    : <name>,type,ip,netmask,lease
+    //
+
+    // Pool Setting
+    pool_frag = document.createDocumentFragment();
+
+    // create header
+    CreatePoolTableHeader( pool_frag );
+
+    // <pool_list>
+    configData = req.responseText.split("|");
+    for( i = 0, n = 0; i < configData.length; i++ ) {
+        pool_list = configData[i].split(",");
+        if ( pool_list && (pool_list.length == 5) ) {
+            addPoolRow(++n, pool_frag, pool_list);
+        }
+    }
+    pool_id  = 0;
+    pool_cnt = n;
+
+    tbody = document.getElementById("poolData");
+    clearChildNodes( tbody );
+    if ( ! tbody.appendChild(pool_frag) ) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "poolData");
+}
+
+function requestUpdate()
+{
+    loadXMLDoc("/config/dhcp_server_pool", processUpdate, "poolData");
+}
+
+function checkForm( form )
+{
+    var i, j, fld_low, fld_high, fld;
+
+    // Pool name
+    for ( i = 1; i <= pool_max_cnt; i++ ) {
+        fld = document.getElementById("pool_add_" + i);
+        if ( fld === null ) {
+            continue;
+        }
+
+        if ( fld.value !== "" ) {
+            for ( j = 0 ; j <= fld.value.length; j++ ) {
+            	if ( fld.value.charAt(j) == " " ) {
+                    GiveAlert("Pool name, "+fld.value+", can not contain SPACE.", fld);
+                    return false;
+            	}
+            }
+        }
+    }
+
+    return true; // Feed the chickens and go home
+}
+
+//
+//  free index get
+//  if 0, it means no free entry
+//
+function freeIndexGet( title, id_prefix, current_cnt, max_cnt )
+{
+    var i, fld;
+
+    // check current count
+    if ( current_cnt >= max_cnt ) {
+        alert("The maximum number of " + title + " is " + max_cnt + ".");
+        return 0;
+    }
+
+    // find free index
+    for ( i = 1; i <= max_cnt; i++ ) {
+        fld = document.getElementById(id_prefix + i);
+        if ( fld === null ) {
+            break;
+        }
+    }
+
+    if ( i > max_cnt ) {
+        // no free index
+        return 0;
+    } else {
+        return i;
+    }
+}
+
+function poolAdd()
+{
+    var tr, button, td, tbody, button_id_prefix;
+
+    // set button ID prefix
+    button_id_prefix = "pool_delete_button_";
+
+    // get free index
+    pool_id = freeIndexGet("DHCP pools", button_id_prefix, pool_cnt, pool_max_cnt);
+
+    // full
+    if ( pool_id === 0 ) {
+        return;
+    }
+
+    // increase count
+    pool_cnt++;
+
+    // create a row
+    tr = CreateStyledElement("tr");
+
+    // Delete button
+    button = document.createElement('input');
+    button.onclick = function() {
+        pool_cnt--;
+        clearChildNodes( tr );
+        document.getElementById('poolData').deleteRow(tr.rowIndex);
+    };
+    button.id      = button_id_prefix + pool_id;
+    button.type    = "button";
+    button.value   = " Delete ";
+
+    td = CreateTd("c");
+    addCell(tr, td, button);
+
+    // Name
+    td = addInputCell(tr, "", "cl", "pool_add_" + pool_id);
+    td.setAttribute("maxLength", 32);
+    td.style.width = name_style_width;
+
+    // Type
+    td = addTextCell(tr, "-", "cl");
+    td.style.width = txt_style_width;
+
+    // IP
+    td = addTextCell(tr, "-", "cl");
+    td.style.width = txt_style_width;
+
+    // Netmask
+    td = addTextCell(tr, "-", "cl");
+    td.style.width = txt_style_width;
+
+    // Lease Time
+    td = addTextCell(tr, "1 days 0 hours 0 minutes", "cl");
+    td.style.width = lease_style_width;
+
+    // Add row to fragment
+    pool_frag.appendChild( tr );
+
+    // Add Frag to table body
+    tbody = document.getElementById("poolData");
+    if ( ! tbody.appendChild(pool_frag) ) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/dhcp_server_pool" onsubmit="return checkForm(this);">
+
+<h1>DHCP Server Pool Configuration</h1>
+
+<h2>Pool Setting</h2>
+
+<table id="poolTable" summary="DHCP Server Configuration" cellspacing="0" class="config">
+ <tbody id="poolData">
+ </tbody>
+</table>
+
+<p>
+<!--
+    vtss_appl\web\html\lib\ajax.js changeForm() defines id's to change format
+    automatically when privilege is not met. So, we can use these id's but not
+    need to create new id by ourselves.
+-->
+<input type="button" id="addNewEntry" value="Add New Pool" onclick="poolAdd();">
+</p>
+
+<br>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+<!--
+    When no input data and press Save button, the page will display "The webpage cannot be found"
+    because "400 Bad Request".
+    So, to avoid no any input data when no checkbox is checked and no new range is added,
+    this dummy will be sent.
+-->
+<input type="hidden" name="dummy">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,266 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>MVR Statistics</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+
+// Help page macic
+var help_page = "/help/help_mvr_status.htm";
+
+function createMvrStatisticsTableHeader()
+{
+    var frag = document.createDocumentFragment();
+    var tr, td;
+
+    tr = CreateStyledElement("tr", "config_header");
+
+    td = document.createElement("th");
+    td.innerHTML = "VLAN ID";
+    tr.appendChild(td);
+    frag.appendChild(tr);
+
+//    td = document.createElement("th");
+//    td.innerHTML = "Querier Status";
+//    tr.appendChild(td);
+//    frag.appendChild(tr);
+
+    td = document.createElement("th");
+    td.innerHTML = "IGMP/MLD<br/>Queries Received";
+    tr.appendChild(td);
+    frag.appendChild(tr);
+
+    td = document.createElement("th");
+    td.innerHTML = "IGMP/MLD<br/>Queries Transmitted";
+    tr.appendChild(td);
+    frag.appendChild(tr);
+
+    td = document.createElement("th");
+    td.innerHTML = "IGMPv1<br/>Joins Received";
+    tr.appendChild(td);
+    frag.appendChild(tr);
+
+    td = document.createElement("th");
+    td.innerHTML = "IGMPv2/MLDv1<br/>Reports Received";
+    tr.appendChild(td);
+    frag.appendChild(tr);
+
+    td = document.createElement("th");
+    td.innerHTML = "IGMPv3/MLDv2<br/>Reports Received";
+    tr.appendChild(td);
+    frag.appendChild(tr);
+
+    td = document.createElement("th");
+    td.innerHTML = "IGMPv2/MLDv1<br/>Leaves Received";
+    tr.appendChild(td);
+    frag.appendChild(tr);
+
+    var thead = document.getElementById('statistics_table_header');
+    clearChildNodes(thead);
+    thead.appendChild(frag);
+}
+
+function addRow(idx, frag, values) {
+    /*
+        Format:
+        [vid],[name],[querier_status];
+        [rx_igmp_query],[tx_igmp_query],
+        [rx_igmpv1_joins],[rx_igmpv2_joins],[rx_igmpv3_joins],[rx_igmpv2_leaves];
+        [rx_mld_query],[tx_mld_query],
+        [rx_mldv1_reports],[rx_mldv2_reports],[rx_mldv1_dones]|...
+    */
+    var mvrStat = values.split(";");
+    var mvrVlanConf = mvrStat[0].split(",");
+    var mvrVlanStat4 = mvrStat[1].split(",");
+    var mvrVlanStat6 = mvrStat[2].split(",");
+    var tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+
+    addTextCell(tr, mvrVlanConf[0], "c");
+//    if (parseInt(mvrVlanConf[2], 10) === 0) {
+//        addTextCell(tr, "DISABLE", "c");
+//    } else {
+//        addTextCell(tr, ((parseInt(mvrVlanConf[2], 10) == 2) ? "ACTIVE" : "IDLE"), "c");
+//    }
+    addTextCell(tr, mvrVlanStat4[0] + " / " + mvrVlanStat6[0], "c");
+    addTextCell(tr, mvrVlanStat4[1] + " / " + mvrVlanStat6[1], "c");
+    addTextCell(tr, mvrVlanStat4[2], "c");
+    addTextCell(tr, mvrVlanStat4[3] + " / " + mvrVlanStat6[2], "c");
+    addTextCell(tr, mvrVlanStat4[4] + " / " + mvrVlanStat6[3], "c");
+    addTextCell(tr, mvrVlanStat4[5] + " / " + mvrVlanStat6[4], "c");
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref) {
+    if (redirectOnError(req)) {
+        document.getElementById("update").style.visibility = "hidden";
+        document.getElementById("autoRefresh").disabled = false;
+        document.getElementById("Refresh").disabled = false;
+        document.getElementById("Clear").disabled = false;
+
+        return;
+    }
+
+    if (req.responseText) {
+        var idx, mvrStatus = req.responseText.split("|");
+
+        createMvrStatisticsTableHeader();
+        var frag = document.createDocumentFragment();
+        if (mvrStatus[0] !== "NoEntries") {
+            for (idx = 0; idx < mvrStatus.length; idx++) {
+                addRow(idx, frag, mvrStatus[idx]);
+            }
+        } else {
+            var tr = CreateStyledElement("tr", "notice");
+            addTextCell(tr, "No more entries", "cl", 7);
+            frag.appendChild(tr);
+        }
+
+        var tbody = document.getElementById("statistics_Data");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+
+        var autorefresh = document.getElementById('autoRefresh');
+        if (autorefresh.checked) {
+            if (timerID) {
+                clearTimeout(timerID);
+            }
+            timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+        }
+    } else {
+        SpomHandleError();
+    }
+
+    document.getElementById("update").style.visibility = "hidden";
+    document.getElementById("autoRefresh").disabled = false;
+    document.getElementById("Refresh").disabled = false;
+    document.getElementById("Clear").disabled = false;
+}
+
+function requestUpdate() {
+    if (SpomNavigationLoading()) {
+        return; // Bail out, navigation will trigger update
+    }
+
+    document.getElementById("update").style.visibility = "visible";
+    document.getElementById("autoRefresh").disabled = true;
+    document.getElementById("Refresh").disabled = true;
+    document.getElementById("Clear").disabled = true;
+
+    /*
+        Format:
+        [vid],[name];
+        [querier_status],[rx_igmp_query],[rx_mld_query],[tx_igmp_query],[tx_mld_query],
+        [rx_igmpv1_joins],[rx_igmpv2_joins],[rx_mldv1_reports],
+        [rx_igmpv3_joins],[rx_mldv2_reports],
+        [rx_igmpv2_leaves],[received_mldv1_dones]|...
+    */
+    loadXMLDoc(SpomAddSidArg("/stat/mvr_status"), processUpdate, "");
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function requestClear() {
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/stat/mvr_status?clear=1"), processUpdate, 'statistics_Data');
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" id="autoRefresh" name="autoRefresh" onclick="chkRefresh(this);">
+  <input type="button" id="Refresh" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <input type="button" id="Clear" value="Clear" onclick="requestClear();  this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<h1>MVR Statistics <span id="display_sid"></span></h1>
+
+<table id="statistics_table" summary="MVR Statistics Table" cellspacing="0" class="display">
+ <thead id="statistics_table_header">
+ </thead>
+ <tbody id="statistics_Data">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+
+<!-- IE caching bug -->
+<div style="visibility: hidden;">
+ <!-- <div style="padding : 0 4px 0 4px; font-size: 14pt" id="bullet">&bull;</div> -->
+ <img id="bullet" alt="" src="images/yes.gif">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

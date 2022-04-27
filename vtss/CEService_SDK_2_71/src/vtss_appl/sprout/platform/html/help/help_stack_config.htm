@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Stack Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+    window.addEvent('domready', function() {
+      $$('span.configSidMax').set('text', configSidMax);
+    });
+ </script>
+</head>
+
+<body>
+<h1>Stack Configuration Help</h1>
+
+<p>Configure the stack.</p>
+
+<dl>
+ <dt>Stacking State</dt>
+ <dd>
+ Shows whether stacking is currently enabled or disabled.
+ </dd>
+ <dt>Stacking Enabled</dt>
+ <dd>
+ If the stack consists of one active switch or stacking is disabled, it is possible to configure whether stacking must be enabled. When changing this setting, the switch must be rebooted before this takes effect.
+ </dd>
+ <dt>Delete</dt>
+ <dd>
+ Deletes this switch from the stack configuration.
+ </dd>
+ <dt>Stack Member</dt>
+ <dd>
+ The MAC address of the switch.
+ </dd>
+ <dt><a href="glossary.htm#switch_id" class="glossary">Switch ID</a></dt>
+ <dd>
+ The Switch ID (1-<span class="configSidMax">?</span>) assigned to a switch. For more information, see description of
+ <a href="#sid_detail">Switch IDs</a>.
+ </dd>
+ <dt>Master Capable</dt>
+ <dd>
+ Indicates whether a switch is capable of being master. An unmanaged switch, for example, will not be Master Capable.
+ </dd>
+ <dt>Master Priority</dt>
+ <dd>
+ The priority that the switch has in the master election process.<br>
+ The smaller the priority, the more likely the switch will become master during the master election process.
+ </dd>
+ <dt>Stack Ports</dt>
+ <dd>
+ The pair of ports used to connect to other switches in the stack. If stacking is currently enabled, the switch must be rebooted before the new stack ports take effect.
+ </dd>
+ <dt>Switch Status</dt>
+ <dd>
+ This indicates if the switch is currently present in the stack and if configuration changes requiring a reboot have been made.
+ </dd>
+ <dt>Switch Type</dt>
+ <dd>
+ The product name of the switch.
+ </dd>
+ <dt>Start Master Election</dt>
+ <dd>
+ By checking this option, the "Save" operation will also start the
+ master election process.
+ </dd>
+
+</dl>
+
+<h2> <a name="sid_detail">Switch IDs</a></h2>
+
+<h3>Assigning and Swapping Switch IDs</h3>
+
+<p>When a switch is added to the stack, a Switch ID is automatically
+assigned to the switch.  The automatic SID assignment can be modified
+by choosing a different Switch ID on the Stack Configuration
+page. This method allows Switch IDs to be assigned so that it is easier for
+the user to remember the ID of each switch.</p>
+
+<p>The Switch IDs of two switches can be swapped by simply
+interchanging the values in the Switch ID column. Changing Switch
+IDs does not result in any interruption of the stack operation.</p>
+
+<h3>Removing a Switch From the Stack</h3>
+
+<p>When a switch is removed from the stack, the configuration for the
+switch is preserved, and the switch still appears on the Stack
+Configuration page.  If the configuration of the switch is not to be
+transferred to another switch, then the configuration may be deleted
+by choosing Delete, followed by "Save".</p>
+
+<h3>Replacing a Switch</h3>
+
+<p>If a switch is to be replaced with another switch (for example, replacing
+failing hardware), the following procedure must be used to assign the
+configuration of the failing switch to the new hardware:</p>
+
+<ol>
+<li>Remove the failing switch from the stack. For example, assume that the failing switch had Switch ID 3.</li>
+<li>Insert the new switch into the stack. The new switch is assigned an unused Switch ID.</li>
+<li>To remove the automatic switch ID assignment, choose "Delete", followed by "Save". The new switch is then shown with Switch ID set to "-".</li>
+<li>To assign the configuration of Switch ID 3 to the new hardware, simply choose 3 in the Switch ID column and click "Save".</li>
+<li>The new hardware has now taken over the configuration of the failing hardware.</li>
+</ol>
+
+
+<h3>General Switch ID Assignment Rules</h3>
+
+When assigning Switch IDs to the devices in the stack, you must note the
+following:
+
+<ol>
+<li>Switches with assigned IDs can be changed to use any other switch ID (possibly by swapping Switch ID with another active switch).</li>
+<li>When swapping two Switch IDs, the devices will retain their (own) configuration, except for the Switch ID.</li>
+<li>Switches without an assigned Switch ID can only be assigned to any <i>unused</i> ID.</li>
+<li>When assigning a Switch ID of an inactive switch to a new switch, the new switch will inherit the former's configuration (see "Replacing a Switch" above).</li>
+<li>Deleting a switch will remove any configuration pertaining to it.</li>
+<li>Deleting an <i>active</i> switch will leave it with an unassigned Switch ID until rebooted or manually assigning a Switch ID.</li>
+</ol>
+
+<h2>Master Election</h2>
+
+<p>Within a managed stack, <i>one</i> master switch (or just "master") must be elected. Any switch not being master is a slave switch (or just "slave").</p>
+
+<p>To elect a master, the following criteria are evaluated sequentially:</p>
+<ol>
+<li>If any switch already claims to have been master for more than 30 seconds, then that switch will become master.</li>
+<li>If multiple switches claim to have been master for more than 30 seconds, then the switch which has been master for the longest period of time will become master.</li>
+<li>The switch with the smallest master priority.</li>
+<li>The switch with the smallest MAC address.</li>
+</ol>
+
+<p>The above algorithm ensures that once a master has been elected and has been master for more than 30 seconds, it will remain master. However in some cases the user may want to enforce a new master election. This is done by clicking "Start Master Election", followed by "Save". This causes the first two criteria to be ignored, thereby basing master election only on master priority and MAC address. When master election is enforced, the first two criteria are ignored for a period of 10-15 seconds. On the Stack State Monitor web page, this is shown by "Reelect" being set to "Yes" for one of the switches in the stack.</p>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

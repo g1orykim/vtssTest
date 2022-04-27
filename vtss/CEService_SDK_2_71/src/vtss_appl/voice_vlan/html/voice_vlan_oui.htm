@@ -1,0 +1,267 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Voice VLAN OUI Table Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_voice_vlan_oui.htm";
+
+var reqObject;
+var entryIdxArray = Array();
+var ouiAddrArray = Array();
+var originalEntriesNum, newEntriesNum;
+var maxEntriesNum = 16;
+
+function CreateTableHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Delete", "hdrc");
+    addTextHeaderCell(tr, "Telephony OUI", "hdrc");
+    addTextHeaderCell(tr, "Description", "hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRow(index, frag, values)
+{
+    ouiAddrArray[originalEntriesNum] = values[0];
+    originalEntriesNum++;
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addCheckBoxCell(tr, 0, "c", "delete_" + values[0]);
+    addTextCell(tr, values[0], "cl");
+    addTextCell(tr, unescape(values[1]), "cl");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    //Format: <max_entries_num>,<oui_addr>/<description>|...
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    originalEntriesNum = newEntriesNum = 0;
+    if (reqObject != req) {
+        reqObject = req;
+    }
+    if (req.responseText) {
+        var configData = req.responseText.split(",");
+        maxEntriesNum = configData[0];
+        var tableData = configData[1].split("|");
+
+        for (var i = 0; i < tableData.length; i++) {
+            if (tableData[i]) {
+                addRow(i, frag, tableData[i].split("/"));
+            }
+        }
+    }
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function requestUpdate()
+{
+    loadXMLDoc("/config/voice_vlan_oui", processUpdate, 'inputData');
+}
+
+function checkForm(form)
+{
+    var fld1, fld2, i , j;
+
+    //check number of max entries
+    if (newEntriesNum) {
+        var deleteEntriesNum = 0;
+
+        //counter delete entries number
+        for (i = 0; i < originalEntriesNum; i++) {
+            fld1 = document.getElementById("delete_" + ouiAddrArray[i]);
+            if (fld1.checked) {
+                deleteEntriesNum++;
+            }
+        }
+
+        if ((originalEntriesNum - deleteEntriesNum + newEntriesNum) > maxEntriesNum) {
+            alert("The maximum number of entries is " + maxEntriesNum);
+            return false;
+        }
+    }
+
+    //check new entries's
+    for (i = 0; i < newEntriesNum; i++) {
+        fld2 = document.getElementById("new_oui_addr_"+ entryIdxArray[i]);
+
+        //oui_addr
+        if (!IsOuiAddress(fld2.value, 1)) {
+            return false;
+        }
+
+        //check the entry exist in original entries
+        for (j = 0; j < originalEntriesNum; j++) {
+            if (toOuiAddress(fld2.value) == toOuiAddress(ouiAddrArray[j])) {
+                alert("The same entry already exists.");
+                return false;
+            }
+        }
+
+        //check the entry exist in new entries
+        for (j = i + 1; j < newEntriesNum; j++) {
+            if (toOuiAddress(fld2.value) == toOuiAddress(document.getElementById("new_oui_addr_"+ entryIdxArray[j]).value)) {
+                alert("The same entry already exists.");
+                return false;
+            }
+        }
+    }
+
+    return true; // Feed the chickens and go home
+}
+
+function addEntryIdx()
+{
+    var i, fld, validEntriesNum = 0;
+
+    //counter delete entries number
+    for (i = 0; i < originalEntriesNum; i++) {
+        fld = document.getElementById("delete_" + ouiAddrArray[i]);
+        if (!fld.checked) {
+            validEntriesNum++;
+        }
+    }
+    for (i = 1; i <= maxEntriesNum - validEntriesNum; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newEntriesNum++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById("inputData").removeChild(tr);
+}
+
+function AddNewRow()
+{
+    var entryIdx = addEntryIdx();
+    if (parseInt(entryIdx, 10) === 0) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalEntriesNum + entryIdx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+    var edit_ctrl = addInputCell(tr, "", "cr", "new_oui_addr_" + entryIdx, 8);
+    edit_ctrl.setAttribute("maxLength", 8);
+    edit_ctrl = addInputCell(tr, "", "cr", "new_description_" + entryIdx, 32);
+    edit_ctrl.setAttribute("maxLength", 32);
+
+    frag.appendChild(tr);       // Add row to fragment
+
+    var tbody = document.getElementById("inputData");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "inputData");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/voice_vlan_oui" onsubmit="return checkForm(this);">
+
+<h1>Voice VLAN OUI Table</h1>
+<table id="voiceVlanOuiTable" summary="Voice VLAN OUI Table" cellspacing="0" class="config">
+ <tbody id="inputData">
+ </tbody>
+</table>
+
+<p>
+<input type="button" id="addNewEntry" value="Add New Entry" onclick="AddNewRow();">
+</p>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+<!-- Avoid both checkedbox are none checked -->
+<input type="hidden" name="dummy">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

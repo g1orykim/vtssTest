@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Power Over Ethernet Status Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+    window.addEvent('domready', function() {
+      $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+  });
+ </script>
+</head>
+
+<body>
+<h1>Power Over Ethernet Status Help</h1>
+
+<p>This page allows the user to inspect the current status for all <a href="glossary.htm#PoE" class="glossary">PoE</a> ports.</p>
+
+
+<dl>
+ <dt>Local Port</dt>
+ <dd>
+   This is the logical port number for this row. 
+ </dd>
+
+
+ <dt>PD Class</dt>
+  <dd>
+    <p>Each <a href="glossary.htm#PD" class="glossary">PD</a> is
+ classified  according to a class that defines the maximum power the PD
+ will use. The <b>PD Class</b> shows the PDs class.</p>
+    <p>Five Classes are defined:</p>
+    <p>Class 0: Max. power 15.4 W</p>
+    <p>Class 1: Max. power  4.0 W</p>
+    <p>Class 2: Max. power  7.0 W</p>
+    <p>Class 3: Max. power 15.4 W</p>
+    <p>Class 4: Max. power 30.0 W</p>
+  </dd>
+
+
+ <dt>Power Requested</dt>
+ <dd>
+     The <b>Power Requested</b> shows the requested amount of power the <a
+ href="glossary.htm#PD" class="glossary">PD</a> wants to be reserved.
+  </dd>
+
+ <dt>Power Allocated</dt>
+ <dd>
+     The <b>Power Allocated</b> shows the amount of power the switch
+ has allocated for the <a
+ href="glossary.htm#PD" class="glossary">PD</a>.
+ </dd>
+
+
+ <dt>Power Used</dt>
+ <dd>
+    The <b>Power Used</b> shows how much power the <a
+    href="glossary.htm#PD" class="glossary">PD</a> currently is using.
+ </dd>
+
+ <dt>Current Used</dt>
+ <dd>
+    The <b>Power Used</b> shows how much current the <a href="glossary.htm#PD" class="glossary">PD</a> currently is using.
+ </dd>
+
+ <dt>Priority</dt>
+ <dd>
+    The <b>Priority</b> shows the port's priority configured by the
+    user.
+ </dd>
+
+ <dt>Port Status</dt>
+ <dd>
+    The <b>Port Status</b> shows the port's status. The status can be
+ one of the following values:
+    
+    <p><samp>PoE not available - No PoE chip found</samp> - <a href="glossary.htm#PoE" class="glossary">PoE</a> not supported for the port.</p>
+    <p><samp>PoE turned OFF - PoE disabled</samp> : <a href="glossary.htm#PoE" class="glossary">PoE</a> is disabled by user.</p> 
+    <p><samp>PoE turned OFF - Power budget exceeded</samp> - The total requested or used power
+ by the <a href="glossary.htm#PD" class="glossary">PD</a>s exceeds the maximum power the Power Supply can deliver, and port(s) with the lowest
+ priority is/are powered down.</p>
+    <p><samp>No PD detected</samp> - No <a href="glossary.htm#PD" class="glossary">PD</a> detected for the port.</p>
+    <p><samp>PoE turned OFF - PD overload</samp> - The <a href="glossary.htm#PD" class="glossary">PD</a> has requested
+    or used more power than the port can deliver, and is powered down.</p>
+    <p><samp>PoE turned OFF</samp> - <a href="glossary.htm#PD" class="glossary">PD</a> is off.</p>
+    <p><samp>Invalid PD</samp> - <a href="glossary.htm#PD" class="glossary">PD</a> detected, but is not working correctly.</p>
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page.</p>
+
+</body>
+</html>
+

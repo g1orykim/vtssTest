@@ -1,0 +1,232 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>LACP Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page
+var help_page = "/help/help_lacp_port_config.htm";
+
+var roleT = Array("Passive", "Active");
+var roleV = genArrayInt(0, 1);
+
+var keyT = Array("Auto", "Specific");
+var keyV = Array(1, 0);
+
+var timeoutT = Array("Fast", "Slow");
+var timeoutV = Array(1, 0);
+
+function addRow(index, frag, values)
+{
+    var portno = parseInt(values[0]);
+
+    var enable = parseInt(values[1]);
+    var key = parseInt(values[2]);
+    var role = parseInt(values[3]);
+	var timeout = parseInt(values[4]);
+	var prio = parseInt(values[5]);
+    var value;
+
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    addTextCell(tr, portno, "cr");
+
+    if (enable == 2) {
+        value = 0;
+    } else {
+        value = enable;
+    }
+    
+    var ret = addCheckBoxCell(tr, value, "c", "enable_" + portno);
+    if (enable == 2) {
+        ret.disabled = true;
+    }
+    
+    var keyauto = (key == 0);
+    var sel = addSelectCell(tr, keyT, keyV, keyauto, "cr", "keyauto_" + portno);
+    if (enable == 2) {
+        sel.disabled = true;
+    }
+    var key_in = addInputCell(tr, key ? key : "", "c", "key_" + portno, 5);
+    key_in.setAttribute("maxLength", 5); // 1 - 65535
+    if (enable == 2) {
+        key_in.disabled = true;
+    }
+    sel.onchange = function () { key_in.disabled = (sel.selectedIndex == 0); };
+    key_in.disabled = keyauto;
+
+    var role_sel = addSelectCell(tr, roleT, roleV, role, "cr", "role_" + portno);
+    if (enable == 2) {
+        role_sel.disabled = true;
+    }
+	var timeout_sel = addSelectCell(tr, timeoutT, timeoutV, timeout, "cr", "timeout_" + portno);
+    if (enable == 2) {
+        timeout_sel.disabled = true;
+    }
+	
+	var prio = addInputCell(tr, prio, "cr", "prio_" + portno, 5);
+    prio.setAttribute("prio", 5); // 0 - 65535
+	
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req, "/stack_error.htm"))
+        return;
+
+	var portconfig = req.responseText.split("|");
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    for(var i = 0; i < portconfig.length; i++) {
+        if(portconfig[i]) {
+            var pval = portconfig[i].split("/");
+            addRow(i, frag, pval);
+        }
+    }
+	
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+    var cBar = new MasterControlBar([{text: "*", className: "cr"},
+                                        {name: "enable_"},
+                                        {name: "keyauto_"},
+                                        {name: "key_"},
+                                        {name: "role_"},
+	                                    {name: "timeout_"},
+										{name: "prio_"}]);								
+    cBar.construct('portCtrl', 'config_odd');
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+
+    loadXMLDoc(SpomAddSidArg("/config/lacp_ports"), processUpdate, 'portData');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function KeyInDisable() {
+    // Disables Key value box -- Special function needed for support reset button
+    for(var i = configPortMin; i <= configNormalPortMax; i++) {
+        var fld = document.getElementById("keyauto_" + i);
+        var key_in = document.getElementById("key_" + i);
+        if(fld.selectedIndex != 1) {
+            key_in.disabled = true;
+        } 
+    }
+}
+
+function resetForm(form)
+{
+    form.reset();
+    KeyInDisable()
+}
+
+function checkForm(form)
+{
+    // Check all keys, which are written by the user in clear text.
+    for(var i = configPortMin; i <= configNormalPortMax; i++) {
+        // Only check if keyauto is "Specific", since web.c 
+        // does something similar.
+        var fld = document.getElementById("keyauto_" + i);
+        if(fld.selectedIndex == 1) {
+            if(!isWithinRange("key_" + i, 1, 65535, "'Key'")) {
+                return false;   // Disallow submit
+            }
+        }
+        if(!isWithinRange("prio_" + i, 1, 65535, "'Prio'")) {
+            return false;   // Disallow submit
+        }
+    }
+    return true;         
+}
+
+</script>
+</head>
+
+
+<body class="content" onload="requestUpdate();">
+
+<h1>LACP Port Configuration <span id="display_sid"></span></h1>
+
+<form method="POST" action="/config/lacp_ports" onsubmit="return checkForm(this);">
+
+<table id="portConfig" summary="LACP Port Configuration" class="config">
+ <thead>
+  <tr class="config_header">
+   <th>Port</th>
+   <th>LACP Enabled</th>
+   <th colspan="2">Key</th>
+   <th>Role</th>
+   <th>Timeout</th>	
+   <th>Prio</th>
+  </tr>
+ </thead>
+ <tbody id="portCtrl">
+ </tbody>
+ <tbody id="portData">
+ </tbody>
+</table>
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm(this.form);">
+</p>
+
+</form>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

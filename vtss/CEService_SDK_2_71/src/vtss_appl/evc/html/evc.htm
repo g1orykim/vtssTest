@@ -1,0 +1,341 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>EVC Control List Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_evc.htm";
+
+var evcIdArray = Array();
+
+var timerID;
+var timeOut = settingsRefreshInterval();
+
+var oTEnable = Array("Disabled", "Enabled");
+var oTInType = Array("None", "C-tag", "S-tag", "S-custom-tag");
+var oTVlanMode = Array("Normal", "Tunnel");
+var oTPreserve = Array("Fixed", "Preserved");
+var oTPolicerFilter = Array("Specific", "Discard", "None");
+
+var idx = 0;
+var idx_evc_id      = idx++;
+var idx_vid         = idx++;
+var idx_ivid        = idx++;
+var idx_learning    = idx++;
+var idx_policer_id_filter, idx_policer_id;
+if (configArchJaguar_1 || configArchServal) {
+    idx_policer_id_filter   = idx++;
+    idx_policer_id          = idx++;
+}
+var idx_it_type, idx_it_vid_mode, idx_it_vid, idx_it_preserve, idx_it_pcp, idx_it_dei, idx_ot_vid;
+if (configArchLuton26) {
+    idx_it_type     = idx++;
+    idx_it_vid_mode = idx++;
+    idx_it_vid      = idx++;
+    idx_it_preserve = idx++;
+    idx_it_pcp      = idx++;
+    idx_it_dei      = idx++;
+    idx_ot_vid      = idx++;
+}                   
+var idx_uni_ports   = idx++;
+
+function addImageInline(frag, style, src, text, idx, click)
+{
+    var field = document.createElement('img');
+    var pval = text.split(" ");
+    field.id = pval[pval.length - 1] + "_" + (idx > 0 ? idx : 0);
+    field.src = src;
+    field.border = 0;
+    field.value = idx;
+    if (click) {
+        field.onclick = click;
+    }
+    field.title = field.alt = text;
+    frag.appendChild(field);
+    return field;
+}
+
+function evcEdit()
+{
+    // Format       : [evcConfigFlag]/[selectEvcId]
+    // <Edit>       :               1/[evc_id]
+    // <Delete>     :               2/[evc_id]
+    // <Delete All> :               3/
+    // <Add New>    :               4/
+
+    document.location.href = "evc_edit.htm?evcConfigFlag=1&selectEvcId=" + this.value;
+}
+
+function evcAddNew()
+{
+    // Format       : [evcConfigFlag]/[selectEvcId]
+    // <Edit>       :               1/[evc_id]
+    // <Delete>     :               2/[evc_id]
+    // <Delete All> :               3/
+    // <Add New>    :               4/
+
+    document.location.href = "evc_edit.htm?evcConfigFlag=4";
+}
+
+// Predeclare processUpdate(). This makes JSLint happy.
+var processUpdate;
+
+function addRowControlCol(tr, values, idx, first, last)
+{
+    var container = document.createElement("td");
+
+    //edit
+   addImageInline(container, "cl", "images/edit.gif", "Edit EVC", values[idx_evc_id], evcEdit);
+ 
+    //del
+    addImageInline(container, "cl", "images/del.gif", "Delete EVC", values[idx_evc_id], function () {loadXMLDoc('/config/evc?evcConfigFlag=2&selectEvcId=' + this.value, processUpdate, 'confTable');});
+   tr.appendChild(container);
+}
+
+function addRow(frag, values, idx, first, last)
+{
+    var tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+
+    evcIdArray[idx] = values[idx_evc_id];
+    addTextCell(tr, values[idx_evc_id], "cr");
+    addTextCell(tr, values[idx_vid], "cr");
+    addTextCell(tr, values[idx_ivid], "cr");
+    addTextCell(tr, oTEnable[parseInt(values[idx_learning], 10)], "cr");
+    if (configArchJaguar_1 || configArchServal) {
+        if (oTPolicerFilter[parseInt(values[idx_policer_id_filter], 10)] == "Specific") {
+            addTextCell(tr, values[idx_policer_id], "cr");
+        } else {
+            addTextCell(tr, oTPolicerFilter[parseInt(values[idx_policer_id_filter], 10)], "cr");
+        }
+    }
+    if (configArchLuton26) {
+        addTextCell(tr, oTInType[parseInt(values[idx_it_type], 10)], "cr");
+        addTextCell(tr, oTVlanMode[parseInt(values[idx_it_vid_mode], 10)], "cr");
+        addTextCell(tr, values[idx_it_vid], "cr");
+        addTextCell(tr, oTPreserve[parseInt(values[idx_it_preserve], 10)], "cr");
+        addTextCell(tr, values[idx_it_pcp], "cr");
+        addTextCell(tr, values[idx_it_dei], "cr");
+        addTextCell(tr, values[idx_ot_vid], "cr");
+    }
+    if (values[idx_uni_ports]) {
+        addTextCell(tr, values[idx_uni_ports], "cr");
+    } else {
+        addTextCell(tr, "None", "cr");
+    }
+    addRowControlCol(tr, values, idx, first, last);
+    frag.appendChild(tr);   // Add row to fragment
+}
+
+function CreateTableHeader(frag)
+{
+    var tr, td;
+    
+    if (configArchLuton26) {
+        tr = CreateStyledElement("tr", "config_header");
+        addTextHeaderCell(tr, "", "hdrc", 4);
+        addTextHeaderCell(tr, "Inner Tag", "hdrc", 6);
+        addTextHeaderCell(tr, "Outer Tag", "hdrc");
+        addTextHeaderCell(tr, " ", "hdrc");
+        addTextHeaderCell(tr, " ", "hdrc");
+        frag.appendChild(tr);       // Add row to fragment
+    }
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "EVC ID", "hdrc");
+    addTextHeaderCell(tr, "VID", "hdrc");
+    addTextHeaderCell(tr, "IVID", "hdrc");
+    addTextHeaderCell(tr, "Learning", "hdrc");
+    if (configArchLuton26) {
+        addTextHeaderCell(tr, "Type", "hdrc");
+        addTextHeaderCell(tr, "VID Mode", "hdrc");
+        addTextHeaderCell(tr, "VID", "hdrc");
+        td = addTextHeaderCell(tr, "PCP/DEI", "hdrc");
+        td.appendChild(document.createElement("br"));
+        td.appendChild(document.createTextNode("Preservation"));
+        addTextHeaderCell(tr, "PCP", "hdrc");
+        addTextHeaderCell(tr, "DEI", "hdrc");
+        addTextHeaderCell(tr, "VID", "hdrc");
+    } else {
+        addTextHeaderCell(tr, "Policer ID", "hdrc");
+    }
+    addTextHeaderCell(tr, "NNI Ports", "hdrc");
+    addTextHeaderCell(tr, " ", "hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+processUpdate = function(req, ref)
+{
+    var frag, tbody, tr, td, img;
+    var rowwidth = 6;
+
+    if (configArchLuton26) {
+        rowwidth += 6;
+    }
+
+    //create holder for accumulated tbody elements and text nodes
+    frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    if (req.responseText) {
+        var evcConfig = req.responseText.split("|");
+        var first = 1;
+        for (var i = 0; i < evcConfig.length; i++) {
+            if (evcConfig[i]) {
+                var pval = evcConfig[i].split("/");
+                addRow(frag, pval, i, first, evcConfig[i + 1] ? 0 : 1);
+                first = 0;
+            }
+        }
+
+        // Last Row - for new
+        tr = document.createElement("tr");
+        td = document.createElement("td");
+        td.setAttribute("colSpan", rowwidth);
+        tr.appendChild(td); // Add col to row
+        td = document.createElement("td");
+        img = addImageInline(td, "cl",  "images/add.gif", "Add New EVC", 0, evcAddNew);
+        tr.appendChild(td); // Add col to row
+        frag.appendChild(tr);   // Add row to fragment
+    } else { //no EVC exist
+        tbody = document.getElementById(ref);
+        if (tbody) {
+            // Last Row - for new
+            tr = document.createElement("tr");
+            td = document.createElement("td");
+            td.setAttribute("colSpan", rowwidth);
+            tr.appendChild(td); // Add col to row
+            td = document.createElement("td");
+            img = addImageInline(td, "cl",  "images/add.gif", "Add New EVC", 0, evcAddNew);
+            tr.appendChild(td); // Add col to row
+            frag.appendChild(tr);   // Add row to fragment
+        }
+    }
+
+    tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+};
+
+function requestUpdate()
+{
+    //Format: <evc_id>/<vid>/<ivid>/<learning>
+    //        /<policer_id_filter:JR1/SRVL>/<policer_id:JR1/SRVL>/<it_type:Lu26>/<it_vid_mode:Lu26>/<it_vid:Lu26>/<it_preserve:Lu26>/<it_pcp:Lu26>/<it_dei:Lu26>/<ot_vid:Lu26>
+    //        /<nni_port_0>/<nni_port_1>/...|...
+
+    loadXMLDoc("/config/evc", processUpdate, 'confTable');
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+function requestRemoveAll()
+{
+    // Format       : [evcConfigFlag]/[selectEvcId]
+    // <Edit>       :               1/[evc_id]
+    // <Delete>     :               2/[evc_id]
+    // <Delete All> :               3/
+    // <Add New>    :               4/
+
+    if (!confirm("All EVCs will be removed.\nDo you want to proceed anyway?")) {
+        return false;
+    }
+    var url="/config/evc?evcConfigFlag=3";
+    loadXMLDoc(url, processUpdate, 'confTable');
+    return true;
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button"   value="Refresh"    id="refresh"     onclick="requestUpdate();    this.blur();">
+  <input type="button"   value="Remove All" id="removeall"   onclick="requestRemoveAll(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<div id="control_bar_tbl">
+
+<h1>EVC Control List Configuration</h1>
+
+<table summary="EVC Configuration" class="display">
+ <tbody id="confTable">
+ </tbody>
+</table>
+
+</div>
+
+<!-- IE caching bug -->
+<div style="visibility: hidden;">
+ <img alt="" src="images/add.gif">
+ <img alt="" src="images/edit.gif">
+ <img alt="" src="images/del.gif">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

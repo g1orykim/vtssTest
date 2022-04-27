@@ -1,0 +1,260 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Detailed RMON Statistics</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_rmon_statistics_detailed.htm";
+
+var selectedPort = configPortMin;
+var pageArgs = searchArgs(window.location.search);
+if(pageArgs.index) {
+    selectedPort = parseInt(pageArgs.index, 10);
+}
+
+function UpdateSelect(selPorts)
+{
+    var sel = document.getElementById("portselect");
+    clearChildNodes(sel);
+    var frag = document.createDocumentFragment();
+    for (var i = configPortMin-1; i < selPorts.length-1; i++) {
+        var opt = document.createElement("option");
+        var portId = parseInt(selPorts[i], 10);
+        opt.appendChild(document.createTextNode(configIndexName(portId, 1)));
+        opt.setAttribute("value", portId);
+        if(selectedPort == portId) {
+            opt.setAttribute("selected", true);
+        }
+        frag.appendChild(opt);
+    }
+    sel.appendChild(frag);
+
+}
+
+function contentUpdate(req, ref)
+{
+
+    // Format: 8,12,14,id/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17
+    var input = req.responseText;
+    var values = input.split(",");
+    if(values.length !== 0) {
+        UpdateSelect(values);
+        var statdata = values[values.length-1];
+        var counters = statdata.split("/");
+        var port =counters[0];
+        for(var i = 0; i < counters.length; i++) {
+            var id = "T_" + (i + 1);
+            UpdateId(id, counters[i+1]);
+        }
+        var portid = document.getElementById("index");
+        if(portid) {
+            portid.innerHTML = configIndexName(port, 1);
+        }
+        var autorefresh = document.getElementById('autorefresh');
+        if(autorefresh && autorefresh.checked) {
+            if(timerID) {
+                clearTimeout(timerID);
+            }
+            timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+        }
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate() {
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc("/stat/rmon_statistics_detail?index=" + selectedPort, contentUpdate, null);
+}
+
+function PortSelect(sel)
+{
+    selectedPort = sel.options[sel.selectedIndex].value; 
+    requestUpdate();
+}
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+function docLoad()
+{
+    UpdateSelect(configNormalPortMax);
+    frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", "display_header");
+    frag.appendChild(tr);
+
+    requestUpdate();
+}
+
+</script>
+
+</head>
+
+<body class="content" onload="docLoad();">
+
+<h1>Detailed RMON Statistics <span>&nbsp;</span><span id="index"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <select id="portselect" onchange="PortSelect(this);">
+    <option value="1">Port 1</option>
+    <option value="99">Port 99</option>
+   </select>
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+  <table summary="Detailed Switch Port Counters" width="20%" class="display">
+    <tbody>
+      <tr class="display_header">
+        <th colspan="2" class="hdrc">Receive Total</th>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">Port</td>
+        <td class="cr" id="T_1">0</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">Drops</td>
+        <td class="cr" id="T_2">0</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">Octets</td>
+        <td class="cr" id="T_3">0</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">Pkts</td>
+        <td class="cr" id="T_4">0</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">Broadcast</td>
+        <td class="cr" id="T_5">0</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">Multicast</td>
+        <td class="cr" id="T_6">0</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">CRC/Alignment</td>
+        <td class="cr" id="T_7">0</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">Undersize</td>
+        <td class="cr" id="T_8">0</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">Oversize</td>
+        <td class="cr" id="T_9">0</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">Fragments</td>
+        <td class="cr" id="T_10">0</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">Jabber</td>
+        <td class="cr" id="T_11">0</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">Collisions</td>
+        <td class="cr" id="T_12">0</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">64 Bytes</td>
+        <td class="cr" id="T_13">0</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">65-127 Bytes</td>
+        <td class="cr" id="T_14">0</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">128-255 Bytes</td>
+        <td class="cr" id="T_15">0</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">256-511 Bytes</td>
+        <td class="cr" id="T_16">0</td>
+      </tr>
+
+      <tr class="display_even">
+        <td class="displaytext">512-1023 Bytes</td>
+        <td class="cr" id="T_17">0</td>
+      </tr>
+
+      <tr class="display_odd">
+        <td class="displaytext">1024-1518 Bytes</td>
+        <td class="cr" id="T_18">0</td>
+      </tr>
+
+    </tbody>
+  </table>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>VCL MAC-Based VLAN Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+    $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+</script>
+</head>
+
+<body>
+<h1>VCL MAC-Based VLAN Configuration Help</h1>
+
+<p>
+  The MAC-based VLAN entries can be configured here. This page allows for adding and deleting MAC-based VLAN
+  entries and assigning the entries to different ports. This page shows only static entries.
+</p>
+
+<dl>
+ <dt>Delete</dt>
+ <dd >
+  To delete a MAC-based VLAN entry, check this box and press save. The entry will be deleted <span class="SPOM_only">on
+  the selected switch </span> in the stack.
+ </dd>
+
+ <dt>MAC Address</dt>
+ <dd>
+  Indicates the MAC address.
+ </dd>
+
+ <dt>VLAN ID</dt>
+ <dd>
+ Indicates the VLAN ID.
+ </dd>
+
+ <dt>Port Members</dt>
+ <dd>
+  A row of check boxes for each port is displayed for each MAC-based VLAN entry. To include a port in
+  a MAC-based VLAN, check the box. To remove or exclude the port from the MAC-based VLAN, make sure the 
+  box is unchecked. By default, no ports are members, and all boxes are unchecked.
+ </dd>
+
+ <dt>Adding a New MAC-based VLAN</dt>
+ <dd>
+   Click <input type="button" value=" Add New Entry "> to add a new MAC-based VLAN entry. An empty row 
+   is added to the table, and the MAC-based VLAN entry can be configured as needed. Any unicast MAC address 
+   can be configured for the MAC-based VLAN entry. No broadcast or multicast MAC addresses are allowed.
+   Legal values for a VLAN ID are <samp>1</samp> through <samp>4095</samp>.<br/><br/>
+   The MAC-based VLAN entry is enabled <span class="SPOM_only">on the selected stack switch unit</span> 
+   when you click on "Save".
+   A MAC-based VLAN without any port members <span class="SPOM_only">on any stack unit </span>will be 
+   deleted when you click "Save".<br/><br/> The <input type="button" value=" Delete "> button can be 
+   used to undo the addition of new MAC-based VLANs.
+   The maximum possible MAC-based VLAN entries are limited to 256.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value="Refresh">: Refreshes the displayed table.</p>
+<p><input type="button" value=" |<< ">: Updates the table starting from the first entry in the MAC-based VLAN Table.</p>
+<p><input type="button" value=" >> ">: Updates the table, starting with the entry after the last entry currently displayed.</p>
+
+</body>
+</html>

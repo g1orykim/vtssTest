@@ -1,0 +1,81 @@
+########################################################-*- mode: text -*-
+# 
+# Vitesse Switch Software.
+# 
+# Copyright (c) 2009 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+# 
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+# 
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+# 
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+# 
+# ------------------------------------------------------------------------
+# 
+
+# TCM - Topology Change Machine - 13.36 - Fig. 13-21
+
+stm TopologyChange(MSTI)
+
+define CistCond(x)	(isCistPort(port) && x)
+
+BEGIN:
+        >> INACTIVE
+
+INACTIVE:
+        fdbFlush(port);
+        tcWhile = 0; 
+        if(isCistPort(port)) { tcAck = FALSE; }
+        when learn >> LEARNING
+
+LEARNING:
+        if(isCistPort(port)) { rcvdTc = rcvdTcn = rcvdTcAck = FALSE; }
+        rcvdTc = tcProp = FALSE;
+        when ((role == RootPort) || (role == DesignatedPort) || (role == MasterPort)) && forward && !operEdge >> DETECTED
+        when (role != RootPort) && (role != DesignatedPort) && (role != MasterPort) && !(learn || learning) && !(rcvdTc || CistCond(rcvdTcn) || CistCond(rcvdTcAck) || tcProp) >> INACTIVE
+        when rcvdTc || CistCond(rcvdTcn) || CistCond(rcvdTcAck) || tcProp >> LEARNING
+
+DETECTED:
+        newTcWhile(port); setTcPropTree(port);
+        newInfoXst(port,TRUE);
+        >> ACTIVE
+
+ACTIVE:
+        loop_protect 10
+        when ((role != RootPort) && (role != DesignatedPort) && (role != MasterPort)) || operEdge >> LEARNING
+        when CistCond(rcvdTcAck) >> ACKNOWLEDGED
+        when tcProp && !operEdge >> PROPAGATING
+        when rcvdTc >> NOTIFIED_TC
+        when CistCond(rcvdTcn) >> NOTIFIED_TCN
+
+ACKNOWLEDGED:
+        tcWhile = 0; rcvdTcAck = FALSE;
+        >> ACTIVE
+
+PROPAGATING:
+        newTcWhile(port); fdbFlush(port);
+        tcProp = FALSE;
+        >> ACTIVE
+
+NOTIFIED_TC:
+        if(isCistPort(port)) { rcvdTcn = FALSE; }
+        rcvdTc = FALSE;
+        if (isCistPort(port) && role == DesignatedPort) tcAck = TRUE;
+        setTcPropTree(port);
+        >> ACTIVE
+
+NOTIFIED_TCN:
+        newTcWhile(port);
+        >> NOTIFIED_TC

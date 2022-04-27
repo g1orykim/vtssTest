@@ -1,0 +1,476 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>SNMPv3 User Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_snmpv3_users.htm";
+
+var reqObject;
+var entryIdxArray = Array();
+var receiveEntryName = Array();
+var receiveEntryAuthProtocol = Array();
+var receiveEntryPrivProtocol = Array();
+var emptyConfigForm = true;
+var originalCnt = 0;
+var newCreateCnt = 0;
+var maxCreateCnt = 16;
+
+var oVNormal = Array(0, 1, 2);
+var oTLevel = Array("NoAuth, NoPriv", "Auth, NoPriv", "Auth, Priv");
+var oVLevel = Array(1, 2, 3);
+var oTAuth = Array("None", "MD5", "SHA");
+var oTNewAuth = Array("MD5", "SHA");
+var oVNewAuth = Array(1, 2);
+var oTPriv = Array("None", "DES", "AES");
+var oTNewPriv = Array("DES", "AES");
+var oVNewPriv = Array(1, 2);
+
+function IsValidEngineID(snmpv3_engineid)
+{
+    //The format of 'Engine ID' is restricted to 5 - 32 octet string
+    if ((snmpv3_engineid.length % 2) || (snmpv3_engineid.length < 10) || (snmpv3_engineid.length > 64) || (!IsHex(snmpv3_engineid))) {
+        return false;
+    }
+
+    //The format of 'Engine ID' may not be all zeros or all 'ff'H
+    var char_0_cnt = 0, char_f_cnt = 0;
+    for(var i = 0; i < snmpv3_engineid.length; i++) {
+        var ValueChar = snmpv3_engineid.charAt(i);
+        if (ValueChar == '0') {
+            char_0_cnt++;
+        }
+        if (ValueChar == 'f' || ValueChar == 'F') {
+            char_f_cnt++;
+        }
+    }
+    if (char_0_cnt == snmpv3_engineid.length || char_f_cnt == snmpv3_engineid.length) {
+        return false;
+    }
+
+    return true;
+}
+
+function isSnmpAdminString(str)
+{
+    var myReg;
+
+    myReg = /^[!-~]{1,}$/;
+
+    return myReg.test(str);
+}
+
+function changeLevelDisplay(new_idx)
+{
+    switch (document.getElementById("new_level_" + new_idx).value) {
+        case "1" :
+            document.getElementById("new_auth_" + new_idx).style.display = "none";
+            document.getElementById("new_auth_pd_" + new_idx).style.display = "none";
+            document.getElementById("new_priv_" + new_idx).style.display = "none";
+            document.getElementById("new_priv_pd_" + new_idx).style.display = "none";
+            break;
+        case "2" :
+            document.getElementById("new_auth_" + new_idx).style.display = "";
+            document.getElementById("new_auth_pd_" + new_idx).style.display = "";
+            document.getElementById("new_priv_" + new_idx).style.display = "none";
+            document.getElementById("new_priv_pd_" + new_idx).style.display = "none";
+            break;
+        case "3" :
+            document.getElementById("new_auth_" + new_idx).style.display = "";
+            document.getElementById("new_auth_pd_" + new_idx).style.display = "";
+            document.getElementById("new_priv_" + new_idx).style.display = "";
+            document.getElementById("new_priv_pd_" + new_idx).style.display = "";
+            break;
+        default:
+            break;
+    }
+}
+
+function changeLevel()
+{
+    var new_idx;
+
+    for (new_idx = 1; new_idx <= maxCreateCnt; new_idx++) {
+        if (this.id == ("new_level_" + new_idx)) {
+            break;
+        }
+    }
+    changeLevelDisplay(new_idx);
+}
+
+function addEntryIdx()
+{
+    var fld;
+
+    for (var i = 1; i <= maxCreateCnt; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newCreateCnt++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newCreateCnt; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newCreateCnt; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newCreateCnt--;
+    document.getElementById("snmpv3Data").removeChild(tr);
+}
+
+function addNewRow()
+{
+    var delCnt = 0;
+    for (var idx = 0; idx < receiveEntryName.length; idx++) {
+        if (document.getElementById("del_" + receiveEntryName[idx]).checked) {
+            delCnt++;
+        }
+    }
+
+    if (originalCnt - delCnt + newCreateCnt >= maxCreateCnt) {
+        alert("The maximum number of entries is " + maxCreateCnt);
+        return;
+    }
+
+    // Search for a new free name for this row.
+    var new_idx = addEntryIdx();
+    if (parseInt(new_idx, 10) === 0) {
+        alert("The maximum number of entries is " + maxCreateCnt);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalCnt + new_idx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + new_idx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+
+    td = addInputCell(tr, "", "cr", "new_engineid_" + new_idx, 16);
+    td.setAttribute("maxLength", 64);
+    td = addInputCell(tr, "", "cr", "new_user_" + new_idx, 8);
+    td.setAttribute("maxLength", 32);
+    td = addSelectCell(tr, oTLevel, oVLevel, oVLevel[2], "cr", "new_level_" + new_idx);
+    td.onchange = changeLevel;
+    addSelectCell(tr, oTNewAuth, oVNewAuth, oVNewAuth[0], "cr", "new_auth_" + new_idx);
+    td = addPasswordCell(tr, "", "cr", "new_auth_pd_" + new_idx, 8);
+    td.setAttribute("maxLength", 40);
+    addSelectCell(tr, oTNewPriv, oVNewPriv, oVNewPriv[0], "cr", "new_priv_" + new_idx);
+    td = addPasswordCell(tr, "", "cr", "new_priv_pd_" + new_idx, 8);
+    td.setAttribute("maxLength", 32);
+
+    frag.appendChild(tr);       // Add row to fragment
+    var tbody = document.getElementById("snmpv3Data");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    originalCnt++;
+    receiveEntryName[index] = values[0] + values[1];
+    receiveEntryAuthProtocol[index] = values[3];
+    receiveEntryPrivProtocol[index] = values[5];
+
+    addCheckBoxCell(tr, 0, "c", "del_" + values[0] + values[1]);
+    addTextCell(tr, values[0], "cr");
+    addTextCell(tr, values[1], "cr");
+    addTextCell(tr, oTLevel[parseInt(values[2], 10) - 1], "cr");
+    if (parseInt(values[2], 10) == 1) {
+        values[3] = values[5] = 0; //NoAuth, NoPriv
+        values[4] = values[6] = "";
+    } else if (parseInt(values[2], 10) == 2) {
+        values[5] = 0; //Auth, NoPriv
+        values[6] = "";
+    }
+    addTextCell(tr, oTAuth[parseInt(values[3], 10)], "cr");
+    if (parseInt(values[2], 10) == 1) {
+        addTextCell(tr, oTAuth[0], "cr");
+    } else {
+        td = addPasswordCell(tr, values[4], "cr", "auth_pd_" + values[0] + values[1], 8);
+        td.setAttribute("maxLength", 40);
+    }
+    addTextCell(tr, oTPriv[parseInt(values[5], 10)], "cr");
+    if (parseInt(values[2], 10) != 3) {
+        addTextCell(tr, oTPriv[0], "cr");
+    } else {
+        td = addPasswordCell(tr, values[6], "cr", "priv_pd_" + values[0] + values[1], 8);
+        td.setAttribute("maxLength", 32);
+    }
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function checkPassword(protocol, fld)
+{
+    if (!fld) {
+        return false;
+    }
+
+    switch (protocol) {
+        case "MD5":
+        case "DES":
+        case "AES":
+            if (fld.value.length < 8 || fld.value.length > 32) {
+                if (protocol == "MD5") {
+                    GiveAlert("The length of 'MD5 Authentication Password' is restricted to 8 - 32", fld);
+                } else {
+                    GiveAlert("The length of '" + protocol + " Privacy Password' is restricted to 8 - 32", fld);
+                }
+                return false;
+            }
+            if (!isSnmpAdminString(fld.value)) {
+                GiveAlert("The '" + (protocol == "MD5" ? "Authentication" : "Privacy") + " Password' is restricted to ASCII characters from 33 to 126", fld);
+                return false;
+            }
+            break;
+        case "SHA":
+            if (fld.value.length < 8 || fld.value.length > 40) {
+                GiveAlert("The length of 'SHA Authentication Password' is restricted to 8 - 40", fld);
+                return false;
+            }
+            if (!isSnmpAdminString(fld.value)) {
+                GiveAlert("The 'Authentication Password' is restricted to ASCII characters from 33 to 126", fld);
+                return false;
+            }
+            break;
+        default:
+            return false;
+    }
+
+    return true;
+}
+
+function checkForm(form)
+{
+    var fld, idx, new_idx;
+
+    if (emptyConfigForm && !newCreateCnt) {
+        document.location.href = "snmpv3_users.htm";
+        return false;
+    }
+
+    if (!emptyConfigForm) {
+        for (idx = 0; idx < receiveEntryName.length; idx++) {
+            if (document.getElementById("del_" + receiveEntryName[idx]).checked) {
+                continue;
+            }
+
+            //auth_pd
+            fld = document.getElementById("auth_pd_" + receiveEntryName[idx]);
+            if (fld) {
+                if (!checkPassword(oTAuth[receiveEntryAuthProtocol[idx]], fld)) {
+                    return false;
+                }
+            }
+
+            //priv_pd
+            fld = document.getElementById("priv_pd_" + receiveEntryName[idx]);
+            if (fld) {
+                if (!checkPassword(oTPriv[receiveEntryPrivProtocol[idx]], fld)) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    if (newCreateCnt) {
+        for (new_idx = 0; new_idx < newCreateCnt; new_idx++) {
+            //engineid
+            fld = document.getElementById("new_engineid_" + entryIdxArray[new_idx]);
+            if (!IsValidEngineID(fld.value)) {
+                alert("The 'Engine ID' string must contain an even number between 10 and 64 hexadecimal digits, but all-zeros and all-'F's are not allowed");
+                return false;
+            }
+
+            //user_name
+            fld = document.getElementById("new_user_" + entryIdxArray[new_idx]);
+            if (fld.value.length < 1 || fld.value.length > 32) {
+                GiveAlert("The length of 'User Name' is restricted to 1 - 32", fld);
+                return false;
+            }
+            if (!isSnmpAdminString(fld.value)) {
+                GiveAlert("The 'User Name' is restricted to ASCII characters from 33 to 126", fld);
+                return false;
+            }
+            if (fld.value == "None") {
+                GiveAlert("The user name of 'None' is reserved", fld);
+                return false;
+            }
+
+            if (document.getElementById("new_level_" + entryIdxArray[new_idx]).value != 1) {
+                //new_auth_pd
+                fld = document.getElementById("new_auth_pd_" + entryIdxArray[new_idx]);
+                if (!checkPassword(oTAuth[document.getElementById("new_auth_" + entryIdxArray[new_idx]).value], fld)) {
+                    return false;
+                }
+
+                if (document.getElementById("new_level_" + entryIdxArray[new_idx]).value == 3) {
+                    //new_priv_pd
+                    fld = document.getElementById("new_priv_pd_" + entryIdxArray[new_idx]);
+                    if (!checkPassword(oTPriv[document.getElementById("new_priv_" + entryIdxArray[new_idx]).value], fld)) {
+                        return false;
+                    }
+                }
+            }
+
+            //check if repeated user name
+            var new_engineid = document.getElementById("new_engineid_" + entryIdxArray[new_idx]);
+            var new_name = document.getElementById("new_user_" + entryIdxArray[new_idx]);
+            for (idx = 0; idx < receiveEntryName.length; idx++) {
+                if (document.getElementById("del_" + receiveEntryName[idx]).checked) {
+                    continue;
+                }
+                if ((new_engineid.value + new_name.value) == receiveEntryName[idx]) {
+                    GiveAlert("The entry '" + new_engineid.value + ", " + new_name.value + "' already exists", new_name);
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;                // Feed the chickens and go home
+}
+
+function processUpdate(req, ref)
+{
+    if (reqObject != req) {
+        reqObject = req;
+    }
+    if (req.responseText) {
+        var snmpv3Config = req.responseText.split("|");
+        //if (1) {
+        //var snmpv3Config = req.split("|");
+
+        snmpv3Config[0] = snmpv3Config[0].replace(/^\n/, "");
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        for (var i = 0; i < snmpv3Config.length; i++) {
+            if (snmpv3Config[i]) {
+                var receiveData = snmpv3Config[i].split("/");
+                receiveData[1] = unescape(receiveData[1]);
+                receiveData[4] = unescape(receiveData[4]);
+                receiveData[6] = unescape(receiveData[6]);
+                addRow(i, frag, receiveData);
+                emptyConfigForm = false;
+            }
+        }
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        newCreateCnt = 0;
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+}
+
+function requestUpdate()
+{
+    //Format: <engineid>/<user_name>/<level>/<auth_proto>/<auth_pd>/<privacy_proto>/<privacy_pd>,...
+    //var req="80000715017f000001/admin/3/1/authpassword/1/privpassword|80000715017f000001/guest1/2/1/authpassword/0/|80000715017f000001/guest2/1/0//0/";
+    //processUpdate(req, "snmpv3Data");
+    loadXMLDoc("/config/snmpv3_users", processUpdate, "snmpv3Data");
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "snmpv3Data");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>SNMPv3 User Configuration</h1>
+
+<form name="snmpv3ConfigForm" method="POST" action="/config/snmpv3_users" onsubmit="return checkForm(this);">
+
+<table summary="SNMPv3 User Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th>Delete</th>
+   <th>Engine ID</th>
+   <th>User<br>Name</th>
+   <th>Security<br>Level</th>
+   <th>Authentication<br>Protocol</th>
+   <th>Authentication<br>Password</th>
+   <th>Privacy<br>Protocol</th>
+   <th>Privacy<br>Password</th>
+  </tr>
+ </thead>
+  <tbody id="snmpv3Data"></tbody>
+</table>
+
+<p>
+  <input type="button" id="addNewEntry" value="Add New Entry" onclick="addNewRow();">&nbsp;&nbsp;&nbsp;&nbsp;
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm();">
+  <!-- Avoid both checkedbox are none checked -->
+  <input type="hidden" name="dummy">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

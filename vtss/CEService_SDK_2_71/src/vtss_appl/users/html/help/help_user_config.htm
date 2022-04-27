@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Add/Edit User Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="../lib/config.js"></script>
+</head>
+
+<body onload="document.getElementById('usernameMaxLen').innerHTML=configUsernameMaxLen; document.getElementById('passwordMaxLen').innerHTML=configPasswordMaxLen;">
+<h1>Add/Edit User Help</h1>
+
+<p>This page configures a user.</p>
+
+<dl>
+ <dt>User Name</dt>
+ <dd>
+ A string identifying the user name that this entry should belong to. The allowed string length is <samp>1</samp> to <samp><span id="usernameMaxLen">31</span></samp>. The valid user name allows letters, numbers and underscores.
+ </dd>
+
+ <dt>Password</dt>
+ <dd>
+ The password of the user. The allowed string length is <samp>0</samp> to <samp><span id="passwordMaxLen">31</span></samp>. Any printable characters including space is accepted.
+ </dd>
+
+ <dt class="has_priv_lvl">Privilege Level</dt>
+ <dd>
+ The privilege level of the user. The allowed range is <samp>1</samp> to <samp>15</samp>.
+ If the privilege level value is 15, it can access all groups, i.e. that is granted the fully control of the device.
+ But others value need to refer to each group privilege level. User's privilege should be same or greater than the group privilege level to have the access of that group.
+ By default setting, most groups privilege level 5 has the read-only access and privilege level 10 has the read-write access.
+ And the system maintenance (software upload, factory defaults and etc.) need user privilege level 15.
+ Generally, the privilege level 15 can be used for an administrator account,
+ privilege level 10 for a standard user account and privilege level 5 for a guest account.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value="Save">: Click to save changes.</p>
+<p><input type="button" value="Reset">: Click to undo any changes made locally and revert to previously saved values.</p>
+<p><input type="button" value="Cancel">: Click to undo any changes made locally and return to the <a href="help_users.htm">Users</a>.</p>
+<p><input type="button" value="Delete User">: Delete the current user. This button is not available for new configurations (Add new user)</p>
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+// eCos memory layout - Tue Aug 14 12:49:58 2001
+// This is a generated file - do not edit
+
+#include <cyg/infra/cyg_type.inc>
+#include <cyg/hal/vcoreii.h>
+
+MEMORY
+{
+    ram : ORIGIN = 0, LENGTH = CYGNUM_HAL_ARM_VCOREII_DDR_SIZE
+    // Since we use CFI to detect the flash size,
+    // we cannot insert a fixed length here. The number I've
+    // used is the amount of Flash reserved for RedBoot in
+    // the flash, which is 2 * 128 KBytes.
+    rom : ORIGIN = VCOREII_FLASH_PHYS_BASE, LENGTH = 262144
+}
+
+SECTIONS
+{
+    SECTIONS_BEGIN
+    SECTION_fixed_vectors (ram, 0x20, LMA_EQ_VMA)
+    SECTION_rom_vectors (ram, 0x0, LMA_EQ_VMA)
+    SECTION_text (ram, ALIGN (0x4), FOLLOWING (.rom_vectors))
+    SECTION_fini (ram, ALIGN (0x4), FOLLOWING (.text))
+    SECTION_rodata (ram, ALIGN (0x4), FOLLOWING (.fini))
+    SECTION_rodata1 (ram, ALIGN (0x4), FOLLOWING (.rodata))
+    SECTION_fixup (ram, ALIGN (0x4), FOLLOWING (.rodata1))
+    SECTION_gcc_except_table (ram, ALIGN (0x4), FOLLOWING (.fixup))
+    SECTION_data (ram, ALIGN (0x1), FOLLOWING (.gcc_except_table))
+    .ttb ALIGN(4*4096) : { ttb_base_offset = .; . += (4*4096);}
+    SECTION_bss (ram, ALIGN (0x4), LMA_EQ_VMA)
+    CYG_LABEL_DEFN(__heap1) = ALIGN (0x8);
+    SECTIONS_END
+}

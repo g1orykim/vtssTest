@@ -1,0 +1,190 @@
+cdl_savefile_version 1;
+cdl_savefile_command cdl_savefile_version {};
+cdl_savefile_command cdl_savefile_command {};
+cdl_savefile_command cdl_configuration { description hardware template package };
+cdl_savefile_command cdl_package { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_component { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_option { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_interface { value_source user_value wizard_value inferred_value };
+
+cdl_configuration eCos {
+    description "" ;
+    hardware    vcoreii_arm9 ;
+    template    redboot ;
+    package -hardware CYGPKG_HAL_ARM current ;
+    package -hardware CYGPKG_HAL_ARM_ARM9 current ;
+    package -hardware CYGPKG_HAL_ARM_ARM9_VCOREII current ;
+    package -hardware CYGPKG_IO_SERIAL_ARM_VCOREII current ;
+    package -hardware CYGPKG_IO_SERIAL_GENERIC_16X5X current ;
+    package -hardware CYGPKG_DEVS_FLASH_AMD_AM29XXXXX_V2 current ;
+    package -template CYGPKG_HAL current ;
+    package -template CYGPKG_INFRA current ;
+    package -template CYGPKG_REDBOOT current ;
+    package -template CYGPKG_ISOINFRA current ;
+    package -template CYGPKG_LIBC_STRING current ;
+    package -template CYGPKG_CRC current ;
+    package CYGPKG_IO_FLASH current ;
+    package CYGPKG_COMPRESS_ZLIB current ;
+};
+
+cdl_option CYGNUM_HAL_ARM_ARM9_DCACHE_SIZE {
+    user_value 0x4000
+};
+
+cdl_option CYGNUM_HAL_ARM_ARM9_ICACHE_SIZE {
+    user_value 0x4000
+};
+
+cdl_option CYGFUN_LIBC_STRING_BSD_FUNCS {
+    inferred_value 0
+};
+
+cdl_option CYGIMP_HAL_COMMON_INTERRUPTS_USE_INTERRUPT_STACK {
+    inferred_value 0
+};
+
+cdl_option CYGNUM_HAL_COMMON_INTERRUPTS_STACK_SIZE {
+    user_value 4096
+};
+
+cdl_option CYGDBG_HAL_COMMON_INTERRUPTS_SAVE_MINIMUM_CONTEXT {
+    user_value 0
+};
+
+cdl_option CYGDBG_HAL_COMMON_CONTEXT_SAVE_MINIMUM {
+    inferred_value 0
+};
+
+cdl_option CYGDBG_HAL_DEBUG_GDB_INCLUDE_STUBS {
+    inferred_value 1
+};
+
+cdl_option CYGSEM_HAL_ROM_MONITOR {
+    inferred_value 1
+};
+
+cdl_option CYGSEM_HAL_USE_ROM_MONITOR {
+    inferred_value 0 0
+};
+
+cdl_component CYGPKG_HAL_ARM_ARM9_ARM926EJ {
+    inferred_value 1
+};
+
+cdl_component CYG_HAL_STARTUP {
+    user_value ROMRAM
+};
+
+cdl_component CYGBLD_BUILD_REDBOOT {
+    user_value 1
+};
+
+cdl_option CYGSEM_REDBOOT_RTC {
+    user_value 0
+};
+
+cdl_option CYGBLD_BUILD_REDBOOT_WITH_GUNZIP {
+    user_value 1
+};
+
+# Have 'fis load' support the -a switch.
+cdl_option CYGOPT_REDBOOT_ZLIB_FLASH_AUTO_DETECT {
+    user_value 1
+};
+
+# Avoid gzXXX functions as they are not needed. They're coming from
+# .../packages/services/compress/zlib/current/src/gzio.c
+cdl_option CYGFUN_COMPRESS_ZLIB_GZIO {
+    user_value 0
+};
+
+cdl_option CYGPKG_REDBOOT_ANY_CONSOLE {
+    user_value 0
+};
+
+cdl_component CYGPKG_REDBOOT_DISK {
+    user_value 0
+};
+
+cdl_option CYGNUM_REDBOOT_BOOT_SCRIPT_DEFAULT_TIMEOUT {
+    user_value 3
+};
+
+cdl_option CYGBLD_ISO_STRTOK_R_HEADER {
+    inferred_value 1 <cyg/libc/string/string.h>
+};
+
+cdl_option CYGBLD_ISO_STRING_LOCALE_FUNCS_HEADER {
+    inferred_value 1 <cyg/libc/string/string.h>
+};
+
+cdl_option CYGBLD_ISO_STRING_BSD_FUNCS_HEADER {
+    inferred_value 1 <cyg/libc/string/bsdstring.h>
+};
+
+cdl_option CYGBLD_ISO_STRING_MEMFUNCS_HEADER {
+    inferred_value 1 <cyg/libc/string/string.h>
+};
+
+cdl_option CYGBLD_ISO_STRING_STRFUNCS_HEADER {
+    inferred_value 1 <cyg/libc/string/string.h>
+};
+
+cdl_component CYGOPT_REDBOOT_REDUNDANT_FIS {
+    user_value 1
+}
+
+# Reserve 256 KBbytes for RedBoot (used when doing an 'fis init')
+cdl_option CYGBLD_REDBOOT_MIN_IMAGE_SIZE {
+    # Must be a multiple of sector size.
+    user_value 0x40000
+}
+
+# History:
+# 1.00 - 1.05: Initial revisions of RedBoot
+# 1.06       : Support for Dual Images
+# 1.07       : All Flash sections are now managed by FIS.
+#              This primarily means that .dat images
+#              with version 1 are no longer uploadable,
+#              since they are not aware of the fact
+#              that the end of flash is not the place
+#              to store the MAC address. Instead, the
+#              MAC address is held in the FIS-managed
+#              'conf' section, which is stored right
+#              after RedBoot on a fixed address.
+cdl_option CYGDAT_REDBOOT_CUSTOM_VERSION {
+  # Defines the string shown when RedBoot is booting
+  user_value 1 1_07-Vitesse64
+}
+
+# When using redundant fis, we cannot have
+# the configuration data (e.g. 'fis load managed; go')
+# combined with the fis directory.
+cdl_option CYGSEM_REDBOOT_FLASH_COMBINED_FIS_AND_CONFIG {
+    user_value 0
+}
+
+# Organize the special blocks in the end of the FIS-managed flash
+# The actual position depends on the sector size of the flash.
+cdl_option CYGNUM_REDBOOT_FIS_DIRECTORY_BLOCK {
+    user_value -1
+}
+
+cdl_option CYGNUM_REDBOOT_FIS_REDUNDANT_DIRECTORY_BLOCK {
+    user_value -2
+}
+
+cdl_option CYGNUM_REDBOOT_FLASH_CONFIG_BLOCK {
+    user_value -3
+}
+
+# Enable this option if you have H/W-specific needs w.r.t.
+# Power-On-Self-Test. In that case, you must also implement
+# .../src/diag/hw_dep_tests.c to suit the H/W.
+# For the Vitesse unified RedBoot, we will not signal anything on
+# any LEDs, because that would be H/W-dependent. Therefore,
+# the value is by default left unchanged (meaning disabled)
+#cdl_option CYGBLD_BUILD_POST_HW_DEP {
+#  user_value 1
+#}
+

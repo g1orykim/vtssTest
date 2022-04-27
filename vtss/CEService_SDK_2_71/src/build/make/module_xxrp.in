@@ -1,0 +1,81 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+DIR_xxrp          := $(DIR_APPL)/xxrp
+DIR_xxrp_base     := $(DIR_xxrp)/base
+DIR_xxrp_base_src := $(DIR_xxrp)/base/src
+DIR_xxrp_base_inc := $(DIR_xxrp)/base/include
+DIR_xxrp_platform := $(DIR_xxrp)/platform
+DIR_xxrp_html     := $(DIR_xxrp_platform)/html
+
+DIR_mstp := $(DIR_APPL)/mstp
+
+OBJECTS_xxrp_base  :=                       \
+  vtss_xxrp.o vtss_xxrp_applications.o      \
+  $(call if-module,mvrp,vtss_xxrp_mad.o)    \
+  $(call if-module,mvrp,vtss_xxrp_map.o)    \
+  $(call if-module,mvrp,vtss_xxrp_madtt.o)  \
+  $(call if-module,mvrp,vtss_xxrp_debug.o)  \
+  $(call if-module,mvrp,vtss_xxrp_mvrp.o)   \
+  $(call if-module,mvrp,vtss_xxrp_timers.o) \
+  $(call if-module,gvrp,vtss_garptt.o)      \
+  $(call if-module,gvrp,vtss_gvrp.o)
+
+OBJECTS_xxrp_platform := xxrp.o xxrp_sys.o                  \
+  $(call if-module,gvrp,$(call if-module,icli,xxrp_icli.o)) \
+  $(call if-module,mvrp,$(call if-module,vcli,xxrp_cli.o))  \
+  $(call if-module,web,xxrp_web.o)                          \
+  $(call if-module,mvrp,$(call if-module,conf_xml,xxrp_xml.o))
+
+OBJECTS_xxrp := $(OBJECTS_xxrp_platform) $(OBJECTS_xxrp_base)
+
+# Built-in ICLI
+$(eval $(call if-module,gvrp,$(call if-module,icli,$(call add_icli,$(DIR_xxrp_platform)/gvrp.icli))))
+
+$(OBJECTS_xxrp_platform): %.o: $(DIR_xxrp_platform)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_xxrp_base): %.o: $(DIR_xxrp_base_src)/%.c
+	$(call compile_c, $@, $<)
+
+# Include files
+INCLUDES += -I$(DIR_xxrp_platform) -I$(DIR_xxrp_base_inc)
+INCLUDES += -I$(DIR_mstp)/platform -I$(DIR_mstp)/base/include
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_xxrp_html)
+
+# Files to be linted
+LINT_FILES_xxrp += $(addprefix $(DIR_xxrp_base_src)/,$(OBJECTS_xxrp_base:.o=.c)) $(addprefix $(DIR_xxrp_platform)/,$(OBJECTS_xxrp_platform:.o=.c))
+
+# Code style files
+VTSS_CODE_STYLE_CHK_FILES_xxrp += $(DIR_xxrp_base_src)/*.c $(DIR_xxrp_base_inc)/*.h $(DIR_xxrp_platform)/*.c $(DIR_xxrp_platform)/*.h
+
+# Tidy files
+TIDY_FILES_xxrp += $(DIR_xxrp_html)/*.htm $(DIR_xxrp_html)/help/*.htm
+
+# JSlint files
+JSLINT_FILES_xxrp += $(TIDY_FILES_xxrp)
+

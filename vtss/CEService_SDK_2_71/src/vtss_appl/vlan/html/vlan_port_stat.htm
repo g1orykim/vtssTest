@@ -1,0 +1,274 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <title>VLAN port Statistics</title>
+  <link href="lib/normal.css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="lib/mootools-core.js"></script>
+  <script type="text/javascript" src="lib/config.js"></script>
+  <script type="text/javascript" src="lib/ajax.js"></script>
+  <script type="text/javascript" src="lib/spom.js"></script>
+  <script type="text/javascript" src="lib/dynforms.js"></script>
+<script type="text/javascript" language="JavaScript">
+
+var help_page               = "/help/help_vlan_port_stat.htm";
+var timerID                 = null;
+var glbl_user_combo_updated = false;
+
+//------------------------------------------------------------------------------
+// create_user_combo()
+// [all_user_names_and_ids] = [user_name_id_1]/[user_name_id_2]/.../[user_name_id_n]
+// [user_name_id_N]         = user_name_1|user_enum_1
+//------------------------------------------------------------------------------
+function create_user_combo(all_user_names_and_ids, currently_selected)
+{
+    var frag = document.createDocumentFragment();
+
+    $("display_user").innerHTML = currently_selected + " user" + (currently_selected == "Combined" ? "s" : "");
+
+    for (var i = 0; i < all_user_names_and_ids.length; i++) {
+        var user_name_and_id = all_user_names_and_ids[i].split("|");
+        var user_name = user_name_and_id[0];
+        var user_id   = parseInt(user_name_and_id[1], 10);
+        var opt = document.createElement("option");
+        opt.appendChild(document.createTextNode(user_name));
+        opt.setAttribute("text", user_name);
+        opt.setAttribute("value", user_id);
+        if (currently_selected == user_name) {
+            opt.setAttribute("selected", true);
+        }
+
+        frag.appendChild(opt);
+    }
+
+    var combo = $("user_combo");
+    clearChildNodes(combo);
+    if (!combo.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    glbl_user_combo_updated = true;
+}
+
+//------------------------------------------------------------------------------
+// add_row()
+// [port_info_N] = uport|conflicts_exist|pvid|pvid_set|ingress_filter|ingress_filter_set|frame_type|frame_type_set|tx_tag_type|tx_tag_type_set|port_type|port_type_set|untagged_vid
+//                    0        1           2     3            4             5               6           7               8              9           10           11          12
+//------------------------------------------------------------------------------
+function add_row(index, frag, port_info)
+{
+    var cnt, tmp;
+    var tr = CreateStyledElement("tr", index % 2 ? "display_even" : "display_odd");
+
+    // Port number
+    addTextCell(tr, configPortName(port_info[0], 0), "cr");
+
+    // Port Type (unaware, C-port, S-port, S-custom-port)
+    addTextCell(tr, parseInt(port_info[11], 10) ? port_info[10] : "", "cl");
+
+    // Ingress filtering
+    if (parseInt(port_info[5], 10)) {
+        var checkbox = addCheckBoxCell(tr, parseInt(port_info[4], 10), "c has_vlan_ingress_filtering");
+        checkbox.onclick = function() {return false;}; // Prevent the user from changing the checked state, but don't gray it out.
+    } else {
+        addTextCell(tr, "", "cl has_vlan_ingress_filtering");
+    }
+
+    // Acceptable Frame type (All, Tagged, Untagged)
+    addTextCell(tr, parseInt(port_info[7], 10) ? port_info[6] : "", "cl");
+
+    // PVID
+    addTextCell(tr, parseInt(port_info[3], 10) ? port_info[2] : "", "cr");
+
+    // Tx Tag (Untag PVID, Untag All, Tag All - and unlike everywhere else also the option of untagging a special VID, not equal to PVID.
+    addTextCell(tr, parseInt(port_info[9], 10) ? port_info[8] : "", "cl");
+
+    // UVID. Will always be 0 unless Tx Tag type is overridden and it's either Untag This or Tag This.
+    addTextCell(tr, parseInt(port_info[12], 10) ? port_info[12] : "", "cr");
+
+    // Conflicts
+    addTextCell(tr, parseInt(port_info[1], 10) ? "Yes" : "No", "cl");
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+//------------------------------------------------------------------------------
+// process_update()
+//------------------------------------------------------------------------------
+function process_update(req)
+{
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (!req.responseText) {
+        SpomHandleError();
+        return;
+    }
+
+    // Format: [all_user_names_and_ids]#[port_infos]
+    // Where
+    // [all_user_names_and_ids] = [user_name_id_1]/[user_name_id_2]/.../[user_name_id_n]
+    // [user_name_id_N]         = user_name_1|user_enum_1
+    // [port_infos]             = requested_user_name/[port_info_1]/[port_info_2]/.../[port_info_n]
+    // [port_info_N]            = uport|conflicts_exist|pvid|pvid_set|ingress_filter|ingress_filter_set|frame_type|frame_type_set|tx_tag_type|tx_tag_type_set|port_type|port_type_set|untagged_vid
+    // There are only [port_info_x] elements for ports that actually have data to present.
+
+    var values                 = req.responseText.split("#");
+    var all_user_names_and_ids = values[0].split("/");
+    var port_infos             = values[1].split("/");
+    create_user_combo(all_user_names_and_ids, port_infos[0] /* Currently selected */);
+
+    // Create port info table
+    var frag = document.createDocumentFragment();
+
+    if (port_infos.length < 2) {
+        var tr = CreateStyledElement("tr", "notice");
+        addTextCell(tr, "No data exists for the selected user", "cl", 8);
+        frag.appendChild(tr);
+    } else {
+        for (var idx = 1; idx < port_infos.length; idx++) {
+            var port_info = port_infos[idx].split("|");
+            add_row(idx, frag, port_info);
+        }
+    }
+
+    var tbody = $("port_table_body");
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    $("update_img").style.visibility = "hidden";
+    if ($("autorefresh_checkbox").checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+
+        timerID = setTimeout("request_update()", settingsRefreshInterval());
+    }
+}
+
+//------------------------------------------------------------------------------
+// request_update()
+//------------------------------------------------------------------------------
+function request_update()
+{
+    var user;
+
+    if (SpomNavigationLoading()) {
+        return;
+    }
+
+    $("update_img").style.visibility = "visible";
+
+    if (glbl_user_combo_updated) {
+        var combo = $("user_combo");
+        // The server has already made the user IDs one-based
+        user = combo.options[combo.selectedIndex].value;
+    } else {
+        user = 0; // Get whatever the server thinks is the default user to get.
+    }
+
+    loadXMLDoc(SpomAddSidArg("/stat/vlan_port_stat?user=" + user), process_update);
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+//------------------------------------------------------------------------------
+// refresh_checkbox_click()
+//------------------------------------------------------------------------------
+function refresh_checkbox_click()
+{
+    if (!$("autorefresh_checkbox").checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+            timerID = null;
+        }
+    } else {
+        request_update();
+    }
+}
+
+//------------------------------------------------------------------------------
+// SpomSidSelectorUpdate()
+//------------------------------------------------------------------------------
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);
+    request_update();
+}
+
+ </script>
+</head>
+
+<body class="content" onload="request_update();">
+  <h1>VLAN Port Status for <span id="display_user"></span>&nbsp;<span id="display_sid"></span></h1>
+  <div class="refreshbar">
+    <form action="#">
+      <select id="user_combo" onchange="request_update();">
+        <option value="0">Combined</option>
+        <option value="1">Admin</option>
+      </select>
+      <label for="autorefresh_checkbox">Auto-refresh</label>
+      <input type="checkbox" name="autorefresh_checkbox" id="autorefresh_checkbox" onclick="refresh_checkbox_click();">
+      <input type="button" value="Refresh" onClick="request_update(); this.blur();">
+      <img id="update_img" alt="" src="images/updating.gif">
+    </form>
+  </div>
+
+  <table summary="Current Switch VLAN Port Status" cellspacing="0" class="config">
+    <thead>
+      <tr class="port_stat">
+        <th>Port</th>
+        <th>Port Type</th>
+        <th class="has_vlan_ingress_filtering">Ingress Filtering</th>
+        <th>Frame Type</th>
+        <th>Port VLAN ID</th>
+        <th>Tx Tag</th>
+        <th>Untagged VLAN ID</th>
+        <th>Conflicts</th>
+      </tr>
+    </thead>
+    <tbody id="port_table_body"></tbody>
+  </table>
+
+  <p><input type="hidden" id="submit_sid" name="sid"></p>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->
+

@@ -1,0 +1,678 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = 
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments. 
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file. 
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "loop_protect_api.h"
+#include "msg_api.h"
+#include "port_api.h"
+#include "misc_api.h"
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files. 
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+static void _mode_enable(
+    IN  u32     session_id,
+    IN  BOOL    b_enable
+)
+{
+    loop_protect_conf_t     sc;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+
+    if ( loop_protect_conf_get(&sc) != VTSS_OK ) {
+        ICLI_PRINTF("%% Fail to get configuration of loop protect\n");
+        return;
+    }
+    
+    sc.enabled = b_enable;
+    
+    if ( loop_protect_conf_set(&sc) != VTSS_OK ) {
+        ICLI_PRINTF("%% Fail to set configuration of loop protect\n");
+        return;
+    }
+}
+
+static void _tx_time_set(
+    IN  u32     session_id,
+    IN  u32     t
+)
+{
+    loop_protect_conf_t     sc;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+
+    if ( loop_protect_conf_get(&sc) != VTSS_OK ) {
+        ICLI_PRINTF("%% Fail to get configuration of loop protect\n");
+        return;
+    }
+    
+    sc.transmission_time = t;
+    
+    if ( loop_protect_conf_set(&sc) != VTSS_OK ) {
+        ICLI_PRINTF("%% Fail to set configuration of loop protect\n");
+        return;
+    }
+}
+
+static void _shutdown_time_set(
+    IN  u32     session_id,
+    IN  u32     t
+)
+{
+    loop_protect_conf_t     sc;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+
+    if ( loop_protect_conf_get(&sc) != VTSS_OK ) {
+        ICLI_PRINTF("%% Fail to get configuration of loop protect\n");
+        return;
+    }
+    
+    sc.shutdown_time = t;
+    
+    if ( loop_protect_conf_set(&sc) != VTSS_OK ) {
+        ICLI_PRINTF("%% Fail to set configuration of loop protect\n");
+        return;
+    }
+}
+
+static void _port_mode_enable(
+    IN  u32                         session_id,
+    IN  icli_stack_port_range_t     *plist,
+    IN  BOOL                        b_enable
+)
+{
+    u32                         i;
+    u32                         j;
+    u32                         port;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    loop_protect_port_conf_t    pconf;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+
+    for ( i = 0; i < plist->cnt; i++ ) {
+        isid = plist->switch_range[i].isid;
+        for ( j = 0; j < plist->switch_range[i].port_cnt; j++ ) {
+            iport = plist->switch_range[i].begin_iport + j;
+            port  = plist->switch_range[i].begin_port + j;
+
+            if ( loop_protect_conf_port_get(isid, iport, &pconf) != VTSS_OK ) {
+                ICLI_PRINTF("%% Fail to get loop protect port configuration for %s %u/%u\n",
+                    icli_port_type_get_name(plist->switch_range[i].port_type),
+                    plist->switch_range[i].switch_id, port);
+                continue;
+            }
+            
+            pconf.enabled = b_enable;
+
+            if ( loop_protect_conf_port_set(isid, iport, &pconf) != VTSS_OK ) {
+                ICLI_PRINTF("%% Fail to set loop protect port configuration for %s %u/%u\n",
+                    icli_port_type_get_name(plist->switch_range[i].port_type),
+                    plist->switch_range[i].switch_id, port);
+                continue;
+            }
+        }
+    }
+}
+
+static void _port_action_set(
+    IN  u32                         session_id,
+    IN  icli_stack_port_range_t     *plist,
+    IN  BOOL                        b_shutdown,
+    IN  BOOL                        b_log
+)
+{
+    u32                         i;
+    u32                         j;
+    u32                         port;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    loop_protect_port_conf_t    pconf;
+    loop_protect_action_t       action;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+
+    if ( b_shutdown ) {
+        if ( b_log ) {
+            action = LOOP_PROTECT_ACTION_SHUT_LOG;
+        } else {
+            action = LOOP_PROTECT_ACTION_SHUTDOWN;
+        }
+    } else {
+        if ( b_log ) {
+            action = LOOP_PROTECT_ACTION_LOG_ONLY;
+        } else {
+            action = LOOP_PROTECT_ACTION_SHUTDOWN;
+        }
+    }
+    
+    for ( i = 0; i < plist->cnt; i++ ) {
+        isid = plist->switch_range[i].isid;
+        for ( j = 0; j < plist->switch_range[i].port_cnt; j++ ) {
+            iport = plist->switch_range[i].begin_iport + j;
+            port  = plist->switch_range[i].begin_port + j;
+
+            if ( loop_protect_conf_port_get(isid, iport, &pconf) != VTSS_OK ) {
+                ICLI_PRINTF("%% Fail to get loop protect port configuration for %s %u/%u\n",
+                    icli_port_type_get_name(plist->switch_range[i].port_type),
+                    plist->switch_range[i].switch_id, port);
+                continue;
+            }
+            
+            pconf.action = action;
+
+            if ( loop_protect_conf_port_set(isid, iport, &pconf) != VTSS_OK ) {
+                ICLI_PRINTF("%% Fail to set loop protect port configuration for %s %u/%u\n",
+                    icli_port_type_get_name(plist->switch_range[i].port_type),
+                    plist->switch_range[i].switch_id, port);
+                continue;
+            }
+        }
+    }
+}
+
+static void _port_tx_set(
+    IN  u32                         session_id,
+    IN  icli_stack_port_range_t     *plist,
+    IN  BOOL                        b_enable
+)
+{
+    u32                         i;
+    u32                         j;
+    u32                         port;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    loop_protect_port_conf_t    pconf;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+
+    for ( i = 0; i < plist->cnt; i++ ) {
+        isid = plist->switch_range[i].isid;
+        for ( j = 0; j < plist->switch_range[i].port_cnt; j++ ) {
+            iport = plist->switch_range[i].begin_iport + j;
+            port  = plist->switch_range[i].begin_port + j;
+
+            if ( loop_protect_conf_port_get(isid, iport, &pconf) != VTSS_OK ) {
+                ICLI_PRINTF("%% Fail to get loop protect port configuration for %s %u/%u\n",
+                    icli_port_type_get_name(plist->switch_range[i].port_type),
+                    plist->switch_range[i].switch_id, port);
+                continue;
+            }
+            
+            pconf.transmit = b_enable;
+
+            if ( loop_protect_conf_port_set(isid, iport, &pconf) != VTSS_OK ) {
+                ICLI_PRINTF("%% Fail to set loop protect port configuration for %s %u/%u\n",
+                    icli_port_type_get_name(plist->switch_range[i].port_type),
+                    plist->switch_range[i].switch_id, port);
+                continue;
+            }
+        }
+    }
+}
+
+static void _port_show(
+    IN  u32                         session_id,
+    IN  icli_switch_port_range_t    *spr
+)
+{
+    u32                         i;
+    u32                         port;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    loop_protect_port_info_t    info;
+    loop_protect_port_conf_t    conf;
+    port_status_t               st;
+    BOOL                        exists;
+
+    isid   = spr->isid;
+    exists = msg_switch_exists(isid);
+
+    for ( i = 0; i < spr->port_cnt; i++ ) {
+        iport = spr->begin_iport + i;
+        port  = spr->begin_port  + i;
+
+        if ( loop_protect_conf_port_get(isid, iport, &conf) != VTSS_OK ) {
+            ICLI_PRINTF("%% Fail to get loop protect port configuration for %s %u/%u\n",
+                icli_port_type_get_name(spr->port_type), spr->switch_id, port);
+            continue;
+        }
+
+        ICLI_PRINTF("\n");
+        ICLI_PRINTF("%s %u/%u\n", icli_port_type_get_name(spr->port_type), spr->switch_id, port);
+        ICLI_PRINTF("------------------------------\n");
+        ICLI_PRINTF("    ");
+        ICLI_PRINTF("Loop protect mode is %s.\n", conf.enabled ? "enabled" : "disabled");
+        ICLI_PRINTF("    ");
+        switch ( conf.action ) {
+            case LOOP_PROTECT_ACTION_SHUTDOWN:
+                ICLI_PRINTF("Action is shutdown.\n");
+                break;
+            case LOOP_PROTECT_ACTION_SHUT_LOG:
+                ICLI_PRINTF("Actions are both of shutdown and log.\n");
+                break;
+            case LOOP_PROTECT_ACTION_LOG_ONLY:
+                ICLI_PRINTF("Action is log only.\n");
+                break;
+            default:
+                ICLI_PRINTF("Action is unknown.\n");
+                break;
+        }
+
+        ICLI_PRINTF("    ");
+        ICLI_PRINTF("Transmit mode is %s.\n", conf.transmit ? "enabled" : "disabled");
+
+        if ( !exists ) {
+            ICLI_PRINTF("    (No status available.)\n");
+            continue;
+        }
+
+        if (loop_protect_port_info_get(isid, iport, &info) != VTSS_OK) {
+            continue;
+        }
+
+        ICLI_PRINTF("    ");
+        if ( info.loop_detect ) {
+            ICLI_PRINTF("Loop is detected.\n");
+        } else {
+            ICLI_PRINTF("No loop.\n");
+        }
+
+        ICLI_PRINTF("    ");
+        ICLI_PRINTF("The number of loops is %d.\n", info.loops);
+
+        if ( info.loops ) {
+            ICLI_PRINTF("    ");
+            ICLI_PRINTF("Time of last loop is at %s\n", misc_time2str(info.last_loop));
+        }
+
+        if ( port_mgmt_status_get(isid, iport, &st) != VTSS_OK ) {
+            ICLI_PRINTF("%% Fail to get port status for %s %u/%u\n",
+                icli_port_type_get_name(spr->port_type), spr->switch_id, port);
+            continue;
+        }
+
+        ICLI_PRINTF("    ");
+        ICLI_PRINTF("Status is %s.\n", info.disabled ? "Disabled" : st.status.link ? "up" : "down");
+    }
+}
+FUNCTION_END
+
+HELP_LOOP_PROTECT = Loop protection configuration
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = loop-protect
+PRIVILEGE = ICLI_PRIVILEGE_15
+HELP      = ##HELP_LOOP_PROTECT
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CODE_BEGIN
+    _mode_enable(session_id, TRUE);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    _mode_enable(session_id, FALSE);
+NO_FORM_CODE_END
+
+CMD_END
+
+HELP_TRANSMIT_TIME = Loop protection transmit time interval
+HELP_TRANSMIT_TIME_VALUE = Transmit time in second
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = loop-protect transmit-time <1-10>
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = t
+
+HELP      = ##HELP_LOOP_PROTECT
+HELP      = ##HELP_TRANSMIT_TIME
+HELP      = ##HELP_TRANSMIT_TIME_VALUE
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _tx_time_set(session_id, t);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no loop-protect transmit-time
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_LOOP_PROTECT
+HELP      = ##HELP_TRANSMIT_TIME
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _tx_time_set(session_id, LOOP_PROTECT_DEFAULT_GLOBAL_TX_TIME);
+CODE_END
+
+CMD_END
+
+HELP_SHUTDOWN_TIME = Loop protection shutdown time interval
+HELP_SHUTDOWN_TIME_VALUE = Shutdown time in second
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = loop-protect shutdown-time <0-604800>
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = t
+
+HELP      = ##HELP_LOOP_PROTECT
+HELP      = ##HELP_SHUTDOWN_TIME
+HELP      = ##HELP_SHUTDOWN_TIME_VALUE
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _shutdown_time_set(session_id, t);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no loop-protect shutdown-time
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_LOOP_PROTECT
+HELP      = ##HELP_SHUTDOWN_TIME
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _shutdown_time_set(session_id, LOOP_PROTECT_DEFAULT_GLOBAL_SHUTDOWN_TIME);
+CODE_END
+
+CMD_END
+
+HELP_PORT_LOOP_PROTECT = Loop protection configuration on port
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = loop-protect
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+HELP      = ##HELP_PORT_LOOP_PROTECT
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = plist
+
+CODE_BEGIN
+    _port_mode_enable(session_id, plist, TRUE);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    _port_mode_enable(session_id, plist, FALSE);
+NO_FORM_CODE_END
+
+CMD_END
+
+HELP_PORT_ACTION   = Action if loop detected
+HELP_PORT_SHUTDOWN = Shutdown port
+HELP_PORT_LOG      = Generate log
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = loop-protect action { [shutdown] [log] }*1
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = b_shutdown
+CMD_VAR   = b_log
+
+HELP      = ##HELP_PORT_LOOP_PROTECT
+HELP      = ##HELP_PORT_ACTION
+HELP      = ##HELP_PORT_SHUTDOWN
+HELP      = ##HELP_PORT_LOG
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = plist
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _port_action_set(session_id, plist, b_shutdown, b_log);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no loop-protect action
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_PORT_LOOP_PROTECT
+HELP      = ##HELP_PORT_ACTION
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = plist
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _port_action_set(session_id, plist, TRUE, FALSE);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = loop-protect tx-mode
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+HELP      = ##HELP_PORT_LOOP_PROTECT
+HELP      = Actively generate PDUs
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = plist
+
+CODE_BEGIN
+    _port_tx_set(session_id, plist, TRUE);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    _port_tx_set(session_id, plist, FALSE);
+NO_FORM_CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show loop-protect [ interface <port_type_list> ]
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = plist
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##HELP_LOOP_PROTECT
+HELP      = ##ICLI_HELP_SHOW_INTERFACE
+HELP      = ##ICLI_HELP_PORT_TYPE_LIST
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    u32                         i;
+    loop_protect_conf_t         sc;
+    icli_switch_port_range_t    spr;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( loop_protect_conf_get(&sc) != VTSS_OK ) {
+        ICLI_PRINTF("%% Fail to get configuration of loop protect\n");
+        return ICLI_RC_ERROR;
+    }
+
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("Loop Protection Configuration         \n");
+    ICLI_PRINTF("======================================\n");
+    ICLI_PRINTF("Loop Protection   : %s\n", sc.enabled ? "Enable" : "Disable");
+    ICLI_PRINTF("Transmission Time : %u sec\n", sc.transmission_time);
+    ICLI_PRINTF("Shutdown Time     : %u sec\n", sc.shutdown_time);
+
+    if ( plist ) {
+        for ( i = 0; i < plist->cnt; i++ ) {
+            _port_show(session_id, &(plist->switch_range[i]));
+        }
+    } else {
+        if ( icli_port_get_first(&spr) == FALSE ) {
+            ICLI_PRINTF("%% Fail to get first switch port\n");
+            return ICLI_RC_ERROR;
+        }
+        _port_show(session_id, &spr);
+        
+        while ( icli_port_get_next(&spr) ) {
+            _port_show(session_id, &spr);
+        }
+    }
+CODE_END
+
+CMD_END

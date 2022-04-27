@@ -1,0 +1,343 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>EPS Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_eps_config.htm";
+
+var selectedEPS = 1;
+var pageArgs = searchArgs(window.location.search);
+if (pageArgs['eps'])
+    selectedEPS = parseInt(pageArgs['eps']);
+
+var reqObject;
+var oTDomain = new Array ("Port","Esp","Evc","Mpls");
+var oVDomain = new Array(0, 1, 2, 3);
+var oTArch = new Array ("1+1","1:1");
+var oVArch = new Array(0, 1);
+var oTDirect = new Array ("Unidirectional","Bidirectional");
+var oVDirect = new Array(0, 1);
+var oTCommand = new Array ("None","Clear","Lock Out","Forced Switch","Manual Switch P","Manual Switch W","Exercise","Freeze","Lock Out Local");
+var oVCommand = new Array(0, 1, 2, 3, 4, 5, 6, 7, 8);
+var oTWtr = new Array ("Disabled","10sec","30sec","5min","6min","7min","8min","9min","10min","11min","12min");
+var oVWtr = new Array(0, 10, 30, 300, 360, 420, 480, 540, 600, 660, 720);
+var oTHold = new Array ("Disabled","100ms","200ms","300ms","400ms","500ms","600ms","700ms","800ms","900ms","1s","2s","3s","4s","5s","6s","7s","8s","9s","10s");
+var oVHold = new Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100);
+
+var protState = new Array ("Disabled","NoReqW","NoReqP","Lockout","Forced","SfW","SfP","ManualW","ManualP","Wtr","ExerW","ExerP","RevReqW","RevReqP","DoNotRev");
+var flowState = new Array ("OK","SD","SF");
+var apsSignal = new Array ("Null","Normal");
+var aps = new Array ("NR","DNR","RR","EXER","WTR","MS","SD","SFw","FS","SFp","LO");
+
+
+function resetForm()
+{
+    processUpdate(reqObject);
+}
+
+function appendFrag(frag, ref, clear)
+{
+    var tbody = document.getElementById(ref);
+
+    if (clear)
+        clearChildNodes(tbody);
+
+    if (!tbody.appendChild(frag))  // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+}
+
+
+function addInstance(inst, frag, values)
+{
+    var tr = CreateStyledElement("tr", "config_odd");
+    
+    addTextCell(tr, String(parseInt(inst)), "c");
+    addTextCell(tr, oTDomain[parseInt(values[0])], "c");
+    addTextCell(tr, oTArch[parseInt(values[1])], "c");
+    addTextCell(tr, String(parseInt(values[2])), "c");
+    addTextCell(tr, String(parseInt(values[3])), "c");
+    if (parseInt(values[4]) != parseInt(values[7])) {
+        addTextCell(tr, String(parseInt(values[4])), "c");
+    }
+    if (parseInt(values[5]) != parseInt(values[7])) {
+        addTextCell(tr, String(parseInt(values[5])), "c");
+    }
+    if (parseInt(values[6]) != parseInt(values[7])) {
+        addTextCell(tr, String(parseInt(values[6])), "c");
+    }
+    frag.appendChild(tr);
+}
+
+function addConfig(inst, frag, values, arch)
+{
+    var tr = CreateStyledElement("tr", "config_even");
+    
+	UpdateIdValue("eps_id_hidden", inst);
+
+    link = values[0];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+
+    if (oTArch[arch] == "1+1")
+    {
+        addSelectCell(tr, oTDirect, oVDirect, parseInt(values[1]), "c", "direct");
+        if (oTDirect[parseInt(values[1])] == "Unidirectional")
+            addCheckBoxCell(tr, parseInt(values[2]), "c", "aps");
+        else
+        {
+            if (parseInt(values[2]))         addImageCell(tr, "c", "images/yes.gif", 0);
+            else                             addImageCell(tr, "c", "images/no.gif", 0);
+        }
+    }
+    else
+    {   /* This is 1:1 - Directional and aps can not be selected */
+        addTextCell(tr, oTDirect[parseInt(values[1])], "c");
+        if (parseInt(values[2]))         addImageCell(tr, "c", "images/yes.gif", 0);
+        else                             addImageCell(tr, "c", "images/no.gif", 0);
+    }
+    addCheckBoxCell(tr, parseInt(values[3]), "c", "revert");
+    addSelectCell(tr, oTWtr, oVWtr, parseInt(values[4]), "c", "wtr");
+    input = addInputCell(tr, values[5], "c", "hold");
+    input.setAttribute("maxLength", 3);
+    frag.appendChild(tr);
+}
+
+function addCommand(inst, frag, values)
+{
+    var tr = CreateStyledElement("tr", "config_even");
+    
+    addSelectCell(tr, oTCommand, oVCommand, parseInt(values), "c", "comm");
+    frag.appendChild(tr);
+}
+
+function addState(inst, frag, values)
+{
+    var tr = CreateStyledElement("tr", "config_even");
+    
+    addTextCell(tr, protState[parseInt(values[0])], "c");
+    addTextCell(tr, flowState[parseInt(values[1])], "c");
+    addTextCell(tr, flowState[parseInt(values[2])], "c");
+    addTextCell(tr, aps[parseInt(values[3])] + " " + apsSignal[parseInt(values[4])] + "/" + apsSignal[parseInt(values[5])], "c");
+    addTextCell(tr, aps[parseInt(values[6])] + " " + apsSignal[parseInt(values[7])] + "/" + apsSignal[parseInt(values[8])], "c");
+    link = values[9];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    link = values[10];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    link = values[11];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    link = values[12];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    frag.appendChild(tr);
+}
+
+function processUpdate(req)
+{
+    if (redirectOnError(req))
+        return;
+
+    var reset=0;
+
+    if (reqObject != req)   reqObject = req;
+    else                    reset = 1;
+
+    if (req.responseText)
+    {
+        var epsConfig = req.responseText.split("|");
+        var inst = parseInt(epsConfig[0]);
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+
+        var instVal = epsConfig[1].split("/");
+        addInstance(inst, frag, instVal);
+        appendFrag(frag, "epsData", 1);
+
+        var pval = epsConfig[2].split("/");
+        addConfig(inst, frag, pval, parseInt(instVal[1]));
+        appendFrag(frag, "epsConfigData", 1);
+
+        addCommand(inst, frag, epsConfig[3]);
+        appendFrag(frag, "epsCommand", 1);
+
+        var pval = epsConfig[4].split("/");
+        addState(inst, frag, pval);
+        appendFrag(frag, "epsStateData", 1);
+
+        if (epsConfig[5] && (epsConfig[5] != "EPS_RC_OK") && (reset == 0))
+        {
+            if (epsConfig[5] == "EPS_RC_NOT_CREATED" )
+                alert("EPS instance not created");
+            else
+            if (epsConfig[5] == "EPS_RC_CREATED" )
+                alert("EPS instance already created");
+            else
+            if (epsConfig[5] == "EPS_RC_INVALID_PARAMETER" )
+                alert("Invalid parameter");
+            else
+            if (epsConfig[5] == "EPS_RC_NOT_CONFIGURED" )
+                alert("EPS NOT created");
+            else
+            if (epsConfig[5] == "EPS_RC_ARCHITECTURE" )
+                alert("Only 1+1 in port domain");
+            else
+                alert("Unknown error returned from EPS - " + epsConfig[5]);
+        }
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+
+function requestUpdate()
+{
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc("/config/epsConfig?eps=" + selectedEPS, processUpdate);
+}
+
+
+// Check that all forms contains valid values
+function checkForm(form)
+{
+    return true;         
+}
+
+ </script>
+</head>
+
+
+<body class="content" onload="requestUpdate();">
+
+<h1>EPS Configuration <span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+<form action="#">
+ <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+ <img id="update" alt="" src="images/updating.gif">
+</form>
+</div>
+
+
+<h1>Instance Data</h1>
+
+<table summary="Ethernet Protection Instance" cellspacing="0" class="config">
+  <thead>
+    <tr class="config_header">
+      <th>EPS ID</th>
+      <th>Domain</th>
+      <th>Architecture</th>
+      <th>W Flow</th>
+      <th>P Flow</th>
+      <th>W SF MEP</th>
+      <th>P SF MEP</th>
+      <th>APS MEP</th>
+    </tr>
+  </thead>
+  <tbody id="epsData">
+  </tbody>
+</table>
+
+<form name="configForm" method="POST" action="/config/epsConfig" onsubmit="return checkForm(this);">
+
+<h1>Instance Configuration</h1>
+
+<table summary="Ethernet Protection Switching Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowSpan=2>Configured</th>
+   <th rowSpan=2>Protection Type</th>
+   <th rowSpan=2>APS</th>
+   <th rowSpan=2>Revertive</th>
+   <th rowSpan=2>WTR Time</th>
+   <th rowSpan=2>Hold Off Time</th>
+   </tr>
+ </thead>
+ <tbody id="epsConfigData">
+ </tbody>
+</table>
+
+<h1>Instance Command</h1>
+
+<table summary="Ethernet Protection Command" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowSpan=2>Command</th>
+   </tr>
+ </thead>
+ <tbody id="epsCommand">
+ </tbody>
+</table>
+
+<h1>Instance State</h1>
+
+<table summary="Ethernet Protection Switching State" cellspacing="0" class="config">
+  <thead>
+    <tr class="config_header">
+      <th>Protection State</th>
+      <th>W Flow</th>
+      <th>P Flow</th>
+      <th>Transmit APS r/b</th>
+      <th>Receive APS r/b</th>
+      <th>Architecture Mismatch</th>
+      <th>APS On Working</th>
+      <th>Switching Incomplete</th>
+      <th>No Aps Received</th>
+    </tr>
+  </thead>
+  <tbody id="epsStateData">
+  </tbody>
+</table>
+
+<p>
+<input type="hidden" id="eps_id_hidden" name="eps_id_hidden">
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+
+<!-- IE caching bug -->
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

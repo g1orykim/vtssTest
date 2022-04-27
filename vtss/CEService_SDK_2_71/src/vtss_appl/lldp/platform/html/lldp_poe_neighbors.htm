@@ -1,0 +1,282 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_lldp_poe_neighbors.htm";
+
+//
+// Global variables
+//
+
+var LLDPconfig = Array();
+
+// Refresh timer
+var timerID;
+
+//
+// Java script functions
+//
+
+function UpdateTable (ref, frag)
+{
+
+    // Check that data is available
+
+    if (LLDPconfig[0].length != 0) { 
+	// Loop though all data
+        for(var index = 0; index < LLDPconfig.length -1 ; index++) {
+	    // Change color for every 2nd row.
+	    var tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+
+	    // Loop though all neighbor information for current neighbor
+	    var pval = LLDPconfig[index].split("/");
+	    if (pval == "") {
+		continue;
+	    }
+
+	    portNum       = pval[0];
+	    powerType     = pval[1];
+	    powerSource   = pval[2];
+	    powerPriority = pval[3];
+	    powerValue    = pval[4];
+	    
+	    addTextCell(tr, portNum, "c");  
+
+	    // Add power type to the table ( See Table 15 in TIA-1057 )
+	    switch (powerType) 
+		{
+	        case "0": 
+		    addTextCell(tr, "PSE Device", "c");  
+		    break;
+		case "1": 
+		    addTextCell(tr, "PD Device", "c");  
+		    break;
+		default: 
+		    // Shall never happen
+		    addTextCell(tr, "Reserved", "c");  
+		}
+	    
+	    // Add power source to the table ( See Table 16 in TIA-1057 )
+	    if (powerType == "0") { // PSE Device
+		switch (powerSource) 
+		    {
+		    case "0": 
+			addTextCell(tr, "Unknown", "c");  
+			break;
+		    case "1": 
+			addTextCell(tr, "Primary Power Supply", "c");  
+			break;
+			
+		    case "2": 
+			addTextCell(tr, "Backup Power Supply", "c");  
+			break;
+			
+		    case "3": 
+			addTextCell(tr, "Reserved", "c");  
+			break;
+		    default: 
+			// Shall never happen
+			addTextCell(tr, "Invalid power source", "c");  
+		    }
+
+	    } else { // PD Device
+		switch (powerSource) 
+		    {
+		    case "0": 
+			addTextCell(tr, "Unknown", "c");  
+			break;
+		    case "1": 
+			addTextCell(tr, "PSE", "c");  
+			break;
+			
+		    case "2": 
+			addTextCell(tr, "Local", "c");  
+			break;
+			
+		    case "3": 
+			addTextCell(tr, "PSE and Local", "c");  
+			break;
+		    default: 
+			// Shall never happen
+			addTextCell(tr, "Invalid power source", "c");  
+		    }
+	    }
+	    
+
+	    // Add power priority to the table ( See Table 17 in TIA-1057 )
+	    switch (powerPriority) 
+		{
+	        case "1": 
+		    addTextCell(tr, "Critical", "c");  
+		    break;
+		case "2": 
+		    addTextCell(tr, "High", "c");  
+		    break;
+		case "3": 
+		    addTextCell(tr, "Low", "c");  
+		    break;
+		default: 
+		    // Shall never happen
+		    addTextCell(tr, "Unknown", "c");  
+		}
+
+	    // Power value
+	    addTextCell(tr, powerValue  / 10 + " [W]", "c");    // Power used 
+
+
+	    frag.appendChild(tr);       // Add row to fragment
+	} // End for loop
+
+    } else {// 
+	var tr = CreateStyledElement("tr", "display_even");
+	addTextCell(tr,"No PoE neighbor information found", "c", 5);
+	frag.appendChild(tr);       // Add row to fragment
+    }
+
+    var tbody = document.getElementById(ref);	
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+	alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req))
+        return;
+    if(req.responseText) {
+
+        // Get number of entries
+	LLDPconfig = req.responseText.split("|");
+
+	
+	// create holder for accumulated tbody elements and text nodes
+	var frag = document.createDocumentFragment();
+    
+	// Create the table
+	UpdateTable(ref, frag);
+
+    } else {
+        SpomHandleError();
+    }
+    document.getElementById("update").style.visibility = "hidden";
+
+    // Update the timer
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+}
+
+function requestUpdate(type) {
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/stat/lldp_poe_neighbors"), processUpdate, 'LLDPData');
+    
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function chkRefresh(fld)
+{
+  if(!fld.checked) {
+    if(timerID)
+      clearTimeout(timerID);
+    timerID = null;
+  } else {
+      requestUpdate();
+  }
+}
+
+// Update when SID is changed.
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>LLDP Neighbor Power Over Ethernet Information <span id="display_sid"></span></h1>
+
+<form name="LLDPPoENeighborsForm" method="POST" action="/stat/lldp_poe_neighbors" onsubmit="return checkForm(this);"> </form>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<table id="LLDPPoENeighborsTable" summary="LLDP Neighbors Table" cellspacing="0" class="display">
+ <thead>
+  <tr class="display_header">
+    <th>Local Port</th>
+    <th>Power Type</th>
+    <th>Power Source</th>
+    <th>Power Priority</th>
+    <th>Maximum Power</th>
+  </tr>
+ </thead>
+ <tbody id="LLDPData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

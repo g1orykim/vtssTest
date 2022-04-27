@@ -1,0 +1,402 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+Vitesse Switch Software.
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>Ethernet Protection Switching</title>
+<link href="lib/normal.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="lib/ajax.js"></script>
+<script type="text/javascript" src="lib/dynforms.js"></script>
+<script type="text/javascript" src="lib/validate.js"></script>
+<script type="text/javascript" src="lib/config.js"></script>
+<script type="text/javascript">
+
+var help_page = "/help/help_erps.htm";
+var reqObject;
+var entry_name = new Array();
+var add_cnt = 0;
+var oTRing_type = new Array("Major","Sub");
+var oVRing_type = new Array(0, 1);
+var originalCnt = 0;
+
+function resetForm()
+{
+    processUpdate(reqObject, "erpsData");
+}
+
+function appendFrag(frag, ref, clear)
+{
+    var tbody = document.getElementById(ref);
+    if (clear) {
+        clearChildNodes(tbody);
+    }
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function addNewRow()
+{
+    var erps_id = 1;
+    var td;
+    if (add_cnt)
+    {
+        alert("Only one ERPS can be added for each Save operation");
+        return;
+    }
+    add_cnt++;
+    for (var idx = 0; idx < entry_name.length; idx++)
+    {
+        if (entry_name[idx] == erps_id) {
+            erps_id++;
+        } else {
+            break;
+        }
+    }
+
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalCnt + add_cnt) % 2 ? "config_even" : "config_odd");
+    var button = document.createElement('input');
+    button.onclick = function() { add_cnt--; clearChildNodes(tr); frag.appendChild(tr);};
+    button.type = "button";
+    button.value = " Delete ";
+    td = CreateTd("c");
+    addCell(tr, td, button);
+
+    td = addInputCell(tr, erps_id, "c", "new_erps", 3);
+    td.setAttribute("maxLength", 3);
+
+    td = addInputCell(tr, 1, "c", "E_port", 2);
+    td.setAttribute("maxLength", 2);
+
+    td = addInputCell(tr, 1, "c", "W_port", 2);
+    td.setAttribute("maxLength", 2);
+
+    td = addInputCell(tr, 1, "c", "e_raps", 2);
+    td.setAttribute("maxLength", 2);
+
+    td = addInputCell(tr, 1, "c", "w_raps", 2);
+    td.setAttribute("maxLength", 2);
+
+    td = addInputCell(tr, 1, "c", "e_mep", 2);
+    td.setAttribute("maxLength", 2);
+
+    td = addInputCell(tr, 1, "c", "w_mep", 2);
+    td.setAttribute("maxLength", 2);
+
+    td = addSelectCell(tr,oTRing_type,oVRing_type,oVRing_type[0],"c", "ring_type");
+    td.setAttribute("onchange", "en_MajorRing()");
+
+    td = addCheckBoxCell(tr, 0, "c", "inter_connected_node");
+    td.setAttribute("onClick", "en_MajorRing()");
+
+    td = addCheckBoxCell(tr, 0, "c", "virtual_channel");
+    td.setAttribute("disabled", "true");
+
+    td = addInputCell(tr, 0, "c", "major_ring_id", 2);
+    td.setAttribute("maxLength", 2);
+    td.setAttribute("disabled", "true");
+    
+    addImageCell(tr, "c", "images/led-down.gif", "down");
+
+    frag.appendChild(tr);
+    appendFrag(frag, "erpsData", 0);
+}
+
+function en_MajorRing()
+{
+    var ring_type     = document.getElementById("ring_type");
+    var interconn     = document.getElementById("inter_connected_node");
+    var major_ring_id = document.getElementById("major_ring_id");
+    var virt_chan     = document.getElementById("virtual_channel");
+
+    if (ring_type.value == 1 && interconn.checked === true) {
+        /* Interconnected sub-ring => enable major_ring_id, virtual_channel */
+        major_ring_id.disabled = false;
+        virt_chan.disabled = false;
+    } else {
+        major_ring_id.setAttribute("value", "0");
+        major_ring_id.setAttribute("disabled", "true");
+        virt_chan.clicked = false;
+        virt_chan.disabled = true;
+    }
+}
+
+function checkForm(form)
+{
+    var id;
+    var idx;
+    var fld;
+    var e_fld;
+    var w_fld;
+    var rtype_fld = document.getElementById("ring_type");
+
+    id = "new_erps";
+    fld = document.getElementById(id);
+    if (fld) {
+        /* An input row exists; validate parameters */
+
+        var virt_chan = document.getElementById("virtual_channel");
+        var interconn = document.getElementById("inter_connected_node");
+
+        if (!isWithinRange(id, configErpsProtectionGroupsMin, configErpsProtectionGroupsMax, "'ERPS ID'")) {
+            return false;
+        }
+        for (idx = 0; idx < entry_name.length; idx++) {
+            if (entry_name[idx] == fld.value) {
+               GiveAlert("ERPS ID " + fld.value + " is already in use", fld);
+               return false;
+            }
+        }
+
+        id = "E_port";
+        e_fld = document.getElementById(id);
+        if (parseInt(e_fld.value, 10) === 0) {
+            alert("Port 0 instance must not be zero");
+            return false;
+        }
+        if (!isWithinRange(id, configPortMin, configNormalPortMax, "'PORT 0'")) {
+            return false;
+        }
+
+        id = "W_port";
+        w_fld = document.getElementById(id);
+        /* West port must be zero for sub-ring on Interconnected node. */
+        if ((parseInt(rtype_fld.value, 10) === 1) && (interconn.checked === true)) {
+            if (parseInt(w_fld.value, 10) !== 0) {
+                alert("Port 1 instance must be zero");
+                return false;
+            }
+        } else {
+            if (!isWithinRange(id, configPortMin, configNormalPortMax, "'PORT 1'")) {
+                return false;
+            }
+        }
+        if (w_fld.value == e_fld.value) {
+            alert("Port 0 and Port 1 can not be same");
+            return false;
+        }
+
+        id = "e_raps";
+        e_fld = document.getElementById(id);
+        if (parseInt(e_fld.value, 10) === 0) {
+            alert("Port 0 APS MEP instance must not be zero");
+            return false;
+        }
+        if (!isWithinRange(id, 1, configMepMax, "'Port 0 APS MEP ID'")) {
+            return false;
+        }
+
+        id = "w_raps";
+        w_fld = document.getElementById(id);
+        if ((parseInt(w_fld.value, 10) === 0) && (parseInt(rtype_fld.value, 10) === 0)) {
+            /* Major */
+            alert("Port 1 APS MEP instance must not be zero");
+            return false;
+        }
+        if ((parseInt(w_fld.value, 10) === 0) && (parseInt(rtype_fld.value, 10) === 1) && (virt_chan.checked === true)) {
+            /* Sub-ring with virtual channel: Must have port 1 APS MEP */
+            alert("Port 1 APS MEP instance must not be zero");
+            return false;
+        }
+        if (!isWithinRange(id, 1, configMepMax, "'Port 1 APS MEP ID'")) {
+             return false;
+        }
+
+        if (w_fld.value == e_fld.value ) {
+            alert("Port 0 APS MEP and Port 1 APS MEP can not be same");
+            return false;
+        }
+
+        id = "e_mep";
+        e_fld = document.getElementById(id);
+        if (parseInt(e_fld.value, 10) === 0) {
+            alert("Port 0 SF MEP instance must not be zero");
+            return false;
+        }
+        if (!isWithinRange(id, 1, configMepMax, "'Port 0 SF MEP ID'")) {
+            return false;
+        }
+
+        id = "w_mep";
+        w_fld = document.getElementById(id);
+        if ((parseInt(w_fld.value, 10) === 0) && (parseInt(rtype_fld.value, 10) === 0)) {
+            alert("Port 1 SF MEP instance must not be zero");
+            return false;
+        }
+        if (!isWithinRange(id, 0, configMepMax, "'Port 1 SF MEP ID'")) {
+            return false;
+        }
+
+        if (w_fld.value == e_fld.value) {
+            alert("Port 0 SF MEP and Port 1 SF MEP can not be same");
+            return false;
+        }
+    } else {
+        /* No input row: Check if anything must be deleted */
+        var del_cnt = 0;
+        for (idx = 0; idx < entry_name.length; idx++) {
+            if (document.getElementById("del_" + entry_name[idx]).checked) {
+                del_cnt++;
+            }
+        }
+        if (del_cnt === 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function addRow(index, frag, values)
+{
+    var td;
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    originalCnt++;
+
+    entry_name[index] = values[0];
+    addCheckBoxCell(tr, 0, "c", "del_" + values[0]);
+    addLink(tr, "c", "erps_config.htm?erps=" + values[0], values[0]); // redirect to config page
+
+    addTextCell(tr, String(parseInt(values[1], 10)), "c");
+    if (parseInt(values[2], 10) !== 0) {
+        addTextCell(tr, String(parseInt(values[2], 10)), "c");
+    } else {
+        addTextCell(tr, "-", "c");
+    }
+    addTextCell(tr, String(parseInt(values[3], 10)), "c");
+
+    addTextCell(tr, String(parseInt(values[4], 10)), "c");
+    addTextCell(tr, String(parseInt(values[5], 10)), "c");
+    addTextCell(tr, String(parseInt(values[6], 10)), "c");
+    addTextCell(tr, String(oTRing_type[parseInt(values[7], 10)]), "c");
+    if (parseInt(values[8], 10)) {
+        addTextCell(tr, "Yes", "c");
+    } else {
+        addTextCell(tr, "No", "c");
+    }
+    if (parseInt(values[9], 10)) {
+        addTextCell(tr, "Yes", "c");
+    } else {
+        addTextCell(tr, "No", "c");
+    }
+    // If sub-ring.
+    if (parseInt(values[7], 10)) {
+        //If interconnected node.
+        if (parseInt(values[8], 10)) {
+            addTextCell(tr, String(parseInt(values[10], 10)), "c");
+        } else {
+            addTextCell(tr, "-", "c");
+        }
+    } else {
+        addTextCell(tr, String(parseInt(values[0], 10)), "c");
+    }
+
+    link = values[11];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    add_cnt = 0;
+    originalCnt = 0;
+
+    if (reqObject != req) {
+        reqObject = req;
+    }
+
+    if (req.responseText)
+    {
+        add_cnt = 0;
+        originalCnt = 0;
+        var values = req.responseText.split("|");
+        var frag = document.createDocumentFragment();
+        for (var i = 0; i < values.length; i++)
+        {
+            if (values[i]) {
+                addRow(i, frag, values[i].split("/"));
+            }
+        }
+        appendFrag(frag, ref, 1);
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate()
+{
+    entry_name.length = 0;
+    loadXMLDoc("/config/erpsCreate", processUpdate, "erpsData");
+}
+</script>
+</head>
+<body class="content" onload="requestUpdate();">
+<h1>Ethernet Ring Protection Switching</h1>
+<div class="refreshbar">
+<form action="#">
+ <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+ <img id="update" alt="" src="images/updating.gif">
+</form>
+</div>
+<form method="POST" action="/config/erpsCreate" onsubmit="return checkForm(this);">
+<table summary="Ethernet Ring Protection Switching Create" cellspacing="0" class="config">
+<thead>
+<tr class="config_header">
+<th>Delete</th>
+<th>ERPS ID</th>
+<th>Port 0</th>
+<th>Port 1</th>
+<th>Port 0 APS MEP</th>
+<th>Port 1 APS MEP</th>
+<th>Port 0 SF MEP</th>
+<th>Port 1 SF MEP</th>
+<th>Ring Type</th>
+<th>Interconnected Node</th>
+<th>Virtual Channel</th>
+<th>Major Ring ID</th>
+<th>Alarm</th>
+</tr>
+</thead>
+<tbody id="erpsData">
+</tbody>
+</table>
+<p>
+<input type="button" id="addNewEntry" value="Add New Protection Group" onclick="addNewRow()">&nbsp;&nbsp;&nbsp;&nbsp;
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

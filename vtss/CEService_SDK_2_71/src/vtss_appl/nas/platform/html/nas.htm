@@ -1,0 +1,642 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Network Access Server Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Help page magic
+var help_page = "/help/help_nas.htm";
+
+var EnaDisTyp = Array("Disabled", "Enabled");
+var EnaDisVal = Array(0, 1);
+
+// Maps to nas_port_status_t;
+var PortStateTyp  = Array("Link Down", "Authorized", "Unauthorized", "Globally Disabled");
+
+var PARM_IDX_SYS_PROTOCOLS         =  0; // Bitmask of supported protocols. 0x1 = Port-based 802.1X (incl. force auth and force unauth), 0x2 = MAC-based, 0x4 = Single Dot1x, 0x8 = Multi Dot1x.
+var PARM_IDX_SYS_OPTIONS           =  1; // Bitmask of supported options.   0x1 = RADIUS-assigned QoS Class, 0x2 = RADIUS-assigned VLAN, 0x4 = Guest VLAN
+var PARM_IDX_SYS_ENA               =  2;
+var PARM_IDX_SYS_REAUTH_ENA        =  3;
+var PARM_IDX_SYS_REAUTH_PER        =  4;
+var PARM_IDX_SYS_EAPOL_TIMEOUT     =  5;
+var PARM_IDX_SYS_AGE_PERIOD        =  6;
+var PARM_IDX_SYS_HOLD_TIME         =  7;
+var PARM_IDX_SYS_RADIUS_QOS        =  8;
+var PARM_IDX_SYS_RADIUS_VLAN       =  9;
+var PARM_IDX_SYS_GUEST_VLAN_ENA    = 10;
+var PARM_IDX_SYS_GUEST_VID         = 11;
+var PARM_IDX_SYS_MAX_REAUTH_CNT    = 12;
+var PARM_IDX_SYS_ALLOW_EAPOL_FRM   = 13;
+var PARM_SYS_CNT                   = PARM_IDX_SYS_ALLOW_EAPOL_FRM + 1;
+
+// Port parameters follow the system parameters. There are PARM_PORT_CNT per port.
+var PARM_IDX_PORT_NUMBER         = 0;
+var PARM_IDX_PORT_ADMIN_STATE    = 1;
+var PARM_IDX_PORT_STATE          = 2;
+var PARM_IDX_PORT_RADIUS_QOS     = 3;
+var PARM_IDX_PORT_RADIUS_VLAN    = 4;
+var PARM_IDX_PORT_GUEST_VLAN     = 5;
+var PARM_PORT_CNT                = PARM_IDX_PORT_GUEST_VLAN + 1;
+
+var ADMIN_STATE_FORCE_AUTH       = 1;
+var ADMIN_STATE_DOT1X_PORT_BASED = 2;
+var ADMIN_STATE_FORCE_UNAUTH     = 3;
+var ADMIN_STATE_MAC_BASED        = 4;
+var ADMIN_STATE_DOT1X_SINGLE     = 5;
+var ADMIN_STATE_DOT1X_MULTI      = 6;
+
+var LAST_PORT_NUMBER;
+
+//------------------------------------------------------------------------------
+// Restart button event handler.
+// It's made in this way because IE (6.0) doesn't work with
+// setAttribute("onclick", "on_restart_click(this)")
+//------------------------------------------------------------------------------
+var on_restart_click = function()
+{
+  // Post a new request to web.c's config/nas_reset() handler
+  var req = initXMLHTTP();
+  if (req) {
+    try {
+      var url_to_get = SpomAddSidArg(this.name);
+      req.open("GET", url_to_get, true);
+      req.send(null);
+    } catch(e) {
+      alert("Send error: " + e.toString());
+    }
+  } else {
+    alert("Failed to create request");
+  }
+};
+
+//------------------------------------------------------------------------------
+// Called when Reauthentication Enabled is clicked.
+//------------------------------------------------------------------------------
+var on_reauth_enable_change = function()
+{
+  var fld = document.getElementById("reauth_period");
+  if (fld) {
+    // May not be present in all cases.
+    fld.disabled = !document.getElementById("reauth_enable").checked;
+  }
+};
+
+//------------------------------------------------------------------------------
+// Called when global Guest VLAN is clicked.
+//------------------------------------------------------------------------------
+var on_guest_vlan_enable_change = function()
+{
+  var guest_vlan_box = document.getElementById("_guest_vlan_glbl");
+  if (!guest_vlan_box) {
+    return; // Not supported
+  }
+  var dis = !guest_vlan_box.checked;
+  document.getElementById("guest_vid").disabled       = dis;
+  document.getElementById("reauth_max").disabled      = dis;
+  document.getElementById("allow_eapol_frm").disabled = dis;
+};
+
+//------------------------------------------------------------------------------
+// Called when Admin State select box changes. Can be called directly
+//------------------------------------------------------------------------------
+var admin_change = function(admin_select, radius_qos_checkbox, radius_vlan_checkbox, guest_vlan_checkbox)
+{
+  var admin_state = admin_select[admin_select.selectedIndex].value;
+  var not_single_client = admin_state != ADMIN_STATE_DOT1X_PORT_BASED && admin_state != ADMIN_STATE_DOT1X_SINGLE;
+  if (radius_qos_checkbox) {
+    radius_qos_checkbox.disabled  = not_single_client;
+  }
+  if (radius_vlan_checkbox) {
+    radius_vlan_checkbox.disabled = not_single_client;
+  }
+  if (guest_vlan_checkbox) {
+    guest_vlan_checkbox.disabled  = not_single_client && admin_state != ADMIN_STATE_DOT1X_MULTI;
+  }
+};
+
+//------------------------------------------------------------------------------
+// Called when Admin State select box changes.
+//------------------------------------------------------------------------------
+var on_admin_change = function(port)
+{
+  var admin_select = document.getElementById("admin_" + port);
+  if (admin_select) {
+    admin_change(admin_select, document.getElementById("backend_qos_" + port), document.getElementById("backend_vlan_" + port), document.getElementById("guest_vlan_" + port));
+  }
+};
+
+//------------------------------------------------------------------------------
+// Helper function to add the system configuration parameter table, which varies depending on whether protocols that
+// require EAPOL or MAC-table based functionality is enabled or not
+//------------------------------------------------------------------------------
+function add_system_table(eapol_support, mac_table_based_support, radius_qos_support, radius_vlan_support, guest_vlan_support, sys_values, frag)
+{
+  var tr, fld;
+
+  // Enable/Disable
+  tr = CreateStyledElement("tr", "config");
+  addTypedTextCell(tr, "td", "Mode", "param_label");
+  fld = addSelectCell(tr, EnaDisTyp, EnaDisVal, sys_values[PARM_IDX_SYS_ENA], "cl", "nas_enabled");
+  fld.style.cssText = "width: 9em"; // IE likes this better than the setAttribute("style", "width: 9em") method. FF doesn't care which method is used.
+  frag.appendChild(tr);
+
+  // Reauthentication Enabled
+  tr = CreateStyledElement("tr", "config");
+  addTypedTextCell(tr, "td", "Reauthentication Enabled", "param_label");
+  fld = addCheckBoxCell(tr, parseInt(sys_values[PARM_IDX_SYS_REAUTH_ENA], 10) ? true : false, "cl", "reauth_enable");
+  fld.onclick = on_reauth_enable_change;
+  frag.appendChild(tr);
+
+  // Reauthentication Period
+  tr = CreateStyledElement("tr", "config");
+  addTypedTextCell(tr, "td", "Reauthentication Period", "param_label");
+  fld = addInputCell(tr, sys_values[PARM_IDX_SYS_REAUTH_PER], "cl", "reauth_period", 6);
+  fld.parentNode.appendChild(document.createTextNode(" seconds")); // Unfortunately, I cannot use &nbsp; in place of the space.
+  fld.setAttribute("maxLength", 4);
+  frag.appendChild(tr);
+
+  if (eapol_support) {
+    // EAPOL Timeout
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "EAPOL Timeout", "param_label");
+    fld = addInputCell(tr, sys_values[PARM_IDX_SYS_EAPOL_TIMEOUT], "cl", "eapol_timeout", 6);
+    fld.parentNode.appendChild(document.createTextNode(" seconds"));
+    fld.setAttribute("maxLength", 5);
+    frag.appendChild(tr);
+  }
+
+  if (mac_table_based_support) {
+    // Aging Period
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "Aging Period", "param_label");
+    fld = addInputCell(tr, sys_values[PARM_IDX_SYS_AGE_PERIOD], "cl", "age_period", 6);
+    fld.parentNode.appendChild(document.createTextNode(" seconds"));
+    fld.setAttribute("maxLength", 7);
+    frag.appendChild(tr);
+
+    // Hold Time
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "Hold Time", "param_label");
+    fld = addInputCell(tr, sys_values[PARM_IDX_SYS_HOLD_TIME], "cl", "hold_time", 6);
+    fld.parentNode.appendChild(document.createTextNode(" seconds"));
+    fld.setAttribute("maxLength", 7);
+    frag.appendChild(tr);
+  }
+
+  if (radius_qos_support) {
+    // RADIUS-assigned QoS Class
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "RADIUS-Assigned QoS Enabled", "param_label");
+    fld = addCheckBoxCell(tr, parseInt(sys_values[PARM_IDX_SYS_RADIUS_QOS], 10) ? true : false, "cl", "_backend_qos_glbl");
+    frag.appendChild(tr);
+  }
+
+  if (radius_vlan_support) {
+    // RADIUS-assigned VLAN
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "RADIUS-Assigned VLAN Enabled", "param_label");
+    fld = addCheckBoxCell(tr, parseInt(sys_values[PARM_IDX_SYS_RADIUS_VLAN], 10) ? true : false, "cl", "_backend_vlan_glbl");
+    frag.appendChild(tr);
+  }
+
+  if (guest_vlan_support) {
+    // Guest VLAN globally enabled
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "Guest VLAN Enabled", "param_label");
+    fld = addCheckBoxCell(tr, parseInt(sys_values[PARM_IDX_SYS_GUEST_VLAN_ENA], 10) ? true : false, "cl", "_guest_vlan_glbl");
+    fld.onclick = on_guest_vlan_enable_change;
+    frag.appendChild(tr);
+
+    // Guest VLAN ID
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "Guest VLAN ID", "param_label");
+    fld = addInputCell(tr, sys_values[PARM_IDX_SYS_GUEST_VID], "cl", "guest_vid", 6);
+    fld.setAttribute("maxLength", 4);
+    frag.appendChild(tr);
+
+    // Max. Reauth Count
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "Max. Reauth. Count", "param_label");
+    fld = addInputCell(tr, sys_values[PARM_IDX_SYS_MAX_REAUTH_CNT], "cl", "reauth_max", 6);
+    fld.setAttribute("maxLength", 3);
+    frag.appendChild(tr);
+
+    // Allow Guest VLAN if EAPOL frame seen.
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "Allow Guest VLAN if EAPOL Seen", "param_label");
+    fld = addCheckBoxCell(tr, parseInt(sys_values[PARM_IDX_SYS_ALLOW_EAPOL_FRM], 10) ? true : false, "cl", "allow_eapol_frm");
+    frag.appendChild(tr);
+  }
+}
+
+//------------------------------------------------------------------------------
+// Helper function to add a header row
+//------------------------------------------------------------------------------
+function add_port_head(radius_qos_support, radius_vlan_support, guest_vlan_support)
+{
+  var frag = document.createDocumentFragment();
+  var thead = document.getElementById('port_head');
+  clearChildNodes(thead);
+
+  var tr, td;
+  tr = CreateStyledElement("tr", "config_header");
+  td = addTextHeaderCell(tr, "Port");
+  td = addTextHeaderCell(tr, "Admin State");
+
+  if (radius_qos_support) {
+    td = document.createElement("th");
+    td.innerHTML = "RADIUS-Assigned<br/>QoS Enabled";
+    tr.appendChild(td);
+  }
+  if (radius_vlan_support) {
+    td = document.createElement("th");
+    td.innerHTML = "RADIUS-Assigned<br/>VLAN Enabled";
+    tr.appendChild(td);
+  }
+  if (guest_vlan_support) {
+    td = document.createElement("th");
+    td.innerHTML = "Guest<br/>VLAN Enabled";
+    tr.appendChild(td);
+  }
+  addTextHeaderCell(tr, "Port State");
+  addTextHeaderCell(tr, "Restart", "", 2);
+  frag.appendChild(tr); // Add row to fragment
+  thead.appendChild(frag);
+}
+
+//------------------------------------------------------------------------------
+// Helper function to add the control-bar as the very first row in the per-port
+// table.
+//------------------------------------------------------------------------------
+function CreateControlBar(radius_qos_support, radius_vlan_support, guest_vlan_support)
+{
+  var cBar = new MasterControlBar([{text: "*", className: "cr"},{name: "admin_"}]);
+
+  if (radius_qos_support) {
+    cBar.extend([{name: "backend_qos_"}]);
+  }
+
+  if (radius_vlan_support) {
+    cBar.extend([{name: "backend_vlan_"}]);
+  }
+
+  if (guest_vlan_support) {
+    cBar.extend([{name: "guest_vlan_"}]);
+  }
+
+  cBar.extend([null, null, null]);
+  cBar.construct('port_data');
+}
+
+//------------------------------------------------------------------------------
+// Helper function to add a row of port data.
+//------------------------------------------------------------------------------
+function add_port_row(idx, AdminStateTyp, AdminStateVal, frag, globally_enabled, radius_qos_support, radius_vlan_support, guest_vlan_support, port_values)
+{
+  var port = parseInt(port_values[PARM_IDX_PORT_NUMBER], 10);
+  var tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+
+  // Port number
+  addTextCell(tr, port, "cr");
+
+  var admin_state = port_values[PARM_IDX_PORT_ADMIN_STATE];
+  var admin_select = addSelectCell(tr, AdminStateTyp, AdminStateVal, admin_state, "cl", "admin_" + port);
+  admin_select.onchange = function () {on_admin_change(port);};
+
+  var radius_qos_checkbox;
+  if (radius_qos_support) {
+    radius_qos_checkbox = addCheckBoxCell(tr, parseInt(port_values[PARM_IDX_PORT_RADIUS_QOS], 10) ? true : false, "c", "backend_qos_" + port);
+  }
+
+  var radius_vlan_checkbox;
+  if (radius_vlan_support) {
+    radius_vlan_checkbox = addCheckBoxCell(tr, parseInt(port_values[PARM_IDX_PORT_RADIUS_VLAN], 10) ? true : false, "c", "backend_vlan_" + port);
+  }
+
+  var guest_vlan_checkbox;
+  if (guest_vlan_support) {
+    guest_vlan_checkbox = addCheckBoxCell(tr, parseInt(port_values[PARM_IDX_PORT_GUEST_VLAN], 10) ? true : false, "c", "guest_vlan_" + port);
+  }
+
+  // Port State (Link Down = 0, Authorized = 1, Unauthorized = 2, Disabled = 3).
+  // If value >= 4 it's interpreted as the number of authenticated and unauthenticated clients on this port.
+  var port_state = port_values[PARM_IDX_PORT_STATE];
+  if (port_state >= PortStateTyp.length) {
+    var unauth_clients = 0;
+    var auth_clients   = 0;
+    // Multi-client. The port_state is encoded as follows: Upper 16 bits = # of unauthorized clients + 1, Lower 16 bits = # of authorized clients + 1
+    unauth_clients = ((port_state >> 16) & 0xFFFF) - 1;
+    auth_clients   = ((port_state >>  0) & 0xFFFF) - 1;
+    addTextCell(tr, auth_clients + " Auth/" + unauth_clients + " Unauth", "cl");
+  } else {
+    addTextCell(tr, PortStateTyp[port_state], "cl");
+  }
+
+  // Then the restart button(s)
+  // Reauthenticate Button
+  var btn_enbld = globally_enabled == 1 && (admin_state == ADMIN_STATE_DOT1X_PORT_BASED || admin_state == ADMIN_STATE_MAC_BASED || admin_state == ADMIN_STATE_DOT1X_SINGLE || admin_state == ADMIN_STATE_DOT1X_MULTI);
+  var btn = document.createElement('input');
+  btn.onclick = on_restart_click;
+  btn.type = "button";
+  btn.value = " Reauthenticate ";
+  btn.name = "/config/nas_reset?port=" + port + "&bool=false";
+  btn.disabled = !btn_enbld;
+  var td = CreateTd("c");
+  addCell(tr, td, btn);
+
+  // Reinitialize Button
+  btn = document.createElement('input');
+  btn.onclick = on_restart_click;
+  btn.type = "button";
+  btn.value = " Reinitialize ";
+  btn.name = "/config/nas_reset?port=" + port + "&bool=true";
+  btn.disabled = !btn_enbld;
+  td = CreateTd("c");
+  addCell(tr, td, btn);
+
+  // Update enabled/disabled states
+  admin_change(admin_select, radius_qos_checkbox, radius_vlan_checkbox, guest_vlan_checkbox);
+
+  frag.appendChild(tr); // Add row to fragment
+}
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+function processUpdate(req, ref)
+{
+  // Format of whole string:
+  // Protocols/Options/Enabled/ReauthEna/ReauthPeriod/EAPOLTimeout/AgePeriod/HoldTime/RADIUSQoS/RADIUSVLAN/GuestVLANEna/GuestVID/MaxReauthCnt/AllowEAPOLFrameSeen#[PortConfigs]
+  // [PortConfigs] = [PortConfig1]#[PortConfig2]#...#[PortConfigN]
+  // [PortConfig]  = PortNumber/AdminState/PortState/RadiusQoSEna/RadiusVLANEna/GuestVLANEna
+  var values = req.responseText.split("#");
+
+  document.getElementById("update").style.visibility = "hidden";
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  var sys_values = values[0].split("/");
+  if (sys_values.length != PARM_SYS_CNT) {
+    return;
+  }
+
+  // Format: Protocols/Enabled/ReauthEna/ReauthPeriod/EAPOLTimeout/AgePeriod/HoldTime#[PortConfig]
+  var dot1x_port_based_support = (sys_values[PARM_IDX_SYS_PROTOCOLS] & 0x1) !== 0;
+  var mac_based_support        = (sys_values[PARM_IDX_SYS_PROTOCOLS] & 0x2) !== 0;
+  var dot1x_single_support     = (sys_values[PARM_IDX_SYS_PROTOCOLS] & 0x4) !== 0;
+  var dot1x_multi_support      = (sys_values[PARM_IDX_SYS_PROTOCOLS] & 0x8) !== 0;
+
+  var eapol_support            = dot1x_port_based_support || dot1x_single_support || dot1x_multi_support;
+  var mac_table_based_support  = mac_based_support        || dot1x_single_support || dot1x_multi_support;
+
+  var radius_qos_support       = (sys_values[PARM_IDX_SYS_OPTIONS] & 0x1) !== 0;
+  var radius_vlan_support      = (sys_values[PARM_IDX_SYS_OPTIONS] & 0x2) !== 0;
+  var guest_vlan_support       = (sys_values[PARM_IDX_SYS_OPTIONS] & 0x4) !== 0;
+
+  // Create the system-configuration table
+  var frag_sys_tbl = document.createDocumentFragment();
+  add_system_table(eapol_support, mac_table_based_support, radius_qos_support, radius_vlan_support, guest_vlan_support, sys_values, frag_sys_tbl);
+  var sys_tbl = document.getElementById('nas_sys_table');
+  clearChildNodes(sys_tbl);
+  sys_tbl.appendChild(frag_sys_tbl);
+
+  // Enable/disable reauth_period edit box
+  on_reauth_enable_change();
+
+  // Enable/disable guest VLAN ID, max. reauth count, and allow guest VLAN if EAPOL frame seen.
+  on_guest_vlan_enable_change();
+
+  // Create the header for the per-port configuration
+  add_port_head(radius_qos_support, radius_vlan_support, guest_vlan_support);
+
+  var AdminStateTyp = Array();
+  var AdminStateVal = Array();
+
+  AdminStateTyp.push("Force Authorized");
+  AdminStateVal.push(ADMIN_STATE_FORCE_AUTH);
+
+  AdminStateTyp.push("Force Unauthorized");
+  AdminStateVal.push(ADMIN_STATE_FORCE_UNAUTH);
+
+  if (dot1x_port_based_support) {
+    if (dot1x_single_support || dot1x_multi_support) {
+      // Emphasize that it's port-based 802.1X when at least
+      // one of the other 802.1X types are defined.
+      AdminStateTyp.push("Port-based 802.1X");
+    } else {
+      AdminStateTyp.push("802.1X");
+    }
+    AdminStateVal.push(ADMIN_STATE_DOT1X_PORT_BASED);
+  }
+
+  if (dot1x_single_support) {
+    AdminStateTyp.push("Single 802.1X");
+    AdminStateVal.push(ADMIN_STATE_DOT1X_SINGLE);
+  }
+
+  if (dot1x_multi_support) {
+    AdminStateTyp.push("Multi 802.1X");
+    AdminStateVal.push(ADMIN_STATE_DOT1X_MULTI);
+  }
+
+  if (mac_based_support) {
+    AdminStateTyp.push("MAC-based Auth.");
+    AdminStateVal.push(ADMIN_STATE_MAC_BASED);
+  }
+
+  // Format of [PortConfig]
+  // AdminState_1/PortState_1#AdminState_2/PortState_2#...#AdminState_N/PortState_N
+  LAST_PORT_NUMBER = -1;
+  var frag_port_body = document.createDocumentFragment();
+  for (var i = 1; i < values.length; i++) {
+    var port_values = values[i].split("/");
+    if (port_values.length != PARM_PORT_CNT) {
+      return;
+    }
+    var port = parseInt(port_values[PARM_IDX_PORT_NUMBER], 10);
+    if (port > LAST_PORT_NUMBER) {
+      LAST_PORT_NUMBER = port;
+    }
+    add_port_row(i - 1, AdminStateTyp, AdminStateVal, frag_port_body, sys_values[PARM_IDX_SYS_ENA], radius_qos_support, radius_vlan_support, guest_vlan_support, port_values);
+  }
+
+  var tbody = document.getElementById('port_data');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag_port_body);
+
+  CreateControlBar(radius_qos_support, radius_vlan_support, guest_vlan_support);
+}
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+function requestUpdate() {
+  if (SpomNavigationLoading()) {
+    return;                 // Bail out, navigation will trigger update
+  }
+
+  document.getElementById("update").style.visibility = "visible";
+  loadXMLDoc(SpomAddSidArg("/config/nas"), processUpdate, null);
+
+  SpomUpdateDisplaySid("display_sid");
+  SpomUpdateFormSid("submit_sid");
+}
+
+//------------------------------------------------------------------------------
+// Check if the user input is OK (first stage; the next stage
+// is within the actual C-code that gets invoked when this
+// function returns true.
+//------------------------------------------------------------------------------
+function checkForm()
+{
+  // Since most of these fields are optional (depending on which protocols are supported)
+  // we need to check for their existence before using their values.
+
+  // Reauthentication Period
+  var fld = document.getElementById("reauth_enable");
+  if (fld && fld.checked) {
+    if (!isWithinRange("reauth_period", 1, 3600, "'Reauthentication Period'", " seconds")) {
+      return false;
+    }
+  }
+
+  // EAPOL Timeout
+  fld = document.getElementById("eapol_timeout");
+  if (fld) {
+    if (!isWithinRange("eapol_timeout", 1, 65535, "'EAPOL Timeout'", " seconds")) {
+      return false;
+    }
+  }
+
+  // Aging Period
+  fld = document.getElementById("age_period");
+  if (fld) {
+    if (!isWithinRange("age_period", 10, 1000000, "'Aging Period'", " seconds")) {
+      return false;
+    }
+  }
+
+  // Hold Time
+  fld = document.getElementById("hold_time");
+  if (fld) {
+    if (!isWithinRange("hold_time", 10, 1000000, "'Hold Time'", " seconds")) {
+      return false;
+    }
+  }
+
+  // Guest VLAN
+  fld = document.getElementById("_guest_vlan_glbl");
+  if (fld && fld.checked) {
+    if (!isWithinRange("guest_vid", 1, 4095, "'Guest VLAN ID'", "")) {
+      return false;
+    }
+    if (!isWithinRange("reauth_max", 1, 255, "'Max. Reauth. Count'", "")) {
+      return false;
+    }
+  }
+
+  return true; // Feed the chickens and go home
+}
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+function SpomSidSelectorUpdate(sid)
+{
+  SpomSetCurrentSid(sid); // Save current SID
+  requestUpdate();        // Update page to reflect selector
+}
+
+//------------------------------------------------------------------------------
+// Called when the user hits the reset-button.
+//------------------------------------------------------------------------------
+function reset_btn_click()
+{
+  document.nas_cfg_form.reset();
+  on_reauth_enable_change();
+  on_guest_vlan_enable_change();
+  for (var p = 0; p <= LAST_PORT_NUMBER; p++) {
+    on_admin_change(p);
+  }
+}
+  </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<div class="refreshbar">
+ <form action="#">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<h1>Network Access Server Configuration</h1>
+<form name="nas_cfg_form" method="POST" action="/config/nas" onsubmit="return checkForm();">
+<h2>System Configuration <span class="SPOM_only">(Stack Global)</span></h2>
+
+<!-- Dynamically generated due to runtime-check for MAC-based authentication support -->
+<table summary="NAS System Configuration" cellspacing="0" class="config">
+  <tbody id="nas_sys_table"></tbody>
+</table>
+
+<h2>Port Configuration <span id="display_sid"></span></h2>
+
+<table summary="NAS Port Configuration" cellspacing="0" class="config">
+  <thead id="port_head"></thead>
+  <tbody id="port_data"></tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid"/>
+<input type="submit" value="Save"/>
+<input type="reset"  value="Reset" onclick="reset_btn_click();"/>
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

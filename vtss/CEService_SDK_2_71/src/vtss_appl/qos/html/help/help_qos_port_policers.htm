@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Ingress Port Policer Config Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.qos_bitrate_min').set('text', (configQosBitRateMin < 10000) ? configQosBitRateMin : configQosBitRateMin / 1000);
+     $$('span.qos_bitrate_max').set('text', (configQosBitRateMax < 10000) ? configQosBitRateMax : configQosBitRateMax / 1000);
+     $$('span.qos_bitrate_def').set('text', (configQosBitRateDef < 10000) ? configQosBitRateDef : configQosBitRateDef / 1000);
+     $$('span.qos_unit_def').set('text', (configQosBitRateDef < 10000) ? '"kbps"' : '"Mbps"');
+   });
+ </script>
+</head>
+
+<body>
+<h1>QoS Ingress Port Policer Config Help</h1>
+
+<p>This page allows you to configure the <a href="glossary.htm#policer" class="glossary">Policer</a> settings for all switch ports.</p>
+
+<p class="SPOM_only">The settings relate to the currently selected stack unit, as reflected by the page header.</p>
+
+<p>The displayed settings are:</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>The port number for which the configuration below applies.</dd>
+ <dt>Enabled</dt>
+ <dd>Controls whether the policer is enabled on this switch port.</dd>
+ <dt>Rate</dt>
+ <dd>Controls the rate for the policer. The default value is <span class="qos_bitrate_def">?</span>.
+     This value is restricted to <span class="qos_bitrate_min">?</span>-1000000 when the "Unit" is "kbps" or "fps",
+     and it is restricted to 1-<span class="qos_bitrate_max">?</span> when the "Unit" is "Mbps" or "kfps".</dd>
+ <dt>Unit</dt>
+ <dd>Controls the unit of measure for the policer rate as kbps, Mbps, fps or kfps . The default value is <span class="qos_unit_def">?</span>.</dd>
+ <dt class="PORT_FLOW_CTRL">Flow Control</dt>
+ <dd class="PORT_FLOW_CTRL">If flow control is enabled and the port is in flow control mode, then pause frames are sent instead of discarding frames. </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value="Save">: Click to save changes.</p>
+<p><input type="button" value="Reset">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

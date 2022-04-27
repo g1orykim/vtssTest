@@ -1,0 +1,185 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <title>PTP Clock's Port Data Set Monitor Page</title>
+    <link href="lib/normal.css" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="lib/config.js"></script>
+    <script type="text/javascript" src="lib/ajax.js"></script>
+    <script type="text/javascript" src="lib/spom.js"></script>
+    <script type="text/javascript" src="lib/dynforms.js"></script>
+    <script type="text/javascript" src="lib/validate.js"></script>
+    <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_ptp_port_data_stat.htm";
+
+
+var timerID = null;
+var ptp_clock_config = Array();
+
+// global_clock_inst is used to store the clock_inst value from the 
+//   ptp.htm screen
+var global_clock_inst = 0;
+// This piece of code makes sure that a specific clock_instancet can be selected
+// directly, when navigating from a hyperlink on a different page.
+var arg_idx = document.URL.indexOf('?');
+if(arg_idx != -1) {
+    var args = document.URL.substring(arg_idx+1, document.URL.length);
+    var tup = args.split('=');
+
+    if(tup.length == 2) {
+        if(tup[0] == 'clock_inst') {
+            global_clock_inst = parseInt(tup[1]);
+        }
+    }
+}
+
+// Display all the elements in a Row
+function addRow(index, frag, values) {
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var per_port_params = values.split("/");
+    
+    for (var port_param_index = 0; port_param_index < per_port_params.length; port_param_index++) {
+        addTextCell(tr, per_port_params[port_param_index], "c");
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+// This function is used to Parse the data from the server and display 
+// the values on the screen.
+function processUpdate(req)
+{
+    if (redirectOnError(req))
+        return;
+
+    if (req.responseText) {
+        ptp_clock_config = req.responseText.split("#");
+        {
+            // Create Local CLock Time Table
+            var frag = document.createDocumentFragment();
+            var tr = CreateStyledElement("tr", "config_odd");
+            var elem;
+            var clock_config_per_port = ptp_clock_config[1].split("$");
+            // Display the Per Port Information.
+            for(var index = 1; index < clock_config_per_port.length; index++ ) {
+                addRow(index, frag, clock_config_per_port[index]);
+            }
+            elem = document.getElementById("PortDataset_tbody");
+            clearChildNodes(elem);
+            elem.appendChild(frag);
+        }
+    } else {
+        SpomHandleError();
+    }
+
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh.checked) {
+        if(timerID)
+           clearTimeout(timerID);
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+// This function is called on the load of the page which inturn sends the 
+// request to the server for fetching the information.
+function requestUpdate() {
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/stat/ptp_clock_ports?clock_inst="+global_clock_inst), processUpdate);
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+            timerID = null;
+        }
+    } else {
+        requestUpdate();
+    }
+}
+
+// HTML script starts from here.
+</script>
+</head>
+<body class="content" onload="requestUpdate();">
+
+<h1>PTP Clock's Port Data Set Configuration <span id="display_sid"></span></h1>
+<div class="refreshbar">
+    <form action="#">
+        <label for="autorefresh">Auto-refresh</label>
+        <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+        <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+        <img id="update" alt="" src="images/updating.gif">
+    </form>
+</div>
+
+<table summary="Port DataSet" class="config">
+  <thead>
+  <tr>
+   <th>Port</th>
+   <th>Stat</th>
+   <th>MDR</th>
+   <th>PeerMeanPathDel</th>
+   <th>Anv</th>
+   <th>ATo</th>
+   <th>Syv</th>
+   <th>Dlm</th>
+   <th>MPR</th>
+   <th>Delay Asymmetry</th>
+   <th>Ingress Latency</th>
+   <th>Egress Latency</th>
+   <th>Version</th>
+  </tr>
+ </thead>
+ <tbody id="PortDataset_tbody">
+ </tbody>
+</table>
+
+<form action="#">
+<table id="ptpClockPortsInformation" summary="Per Clock Ports Information" cellspacing="0" class="config">
+  <tbody id="ptpClockPortsData"></tbody>
+</table>
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

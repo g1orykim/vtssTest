@@ -1,0 +1,109 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_lldp := $(DIR_APPL)/lldp
+DIR_lldp_man_base     := $(DIR_APPL)/lldp/base
+DIR_lldp_man_platform := $(DIR_APPL)/lldp/platform
+
+# Files to compile
+OBJECTS_lldp_man_base := vtss_lldp.o lldp_os.o lldp_private.o lldp_remote.o \
+                         lldp_sm.o lldp_tlv.o lldp_print.o
+
+OBJECTS_lldp_man_platform := lldp.o \
+  $(if $(MODULE_VCLI),lldp_cli.o)  \
+  $(if $(MODULE_ICLI),lldp_icli_functions.o)  \
+  $(if $(MODULE_ICLI),lldp_icli_shared_functions.o)  \
+  $(if $(MODULE_WEB),lldp_web.o)  \
+  $(if $(MODULE_CONF_XML),lldp_xml.o)
+
+
+#Built-in ICLI
+$(eval $(call add_icli,$(DIR_lldp)/platform/lldp.icli))
+
+# Compile options for the mandatory LLDP
+$(OBJECTS_lldp_man_base): %.o: $(DIR_lldp_man_base)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_lldp_man_platform): %.o: $(DIR_lldp_man_platform)/%.c
+	$(call compile_c, $@, $<)
+
+# Files and compile options for LLDP EEE related stuff
+ifeq ($(filter eee,$(MODULES)),eee)
+  OBJECTS_lldp_eee := eee_tx.o eee_rx.o
+  DIR_lldp_eee := $(DIR_APPL)/lldp/base/eee
+  INCLUDES += -I$(DIR_lldp_eee)
+  $(OBJECTS_lldp_eee): %.o: $(DIR_lldp_eee)/%.c
+	$(call compile_c, $@, $<)
+endif
+
+# Compile all objects
+OBJECTS_lldp := $(OBJECTS_lldp_man_base) $(OBJECTS_lldp_man_platform) $(OBJECTS_lldp_eee)
+
+INCLUDES += -I$(DIR_lldp_man_base) -I$(DIR_lldp_man_platform)
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_lldp)/platform/html
+
+# Linting
+LINT_FILES_lldp += $(DIR_lldp_man_base)/*.c
+LINT_FILES_lldp += $(DIR_lldp_man_platform)/lldp.c
+LINT_FILES_lldp += $(if $(MODULE_VCLI),$(DIR_lldp_man_platform)/lldp_cli.c)
+ifeq ($(filter eee,$(MODULES)),eee)
+  LINT_FILES_lldp += $(DIR_lldp_eee)/*.c
+endif
+ifeq ($(filter conf_xml,$(MODULES)),conf_xml)
+  LINT_FILES_lldp += $(DIR_lldp_man_platform)/lldp_xml.c
+endif
+LINT_FILES_lldp += $(DIR_lldp)/platform/lldp_icli_functions.c
+LINT_FILES_lldp += $(DIR_lldp)/platform/lldp_icli_shared_functions.c
+
+
+# Code style checking
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_man_base)/*.h
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_man_base)/*.c
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_man_platform)/lldp_api.h
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_man_platform)/lldp_cli.h
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_man_platform)/lldp.h
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_man_platform)/lldp.c
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_man_platform)/lldp_cli.c
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_man_platform)/lldp_web.c
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_man_platform)/lldp_xml.c
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_man_platform)/lldp_icli_shared_functions.*
+
+ifeq ($(filter eee,$(MODULES)),eee)
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_eee)/*.h
+VTSS_CODE_STYLE_CHK_FILES_lldp += $(DIR_lldp_eee)/*.c
+endif
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_lldp += $(DIR_lldp_man_platform)/lldp_icli_functions.* 
+
+
+# JSlint files
+JSLINT_FILES_lldp += $(DIR_lldp_man_platform)/html/lldp_config.htm
+JSLINT_FILES_lldp += $(DIR_lldp_man_platform)/html/help/*.htm
+
+# Tidy files
+TIDY_FILES_lldp += $(DIR_lldp_man_platform)/html/*.htm $(DIR_lldp_man_platform)/html/help/*.htm
+

@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>EVC Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+var oTDeiMode = Array("Fixed", "Coloured");
+var oVDeiMode = Array(0, 1);
+var oTTagMode = Array("Inner", "Outer");
+var oVTagMode = Array(1, 0);
+var oTAddrMode = Array("Source", "Destination");
+var oVAddrMode = Array(0, 1);
+var oTKeyType = Array("Normal", "Double Tag", "IP Address", "MAC and IP Address");
+var oVKeyType = Array(0, 1, 2, 3);
+
+// Help page magic
+var help_page = "/help/help_evc_uni.htm";
+
+function CreateTableHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    if (configArchServal) {
+        //1st layer
+        addTextHeaderCell(tr, "Port", "param_label", 1, 2);
+        addTextHeaderCell(tr, "Basic Lookup", "param_label", 2);
+        addTextHeaderCell(tr, "Advanced Lookup", "param_label", 2);
+        frag.appendChild(tr);
+
+        //2nd layer
+        tr = CreateStyledElement("tr", "config_header");
+        addTextHeaderCell(tr, "Key Type", "param_label");
+        addTextHeaderCell(tr, "Address Mode", "param_label");
+        addTextHeaderCell(tr, "Key Type", "param_label");
+        addTextHeaderCell(tr, "Address Mode", "param_label");
+    } else {
+        addTextHeaderCell(tr, "Port", "param_label");
+        addTextHeaderCell(tr, "DEI Mode", "param_label");
+        if (configArchLuton26) {
+            addTextHeaderCell(tr, "Tag Mode", "param_label");
+            addTextHeaderCell(tr, "Address Mode", "param_label");
+        }
+    }
+    frag.appendChild(tr);
+    elem = document.getElementById("portHead");
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+}
+
+function addRow(frag, i, values)
+{
+    var tr = CreateStyledElement("tr", i % 2 ? "config_odd" : "config_even");
+    var portNo = parseInt(values[0], 10);
+    addTextCell(tr, portNo, "cr");
+    if (configArchServal) {
+        addSelectCell(tr, oTKeyType, oVKeyType, parseInt(values[1], 10), "c", "key_type_" + portNo);
+        addSelectCell(tr, oTAddrMode, oVAddrMode, parseInt(values[2], 10), "c", "addr_mode_" + portNo);
+        addSelectCell(tr, oTKeyType, oVKeyType, parseInt(values[3], 10), "c", "advanced_key_type_" + portNo);
+        addSelectCell(tr, oTAddrMode, oVAddrMode, parseInt(values[4], 10), "c", "advanced_addr_mode_" + portNo);
+    } else {
+        addSelectCell(tr, oTDeiMode, oVDeiMode, parseInt(values[1], 10), "c", "dei_mode_" + portNo);
+        if (configArchLuton26) {
+            addSelectCell(tr, oTTagMode, oVTagMode, parseInt(values[2], 10), "c", "tag_mode_" + portNo);
+            addSelectCell(tr, oTAddrMode, oVAddrMode, parseInt(values[3], 10), "c", "addr_mode_" + portNo);
+        }
+    }
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    if (req.responseText) {
+        var portConfigData = req.responseText.split("|");
+
+        // Create Table Header
+        var frag = document.createDocumentFragment();
+        CreateTableHeader(frag);
+
+        // Create Table Body
+        frag = document.createDocumentFragment();
+        for (var i = 0; i < portConfigData.length; i++) {
+            if (portConfigData[i]) {
+                addRow(frag, i, portConfigData[i].split("/"));
+            }
+        }
+
+        var tbody = document.getElementById("portConfTable");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+        var cBar;
+        if (configArchServal) {
+            cBar = new MasterControlBar([{text: "*", className: "cr"},
+                                         {name: "key_type_"},
+                                         {name: "addr_mode_"},
+                                         {name: "advanced_key_type_"},
+                                         {name: "advanced_addr_mode_"}
+                                        ]);
+        } else {
+            cBar = new MasterControlBar([{text: "*", className: "cr"},
+                                         {name: "dei_mode_"},
+                                         {name: "tag_mode_", className: "has_arch_luton26"},
+                                         {name: "addr_mode_", className: "has_arch_luton26"}
+                                        ]);
+        }
+        cBar.construct('portsCtrl','config_odd');
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate()
+{
+    // Format:
+    // Serval - [[port_no]/[key_type]/[advanced_key_type]/[addr_mode]/[advanced_addr_mode]|...
+    // JR1    - [port_no]/[dei_mode]|...
+    // Lu26   - [port_no]/[dei_mode]/[tag_mode]/[addr_mode]|...
+
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    loadXMLDoc(SpomAddSidArg("/config/evc_uni"), processUpdate, "");
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/evc_uni">
+
+<h1>Port Configuration <span id="display_sid"></span></h1>
+<table summary="Port Configuration" cellspacing="0" class="config">
+ <thead id="portHead">
+ </thead>
+ <tbody id="portsCtrl">
+ </tbody>
+ <tbody id="portConfTable">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

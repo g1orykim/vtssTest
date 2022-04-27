@@ -1,0 +1,332 @@
+
+This file contain change log entries for changes to eCos code
+performed by Vitesse Semiconductor Inc. The file is automatically
+generated, so manual changes should not be made.
+
+The original eCos source code can be obtained from http://ecos.sourceware.org/.
+
+2007-03-26   586a66b9a3dc    Lars Povlsen, Vitesse Semiconductor Inc.
+
+        * File: src/ecos/support.c
+
+	  Got tired of the warnings
+
+2007-07-27   94408e7329c5    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: include/net/if.h
+        * File: include/net/if_var.h
+        * File: src/sys/net/if_ethersubr.c
+
+	  add received/send broadcast
+
+2007-08-24   0938a52ff9ba    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/ecos/support.c
+
+	  clear warning message
+
+2007-08-24   d19492c6c8b7    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/ecos/support.c
+
+	  log output format should be long unsigned decimal interger
+
+2007-10-02   e66b3400e878    Lars Povlsen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/kern/uipc_socket.c
+
+	  Introduces patch from eCos list for TCP socket depletion
+
+2008-10-15   6d8d5d63439c    Simon Miao, Vitesse Semiconductor Inc.
+
+        * File: cdl/freebsd_net.cdl
+
+	  New feature: IPv6 enabled
+
+2008-11-13   6cf63f6f7d39    Simon Miao, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet6/nd6_rtr.c
+
+	  make default route of IPv6 workable
+
+2008-11-24   4a8cfc76c92a    Simon Miao, Vitesse Semiconductor Inc.
+
+        * File: include/netinet6/in6_var.h
+        * File: src/sys/netinet6/nd6_rtr.c
+
+	  New feature - enable IPv6 DHCP func
+
+2008-11-28   e870c48afc97    Simon Miao, Vitesse Semiconductor Inc.
+
+        * File: include/netinet6/in6_var.h
+        * File: src/sys/netinet6/nd6_rtr.c
+
+	  correct ipv6 autoconfig related naming
+
+2009-01-21   0dd672ed6bf5    Rene Nielsen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/if_ether.c
+
+	  Printing MAC Addresses instead of a pointer to the MAC address on
+	  errors/info from ARP. Fixes GNATS #5973
+
+2009-01-30   56603ff2b010    Rene Nielsen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/if_ether.c
+
+	  Merge of ECOS_TRUNK_2007_10_31_RBN and ECOS_TRUNK_2009_01_28_RBN
+	  onto HEAD
+
+2009-02-04   e7e4c9b7e1e1    Rene Nielsen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet6/nd6_rtr.c
+
+	  Including net/netdb.h to avoid compilation warning about missing
+	  prototype for inet_ntop()
+
+2009-02-04   0ede22595285    Rene Nielsen, Vitesse Semiconductor Inc.
+
+        * File: include/sys/cdefs.h
+
+	  Fixed warning when __FreeBSD_cc_version is not defined
+
+2009-02-11   98fce3fde093    Rene Nielsen, Vitesse Semiconductor Inc.
+
+	* Merge of ECOS_TRUNK_2009_01_28_RBN and ECOS_TRUNK_2009_02_11_RBN
+	  onto HEAD
+
+2009-04-01   6f98796832d6    James Lin, Vitesse Semiconductor Inc.
+
+        * File: include/sys/param.h
+
+	  comment out a wrong defintion to define init_loobpack_interface
+	  to a not existed function
+
+2009-04-02   385b94f4e74f    James Lin, Vitesse Semiconductor Inc.
+
+        * File: src/sys/net/route.c
+
+	  Don't delete the loopback route only added in the initializtion
+	  time
+
+2009-04-13   2cef84c3d4c1    James Lin, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/ip_input.c
+
+	  Using a reserved ACE to copy SSDP packets with udp port 1900 to
+	  CPU
+
+2009-04-13   4e04d5f6e8e8    James Lin, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/ip_input.c
+
+	  revert to r1.1
+
+2009-06-04   0d1d498ec2b9    Simon Miao, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet6/in6_ifattach.c
+
+	  IPv6 related update: make get_hw_ifid() can get cpu mac address
+	  correctly
+
+2009-06-08   365e6c798802    Simon Miao, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet6/nd6_rtr.c
+
+	  remove if_index for ipv6 link-local address for showing
+
+2009-06-10   63c44530e12c    Simon Miao, Vitesse Semiconductor Inc.
+
+        * File: include/netinet6/in6_var.h
+        * File: src/sys/netinet6/nd6_rtr.c
+
+	  Bugzilla#459 - CQ: ES4528V-FLF-38-00108: DUT shall display
+	  multiple autoconfiguration addresses
+
+2009-06-23   4632be4ab977    Simon Miao, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet6/in6_ifattach.c
+
+	  Bugzilla#477 - CQ: ES4528V-FLF-38-00111: DUT shall display
+	  link-local address info
+
+2009-07-08   9bfde3a5d949    Simon Miao, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet6/nd6_rtr.c
+
+	  fix warnings
+
+2010-08-26   fa5b8acdbb91    Lars Povlsen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/if_ether.c
+
+	  Bugzilla#2890 - Demote LOG_ERR level of "arp: unknown hardware
+	  address format (0x...)" to LOG_INFO
+
+2010-10-29   213ee33b7429    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet6/scope6.c
+
+	  Bugzilla#3481 - Default IPv6 address cannot work
+
+2011-01-11   8594e1a1d096    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet6/in6_ifattach.c
+        * File: src/sys/netinet6/ip6_input.c
+        * File: src/sys/netinet6/nd6_rtr.c
+
+	  Bugzilla#none - Fixed warning message
+
+2011-04-07   6b01dfbfa38b    Rene Nielsen, Vitesse Semiconductor Inc.
+
+        * File: include/net/if.h
+
+	  Bugzilla#4588. Increased the IP queue's length from 50 to 320 to
+	  match the number of FDMA Rx buffers
+
+2011-04-07   fe68652a3dc3    Rene Nielsen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/net/if_ethersubr.c
+
+	  Bugzilla#none. Fixed compilation warning and counting input queue
+	  drops
+
+2011-06-29   f63d9dbecae4    Charles Liang, Vitesse Semiconductor Inc.
+
+	* Bugzilla#none Ready to Merge BSD_IP_Stack (TAHI-Oriented)
+
+2011-08-02   3e5f288fb84f    Charles Liang, Vitesse Semiconductor Inc.
+
+        * File: include/netinet6/nd6.h
+        * File: src/sys/netinet6/nd6.c
+
+	  Bugzilla#4999 Add additional utilities for IPv6 Ready Logo
+	  (NBR-Cache & Configurable LinkLocal Address)
+
+2011-08-31   bfce6f2959c1    CP Wang, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/ip_output.c
+
+	  Bugzilla 5868: fix bugs for static IP issues in DHCP processing
+	  and in restore to default
+
+2011-09-15   7d45ac5691cd    Charles Liang, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet6/nd6.c
+        * File: src/sys/netinet6/nd6_nbr.c
+
+	  Bugzilla#none Fix the ln_hold improper handling found during IOT
+	  for LOGO
+
+2011-09-15   eea935d5d944    Charles Liang, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/if_ether.c
+
+	  Bugzilla#none Fix IPv4 la_hold improper handling found during IOT
+	  for IPv6-LOGO
+
+2011-09-15   8b3fec4805b6    Charles Liang, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/if_ether.c
+
+	  Bugzilla#none Correct the comment for modification
+
+2011-09-27   0237d60ffd0c    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/ip_icmp.c
+
+	  Fixed multicast ICMP reply error
+
+2011-10-14   858e7d2b6855    Charles Liang, Vitesse Semiconductor Inc.
+
+        * File: include/netinet6/in6_var.h
+        * File: src/ecos/support.c
+        * File: src/sys/netinet6/nd6_nbr.c
+
+	  Bugzilla#5598 Implement IPv6 interface enabled/disabled function
+
+2011-10-17   3e2c1563eac7    CP Wang, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/ip_output.c
+
+	  Bugzilla#none: remove DHCP FOREVER
+
+2011-10-19   a40c590901ac    Rene Schipp von Branitz Nielsen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet6/in6_ifattach.c
+        * File: src/sys/netinet6/ip6_output.c
+
+	  Bugzilla#none. Fixed some eCos warnings
+
+2011-10-19   146a28ad7af2    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet6/in6_ifattach.c
+        * File: src/sys/netinet6/ip6_output.c
+
+	  Fixed compile warning messsage
+
+2011-12-15   b4994fc87b40    Peter Chen, Vitesse Semiconductor Inc.
+
+	* Bugzilla#none - Added new feature: TCP SYN cache
+
+2012-01-04   7415ac49a238    Charles Liang, Vitesse Semiconductor Inc.
+
+        * File: include/netinet6/nd6.h
+        * File: src/ecos/support.c
+        * File: src/sys/netinet6/nd6.c
+
+	  Bugzilla#7211 Provide a V6_Running flag to avoid IP stack sending
+	  MLD frames
+
+2012-01-04   2d89cea5461d    Charles Liang, Vitesse Semiconductor Inc.
+
+        * File: include/netinet6/nd6.h
+        * File: src/ecos/support.c
+        * File: src/sys/netinet6/nd6.c
+
+	  Sync. with Rev.17755:3eb174459918
+
+2012-01-04   957160793d2a    Charles Liang, Vitesse Semiconductor Inc.
+
+        * File: src/ecos/support.c
+        * File: src/sys/netinet6/nd6.c
+
+	  Fix lint for nd6_activate
+
+2012-01-31   dd9db661f270    Rene Schipp von Branitz Nielsen, Vitesse Semiconductor Inc.
+
+        * File: ChangeLog
+        * File: include/sys/endian.h
+
+	  Bugzilla#none. eCos/.../bsd_tcpip/.../sys/endian.h: Added 64-bit
+	  macros: ntohll() and htonll()
+
+2012-02-06   eb530e3da001    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/ip_icmp.c
+
+	  Bugzilla#7300 - Expection when connected to test during boot
+
+2012-04-09   72633c1722f2    Peter Chen, Vitesse Semiconductor Inc.
+
+        * File: src/sys/netinet/ip_icmp.c
+        * File: src/sys/netinet/ip_input.c
+
+	  ExtBugzilla#58 - PL.0.4 security vulnerabilities detected in IPv4
+	  packets
+
+2012-07-20   0189909ff7ce    Charles Liang, Vitesse Semiconductor Inc.
+
+        * File: include/sys/param.h
+
+	  Bugzilla#9337 Adjust MBUF size (MSIZE) from 128 to be 256 since
+	  the original size is not enough for including IPv6 header and TCP
+	  options
+
+2012-07-25   bd5c08081812    Rene Schipp von Branitz Nielsen, Vitesse Semiconductor Inc.
+
+        * File: include/netinet/in_var.h
+        * File: include/netinet6/in6_var.h
+
+	  Bugzilla#9373. Corrected Lint comments in whole repository
+

@@ -1,0 +1,62 @@
+# ====================================================================
+#
+#	vcoreii_spi_driver.cdl
+#
+#	SPI driver
+#	Vitesse VCore-II (VSC7407) SPI interface
+#
+# ====================================================================
+# ====================================================================
+######DESCRIPTIONBEGIN####
+#
+# Author(s):      Henrik Bjornlund <henrikb@vitesse.com>
+# Original data:
+# Contributors:	  
+# Date:           02-04-2008
+#
+#####DESCRIPTIONEND####
+#
+# ====================================================================
+
+cdl_package CYGPKG_DEVS_SPI_ARM_VCOREII {
+    display       "VCore-II SPI driver"
+    description   "SPI driver for VCore-II. (VSC7407)"
+
+    parent        CYGPKG_IO_SPI
+    active_if	  CYGPKG_IO_SPI
+
+    include_dir     cyg/io
+    compile 	    vcoreii_spi_drv.c
+
+    cdl_component CYGPKG_DEVS_SPI_VCOREII_OPTIONS {
+        display 	"SPI driver build options"
+        flavor  	none
+	active_if	{ CYGINT_DEVS_SPI_VCOREII_BUS_DEVICES > 0 }
+        description   "
+	    Package specific build options including control over
+	    compiler flags used only in building the VCOREII SPI
+            bus driver."
+
+        cdl_option CYGPKG_DEVS_SPI_VCOREII_CFLAGS_ADD {
+            display "Additional compiler flags"
+            flavor  data
+            no_define
+            default_value { "" }
+            description   "
+                This option modifies the set of compiler flags for
+                building the VCOREII SPI bus driver. These flags are
+                used in addition to the set of global flags."
+        }
+
+        cdl_option CYGPKG_DEVS_SPI_VCOREII_CFLAGS_REMOVE {
+            display "Suppressed compiler flags"
+            flavor  data
+            no_define
+            default_value { "" }
+            description   "
+                This option modifies the set of compiler flags for
+                building the VCOREII SPI bus driver. These flags are
+                removed from the set of global flags if present."
+        }
+    }
+}

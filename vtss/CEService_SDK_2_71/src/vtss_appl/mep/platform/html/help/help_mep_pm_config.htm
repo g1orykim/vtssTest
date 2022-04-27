@@ -1,0 +1,252 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>MEP Performance Monitor Configuration And State Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1> MEP Performance Monitor Configuration Help</h1>
+
+<p> This page allows the user to inspect and configure the performance monitor of the current <a href="glossary.htm#MEP" class="glossary">MEP</a> Instance.</p>
+
+
+<h2>Performance Monitoring Data Set</h2>
+<dl>
+ <dt>Enable</dt>
+ <dd>
+ When enabled this MEP instance will contribute to the 'PM Data Set' gathered by the PM Session.
+ </dd>
+</dl>
+
+<h2>Loss Measurement</h2>
+<dl>
+ <dt>Enable</dt>
+ <dd>
+ Loss Measurement based on transmitting/receiving CCM or LMM/LMR PDU can be enabled/disabled - see 'Ended'.
+ This is only valid with one Peer MEP configured.
+ </dd>
+ <dt>Priority</dt>
+ <dd>
+ The priority to be inserted as PCP bits in TAG (if any).
+ In case of enable of Continuity Check and Loss Measurement both implemented on SW based CCM, 'Priority' has to be the same.
+ </dd>
+ <dt>Frame rate</dt>
+ <dd>
+ Selecting the frame rate of CCM/LMM PDU. This is the inverse of transmission period as described in Y.1731.
+ Selecting 300f/sec or 100f/sec is not valid.
+ In case of enable of Continuity Check and Loss Measurement both implemented on SW based CCM, 'Frame Rate' has to be the same.
+ </dd>
+ <dt>Cast</dt>
+ <dd>
+ Selection of CCM or LMM PDU transmitted unicast or multicast. The unicast MAC will be taken from the 'Unicast Peer MAC' configuration.
+ In case of enable of Continuity Check and dual ended Loss Measurement both implemented on SW based CCM, 'Cast' has to be the same.
+ </dd>
+ <dt>Ended</dt>
+ <dd>
+ <p><b>Single:</b> Single ended Loss Measurement implemented on LMM/LMR.</p>
+ <p><b>Dual:</b>   Dual ended Loss Measurement implemented on SW based CCM.</p>
+ </dd>
+ <dt>FLR Interval</dt>
+ <dd>
+ This is the interval in seconds where the Frame Loss Ratio is calculated.
+ </dd>
+</dl>
+
+<h2>Loss Measurement State</h2>
+<dl>
+ <dt>Near End Loss Count</dt>
+ <dd>
+ The accumulated near end frame loss count - since last 'clear'.
+ </dd>
+ <dt>Far End Loss Count</dt>
+ <dd>
+ The accumulated far end frame loss count - since last 'clear'.
+ </dd>
+ <dt>Near End Loss Ratio</dt>
+ <dd>
+ The near end frame loss ratio calculated based on the near end frame loss count and far end frame transmitted - in the latest 'FLR Interval'.
+ The result is given in percent.
+ </dd>
+ <dt>Far End Loss Ratio</dt>
+ <dd>
+ The far end frame loss ratio calculated based on the far end frame loss count and near end frame transmitted - in the latest 'FLR Interval'.
+ The result is given in percent.
+ </dd>
+ <dt>Clear</dt>
+ <dd>
+ Set of this check and save will clear the accumulated counters and restart ratio calculation.
+ </dd>
+</dl>
+
+<h2>Delay Measurement</h2>
+<dl>
+ <dt>Enable</dt>
+ <dd>
+ Delay Measurement based on transmitting 1DM/DMM PDU can be enabled/disabled.
+ Delay Measurement based on receiving and handling 1DM/DMR PDU is always enabled.
+ </dd>
+ <dt>Priority</dt>
+ <dd>
+ The priority to be inserted as PCP bits in TAG (if any).
+ </dd>
+ <dt>Cast</dt>
+ <dd>
+ Selection of 1DM/DMM PDU transmitted unicast or multicast. The unicast MAC will be configured through 'Peer MEP'.
+ </dd>
+ <dt>Peer MEP</dt>
+ <dd>
+ This is only used if the 'Cast' is configured to Uni.
+ The 1DM/DMR unicast MAC will be taken from the 'Unicast Peer MAC' configuration of this peer.
+ </dd>
+ <dt>Way</dt>
+ <dd>
+ <p><b>One-Way:</b> One-Way Delay Measurement implemented on 1DM.</p>
+ <p><b>Two-Way:</b> Two-Way Delay Measurement implemented on DMM/DMR.</p>
+ </dd>
+ <dt>Tx Mode</dt>
+ <dd>
+ <p><b>Standardize:</b> Y.1731 standardize way to transmit 1DM/DMR.</p>
+ <p><b>Proprietary:</b> Vitesse proprietary way with follow-up packets to transmit 1DM/DMR.</p>
+ </dd>
+ <dt>Calc</dt>
+ <dd>
+ This is only used if the 'Way' is configured to Two-way.
+ <p><b>Round trip:</b> The frame delay calculated by the transmitting and receiving timestamps of initiators. Frame Delay = RxTimeb-TxTimeStampf</p>
+ <p><b>Flow:</b> The frame delay calculated by the transmitting and receiving timestamps of initiators and remotes. Frame Delay = (RxTimeb-TxTimeStampf)-(TxTimeStampb-RxTimeStampf)</p>
+ </dd>
+ <dt>Gap</dt>
+ <dd>
+ The gap between transmitting 1DM/DMM PDU in 10ms. The range is 10 to 65535.
+ </dd>
+ <dt>Count</dt>
+ <dd>
+ The number of last records to calculate. The range is 10 to 2000.
+ </dd>
+ <dt>Unit</dt>
+ <dd>
+ The time resolution.
+ </dd>
+ <dt>D2forD1</dt>
+ <dd>
+ Enable to use DMM/DMR packet to calculate one-way DM.
+ If the option is enabled, the following action will be taken.
+ When DMR is received, two-way delay (roundtrip or flow) and both near-end-to-far-end and far-end-to-near-end one-way delay are calculated.
+ When DMM or 1DM is received, only far-end-to-near-end one-way delay is calculated.
+
+ </dd>
+ <dt>Counter Overflow Action</dt>
+ <dd>
+ The action to counter when overflow happens.
+ </dd> 
+</dl>
+
+<h2>Delay Measurement State</h2>
+<dl>
+ <dt>Tx</dt>
+ <dd>
+ The accumulated transmit count - since last 'clear'.
+ </dd>
+ <dt>Rx</dt>
+ <dd>
+ The accumulated receive count - since last 'clear'.
+ </dd>
+ <dt>Rx Timeout</dt>
+ <dd>
+ The accumulated receive timeout count for two-way only - since last 'clear'.
+ </dd>
+ <dt>Rx Error</dt>
+ <dd>
+ The accumulated receive error count - since last 'clear'. The frame delay is larger than 1 second(timeout).
+ </dd>
+ <dt>Av Delay Tot</dt>
+ <dd>
+ The average total delay - since last 'clear'.
+ </dd>
+ <dt>Av Delay last N</dt>
+ <dd>
+ The average delay of the last n packets - since last 'clear'.
+ </dd>
+ <dt>Delay Min.</dt>
+ <dd>
+ The minimum delay - since last 'clear'.
+ </dd>
+ <dt>Delay Max.</dt>
+ <dd>
+ The maximum delay - since last 'clear'.
+ </dd>
+ <dt>Av Delay-Var Tot</dt>
+ <dd>
+ The average total delay variation - since last 'clear'.
+ </dd>
+ <dt>Av Delay-Var last N</dt>
+ <dd>
+ The average delay variation of the last n packets - since last 'clear'.
+ </dd>
+ <dt>Delay-Var Min.</dt>
+ <dd>
+ The minimum delay variation - since last 'clear'.
+ </dd>
+ <dt>Delay-Var Max.</dt>
+ <dd>
+ The maximum delay variation - since last 'clear'.
+ </dd>
+ <dt>Overflow</dt>
+ <dd>
+ The number of counter overflow - since last 'clear'.
+ </dd>
+ <dt>Clear</dt>
+ <dd>
+ Set of this check and save will clear the accumulated counters.
+ </dd>
+<dt>Far-end-to-near-end one-way delay</dt>
+ <dd>
+ The one-way delay is from remote devices to the local devices.
+ Here are the conditions to calculate this delay.
+ 1. 1DM received.
+ 2. DMM received with D2forD1 enabled.
+ 3. DMR received with D2forD1 enabled. 
+ </dd> 
+<dt>Near-end-to-far-end one-way delay</dt>
+ <dd>
+ The one-way delay is from the local devices to remote devices. 
+ The only case to calculate this delay is below.
+ DMR received with D2forD1 enabled. 
+ </dd> 
+</dl>
+
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Back ">: Click to go back to this MEP instance main page.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+</body>
+</html>
+

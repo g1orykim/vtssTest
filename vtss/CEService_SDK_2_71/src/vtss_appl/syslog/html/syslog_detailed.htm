@@ -1,0 +1,269 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Detailed System Log</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_syslog_detailed.htm";
+
+var selectedId = 1;
+var arg_ix = document.URL.indexOf('?');
+if (arg_ix != -1)
+{
+    var args = document.URL.substring(arg_ix + 1, document.URL.length);
+    var tups = args.split('&');
+    var i;
+    for (i = 0; i < tups.length; i++) {
+        var tup = tups[i].split('=');
+        if (tup.length == 2) {
+            if (tup[0] == 'syslogStartId') {
+                selectedId = parseInt(tup[1], 10);
+            }
+        }
+    }
+}
+
+var initialWhitespaceRegExp = /^(\s*)/;
+function strip_whitespace(in_str)
+{
+    return in_str.replace(initialWhitespaceRegExp, "");
+}
+
+function initial_whitespace_count(in_str)
+{
+    initialWhitespaceRegExp.test(in_str);
+    return RegExp.$1.length;
+}
+
+function addRow(frag, values)
+{
+    var tr = CreateStyledElement("tr", "config_even");
+    addTextCell(tr, "Level", "cl");
+    addTextCell(tr, values[1], "cl");
+    frag.appendChild(tr);   // Add row to fragment
+
+    tr = CreateStyledElement("tr", "config_odd");
+    addTextCell(tr, "Time", "cl");
+    addTextCell(tr, values[2], "cl");
+    frag.appendChild(tr);   // Add row to fragment
+
+    var pval = unescape(values[3]).split("|");
+    tr = CreateStyledElement("tr", "config_even");
+    addTextCell(tr, "Message", "cl");
+    if (pval[0]) {
+        addTextCell(tr, pval[0], "cl");
+    }
+    frag.appendChild(tr);
+
+
+    for (var i = 1; i < pval.length; i++) {
+        tr = CreateStyledElement("tr", "config_even");
+        addTextCell(tr, "", "cl");
+        var td = addTextCell(tr, "", "cl");
+        var tt = document.createElement("tt"); // <tt> maps to a monospace font
+        // IE will remove preceding whitespace, so we need to
+        // handle this specially. Unfortunately, we cannot just
+        // create a text node with '&nbsp;' as argument, since that
+        // would get converted to '&amp;nbsp;' in the output.
+        // So we take the value of the hidden input 'id_nbsp' in the
+        // end of this file and use as output for every leading
+        // space.
+        var nbsp_fld = document.getElementById("id_nbsp");
+        var ws_cnt = initial_whitespace_count(pval[i]);
+        var cnt;
+        for (cnt = 0; cnt < ws_cnt; cnt++) {
+            tt.appendChild(document.createTextNode(nbsp_fld.value));
+        }
+        tt.appendChild(document.createTextNode(strip_whitespace(pval[i])));
+        td.appendChild(tt);
+        frag.appendChild(tr);
+    }
+}
+
+function processUpdate(req, ref)
+{
+    var frag;
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        if (String(req.responseText) != "null") {
+            var syslog = req.responseText.split("#");
+            UpdateIdValue("syslogStartId", parseInt(syslog[0], 10));
+            // Create holder for accumulated tbody elements and text nodes
+            frag = document.createDocumentFragment();
+            addRow(frag, syslog);
+        }  else {
+            frag = document.createDocumentFragment();
+            var tr = CreateStyledElement("tr", "notice");
+            addTextCell(tr, "No system log entry", "cl", 2);
+            frag.appendChild(tr);
+        }
+        document.getElementById('syslogStartId').defaultValue = selectedId;
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    } else {
+        SpomHandleError();
+    }
+
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate()
+{
+    // Format: [id]#[level]#[time]#[message]
+    //Flag 0<get>, 1<first>, 2<previous>, 3<get next>, 4<get last>
+
+    //var req = "1#Info#2007-09-10 09:34:02 +0200#Frame of 333 bytes received on port 24";
+
+    //processUpdate(req, 'syslogData');
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    document.getElementById("update").style.visibility = "visible";
+    var url = "/stat/syslog_detailed?syslogFlag=0&syslogStartId=" + selectedId;
+    loadXMLDoc(SpomAddSidArg(url), processUpdate, 'syslogData');
+    SpomUpdateDisplaySid("display_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    document.getElementById("syslogStartId").value = 1;
+    requestUpdate();            // Update page to reflect selector
+}
+
+function checkForm()
+{
+    // syslogStartId
+    if (!isWithinRange("syslogStartId", 1, 0xFFFFFFFF, "'ID'")) {
+        return false;
+    }
+
+    return true;
+}
+
+function GetFirstEntry()
+{
+    document.getElementById("update").style.visibility = "visible";
+    var url = "/stat/syslog_detailed?syslogFlag=1&syslogStartId=0";
+    document.getElementById("syslogStartId").value = 1;
+    loadXMLDoc(SpomAddSidArg(url), processUpdate, 'syslogData');
+}
+
+function GetPreviousEntry()
+{
+    document.getElementById("update").style.visibility = "visible";
+    var startId = parseInt(document.getElementById("syslogStartId").value, 10);
+    var url = "/stat/syslog_detailed?syslogFlag=2&syslogStartId=" + startId;
+    document.getElementById("syslogStartId").value = (startId - 1 > 0) ? (startId - 1) : 1;
+    loadXMLDoc(SpomAddSidArg(url), processUpdate, 'syslogData');
+}
+
+function GetNextEntry()
+{
+    document.getElementById("update").style.visibility = "visible";
+    var startId = parseInt(document.getElementById("syslogStartId").value, 10);
+    var url = "/stat/syslog_detailed?syslogFlag=3&syslogStartId=" + startId;
+    document.getElementById("syslogStartId").value = startId + 1;
+    loadXMLDoc(SpomAddSidArg(url), processUpdate, 'syslogData');
+}
+
+function GetLastEntry()
+{
+    document.getElementById("update").style.visibility = "visible";
+    var url = "/stat/syslog_detailed?syslogFlag=4";
+    document.getElementById("syslogStartId").value = 1;
+    loadXMLDoc(SpomAddSidArg(url), processUpdate, 'syslogData');
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Detailed System Log Information <span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <input type="button" value="Refresh"                      onclick="if(!checkForm()) {return false;} selectedId=document.getElementById('syslogStartId').value; requestUpdate(); this.blur();">
+  <input type="button" value=" |<< " title="First entry"    onclick="GetFirstEntry(); this.blur();">
+  <input type="button" value=" << "  title="Previous entry" onclick="if(!checkForm()) {return false;} GetPreviousEntry(); this.blur();">
+  <input type="button" value=" >> "  title="Next entry"     onclick="if(!checkForm()) {return false;} GetNextEntry(); this.blur();">
+  <input type="button" value=" >>| " title="Last entry"     onclick="GetLastEntry(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+    <table summary="System Log" class="config">
+      <tr class="config">
+       <td class="param_label">ID</td>
+       <td class="cr"><input type="text" id="syslogStartId" name="syslogStartId" size="10" maxlength="10" value="1"></td>
+      </tr>
+    </table>
+
+<p>&nbsp;</p>
+
+<h1>Message</h1>
+    <table summary="Detailed System Information" cellspacing="0" class="display">
+    <tbody id="syslogData">
+    </tbody>
+    </table>
+
+<p>&nbsp;</p>
+<!-- This is needed when adding text where leading whitespace is significant,
+     because IE removes it. Search for 'id_nbsp' in this file to find
+     where it's used.
+-->
+<form action="#">
+ <input type="hidden" id="id_nbsp" name="id_nbsp" value="&nbsp;"/>
+</form>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

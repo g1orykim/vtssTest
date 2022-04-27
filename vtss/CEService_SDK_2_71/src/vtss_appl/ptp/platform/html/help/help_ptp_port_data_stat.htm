@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+Vitesse Switch Software.
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>PTP Clock's Port Monitor Help</title>
+<link href="/lib/help.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="/lib/dynforms.js"></script>
+<script type="text/javascript" src="/lib/mootools-core.js"></script>
+<script type="text/javascript" language="JavaScript">
+  window.addEvent('domready', function() {
+    $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+  });
+</script>
+</head>
+<body>
+<h1>PTP Clock's Port Data Set Monitor Help</h1>
+<p>The port data set is defined in the IEEE 1588 Standard.</p>
+
+<h2>Port Data Set</h2>
+<dl>
+<dt><b> Port </b></dt>
+<dd>Port number [1..max port no]</dd>
+<dt><b> Stat </b></dt>
+<dd> Current state of the port. </dd>
+<dt><b> MDR </b></dt>
+<dd> log Min Delay Req Interval: The delay request interval announced by the master.</dd>
+<dt><b> Peer Mean Path Del </b></dt>
+<dd> The path delay measured by the port in P2P mode. In E2E mode this value is 0 </dd>
+<dt><b> Anv </b></dt>
+<dd> The interval for issuing announce messages in master state </dd>
+<dt><b> ATo </b></dt>
+<dd> The timeout for receiving announce messages on the port </dd>
+<dt><b> Syv </b></dt>
+<dd> The interval for issuing sync messages in master </dd>
+<dt><b> Dlm </b></dt>
+<dd>delayMechanism: The delay mechanism used for the port:</dd>
+<dd>e2e	End to end delay measurement</dd>
+<dd>p2p	Peer to peer delay measurement.</dd>
+<dt><b> MPR </b></dt>
+<dd> The interval for issuing Delay_Req messages for the port in E2e mode. This value is announced from the master to the slave in an announce message.  The value is reflected in the MDR field in the Slave </dd>
+<dd> The interval for issuing Pdelay_Req messages for the port in P2P mode </dd>
+<dd> Note: The interpretation of this parameter has changed from release 2.40. In earlier versions the value was interpreted relative to the Sync interval, this was a violation of the standard, so now the value is interpreted as an interval. I.e. MPR = 0 => 1 Delay_Req pr sec, independent of the Sync rate. </dd>
+<dt><b> Delay Asymmetry </b></dt>
+<dd> The transmission delay asymmetry for a link. See IEEE 1588 Section 7.4.2 Communication path asymmetry </dd>
+<dt><b> Version </b></dt>
+<dd> The current implementation only supports PTP version 2 </dd>
+ <dt><b> Ingress latency </b></dt>
+ <dd> Ingress latency measured in ns, as defined in IEEE 1588 Section 7.3.4.2. </dd>
+ <dt><b> Egress Latency </b></dt>
+ <dd> Egress latency measured in ns, as defined in IEEE 1588 Section 7.3.4.2. </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+</body>
+</html>

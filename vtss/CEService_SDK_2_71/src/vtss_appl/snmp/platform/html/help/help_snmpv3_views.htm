@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>SNMPv3 View Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>SNMPv3 View Configuration Help</h1>
+
+<h2><a href="glossary.htm#snmp" class="glossary">SNMP</a>v3 View Configuration</h2>
+
+<p>Configure SNMPv3 view table on this page. The entry index keys are <samp>View Name</samp> and <samp>OID Subtree</samp>.</p>
+
+<dl>
+ <dt>Delete</dt>
+ <dd>
+ Check to delete the entry. It will be deleted during the next save.
+ </dd>
+
+ <dt>View Name</dt>
+ <dd>
+ A string identifying the view name that this entry should belong to.
+ The allowed string length is 1 to 32, and the allowed content is ASCII characters from 33 to 126.
+ </dd>
+
+ <dt>View Type</dt>
+ <dd>
+ Indicates the view type that this entry should belong to. Possible view types are:
+ <br><samp>included</samp>: An optional flag to indicate that this view subtree should be included.
+ <br><samp>excluded</samp>: An optional flag to indicate that this view subtree should be excluded.
+ <br>In general, if a view entry's view type is 'excluded', there should be another view entry existing with view type as 'included' and it's OID subtree should overstep the 'excluded' view entry.
+
+ </dd>
+
+ <dt>OID Subtree</dt>
+ <dd>
+ The OID defining the root of the subtree to add to the named view.
+ The allowed OID length is 1 to 128. The allowed string content is digital number or asterisk(*).
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Add New Entry ">: Click to add a new view entry.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

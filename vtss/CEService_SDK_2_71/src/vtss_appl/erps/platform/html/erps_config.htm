@@ -1,0 +1,455 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>ERPS Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_erps_config.htm";
+
+var selectedERPS = 1;
+var timerID = null;
+var ringType = 0;
+var pageArgs = searchArgs(window.location.search);
+if (pageArgs['erps']) {
+    selectedERPS = parseInt(pageArgs['erps'], 10);
+}
+var oTRPLRole = new Array("None", "RPL_Owner", "RPL_Neighbour");
+var oVRPLRole = new Array(0, 1, 2);
+var oTPort = new Array("None","Port0","Port1");
+var oVPort = new Array(0, 1, 2);
+var oTErps_ver = new Array("v1","v2");
+var oVErps_ver = new Array(1, 2);
+var oTWtr = new Array("1min","5min","6min","7min","8min","9min","10min","11min","12min");
+var oVWtr = new Array(1,5, 6, 7, 8, 9, 10, 11,12);
+var protState = new Array ("None","Idle","Protected","Forced","Manual","Pending");
+var portState = new Array (" ","OK","SF");
+var rapsReq = new Array ("NR","MS","SF","FS","EVENT");
+var rapsRB = new Array (" ","RB");
+var rapsDNF = new Array (" ","DNF");
+var rapsBPR = new Array ("BPR0","BPR1");
+var oTCommand = new Array ("None","Manual Switch","Forced Switch","Clear");
+var oVCommand = new Array(0, 1, 2, 3);
+var add_cnt;
+var entry_name = new Array();
+var temp_req;
+
+function resetForm()
+{
+    processUpdate(temp_req, "erpsConfigData");
+}
+
+function appendFrag(frag, ref, clear)
+{
+    var tbody = document.getElementById(ref);
+    if (clear) {
+        clearChildNodes(tbody);
+    }
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+
+function addInstance(inst, frag, values, ring)
+{
+    var tr = CreateStyledElement("tr", "config_odd");
+    addTextCell(tr, parseInt(inst, 10), "c");
+    addTextCell(tr, parseInt(values[0], 10), "c");
+    addTextCell(tr, parseInt(values[1], 10), "c");
+    addTextCell(tr, parseInt(values[4], 10), "c");
+    addTextCell(tr, parseInt(values[5], 10), "c");
+    addTextCell(tr, parseInt(values[2], 10), "c");
+    addTextCell(tr, parseInt(values[3], 10), "c");
+    if(ring == 1) {
+        addTextCell(tr, "Sub Ring", "c");
+    } else {
+        addTextCell(tr, "Major Ring", "c");
+    }
+    frag.appendChild(tr);
+}
+
+
+function addsubRing(frag, pval, ring)
+{
+    var tr = CreateStyledElement("tr", "config_even");  
+    addTextCell(tr, "Sub Ring", "c");      
+    addCheckBoxCell(tr,parseInt(pval[0], 10), "c", "topo_"+ ring);
+    frag.appendChild(tr);
+}
+
+
+function addConfig(frag, values, ring)
+{
+    var tr = CreateStyledElement("tr", "config_even");
+    link = values[0];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);   
+    
+    addInputCell(tr, parseInt(values[1], 10), "c", "guard", 2);
+    addSelectCell(tr, oTWtr, oVWtr, parseInt(values[2], 10), "c", "wtr");
+    addInputCell(tr, parseInt(values[3], 10), "c", "hold", 2);
+    addSelectCell(tr, oTErps_ver, oVErps_ver, parseInt(values[4], 10), "c", "erps_version");
+    addCheckBoxCell(tr,parseInt(values[5], 10) , "c", "revert_"+ring);
+    
+    addLink(tr, "c", "erps_vlan.htm?erps=" + selectedERPS, "VLAN Config");    
+    frag.appendChild(tr);
+}
+
+
+
+function addRPLconf (frag,values)
+{  
+    var tr = CreateStyledElement("tr", "config_even");
+    var val;
+    addSelectCell(tr, oTRPLRole, oVRPLRole, parseInt(values[7], 10), "c", "rpl_role");
+    if (parseInt(values[8], 10) === 0) {
+        val = 1;
+    } else if (parseInt(values[8], 10) === 1) {
+        val = 2;
+    } else {
+        val = 0;
+    }    
+    addSelectCell(tr, oTPort, oVPort, parseInt(values[8], 10), "c", "rpl_block");
+    addCheckBoxCell(tr,0 , "c", "clear");
+    frag.appendChild(tr);
+}
+
+function addState(frag, values)
+{
+    var tr = CreateStyledElement("tr", "config_even");
+    
+    addTextCell(tr, protState[parseInt(values[0], 10)], "c");
+    addTextCell(tr, portState[parseInt(values[1], 10)], "c");
+    addTextCell(tr, portState[parseInt(values[2], 10)], "c");
+    if(values[3] == 1) {    // TX APS Info
+        addTextCell(tr, rapsReq[parseInt(values[4], 10)] + " " + rapsRB[parseInt(values[5], 10)] + " " + rapsDNF[parseInt(values[6], 10)] + " " + rapsBPR[parseInt(values[7], 10)], "c");
+    } else {
+        addTextCell(tr, " " , "c");
+    }
+
+    if(values[8] == 1) {    //RX East APS Info
+        addTextCell(tr, rapsReq[parseInt(values[9], 10)] + " " + rapsRB[parseInt(values[10], 10)] + " " + rapsDNF[parseInt(values[11], 10)] + " " + rapsBPR[parseInt(values[12], 10)] + " " + values[13] , "c");
+    } else {
+        addTextCell(tr, " " , "c");
+    }
+
+    if (values[14] == 1) {    //RX West APS Info
+        addTextCell(tr, rapsReq[parseInt(values[15], 10)] + " " + rapsRB[parseInt(values[16], 10)] + " " + rapsDNF[parseInt(values[17], 10)] + " " + rapsBPR[parseInt(values[18], 10)] + " " + values[19] , "c");
+    } else {
+        addTextCell(tr, " " , "c");
+    }
+    addTextCell(tr,parseInt(values[24], 10), "c");
+    link = values[25];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    link = values[26];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    if (parseInt(values[20], 10) === 0) {
+        addTextCell(tr, "Unblocked", "c" );
+    } else {
+        addTextCell(tr, "Blocked", "c" );
+    }
+    if (parseInt(values[21], 10) === 0) {
+        addTextCell(tr, "Unblocked", "c" );
+    } else {
+        addTextCell(tr, "Blocked", "c" );
+    }
+    if (parseInt(values[23], 10) === 0) {
+        addImageCell(tr, "c", "images/led-up.gif", "FOP not detected");
+    } else {
+        addImageCell(tr, "c", "images/led-down.gif", "FOP detected");
+    }
+    frag.appendChild(tr);
+}
+
+
+function addCommand(frag, val1, val2, val3)
+{
+    var blocked = 0;
+    var tr = CreateStyledElement("tr", "config_even");
+    
+    addSelectCell(tr, oTCommand, oVCommand, parseInt(val1, 10), "c", "comm");
+    if (parseInt(val2, 10)) {
+        blocked = 1;
+    } else if (parseInt(val3, 10)) {
+        blocked = 2;
+    }
+    if (parseInt(val1, 10)) {
+        td= addSelectCell(tr, oTPort, oVPort, blocked, "c", "commport");
+    } else {
+        td= addSelectCell(tr, oTPort, oVPort, 0, "c", "commport");
+    }
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (redirectOnError(req))
+    {
+        return;
+    }
+    if (req.responseText)
+    {   
+        temp_req = req;
+        var erpsConfig = req.responseText.split("|");       
+        var inst = parseInt(erpsConfig[0], 10);
+        UpdateIdValue("erps_id_hidden", inst);         
+        var frag = document.createDocumentFragment();
+        
+        var pval = erpsConfig[1].split("/");
+        var ring = parseInt(pval[6], 10);
+        UpdateIdValue("ring_type_hidden", ring);
+        addInstance(inst, frag, pval, ring);
+        appendFrag(frag, "erpsData", 1);       
+        pval = erpsConfig[3].split("/");            
+        if(ring == 1)
+        {       
+            document.getElementById("Sub_ring").style.visibility = "visible";
+            addsubRing(frag, pval, ring);   // for sub ring type        
+            appendFrag(frag, "erpsSub", 1);       
+        } else {
+            var tfrag = document.getElementById("Sub_ring");
+            clearChildNodes(tfrag);
+        }
+        
+        pval = erpsConfig[2].split("/");   
+        addConfig(frag, pval, ring);        
+        appendFrag(frag, "erpsConfigData", 1);       
+
+        pval = erpsConfig[1].split("/");   
+        addRPLconf(frag, pval);
+        appendFrag(frag, "erpsRPLData1", 1); 
+        
+        if (ring == 1) {
+            pval = erpsConfig[4].split("/");        
+        } else {
+            pval = erpsConfig[3].split("/");        
+        }
+        addState(frag, pval);
+        appendFrag(frag, "erpsStateData", 1);     
+
+        addCommand(frag, pval[22], pval[20], pval[21]);
+        appendFrag(frag, "erpsCommand", 1);
+    }
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+}
+
+
+function requestUpdate()
+{
+    document.getElementById("display_sid").innerHTML=selectedERPS;
+    document.getElementById("update").style.visibility = "visible";
+    document.getElementById("Sub_ring").style.visibility = "hidden";
+    loadXMLDoc("/config/erpsConfig?erps=" + selectedERPS, processUpdate);
+}
+
+function checkForm(form)
+{
+    if(!isWithinRange("hold", 0, 10000,"'HOLD OFF TIMER'")) {
+       return false;
+    }    
+    if(!isWithinRange("guard", 10, 2000,"'GAURD TIMER'")) {
+       return false;
+    }    
+    return true;         
+}
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } 
+    else {
+        requestUpdate("refresh");
+    }
+}
+ </script>
+</head>
+
+
+<body class="content" onload="requestUpdate();">
+
+<h1>ERPS Configuration <span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+<form action="#">
+ <label for="autorefresh">Auto-refresh</label>
+ <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+ <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+ <img id="update" alt="" src="images/updating.gif">
+</form>
+</div>
+
+<h1>Instance Data</h1>
+
+<table summary="Ethernet Ring Protection Switching Create" cellspacing="0" class="config">
+<thead>
+ <tr class="config_header">
+  <th>ERPS ID</th>
+  <th>Port 0</th>
+  <th>Port 1</th>
+  <th>Port 0 SF MEP</th>
+  <th>Port 1 SF MEP</th>
+  <th>Port 0 APS MEP</th>
+  <th>Port 1 APS MEP</th>
+  <th>Ring Type</th>
+ </tr>
+</thead>
+<tbody id="erpsData">
+</tbody>
+</table>
+
+<form name="configForm" method="POST" action="/config/erpsConfig" onsubmit="return checkForm(this);">
+
+<h1>Instance Configuration</h1>
+
+<table summary="Ethernet Protection Switching Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowSpan=2>Configured</th>   
+   <th rowSpan=2>Guard Time</th>
+   <th rowSpan=2>WTR Time</th>
+   <th rowSpan=2>Hold Off Time</th>
+   <th rowSpan=2>Version</th>
+   <th rowSpan=2>Revertive</th>   
+   <th rowSpan=2>VLAN config</th>   
+ </tr>
+ </thead>
+ <tbody id="erpsConfigData">
+ </tbody>
+</table>
+
+<h1>RPL Configuration</h1>
+<table summary="Ethernet Ring Protection Switching RPL conf" cellspacing="0" cellpadding="0" class="config">
+ <tr>
+  <td>
+   <table summary="Ethernet Ring Protection Switching RPL conf left" align="left" style="border-collapse: collapse">
+      <thead>
+       <tr class="config_header">
+        <th rowSpan=2>RPL Role</th>
+        <th rowSpan=2>RPL Port</th>           
+        <th rowSpan=2>Clear</th>
+       </tr>
+      </thead>
+      <tbody id="erpsRPLData1">
+      </tbody>
+   </table>
+  </td>
+ </tr>
+</table>
+
+<div id = "Sub_ring">
+<h1>Sub-Ring Configuration</h1>
+<table summary="Ethernet Ring Protection Switching Sub Ring" cellspacing="0" class="config">
+<thead>
+ <tr class="config_header">
+  <th>Ring Type</th>
+  <th>Topology Change</th>
+ </tr>
+</thead>
+<tbody id="erpsSub">
+</tbody>
+</table>
+</div>
+
+<h1>Instance Command</h1>
+
+<table summary="Ethernet Ring Protection Command" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowSpan=2>Command</th>
+   <th rowSpan=2>Port</th>
+   </tr>
+ </thead>
+ <tbody id="erpsCommand">
+ </tbody>
+</table>
+
+<h1>Instance State</h1>
+
+<table summary="Ethernet Ring Protection Switching State" cellspacing="0" class="config">
+  <thead>
+    <tr class="config_header">
+      <th>Protection State</th>
+      <th>Port 0</th>
+      <th>Port 1</th>
+      <th>Transmit APS</th>
+      <th>Port 0 Receive APS</th>
+      <th>Port 1 Receive APS</th>
+      <th>WTR Remaining</th>
+      <th>RPL Un-blocked</th>      
+      <th>No APS Received</th>
+      <th>Port 0 Block Status</th>
+      <th>Port 1 Block Status</th>
+      <th>FOP Alarm</th>
+    </tr>
+  </thead>
+  <tbody id="erpsStateData">
+  </tbody>
+</table>
+<p>
+<input type="hidden" id="erps_id_hidden" name="erps_id_hidden">
+<input type="hidden" id="ring_type_hidden" name="ring_type_hidden">
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+
+<!-- IE caching bug -->
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

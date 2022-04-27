@@ -1,0 +1,3073 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_PERF_MON)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "perf_mon_api.h"
+#include "evc_api.h"
+#include "../../mep/base/vtss_mep.h"
+#include "misc_api.h" /* For misc_url_XXX() */
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <tftp_support.h>
+
+#ifdef VTSS_SW_OPTION_SYSUTIL
+#include "sysutil_api.h"
+#endif
+
+#ifdef VTSS_SW_OPTION_DAYLIGHT_SAVING
+#include "daylight_saving_api.h"
+#endif
+
+INCLUDE_END
+
+// ############################################################################
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+
+static inline vtss_evc_id_t evc_id_i2u(vtss_evc_id_t evc_id)
+{
+    return ((evc_id + 1) > EVC_ID_COUNT ? EVC_ID_COUNT :  evc_id + 1);
+}
+
+static void PERF_MON_ICLI_transfer_mode_set(u32 session_id, BOOL mode)
+{
+    perf_mon_conf_t         global_conf;
+
+    //get global configuration
+    perf_mon_conf_get(&global_conf);
+
+    if (mode) {
+        global_conf.transfer_mode = TRUE;
+    } else {
+        global_conf.transfer_mode = FALSE;
+    }
+
+    //set global configuration
+    perf_mon_conf_set(&global_conf);
+
+    return;
+}
+
+static void PERF_MON_ICLI_transfer_incomplete_set(u32 session_id, BOOL mode)
+{
+    perf_mon_conf_t         global_conf;
+
+    //get global configuration
+    perf_mon_conf_get(&global_conf);
+
+    if (mode) {
+        global_conf.transfer_incompleted = TRUE;
+    } else {
+        global_conf.transfer_incompleted = FALSE;
+    }
+
+    //set global configuration
+    perf_mon_conf_set(&global_conf);
+
+    return;
+}
+
+static void PERF_MON_ICLI_transfer_fixed_offset(u32 session_id, u8 offset)
+{
+    perf_mon_conf_t         global_conf;
+
+    //get global configuration
+    perf_mon_conf_get(&global_conf);
+
+    global_conf.transfer_scheduled_offset = offset;
+
+    //set global configuration
+    perf_mon_conf_set(&global_conf);
+
+    return;
+}
+
+static void PERF_MON_ICLI_transfer_random_offset(u32 session_id, u16 offset)
+{
+    perf_mon_conf_t         global_conf;
+
+    //get global configuration
+    perf_mon_conf_get(&global_conf);
+
+    global_conf.transfer_scheduled_random_offset = offset;
+
+    //set global configuration
+    perf_mon_conf_set(&global_conf);
+
+    return;
+}
+
+static void PERF_MON_ICLI_transfer_url(u32 session_id, char *str)
+{
+    perf_mon_conf_t         global_conf;
+
+    //get global configuration
+    perf_mon_conf_get(&global_conf);
+
+    memset(global_conf.transfer_server_url, 0x0, sizeof(global_conf.transfer_server_url));
+    if (str) {
+        strcpy(global_conf.transfer_server_url, str);
+    }
+
+    //set global configuration
+    perf_mon_conf_set(&global_conf);
+
+    return;
+}
+
+static void PERF_MON_ICLI_transfer_mode(u32 session_id, int type, u8 value)
+{
+    perf_mon_conf_t         global_conf;
+
+    //get global configuration
+    perf_mon_conf_get(&global_conf);
+
+    switch (type) {
+    case VTSS_PM_TRANSFER_MODE_ALL:
+        VTSS_PM_BF_SET(global_conf.transfer_interval_mode, 0, TRUE);
+        VTSS_PM_BF_SET(global_conf.transfer_interval_mode, 1, FALSE);
+        VTSS_PM_BF_SET(global_conf.transfer_interval_mode, 2, FALSE);
+        break;
+    case VTSS_PM_TRANSFER_MODE_NEW:
+        VTSS_PM_BF_SET(global_conf.transfer_interval_mode, 0, FALSE);
+        VTSS_PM_BF_SET(global_conf.transfer_interval_mode, 1, TRUE);
+        VTSS_PM_BF_SET(global_conf.transfer_interval_mode, 2, FALSE);
+        break;
+    case VTSS_PM_TRANSFER_MODE_FIXED:
+        VTSS_PM_BF_SET(global_conf.transfer_interval_mode, 0, FALSE);
+        VTSS_PM_BF_SET(global_conf.transfer_interval_mode, 1, FALSE);
+        VTSS_PM_BF_SET(global_conf.transfer_interval_mode, 2, TRUE);
+
+        global_conf.transfer_interval_num = value;
+        break;
+    }
+
+    //set global configuration
+    perf_mon_conf_set(&global_conf);
+
+    return;
+}
+
+static void PERF_MON_ICLI_transfer_minutes(u32 session_id, u8 value)
+{
+    perf_mon_conf_t         global_conf;
+
+    //get global configuration
+    perf_mon_conf_get(&global_conf);
+
+    switch (value) {
+    case VTSS_PM_TRANSFER_MINUTES_0:
+        VTSS_PM_BF_SET(global_conf.transfer_scheduled_minutes, 0, TRUE);
+        break;
+    case VTSS_PM_TRANSFER_MINUTES_15:
+        VTSS_PM_BF_SET(global_conf.transfer_scheduled_minutes, 1, TRUE);
+        break;
+    case VTSS_PM_TRANSFER_MINUTES_30:
+        VTSS_PM_BF_SET(global_conf.transfer_scheduled_minutes, 2, TRUE);
+        break;
+    case VTSS_PM_TRANSFER_MINUTES_45:
+        VTSS_PM_BF_SET(global_conf.transfer_scheduled_minutes, 3, TRUE);
+        break;
+    case VTSS_PM_TRANSFER_MINUTES_NULL:
+        VTSS_PM_BF_SET(global_conf.transfer_scheduled_minutes, 0, FALSE);
+        VTSS_PM_BF_SET(global_conf.transfer_scheduled_minutes, 1, FALSE);
+        VTSS_PM_BF_SET(global_conf.transfer_scheduled_minutes, 2, FALSE);
+        VTSS_PM_BF_SET(global_conf.transfer_scheduled_minutes, 3, FALSE);
+        break;
+    }
+
+    //set global configuration
+    perf_mon_conf_set(&global_conf);
+
+    return;
+}
+
+/*lint -e{502} */
+static void PERF_MON_ICLI_transfer_hours(u32 session_id, u8 value)
+{
+    perf_mon_conf_t         global_conf;
+
+    //get global configuration
+    perf_mon_conf_get(&global_conf);
+
+    if (value < 24) {
+        VTSS_PM_BF_SET(global_conf.transfer_scheduled_hours, value, TRUE);
+    } else {
+        memset(&global_conf.transfer_scheduled_hours, 0x0, sizeof(global_conf.transfer_scheduled_hours));
+    }
+
+    //set global configuration
+    perf_mon_conf_set(&global_conf);
+
+    return;
+}
+
+static void PERF_MON_ICLI_storage(u32 session_id, u8 type, BOOL mode)
+{
+    perf_mon_conf_t         global_conf;
+
+    //get global configuration
+    perf_mon_conf_get(&global_conf);
+
+    switch (type) {
+    case VTSS_PM_STORAGE_LM:
+        if (mode) {
+            global_conf.lm_storage_mode = TRUE;
+        } else {
+            global_conf.lm_storage_mode = FALSE;
+        }
+        break;
+    case VTSS_PM_STORAGE_DM:
+        if (mode) {
+            global_conf.dm_storage_mode = TRUE;
+        } else {
+            global_conf.dm_storage_mode = FALSE;
+        }
+        break;
+    case VTSS_PM_STORAGE_EVC:
+        if (mode) {
+            global_conf.evc_storage_mode = TRUE;
+        } else {
+            global_conf.evc_storage_mode = FALSE;
+        }
+        break;
+    case VTSS_PM_STORAGE_ECE:
+        if (mode) {
+            global_conf.ece_storage_mode = TRUE;
+        } else {
+            global_conf.ece_storage_mode = FALSE;
+        }
+        break;
+    case VTSS_PM_STORAGE_DISABLED:
+        if (mode) {
+            global_conf.lm_storage_mode = TRUE;
+            global_conf.dm_storage_mode = TRUE;
+            global_conf.evc_storage_mode = TRUE;
+            global_conf.ece_storage_mode = TRUE;
+        } else {
+            global_conf.lm_storage_mode = FALSE;
+            global_conf.dm_storage_mode = FALSE;
+            global_conf.evc_storage_mode = FALSE;
+            global_conf.ece_storage_mode = FALSE;
+        }
+        break;
+    }
+
+    //set global configuration
+    perf_mon_conf_set(&global_conf);
+
+    return;
+}
+
+static void PERF_MON_ICLI_session(u32 session_id, u8 type, BOOL mode)
+{
+    perf_mon_conf_t         global_conf;
+
+    //get global configuration
+    perf_mon_conf_get(&global_conf);
+
+    switch (type) {
+    case VTSS_PM_SESSION_LM:
+        if (mode) {
+            global_conf.lm_session_mode = TRUE;
+        } else {
+            global_conf.lm_session_mode = FALSE;
+        }
+        break;
+    case VTSS_PM_SESSION_DM:
+        if (mode) {
+            global_conf.dm_session_mode = TRUE;
+        } else {
+            global_conf.dm_session_mode = FALSE;
+        }
+        break;
+    case VTSS_PM_SESSION_EVC:
+        if (mode) {
+            global_conf.evc_session_mode = TRUE;
+        } else {
+            global_conf.evc_session_mode = FALSE;
+        }
+        break;
+    case VTSS_PM_SESSION_ECE:
+        if (mode) {
+            global_conf.ece_session_mode = TRUE;
+        } else {
+            global_conf.ece_session_mode = FALSE;
+        }
+        break;
+    case VTSS_PM_SESSION_DISABLED:
+        if (mode) {
+            global_conf.lm_session_mode = TRUE;
+            global_conf.dm_session_mode = TRUE;
+            global_conf.evc_session_mode = TRUE;
+            global_conf.ece_session_mode = TRUE;
+        } else {
+            global_conf.lm_session_mode = FALSE;
+            global_conf.dm_session_mode = FALSE;
+            global_conf.evc_session_mode = FALSE;
+            global_conf.ece_session_mode = FALSE;
+        }
+        break;
+    }
+
+    //set global configuration
+    perf_mon_conf_set(&global_conf);
+
+    return;
+}
+
+static void PERF_MON_ICLI_interval(u32 session_id, u8 type, int min)
+{
+    perf_mon_conf_t         global_conf;
+
+    //get global configuration
+    perf_mon_conf_get(&global_conf);
+
+    switch (type) {
+    case VTSS_PM_SESSION_LM:
+        global_conf.lm_interval = min;
+        break;
+    case VTSS_PM_SESSION_DM:
+        global_conf.dm_interval = min;
+        break;
+    case VTSS_PM_SESSION_EVC:
+        global_conf.evc_interval = min;
+        break;
+    case VTSS_PM_SESSION_ECE:
+        global_conf.ece_interval = min;
+        break;
+    }
+
+    //set global configuration
+    perf_mon_conf_set(&global_conf);
+
+    return;
+}
+
+static void PERF_MON_ICLI_display_lm(u32 session_id, BOOL b_current, u32 interval_id)
+{
+    vtss_perf_mon_conf_t        mon_conf;
+    vtss_perf_mon_lm_info_t     *lm_info, lm_data[PM_LM_DATA_SET_LIMIT];
+    char                        str[64];
+
+    if ( b_current ) {
+        if ( vtss_perf_mon_lm_conf_get(&mon_conf) == FALSE ) {
+            ICLI_PRINTF("%% Failed to get current interval ID\n");
+            return;
+        }
+        interval_id = mon_conf.current_interval_id;
+    }
+
+    memset(lm_data, 0, sizeof(lm_data));
+    lm_data[0].measurement_interval_id = interval_id;
+    if ( vtss_perf_mon_lm_data_get(&lm_data[0]) == FALSE ) {
+        return;
+    }
+
+    lm_info = &lm_data[0];
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("Interval ID : %u\n", lm_info->measurement_interval_id);
+    ICLI_PRINTF("--------------------------------------------\n");
+    ICLI_PRINTF("    Valid               = %s\n", lm_info->valid ? "yes" : "no");
+    ICLI_PRINTF("    Tx count            = %u\n", lm_info->tx_cnt);
+    ICLI_PRINTF("    Tx rate             = %s\n", vtss_mep_period_to_string(lm_info->tx_rate));
+    ICLI_PRINTF("    Tx priority         = %u\n", lm_info->tx_priority);
+    ICLI_PRINTF("    Rx count            = %u\n", lm_info->rx_cnt);
+    ICLI_PRINTF("    Near end loss count = %u\n", lm_info->near_end_loss_cnt);
+    ICLI_PRINTF("    Near end loss ratio = %u\n", lm_info->near_end_frame_loss_ratio);
+    ICLI_PRINTF("    Far end loss count  = %u\n", lm_info->far_end_loss_cnt);
+    ICLI_PRINTF("    Far end loss ratio  = %u\n", lm_info->far_end_loss_ratio);
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("    MEP instance        = %u\n", evc_id_i2u(lm_info->mep_instance));
+    ICLI_PRINTF("    MEP flow            = %u\n", (lm_info->mep_domain != VTSS_MEP_MGMT_VLAN) ? evc_id_i2u(lm_info->mep_flow) : lm_info->mep_flow);
+    ICLI_PRINTF("    MEP VLAN            = %u\n", lm_info->mep_vlan);
+    ICLI_PRINTF("    MEP residence port  = %u\n", iport2uport(lm_info->mep_residence_port));
+    ICLI_PRINTF("    MEP direction       = %s\n", vtss_mep_direction_to_string(lm_info->mep_direction));
+    ICLI_PRINTF("    MEP domain          = %s\n", vtss_mep_domain_to_string(lm_info->mep_domain));
+    ICLI_PRINTF("    MEP level           = %u\n", lm_info->mep_level);
+    ICLI_PRINTF("    MEP ID              = %u\n", lm_info->mep_id);
+    ICLI_PRINTF("    MEP MAC             = %s\n", icli_mac_to_str(lm_info->mep_mac, str));
+    ICLI_PRINTF("    MEP peer ID         = %u\n", lm_info->mep_peer_id);
+    ICLI_PRINTF("    MEP peer MAC        = %s\n", icli_mac_to_str(lm_info->mep_peer_mac, str));
+    ICLI_PRINTF("\n");
+}
+
+static void PERF_MON_ICLI_display_dm(u32 session_id, BOOL b_current, u32 interval_id)
+{
+    vtss_perf_mon_conf_t        mon_conf;
+    vtss_perf_mon_dm_info_t     *dm_info, dm_data[PM_DM_DATA_SET_LIMIT];
+    char                        str[64];
+
+    if ( b_current ) {
+        if ( vtss_perf_mon_dm_conf_get(&mon_conf) == FALSE ) {
+            ICLI_PRINTF("%% Failed to get current interval ID\n");
+            return;
+        }
+        interval_id = mon_conf.current_interval_id;
+    }
+
+    memset(dm_data, 0, sizeof(dm_data));
+    dm_data[0].measurement_interval_id = interval_id;
+    if ( vtss_perf_mon_dm_data_get(&dm_data[0]) == FALSE ) {
+        return;
+    }
+
+    dm_info = &dm_data[0];
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("Interval ID : %u\n", dm_info->measurement_interval_id);
+    ICLI_PRINTF("--------------------------------------------------------\n");
+    ICLI_PRINTF("    Valid            = %s\n", dm_info->valid ? "yes" : "no");
+    ICLI_PRINTF("    Measurement unit = %s\n", vtss_mep_unit_to_string(dm_info->measurement_unit));
+    ICLI_PRINTF("    Tx count         = %u\n", dm_info->tx_cnt);
+    ICLI_PRINTF("    Tx rate          = %u\n", dm_info->tx_rate);
+    ICLI_PRINTF("    Tx priority      = %u\n", dm_info->tx_priority);
+    ICLI_PRINTF("    Rx count         = %u\n", dm_info->rx_cnt);
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("    Two way max delay               = %u\n", dm_info->two_way_max_delay);
+    ICLI_PRINTF("    Two way min delay               = %u\n", dm_info->two_way_min_delay);
+    ICLI_PRINTF("    Two way average delay           = %u\n", dm_info->two_way_avg_delay);
+    ICLI_PRINTF("    Two way average delay variation = %u\n", dm_info->two_way_avg_delay_variation);
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("    Far to near max delay               = %u\n", dm_info->far_to_near_max_delay);
+    ICLI_PRINTF("    Far to near min delay               = %u\n", dm_info->far_to_near_min_delay);
+    ICLI_PRINTF("    Far to near average delay           = %u\n", dm_info->far_to_near_avg_delay);
+    ICLI_PRINTF("    Far to near average delay variation = %u\n", dm_info->far_to_near_avg_delay_variation);
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("    Near to far max delay               = %u\n", dm_info->near_to_far_max_delay);
+    ICLI_PRINTF("    Near to far min delay               = %u\n", dm_info->near_to_far_min_delay);
+    ICLI_PRINTF("    Near to far average delay           = %u\n", dm_info->near_to_far_avg_delay);
+    ICLI_PRINTF("    Near to far average delay variation = %u\n", dm_info->near_to_far_avg_delay_variation);
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("    MEP instance        = %u\n", evc_id_i2u(dm_info->mep_instance));
+    ICLI_PRINTF("    MEP flow            = %u\n", (dm_info->mep_domain != VTSS_MEP_MGMT_VLAN) ? evc_id_i2u(dm_info->mep_flow) : dm_info->mep_flow);
+    ICLI_PRINTF("    MEP VLAN            = %u\n", dm_info->mep_vlan);
+    ICLI_PRINTF("    MEP residence port  = %u\n", iport2uport(dm_info->mep_residence_port));
+    ICLI_PRINTF("    MEP direction       = %s\n", vtss_mep_direction_to_string(dm_info->mep_direction));
+    ICLI_PRINTF("    MEP domain          = %s\n", vtss_mep_domain_to_string(dm_info->mep_domain));
+    ICLI_PRINTF("    MEP level           = %u\n", dm_info->mep_level);
+    ICLI_PRINTF("    MEP ID              = %u\n", dm_info->mep_id);
+    ICLI_PRINTF("    MEP MAC             = %s\n", icli_mac_to_str(dm_info->mep_mac, str));
+    ICLI_PRINTF("    MEP peer ID         = %u\n", dm_info->mep_peer_id);
+    ICLI_PRINTF("    MEP peer MAC        = %s\n", icli_mac_to_str(dm_info->mep_peer_mac, str));
+    ICLI_PRINTF("\n");
+}
+
+static void PERF_MON_ICLI_display_evc(u32 session_id, BOOL b_current, u32 interval_id)
+{
+    vtss_perf_mon_conf_t        mon_conf;
+    vtss_perf_mon_evc_info_t    *evc_info, evc_data[PM_EVC_DATA_SET_LIMIT];
+
+    if ( b_current ) {
+        if ( vtss_perf_mon_evc_conf_get(&mon_conf) == FALSE ) {
+            ICLI_PRINTF("%% Failed to get current interval ID\n");
+            return;
+        }
+        interval_id = mon_conf.current_interval_id;
+    }
+
+    memset(evc_data, 0, sizeof(evc_data));
+    evc_data[0].measurement_interval_id = interval_id;
+    if ( vtss_perf_mon_evc_data_get(&evc_data[0]) == FALSE ) {
+        return;
+    }
+
+    evc_info = &evc_data[0];
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("Interval ID : %u\n", evc_info->measurement_interval_id);
+    ICLI_PRINTF("--------------------------------------------------------\n");
+    ICLI_PRINTF("    EVC instance = %u\n", evc_id_i2u(evc_info->evc_instance));
+    ICLI_PRINTF("    EVC port     = %u\n", iport2uport(evc_info->evc_port));
+    ICLI_PRINTF("    Valid        = %s\n", evc_info->valid ? "yes" : "no");
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("    Tx green frames   = %llu\n", evc_info->tx_green);
+    ICLI_PRINTF("    Tx green bytes    = %llu\n", evc_info->tx_green_b);
+    ICLI_PRINTF("    Tx yellow frames  = %llu\n", evc_info->tx_yellow);
+    ICLI_PRINTF("    Tx yellow bytes   = %llu\n", evc_info->tx_yellow_b);
+    ICLI_PRINTF("    Tx red frames     = %llu\n", evc_info->tx_red);
+    ICLI_PRINTF("    Tx red bytes      = %llu\n", evc_info->tx_red_b);
+    ICLI_PRINTF("    Tx discard frames = %llu\n", evc_info->tx_discard);
+    ICLI_PRINTF("    Tx discard bytes  = %llu\n", evc_info->tx_discard_b);
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("    Rx green frames   = %llu\n", evc_info->rx_green);
+    ICLI_PRINTF("    Rx green bytes    = %llu\n", evc_info->rx_green_b);
+    ICLI_PRINTF("    Rx yellow frames  = %llu\n", evc_info->rx_yellow);
+    ICLI_PRINTF("    Rx yellow bytes   = %llu\n", evc_info->rx_yellow_b);
+    ICLI_PRINTF("    Rx red frames     = %llu\n", evc_info->rx_red);
+    ICLI_PRINTF("    Rx red bytes      = %llu\n", evc_info->rx_red_b);
+    ICLI_PRINTF("    Rx discard frames = %llu\n", evc_info->rx_discard);
+    ICLI_PRINTF("    Rx discard bytes  = %llu\n", evc_info->rx_discard_b);
+    ICLI_PRINTF("\n");
+}
+
+static void PERF_MON_ICLI_display_ece(u32 session_id, BOOL b_current, u32 interval_id)
+{
+    vtss_perf_mon_conf_t        mon_conf;
+    vtss_perf_mon_evc_info_t    *ece_info, ece_data[PM_ECE_DATA_SET_LIMIT];
+
+    if ( b_current ) {
+        if ( vtss_perf_mon_ece_conf_get(&mon_conf) == FALSE ) {
+            ICLI_PRINTF("%% Failed to get current interval ID\n");
+            return;
+        }
+        interval_id = mon_conf.current_interval_id;
+    }
+
+    memset(ece_data, 0, sizeof(ece_data));
+    ece_data[0].measurement_interval_id = interval_id;
+    if ( vtss_perf_mon_ece_data_get(&ece_data[0]) == FALSE ) {
+        return;
+    }
+
+    ece_info = &ece_data[0];
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("Interval ID : %u\n", ece_info->measurement_interval_id);
+    ICLI_PRINTF("--------------------------------------------------------\n");
+    ICLI_PRINTF("    ECE instance = %u\n", evc_id_i2u(ece_info->evc_instance));
+    ICLI_PRINTF("    ECE port     = %u\n", iport2uport(ece_info->evc_port));
+    ICLI_PRINTF("    Valid        = %s\n", ece_info->valid ? "yes" : "no");
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("    Tx green frames   = %llu\n", ece_info->tx_green);
+    ICLI_PRINTF("    Tx green bytes    = %llu\n", ece_info->tx_green_b);
+    ICLI_PRINTF("    Tx yellow frames  = %llu\n", ece_info->tx_yellow);
+    ICLI_PRINTF("    Tx yellow bytes   = %llu\n", ece_info->tx_yellow_b);
+    ICLI_PRINTF("    Tx red frames     = %llu\n", ece_info->tx_red);
+    ICLI_PRINTF("    Tx red bytes      = %llu\n", ece_info->tx_red_b);
+    ICLI_PRINTF("    Tx discard frames = %llu\n", ece_info->tx_discard);
+    ICLI_PRINTF("    Tx discard bytes  = %llu\n", ece_info->tx_discard_b);
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("    Rx green frames   = %llu\n", ece_info->rx_green);
+    ICLI_PRINTF("    Rx green bytes    = %llu\n", ece_info->rx_green_b);
+    ICLI_PRINTF("    Rx yellow frames  = %llu\n", ece_info->rx_yellow);
+    ICLI_PRINTF("    Rx yellow bytes   = %llu\n", ece_info->rx_yellow_b);
+    ICLI_PRINTF("    Rx red frames     = %llu\n", ece_info->rx_red);
+    ICLI_PRINTF("    Rx red bytes      = %llu\n", ece_info->rx_red_b);
+    ICLI_PRINTF("    Rx discard frames = %llu\n", ece_info->rx_discard);
+    ICLI_PRINTF("    Rx discard bytes  = %llu\n", ece_info->rx_discard_b);
+    ICLI_PRINTF("\n");
+}
+
+static void PERF_MON_ICLI_debug_display_lm(u32 session_id, BOOL detailed)
+{
+    int                         ct;
+    BOOL                        status = FALSE;
+    vtss_perf_mon_lm_info_t     data[PM_LM_DATA_SET_LIMIT];
+    u32                         idx;
+    char                        buffer[PM_BUFFER_STRING_LENGTH];
+    vtss_perf_mon_conf_t        conf;
+    int                         debug_counter = 0;
+
+    ICLI_PRINTF("Loss Measurement\n");
+
+    //get lm basic configuration
+    status = vtss_perf_mon_lm_conf_get(&conf);
+    if (status) {
+        ICLI_PRINTF("current id = %u\n", conf.current_interval_id);
+        ICLI_PRINTF("current cnt = %u\n", conf.current_interval_cnt);
+    }
+
+    status = vtss_perf_mon_lm_data_get_first(&data[0]);
+    while (status) {
+        debug_counter++;
+        for (idx = 0; idx < PM_LM_DATA_SET_LIMIT; idx++) {
+
+            if (!detailed) {
+                if (data[idx].measurement_interval_id == 0) {
+                    break;
+                }
+            }
+
+            memset(buffer, 0, sizeof(buffer));
+            ct = snprintf(buffer, sizeof(buffer), "%u/%u/%u/%u",
+                        idx,
+                        data[idx].measurement_interval_id,
+                        evc_id_i2u(data[idx].mep_instance),
+                        data[idx].mep_residence_port);
+
+            if (ct) {
+                ICLI_PRINTF("%s\n", buffer);
+            }
+        }
+        status = vtss_perf_mon_lm_data_get_next(&data[0]);
+
+        // error handler
+        if (debug_counter == PM_DEBUG_LM_MAX_LOOP) {
+            ICLI_PRINTF("Exit max loop!!\n");
+            break;
+        }
+    }
+
+    return;
+}
+
+static void PERF_MON_ICLI_debug_display_dm(u32 session_id, BOOL detailed)
+{
+    int                         ct;
+    BOOL                        status = FALSE;
+    vtss_perf_mon_dm_info_t     data[PM_DM_DATA_SET_LIMIT];
+    u32                         idx;
+    char                        buffer[PM_BUFFER_STRING_LENGTH];
+    vtss_perf_mon_conf_t        conf;
+    int                         debug_counter = 0;
+
+    ICLI_PRINTF("Delay Measurement\n");
+
+    //get dm basic configuration
+    status = vtss_perf_mon_dm_conf_get(&conf);
+    if (status) {
+        ICLI_PRINTF("current id = %u\n", conf.current_interval_id);
+        ICLI_PRINTF("current cnt = %u\n", conf.current_interval_cnt);
+    }
+
+    status = vtss_perf_mon_dm_data_get_first(&data[0]);
+    while (status) {
+        debug_counter++;
+        for (idx = 0; idx < PM_DM_DATA_SET_LIMIT; idx++) {
+
+            //ICLI_PRINTF("idx = %u, id = %u\n", idx, data[idx].measurement_interval_id);
+
+            if (!detailed) {
+                if (data[idx].measurement_interval_id == 0) {
+                    break;
+                }
+            }
+
+            ct = snprintf(buffer, sizeof(buffer), "%u/%u/%u/%u",
+                        idx,
+                        data[idx].measurement_interval_id,
+                        evc_id_i2u(data[idx].mep_instance),
+                        data[idx].mep_residence_port);
+
+            if (ct) {
+                ICLI_PRINTF("%s\n", buffer);
+            }
+        }
+        status = vtss_perf_mon_dm_data_get_next(&data[0]);
+
+        // error handler
+        if (debug_counter == PM_DEBUG_DM_MAX_LOOP) {
+            ICLI_PRINTF("Exit max loop!!\n");
+            break;
+        }
+    }
+
+    return;
+}
+
+static void PERF_MON_ICLI_debug_display_evc(u32 session_id, BOOL detailed)
+{
+    int                         ct;
+    BOOL                        status = FALSE;
+    vtss_perf_mon_evc_info_t    data[PM_EVC_DATA_SET_LIMIT];
+    u32                         idx;
+    char                        buffer[PM_BUFFER_STRING_LENGTH];
+    vtss_perf_mon_conf_t        conf;
+    int                         debug_counter = 0;
+
+    ICLI_PRINTF("EVC\n");
+
+    //get evc basic configuration
+    status = vtss_perf_mon_evc_conf_get(&conf);
+    if (status) {
+        ICLI_PRINTF("current id = %u\n", conf.current_interval_id);
+        ICLI_PRINTF("current cnt = %u\n", conf.current_interval_cnt);
+    }
+
+    status = vtss_perf_mon_evc_data_get_first(&data[0]);
+    while (status) {
+        debug_counter++;
+        for (idx = 0; idx < PM_EVC_DATA_SET_LIMIT; idx++) {
+
+            if (!detailed) {
+                if (data[idx].measurement_interval_id == 0) {
+                    break;
+                }
+            }
+
+            ct = snprintf(buffer, sizeof(buffer), "%u/%u/%u/%u",
+                        idx,
+                        data[idx].measurement_interval_id,
+                        evc_id_i2u(data[idx].evc_instance),
+                        data[idx].evc_port);
+
+            if (ct) {
+                ICLI_PRINTF("%s\n", buffer);
+            }
+        }
+        status = vtss_perf_mon_evc_data_get_next(&data[0]);
+
+        // error handler
+        if (debug_counter == PM_DEBUG_EVC_MAX_LOOP) {
+            ICLI_PRINTF("Exit max loop!!\n");
+            break;
+        }
+    }
+
+    return;
+}
+
+static void PERF_MON_ICLI_debug_display_ece(u32 session_id, BOOL detailed)
+{
+    int                         ct;
+    BOOL                        status = FALSE;
+    vtss_perf_mon_evc_info_t    data[PM_ECE_DATA_SET_LIMIT];
+    u32                         idx;
+    char                        buffer[PM_BUFFER_STRING_LENGTH];
+    vtss_perf_mon_conf_t        conf;
+    int                         debug_counter = 0;
+
+    ICLI_PRINTF("ECE\n");
+
+    //get ece basic configuration
+    status = vtss_perf_mon_ece_conf_get(&conf);
+    if (status) {
+        ICLI_PRINTF("current id = %u\n", conf.current_interval_id);
+        ICLI_PRINTF("current cnt = %u\n", conf.current_interval_cnt);
+    }
+
+    status = vtss_perf_mon_ece_data_get_first(&data[0]);
+    while (status) {
+        debug_counter++;
+        for (idx = 0; idx < PM_ECE_DATA_SET_LIMIT; idx++) {
+
+            if (!detailed) {
+                if (data[idx].measurement_interval_id == 0) {
+                    break;
+                }
+            }
+
+            ct = snprintf(buffer, sizeof(buffer), "%u/%u/%u/%u",
+                        idx,
+                        data[idx].measurement_interval_id,
+                        evc_id_i2u(data[idx].evc_instance),
+                        data[idx].evc_port);
+
+            if (ct) {
+                ICLI_PRINTF("%s\n", buffer);
+            }
+        }
+        status = vtss_perf_mon_ece_data_get_next(&data[0]);
+
+        // error handler
+        if (debug_counter == PM_DEBUG_ECE_MAX_LOOP) {
+            ICLI_PRINTF("Exit max loop!!\n");
+            break;
+        }
+    }
+
+    return;
+}
+
+static void _display_lm_interval(u32 session_id, u32 interval_id)
+{
+    vtss_perf_mon_measurement_info_t    data;
+    BOOL                                status;
+    char                                time_buf[256];
+    u32                                 debug_counter = 0;
+    BOOL                                b_title = TRUE;
+
+    status = vtss_perf_mon_lm_interval_get_first(&data);
+    while ( status ) {
+        // error handler
+        if ( ++debug_counter == PM_DEBUG_LM_MAX_LOOP ) {
+            ICLI_PRINTF("Exit max loop!!\n");
+            break;
+        }
+
+        if ( data.measurement_interval_id == 0 ) {
+            status = vtss_perf_mon_lm_interval_get_next(&data);
+            continue;
+        }
+
+        if (interval_id > 0 && interval_id != data.measurement_interval_id) {
+            status = vtss_perf_mon_lm_interval_get_next(&data);
+            continue;
+        }
+
+        /* title */
+        if ( b_title ) {
+            ICLI_PRINTF("Loss Measurement Interval Information\n");
+            ICLI_PRINTF("--------------------------------------------------------\n");
+            b_title = FALSE;
+        }
+
+        /* interval ID */
+        ICLI_PRINTF("Measurement interval ID = %u\n", data.measurement_interval_id);
+
+        /* start_time */
+        (void)misc_time2str_r(data.interval_end_time - data.elapsed_time, time_buf);
+        ICLI_PRINTF("Start time              = %s\n", time_buf);
+
+        /* end time */
+        (void)misc_time2str_r(data.interval_end_time, time_buf);
+        ICLI_PRINTF("End time                = %s\n", time_buf);
+
+        /* elspsed_time */
+        ICLI_PRINTF("Elapsed time            = %u seconds\n", data.elapsed_time);
+        ICLI_PRINTF("\n");
+
+        /* next */
+        status = vtss_perf_mon_lm_interval_get_next(&data);
+    }
+}
+
+static void _display_dm_interval(u32 session_id, u32 interval_id)
+{
+    vtss_perf_mon_measurement_info_t    data;
+    BOOL                                status;
+    char                                time_buf[256];
+    u32                                 debug_counter = 0;
+    BOOL                                b_title = TRUE;
+
+    status = vtss_perf_mon_dm_interval_get_first(&data);
+    while ( status ) {
+        // error handler
+        if ( ++debug_counter == PM_DEBUG_LM_MAX_LOOP ) {
+            ICLI_PRINTF("Exit max loop!!\n");
+            break;
+        }
+
+        if ( data.measurement_interval_id == 0 ) {
+            status = vtss_perf_mon_dm_interval_get_next(&data);
+            continue;
+        }
+
+        if (interval_id > 0 && interval_id != data.measurement_interval_id) {
+            status = vtss_perf_mon_dm_interval_get_next(&data);
+            continue;
+        }
+
+        /* title */
+        if ( b_title ) {
+            ICLI_PRINTF("Delay Measurement Interval Information\n");
+            ICLI_PRINTF("--------------------------------------------------------\n");
+            b_title = FALSE;
+        }
+
+        /* interval ID */
+        ICLI_PRINTF("Measurement interval ID = %u\n", data.measurement_interval_id);
+
+        /* start_time */
+        (void)misc_time2str_r(data.interval_end_time - data.elapsed_time, time_buf);
+        ICLI_PRINTF("Start time              = %s\n", time_buf);
+
+        /* end time */
+        (void)misc_time2str_r(data.interval_end_time, time_buf);
+        ICLI_PRINTF("End time                = %s\n", time_buf);
+
+        /* elspsed_time */
+        ICLI_PRINTF("Elapsed time            = %u seconds\n", data.elapsed_time);
+        ICLI_PRINTF("\n");
+
+        /* next */
+        status = vtss_perf_mon_dm_interval_get_next(&data);
+    }
+}
+
+static void _display_evc_interval(u32 session_id, u32 interval_id)
+{
+    vtss_perf_mon_measurement_info_t    data;
+    BOOL                                status;
+    char                                time_buf[256];
+    u32                                 debug_counter = 0;
+    BOOL                                b_title = TRUE;
+
+    status = vtss_perf_mon_evc_interval_get_first(&data);
+    while ( status ) {
+        // error handler
+        if ( ++debug_counter == PM_DEBUG_LM_MAX_LOOP ) {
+            ICLI_PRINTF("Exit max loop!!\n");
+            break;
+        }
+
+        if ( data.measurement_interval_id == 0 ) {
+            status = vtss_perf_mon_evc_interval_get_next(&data);
+            continue;
+        }
+
+        if (interval_id > 0 && interval_id != data.measurement_interval_id) {
+            status = vtss_perf_mon_evc_interval_get_next(&data);
+            continue;
+        }
+
+        /* title */
+        if ( b_title ) {
+            ICLI_PRINTF("EVC Interval Information\n");
+            ICLI_PRINTF("--------------------------------------------------------\n");
+            b_title = FALSE;
+        }
+
+        /* interval ID */
+        ICLI_PRINTF("Measurement interval ID = %u\n", data.measurement_interval_id);
+
+        /* start_time */
+        (void)misc_time2str_r(data.interval_end_time - data.elapsed_time, time_buf);
+        ICLI_PRINTF("Start time              = %s\n", time_buf);
+
+        /* end time */
+        (void)misc_time2str_r(data.interval_end_time, time_buf);
+        ICLI_PRINTF("End time                = %s\n", time_buf);
+
+        /* elspsed_time */
+        ICLI_PRINTF("Elapsed time            = %u seconds\n", data.elapsed_time);
+        ICLI_PRINTF("\n");
+
+        /* next */
+        status = vtss_perf_mon_evc_interval_get_next(&data);
+    }
+}
+
+static void _display_ece_interval(u32 session_id, u32 interval_id)
+{
+    vtss_perf_mon_measurement_info_t    data;
+    BOOL                                status;
+    char                                time_buf[256];
+    u32                                 debug_counter = 0;
+    BOOL                                b_title = TRUE;
+
+    status = vtss_perf_mon_ece_interval_get_first(&data);
+    while ( status ) {
+        // error handler
+        if ( ++debug_counter == PM_DEBUG_LM_MAX_LOOP ) {
+            ICLI_PRINTF("Exit max loop!!\n");
+            break;
+        }
+
+        if ( data.measurement_interval_id == 0 ) {
+            status = vtss_perf_mon_ece_interval_get_next(&data);
+            continue;
+        }
+
+        if (interval_id > 0 && interval_id != data.measurement_interval_id) {
+            status = vtss_perf_mon_ece_interval_get_next(&data);
+            continue;
+        }
+
+        /* title */
+        if ( b_title ) {
+            ICLI_PRINTF("ECE Interval Information\n");
+            ICLI_PRINTF("--------------------------------------------------------\n");
+            b_title = FALSE;
+        }
+
+        /* interval ID */
+        ICLI_PRINTF("Measurement interval ID = %u\n", data.measurement_interval_id);
+
+        /* start_time */
+        (void)misc_time2str_r(data.interval_end_time - data.elapsed_time, time_buf);
+        ICLI_PRINTF("Start time              = %s\n", time_buf);
+
+        /* end time */
+        (void)misc_time2str_r(data.interval_end_time, time_buf);
+        ICLI_PRINTF("End time                = %s\n", time_buf);
+
+        /* elspsed_time */
+        ICLI_PRINTF("Elapsed time            = %u seconds\n", data.elapsed_time);
+        ICLI_PRINTF("\n");
+
+        /* next */
+        status = vtss_perf_mon_ece_interval_get_next(&data);
+    }
+}
+
+// ============================================================================
+// For TFTP/HTTP URL
+// ============================================================================
+
+static BOOL decompose_url(u32              session_id,
+                          const char       *src_or_dest_text,
+                          const char       *path,
+                          misc_url_parts_t *url)
+{
+    if (vtss_perf_mon_decompose_url(src_or_dest_text, path, strlen(path), url)) {
+        if (strcmp(url->protocol, "http") != 0  &&  strcmp(url->protocol, "tftp") != 0) {
+            ICLI_PRINTF("%% Invalid %s file system type (must be http: or tftp:)\n", src_or_dest_text);
+            return FALSE;
+        }
+        else {
+            return TRUE;
+        }
+    }
+
+    ICLI_PRINTF("%% Invalid %s syntax, expected http://server[:port]/path-to-file or tftp://server[:port]/path-to-file\n", src_or_dest_text);
+    return FALSE;
+}
+
+FUNCTION_END
+
+// ############################################################################
+
+//
+// Export Segment
+//   This segment contains the API declarations of the global functions in
+//   Function Segment. This will be pasted exactly to the generated H file.
+//   So, others can include the H file to use the global functions.
+//
+EXPORT_BEGIN
+EXPORT_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = perf-mon transfer
+
+FUNC_NAME = perf_mon_transfer
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* enable transfer mode */
+    PERF_MON_ICLI_transfer_mode_set(session_id, TRUE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    /* disable transfer mode */
+    PERF_MON_ICLI_transfer_mode_set(session_id, FALSE);
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = perf-mon transfer incomplete
+
+FUNC_NAME = perf_mon_transfer_incomplete
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Include intervals from previous incomplete transfers
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* enable transfer incomplete */
+    PERF_MON_ICLI_transfer_incomplete_set(session_id, TRUE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    /* disable transfer incomplete */
+    PERF_MON_ICLI_transfer_incomplete_set(session_id, FALSE);
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = perf-mon transfer fixed-offset <0-15>
+
+FUNC_NAME = perf_mon_transfer_fixed_offset
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = fixed_offset_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Scheduled offset
+HELP = Number of minutes
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* enable transfer fixed offset */
+    PERF_MON_ICLI_transfer_fixed_offset(session_id, fixed_offset_var);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = no perf-mon transfer fixed-offset
+
+FUNC_NAME = no_perf_mon_transfer_fixed_offset
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Scheduled offset
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* disable transfer fixed offset */
+    PERF_MON_ICLI_transfer_fixed_offset(session_id, 0);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = perf-mon transfer random-offset <0-900>
+
+FUNC_NAME = perf_mon_transfer_random_offset
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = random_offset_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Random offset
+HELP = Number of seconds
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* enable transfer random offset */
+    PERF_MON_ICLI_transfer_random_offset(session_id, random_offset_var);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = no perf-mon transfer random-offset
+
+FUNC_NAME = no_perf_mon_transfer_random_offset
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Random offset
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* disable transfer random offset */
+    PERF_MON_ICLI_transfer_random_offset(session_id, 0);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = perf-mon transfer url <word64>
+
+FUNC_NAME = perf_mon_transfer_url
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = url_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Server URL
+HELP = Server URL (http or tftp)
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* enable transfer random offset */
+    PERF_MON_ICLI_transfer_url(session_id, url_var);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = no perf-mon transfer url
+
+FUNC_NAME = no_perf_mon_transfer_url
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Server URL
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* disable transfer random offset */
+    PERF_MON_ICLI_transfer_url(session_id, NULL);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = perf-mon transfer mode { all | new | fixed <1-96> }
+
+FUNC_NAME = perf_mon_transfer_mode
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = all_var
+CMD_VAR   = new_var
+CMD_VAR   = fixed_var
+CMD_VAR   = number_of_fixed_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Interval mode
+HELP = All available intervals
+HELP = New intervals since last transfer
+HELP = Fixed number of intervals
+HELP = Number of intervals
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* enable transfer mode */
+    if (all_var) {
+        PERF_MON_ICLI_transfer_mode(session_id, VTSS_PM_TRANSFER_MODE_ALL, 0);
+    } else if (new_var) {
+        PERF_MON_ICLI_transfer_mode(session_id, VTSS_PM_TRANSFER_MODE_NEW, 0);
+    } else if (fixed_var) {
+        PERF_MON_ICLI_transfer_mode(session_id, VTSS_PM_TRANSFER_MODE_FIXED, number_of_fixed_var);
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = perf-mon transfer minute <0,15,30,45>
+
+FUNC_NAME = perf_mon_transfer_minute
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = minutes_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Scheduled minutes
+HELP = Type of minutes
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* set transfer minutes */
+    PERF_MON_ICLI_transfer_minutes(session_id, minutes_var);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = no perf-mon transfer minute
+
+FUNC_NAME = no_perf_mon_transfer_minute
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Scheduled minutes
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* set transfer minutes */
+    PERF_MON_ICLI_transfer_minutes(session_id, VTSS_PM_TRANSFER_MINUTES_NULL);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = perf-mon transfer hour <0-23>
+
+FUNC_NAME = perf_mon_transfer_hour
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = hours_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Scheduled hours
+HELP = Type of hours
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* set transfer hours */
+    PERF_MON_ICLI_transfer_hours(session_id, hours_var);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = no perf-mon transfer hour
+
+FUNC_NAME = no_perf_mon_transfer_hour
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = Performance Monitor
+HELP = Transfer Mode Enabled
+HELP = Scheduled hours
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* set transfer hours */
+    PERF_MON_ICLI_transfer_hours(session_id, VTSS_PM_TRANSFER_HOURS_NULL);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = perf-mon storage [ lm | dm | evc | ece ]
+
+FUNC_NAME = perf_mon_storage
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = lm_var
+CMD_VAR   = dm_var
+CMD_VAR   = evc_var
+CMD_VAR   = ece_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = Performance Monitor
+HELP = Storage Enabled
+HELP = Loss Measurement
+HELP = Delay Measurement
+HELP = EVC
+HELP = ECE
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (lm_var) {
+        PERF_MON_ICLI_storage(session_id, VTSS_PM_STORAGE_LM, TRUE);
+    } else if (dm_var) {
+        PERF_MON_ICLI_storage(session_id, VTSS_PM_STORAGE_DM, TRUE);
+    } else if (evc_var) {
+        PERF_MON_ICLI_storage(session_id, VTSS_PM_STORAGE_EVC, TRUE);
+    } else if (ece_var) {
+        PERF_MON_ICLI_storage(session_id, VTSS_PM_STORAGE_ECE, TRUE);
+    } else {
+        PERF_MON_ICLI_storage(session_id, VTSS_PM_STORAGE_DISABLED, TRUE);
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = no perf-mon storage [ lm | dm | evc | ece ]
+
+FUNC_NAME = no_perf_mon_storage
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = lm_var
+CMD_VAR   = dm_var
+CMD_VAR   = evc_var
+CMD_VAR   = ece_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = Performance Monitor
+HELP = Storage Enabled
+HELP = Loss Measurement
+HELP = Delay Measurement
+HELP = EVC
+HELP = ECE
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (lm_var) {
+        PERF_MON_ICLI_storage(session_id, VTSS_PM_STORAGE_LM, FALSE);
+    } else if (dm_var) {
+        PERF_MON_ICLI_storage(session_id, VTSS_PM_STORAGE_DM, FALSE);
+    } else if (evc_var) {
+        PERF_MON_ICLI_storage(session_id, VTSS_PM_STORAGE_EVC, FALSE);
+    } else if (ece_var) {
+        PERF_MON_ICLI_storage(session_id, VTSS_PM_STORAGE_ECE, FALSE);
+    } else {
+        PERF_MON_ICLI_storage(session_id, VTSS_PM_STORAGE_DISABLED, FALSE);
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = perf-mon session [ lm | dm | evc | ece ]
+
+FUNC_NAME = perf_mon_session
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = lm_var
+CMD_VAR   = dm_var
+CMD_VAR   = evc_var
+CMD_VAR   = ece_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = Performance Monitor
+HELP = Session Enabled
+HELP = Loss Measurement
+HELP = Delay Measurement
+HELP = EVC
+HELP = ECE
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (lm_var) {
+        PERF_MON_ICLI_session(session_id, VTSS_PM_SESSION_LM, TRUE);
+    } else if (dm_var) {
+        PERF_MON_ICLI_session(session_id, VTSS_PM_SESSION_DM, TRUE);
+    } else if (evc_var) {
+        PERF_MON_ICLI_session(session_id, VTSS_PM_SESSION_EVC, TRUE);
+    } else if (ece_var) {
+        PERF_MON_ICLI_session(session_id, VTSS_PM_SESSION_ECE, TRUE);
+    } else {
+        PERF_MON_ICLI_session(session_id, VTSS_PM_SESSION_DISABLED, TRUE);
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = no perf-mon session [ lm | dm | evc | ece ]
+
+FUNC_NAME = no_perf_mon_session
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = lm_var
+CMD_VAR   = dm_var
+CMD_VAR   = evc_var
+CMD_VAR   = ece_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = Performance Monitor
+HELP = Session Enabled
+HELP = Loss Measurement
+HELP = Delay Measurement
+HELP = EVC
+HELP = ECE
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (lm_var) {
+        PERF_MON_ICLI_session(session_id, VTSS_PM_SESSION_LM, FALSE);
+    } else if (dm_var) {
+        PERF_MON_ICLI_session(session_id, VTSS_PM_SESSION_DM, FALSE);
+    } else if (evc_var) {
+        PERF_MON_ICLI_session(session_id, VTSS_PM_SESSION_EVC, FALSE);
+    } else if (ece_var) {
+        PERF_MON_ICLI_session(session_id, VTSS_PM_SESSION_ECE, FALSE);
+    } else {
+        PERF_MON_ICLI_session(session_id, VTSS_PM_SESSION_DISABLED, FALSE);
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = perf-mon interval { lm | dm | evc | ece } <1-60>
+
+FUNC_NAME = perf_mon_interval
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = lm_var
+CMD_VAR   = dm_var
+CMD_VAR   = evc_var
+CMD_VAR   = ece_var
+CMD_VAR   = minutes_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = Performance Monitor
+HELP = Measurement Interval
+HELP = Loss Measurement
+HELP = Delay Measurement
+HELP = EVC
+HELP = ECE
+HELP = Number of minutes
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (lm_var) {
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_LM, minutes_var);
+    } else if (dm_var) {
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_DM, minutes_var);
+    } else if (evc_var) {
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_EVC, minutes_var);
+    } else if (ece_var) {
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_ECE, minutes_var);
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = no perf-mon interval [ lm | dm | evc | ece ]
+
+FUNC_NAME = no_perf_mon_interval
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = lm_var
+CMD_VAR   = dm_var
+CMD_VAR   = evc_var
+CMD_VAR   = ece_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = Performance Monitor
+HELP = Measurement Interval
+HELP = Loss Measurement
+HELP = Delay Measurement
+HELP = EVC
+HELP = ECE
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (lm_var) {
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_LM, VTSS_PM_DEFAULT_LM_INTERVAL);
+    } else if (dm_var) {
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_DM, VTSS_PM_DEFAULT_DM_INTERVAL);
+    } else if (evc_var) {
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_EVC, VTSS_PM_DEFAULT_EVC_INTERVAL);
+    } else if (ece_var) {
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_ECE, VTSS_PM_DEFAULT_ECE_INTERVAL);
+    } else {
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_LM, VTSS_PM_DEFAULT_LM_INTERVAL);
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_DM, VTSS_PM_DEFAULT_DM_INTERVAL);
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_EVC, VTSS_PM_DEFAULT_EVC_INTERVAL);
+        PERF_MON_ICLI_interval(session_id, VTSS_PM_SESSION_ECE, VTSS_PM_DEFAULT_ECE_INTERVAL);
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND   = show perf-mon { current | interval-id <uint> } feature { lm | dm | evc | ece }
+
+FUNC_NAME = show_perf_mon_current
+PRIVILEGE = ICLI_PRIVILEGE_13
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_current
+CMD_VAR   =
+CMD_VAR   = interval_id
+CMD_VAR   =
+CMD_VAR   = b_lm
+CMD_VAR   = b_dm
+CMD_VAR   = b_evc
+CMD_VAR   =
+
+HELP = ##ICLI_HELP_SHOW
+HELP = Performance Monitor
+HELP = Current interval ID
+HELP = Specific interval
+HELP = Interval ID
+HELP = Features
+HELP = Loss Measurement
+HELP = Delay Measurement
+HELP = EVC
+HELP = ECE
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( b_lm ) {
+        PERF_MON_ICLI_display_lm(session_id, b_current, interval_id);
+    } else if ( b_dm ) {
+        PERF_MON_ICLI_display_dm(session_id, b_current, interval_id);
+    } else if ( b_evc ) {
+        PERF_MON_ICLI_display_evc(session_id, b_current, interval_id);
+    } else {
+        PERF_MON_ICLI_display_ece(session_id, b_current, interval_id);
+    }
+CODE_END
+
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = show perf-mon interval-info [ id <uint> ] [ feature { lm | dm | evc | ece } ]
+
+FUNC_NAME = show_perf_mon_interval
+PRIVILEGE = ICLI_PRIVILEGE_13
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_id
+CMD_VAR   = b_id_number
+CMD_VAR   = b_feature
+CMD_VAR   = b_lm
+CMD_VAR   = b_dm
+CMD_VAR   = b_evc
+CMD_VAR   =
+
+HELP = ##ICLI_HELP_SHOW
+HELP = Performance Monitor
+HELP = Measurement interval information
+HELP = Measurement interval id
+HELP = Measurement interval id
+HELP = Features
+HELP = Loss Measurement
+HELP = Delay Measurement
+HELP = EVC
+HELP = ECE
+
+VARIABLE_BEGIN
+    u32 input_id;
+VARIABLE_END
+
+CODE_BEGIN
+    if (b_id) {
+        input_id = b_id_number;
+    } else {
+        input_id = 0;
+    }
+
+    if ( b_feature ) {
+        if ( b_lm ) {
+            _display_lm_interval( session_id, input_id );
+        } else if ( b_dm ) {
+            _display_dm_interval( session_id, input_id );
+        } else if ( b_evc ) {
+            _display_evc_interval( session_id, input_id );
+        } else {
+            _display_ece_interval( session_id, input_id );
+        }
+    } else {
+        _display_lm_interval( session_id, input_id );
+        _display_dm_interval( session_id, input_id );
+        _display_evc_interval( session_id, input_id );
+        _display_ece_interval( session_id, input_id );
+    }
+CODE_END
+
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = clear perf-mon statistics [ lm | dm | evc | ece ]
+
+FUNC_NAME = clear_perf_mon_statistics
+PRIVILEGE = ICLI_PRIVILEGE_13
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_lm
+CMD_VAR   = b_dm
+CMD_VAR   = b_evc
+CMD_VAR   = b_ece
+
+HELP = ##ICLI_HELP_CLEAR
+HELP = Performance Monitor
+HELP = Clear statistics
+HELP = Loss Measurement
+HELP = Delay Measurement
+HELP = EVC
+HELP = ECE
+
+VARIABLE_BEGIN
+    BOOL    rv;
+VARIABLE_END
+
+CODE_BEGIN
+    if (b_lm) {
+        rv = vtss_perf_mon_lm_data_clear();
+    } else if (b_dm) {
+        rv = vtss_perf_mon_dm_data_clear();
+    } else if (b_evc) {
+        rv = vtss_perf_mon_evc_data_clear();
+    } else if (b_ece) {
+        rv = vtss_perf_mon_ece_data_clear();
+    } else {
+        rv = vtss_perf_mon_lm_data_clear();
+        rv = vtss_perf_mon_dm_data_clear();
+        rv = vtss_perf_mon_evc_data_clear();
+        rv = vtss_perf_mon_ece_data_clear();
+    }
+
+    if (rv == FALSE) {
+        ICLI_PRINTF("return error!!\n");
+    }
+
+CODE_END
+
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = debug perf-mon { lm | dm | evc | ece } [ detailed ]
+
+FUNC_NAME = debug_perf_mon
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = lm_var
+CMD_VAR   = dm_var
+CMD_VAR   = evc_var
+CMD_VAR   = ece_var
+CMD_VAR   = detailed_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = Performance Monitor
+HELP = Loss Measurement
+HELP = Delay Measurement
+HELP = EVC
+HELP = ECE
+
+VARIABLE_BEGIN
+    BOOL    detailed = FALSE;
+VARIABLE_END
+
+CODE_BEGIN
+    if (detailed_var) {
+        detailed = TRUE;
+    }
+
+    if (lm_var) {
+        PERF_MON_ICLI_debug_display_lm(session_id, detailed);
+    } else if (dm_var) {
+        PERF_MON_ICLI_debug_display_dm(session_id, detailed);
+    } else if (evc_var) {
+        PERF_MON_ICLI_debug_display_evc(session_id, detailed);
+    } else if (ece_var) {
+        PERF_MON_ICLI_debug_display_ece(session_id, detailed);
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = debug perf-mon clear
+
+FUNC_NAME = debug_perf_mon_clearcnt
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = Performance Monitor
+HELP = Clear all collection on DRAM
+
+VARIABLE_BEGIN
+    BOOL    status = FALSE;
+VARIABLE_END
+
+CODE_BEGIN
+    status = vtss_perf_mon_clear_all_collection();
+    if (!status) {
+        ICLI_PRINTF("Clear all collection on DRAM error!!\n");
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = debug perf-mon reset
+
+FUNC_NAME = debug_perf_mon_reset
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = Performance Monitor
+HELP = Reset FLASH and DRAM information
+
+VARIABLE_BEGIN
+    BOOL    status = FALSE;
+VARIABLE_END
+
+CODE_BEGIN
+    status = vtss_perf_mon_reset_flash_data();
+    if (!status) {
+        ICLI_PRINTF("Reset FLASH and DRAM information error!!\n");
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+// For TFTP
+// ############################################################################
+
+CMD_BEGIN
+
+IF_FLAG =
+COMMAND         = debug perf-mon url <word>
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+FUNC_NAME = debug_perf_mon_url
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = destination_path_var
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = http://server/path-and-filename | tftp://server/path-and-filename
+
+HELP =
+HELP = Performance Monitor
+HELP = URL
+HELP = tftp or http
+
+
+VARIABLE_BEGIN
+    misc_url_parts_t    url_parts;
+VARIABLE_END
+
+CODE_BEGIN
+    /* check path */
+    if (!destination_path_var) {
+        ICLI_PRINTF("%% Failed to determine valid destination URL.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    /* transfer lm data */
+    (void) decompose_url(session_id, "destination", destination_path_var, &url_parts);
+    if (!vtss_perf_mon_transfer_lm_data_set(&url_parts)) {
+        ICLI_PRINTF("%% Failed to transfer LM data.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    /* transfer dm data */
+    (void) decompose_url(session_id, "destination", destination_path_var, &url_parts);
+    if (!vtss_perf_mon_transfer_dm_data_set(&url_parts)) {
+        ICLI_PRINTF("%% Failed to transfer DM data.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    /* transfer evc data */
+    (void) decompose_url(session_id, "destination", destination_path_var, &url_parts);
+    if (!vtss_perf_mon_transfer_evc_data_set(&url_parts)) {
+        ICLI_PRINTF("%% Failed to transfer EVC data.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    /* transfer ece data */
+    (void) decompose_url(session_id, "destination", destination_path_var, &url_parts);
+    if (!vtss_perf_mon_transfer_ece_data_set(&url_parts)) {
+        ICLI_PRINTF("%% Failed to transfer ECE data.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+CMD_END

@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <title>Network Access Server Switch Status Help</title>
+    <link href="/lib/help.css" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="/lib/dynforms.js"></script>
+    <script type="text/javascript" src="/lib/mootools-core.js"></script>
+    <script type="text/javascript" language="JavaScript">
+      window.addEvent('domready', function() {
+        $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+      });
+    </script>
+  </head>
+
+  <body>
+    <h1><a href="glossary.htm#nas" class="glossary">NAS</a> Switch Status Help</h1>
+
+    <p>
+      This page provides an overview of the current <a href="glossary.htm#nas" class="glossary">NAS</a> port states<span class="SPOM_only"> for the selected switch</span>.
+    </p>
+
+    <dl>
+      <dt>Port</dt>
+      <dd>
+        The switch port number. Click to navigate to detailed NAS statistics for this port.
+      </dd>
+
+      <dt>Admin State</dt>
+      <dd>
+        The port's current administrative state. Refer to NAS <a href="help_nas.htm#admin_state">Admin State</a> for a description of possible values.
+      </dd>
+
+      <dt>Port State</dt>
+      <dd>
+        The current state of the port. Refer to NAS <a href="help_nas.htm#port_state">Port State</a> for a description of the individual states.
+      </dd>
+
+      <dt>Last Source</dt>
+      <dd>
+        The source MAC address carried in the most recently received EAPOL frame<span class="has_nas_mac_based">
+        for EAPOL-based authentication, and the most recently received frame from a new client for MAC-based authentication</span>.
+      </dd>
+
+      <dt>Last ID</dt>
+      <dd>
+        The user name (supplicant identity) carried in the most recently received Response Identity EAPOL frame<span class="has_nas_mac_based"> for EAPOL-based
+        authentication, and the source MAC address from the most recently received frame from a new client for MAC-based authentication</span>.
+      </dd>
+
+      <dt class="NAS_BACKEND_QOS">QoS Class</dt>
+      <dd class="NAS_BACKEND_QOS">
+        QoS Class assigned to the port by the RADIUS server if enabled.
+      </dd>
+
+      <dt class="NAS_USES_VLAN">Port VLAN ID</dt>
+      <dd class="NAS_USES_VLAN">
+        The VLAN ID that NAS has put the port in. The field is blank, if the Port VLAN ID is not overridden by NAS.<br/>
+        <span class="NAS_BACKEND_VLAN">
+          If the VLAN ID is assigned by the RADIUS server, <code>"(RADIUS-assigned)"</code> is appended to the VLAN ID.
+          Read more about RADIUS-assigned VLANs <a href="help_nas.htm#backend_vlan_glbl">here</a>.<br/>
+        </span>
+        <span class="NAS_GUEST_VLAN">
+          If the port is moved to the Guest VLAN, <code>"(Guest)"</code> is appended to the VLAN ID.
+          Read more about Guest VLANs <a href="help_nas.htm#guest_vlan_glbl">here</a>.<br/>
+        </span>
+      </dd>
+    </dl>
+
+    <h2>Buttons</h2>
+    <p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+    <p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+  </body>
+</html>

@@ -1,0 +1,873 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_DHCP_SNOOPING)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "dhcp_snooping_api.h"
+#include "msg_api.h"    //msg_switch_exists()
+#include "misc_api.h"   //uport2iport(), iport2uport()
+#include "topo_api.h"   //topo_usid2isid(), topo_isid2usid()
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+
+#define DHCP_SNOOPING_BUF_SIZE    80
+
+/* Display DHCP snooping port mode text */
+static char *DHCP_SNOOPING_ICLI_port_mode_txt(u8 mode)
+{
+    return (mode == DHCP_SNOOPING_PORT_MODE_TRUSTED ? "trusted" : "untrusted");
+}
+
+#if 0 // use new DHCP Helper comment "show ip dhcp detailed statistics snooping"
+static void DHCP_SNOOPING_ICLI_port_stat_show(u32 session_id, vtss_isid_t usid, vtss_port_no_t uport, dhcp_snooping_stats_t *stats_p, BOOL first)
+{
+    icli_port_header(session_id, usid, uport, "Statistics", !first, FALSE);
+
+    icli_stats(session_id, "Rx Discover", "Tx Discover", stats_p->rx_stats.discover_rx, stats_p->tx_stats.discover_tx);
+    icli_stats(session_id, "Rx Offer", "Tx Offer", stats_p->rx_stats.offer_rx, stats_p->tx_stats.offer_tx);
+    icli_stats(session_id, "Rx Request", "Tx Request", stats_p->rx_stats.request_rx, stats_p->tx_stats.request_tx);
+    icli_stats(session_id, "Rx Decline", "Tx Decline", stats_p->rx_stats.decline_rx, stats_p->tx_stats.decline_tx);
+    icli_stats(session_id, "Rx ACK", "Tx ACK", stats_p->rx_stats.ack_rx, stats_p->tx_stats.ack_tx);
+    icli_stats(session_id, "Rx NAK", "Tx NAK", stats_p->rx_stats.nak_rx, stats_p->tx_stats.nak_tx);
+    icli_stats(session_id, "Rx Release", "Tx Release", stats_p->rx_stats.release_rx, stats_p->tx_stats.release_tx);
+    icli_stats(session_id, "Rx Inform", "Tx Inform", stats_p->rx_stats.inform_rx, stats_p->tx_stats.inform_tx);
+    icli_stats(session_id, "Rx Lease Query", "Tx Lease Query", stats_p->rx_stats.leasequery_rx, stats_p->tx_stats.leasequery_tx);
+    icli_stats(session_id, "Rx Lease Unassigned", "Tx Lease Unassigned", stats_p->rx_stats.leaseunassigned_rx, stats_p->tx_stats.leaseunassigned_tx);
+    icli_stats(session_id, "Rx Lease Unknown", "Tx Lease Unknown", stats_p->rx_stats.leaseunknown_rx, stats_p->tx_stats.leaseunknown_tx);
+    icli_stats(session_id, "Rx Lease Active", "Tx Lease Active", stats_p->rx_stats.leaseactive_rx, stats_p->tx_stats.leaseactive_tx);
+    icli_stats(session_id, "Rx Lease Active", "Tx Lease Active", stats_p->rx_stats.leaseactive_rx, stats_p->tx_stats.leaseactive_tx);
+    icli_stats(session_id, "Rx Discarded from Untrusted", "Rx Discarded checksum error", stats_p->rx_stats.discard_untrust_rx, stats_p->rx_stats.discard_chksum_err_rx);
+}
+#endif
+
+static i32 DHCP_SNOOPING_ICLI_global_mode_set(u32 session_id, BOOL mode)
+{
+    dhcp_snooping_conf_t    conf;
+    BOOL                    original_mode;
+
+    //get global configuration
+    ICLI_RC_CHECK(dhcp_snooping_mgmt_conf_get(&conf), "%% Failed to get DHCP snooping configuration.\n");
+
+    //set global configuration
+    original_mode = conf.snooping_mode ? TRUE : FALSE;
+    conf.snooping_mode = mode ? 1 : 0;
+    if (mode != original_mode) {
+        ICLI_RC_CHECK(dhcp_snooping_mgmt_conf_set(&conf), "%% Failed to set DHCP snooping configuration.\n");
+    }
+
+    return ICLI_RC_OK;
+}
+
+static i32 DHCP_SNOOPING_ICLI_port_mode_set(u32 session_id, icli_stack_port_range_t *port_list_p, BOOL mode)
+{
+    u32                         range_idx, cnt_idx;
+    vtss_usid_t                 usid;
+    vtss_port_no_t              uport;
+    dhcp_snooping_port_conf_t   port_conf, new_port_conf;
+
+    for (range_idx = 0; range_idx < port_list_p->cnt; range_idx++) {
+        usid = port_list_p->switch_range[range_idx].usid;
+        ICLI_RC_CHECK(dhcp_snooping_mgmt_port_conf_get(topo_usid2isid(usid), &port_conf), "%% Failed to get DHCP snooping port configuration.\n");
+        new_port_conf = port_conf;
+
+        for (cnt_idx = 0; cnt_idx < port_list_p->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = port_list_p->switch_range[range_idx].begin_uport + cnt_idx;
+
+             //ignore stacking port                                                                          
+             if (port_isid_port_no_is_stack(usid, uport)) {
+                continue;
+             }
+
+            new_port_conf.port_mode[uport2iport(uport)] = mode ? DHCP_SNOOPING_PORT_MODE_TRUSTED : DHCP_SNOOPING_PORT_MODE_UNTRUSTED;
+            T_D("Setting DHCP snoop conf: range %u: usid=%d uport=%u port=%u\n", range_idx, usid, uport, port_list_p->switch_range[range_idx].begin_uport + cnt_idx);
+        }
+
+        if (memcmp(&port_conf, &new_port_conf, sizeof(port_conf))) {
+            ICLI_RC_CHECK(dhcp_snooping_mgmt_port_conf_set(topo_usid2isid(usid), &new_port_conf), "%% Failed to set DHCP snooping port configuration.\n");
+        }
+    }
+
+    return ICLI_RC_OK;
+}
+
+FUNCTION_END
+
+//
+// Export Segment
+//   This segment contains the API declarations of the global functions in
+//   Function Segment. This will be pasted exactly to the generated H file.
+//   So, others can include the H file to use the global functions.
+//
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_SNOOPING   = DHCP snooping
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND         = show ip dhcp snooping [ interface <port_type_list> ]
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the show ip dhcp snooping user EXEC command to display \
+                  the DHCP snooping configuration.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Expressions are case sensitive. For example, if you enter | exclude output, the lines that contain output do not appear, but the lines that contain Output appear.
+DOC_CMD_EXAMPLE = This is an example of output from the show ip dhcp snooping command:
+DOC_CMD_EXAMPLE = Switch# show ip dhcp snooping
+DOC_CMD_EXAMPLE = Switch DHCP snooping is enabled
+DOC_CMD_EXAMPLE = DHCP snooping is configured on following
+DOC_CMD_EXAMPLE = GigaEthernet 1/1 trust
+DOC_CMD_EXAMPLE = GigaEthernet 1/2 trust
+DOC_CMD_EXAMPLE = GigaEthernet 1/3 untrust
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = dhcp_snooping_show
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+//NO_FORM_DOC_CMD_DESC    =
+//NO_FORM_DOC_CMD_DEFAULT =
+//NO_FORM_DOC_CMD_USAGE   =
+//NO_FORM_DOC_CMD_EXAMPLE =
+//NO_FORM_DOC_CMD_EXAMPLE =
+//NO_FORM_DOC_CMD_EXAMPLE =
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = in_interface
+CMD_VAR   = in_port_list
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (icli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTERFACE
+HELP = ##ICLI_HELP_PORT_TYPE_LIST
+
+VARIABLE_BEGIN
+    icli_switch_port_range_t    switch_range;
+    dhcp_snooping_conf_t        conf;
+    dhcp_snooping_port_conf_t   port_conf;
+    char                        str_buf[DHCP_SNOOPING_BUF_SIZE];
+    u32                         range_idx, cnt_idx;
+    vtss_usid_t                 usid;
+    vtss_port_no_t              uport;
+VARIABLE_END
+
+CODE_BEGIN
+    if (in_interface == FALSE) { //show all port configuraton
+        //get global configuration
+        ICLI_RC_CHECK(dhcp_snooping_mgmt_conf_get(&conf), "%% Failed to get DHCP snooping configuration.\n");
+
+        //show global mode
+        ICLI_PRINTF("Switch DHCP snooping is %s\n", icli_bool_txt(conf.snooping_mode));
+
+        //show port configuration
+        ICLI_PRINTF("DHCP snooping is configured on following\n");
+        memset(&switch_range, 0, sizeof(switch_range));
+        while (icli_switch_get_next(&switch_range)) {
+            ICLI_RC_CHECK(dhcp_snooping_mgmt_port_conf_get(switch_range.isid, &port_conf), "%% Failed to get DHCP snooping port configuration.\n");
+            while (icli_switch_port_get_next(&switch_range)) {
+                ICLI_PRINTF("%s %s\n",
+                            icli_port_info_txt(switch_range.usid, switch_range.begin_uport, str_buf),
+                            DHCP_SNOOPING_ICLI_port_mode_txt(port_conf.port_mode[switch_range.begin_iport]));
+            }
+        }
+    } else { //show specific port configuraton
+        for (range_idx = 0; range_idx < in_port_list->cnt; range_idx++) {
+            usid = in_port_list->switch_range[range_idx].usid;
+            for (cnt_idx = 0; cnt_idx < in_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                uport = in_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+
+                //ignore stacking port
+                if (port_isid_port_no_is_stack(topo_usid2isid(usid), uport2iport(uport))) {
+                    continue;
+                }
+
+                ICLI_RC_CHECK(dhcp_snooping_mgmt_port_conf_get(topo_usid2isid(usid), &port_conf), "%% Failed to get DHCP snooping port configuration.\n");
+                ICLI_PRINTF("%s %s\n",
+                            icli_port_info_txt(usid, uport, str_buf),
+                            DHCP_SNOOPING_ICLI_port_mode_txt(port_conf.port_mode[uport2iport(uport)]));
+            }
+        }
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+// NO_FORM_CODE_BEGIN
+// NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+
+IF_FLAG = 0
+
+COMMAND         = show ip dhcp snooping [ statistics ] [ interface <port_type_list> ]
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the show ip dhcp snooping user EXEC command without \
+                  keywords to display the DHCP snooping configuration, or \
+                  particularly the ip dhcp snooping statistics for the \
+                  interface, or use the statistics keyword to display statistics.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Expressions are case sensitive. For example, if you enter | exclude output, the lines that contain output do not appear, but the lines that contain Output appear.
+DOC_CMD_EXAMPLE = This is an example of output from the show ip dhcp snooping command:
+DOC_CMD_EXAMPLE = Switch# show ip dhcp snooping
+DOC_CMD_EXAMPLE = Switch DHCP snooping is enabled
+DOC_CMD_EXAMPLE = DHCP snooping is configured on following
+DOC_CMD_EXAMPLE = GigaEthernet 1/1 trust
+DOC_CMD_EXAMPLE = GigaEthernet 1/2 trust
+DOC_CMD_EXAMPLE = GigaEthernet 1/3 untrust
+DOC_CMD_EXAMPLE = This is an example of output from the show ip dhcp snooping statistics command:
+DOC_CMD_EXAMPLE = Switch# show ip dhcp snooping statistics GigaEthernet 1/1
+DOC_CMD_EXAMPLE = GigaEthernet 1/1 Statistics:
+DOC_CMD_EXAMPLE = ----------------------------
+DOC_CMD_EXAMPLE = Rx Discover:                         0   Tx Discover:                         0
+DOC_CMD_EXAMPLE = Rx Offer:                            0   Tx Offer:                            0
+DOC_CMD_EXAMPLE = Rx Request:                          0   Tx Request:                          0
+DOC_CMD_EXAMPLE = Rx Decline:                          0   Tx Decline:                          0
+DOC_CMD_EXAMPLE = Rx ACK:                              0   Tx ACK:                              0
+DOC_CMD_EXAMPLE = Rx NAK:                              0   Tx NAK:                              0
+DOC_CMD_EXAMPLE = Rx Release:                          0   Tx Release:                          0
+DOC_CMD_EXAMPLE = Rx Inform:                           0   Tx Inform:                           0
+DOC_CMD_EXAMPLE = Rx Lease Query:                      0   Tx Lease Query:                      0
+DOC_CMD_EXAMPLE = Rx Lease Unassigned:                 0   Tx Lease Unassigned:                 0
+DOC_CMD_EXAMPLE = Rx Lease Unknown:                    0   Tx Lease Unknown:                    0
+DOC_CMD_EXAMPLE = Rx Lease Active:                     0   Tx Lease Active:                     0
+DOC_CMD_EXAMPLE = Rx Discard from Untrusted:           0
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = dhcp_snooping_show
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+//NO_FORM_DOC_CMD_DESC    =
+//NO_FORM_DOC_CMD_DEFAULT =
+//NO_FORM_DOC_CMD_USAGE   =
+//NO_FORM_DOC_CMD_EXAMPLE =
+//NO_FORM_DOC_CMD_EXAMPLE =
+//NO_FORM_DOC_CMD_EXAMPLE =
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = in_statistics
+CMD_VAR   = in_interface
+CMD_VAR   = in_port_list
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (icli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_STATISTICS
+HELP = ##ICLI_HELP_INTERFACE
+HELP = ##ICLI_HELP_PORT_TYPE_LIST
+
+VARIABLE_BEGIN
+    icli_switch_port_range_t    switch_range;
+    dhcp_snooping_conf_t        conf;
+    dhcp_snooping_port_conf_t   port_conf;
+    char                        str_buf[DHCP_SNOOPING_BUF_SIZE];
+    u32                         range_idx, cnt_idx;
+    dhcp_snooping_stats_t       stats;
+    vtss_usid_t                 usid;
+    vtss_port_no_t              uport;
+    BOOL                        first = TRUE;
+VARIABLE_END
+
+CODE_BEGIN
+    if (in_statistics) { //show statistics
+        if (in_interface == FALSE) { //show all port statistics
+            memset(&switch_range, 0, sizeof(switch_range));
+            while (icli_port_get_next(&switch_range)) {
+                ICLI_RC_CHECK(dhcp_snooping_stats_get(switch_range.isid, switch_range.begin_iport, &stats), "%% Failed to get DHCP snooping port statistics.\n");
+                DHCP_SNOOPING_ICLI_port_stat_show(session_id, switch_range.usid, switch_range.begin_uport, &stats, first);
+                if (first) {
+                    first = FALSE;
+                }
+            }
+        } else { //show specific port statistics
+            //Omit non-existing switches from the port range database and display the alert message on ICLI session
+            (void)icli_cmd_port_range_exist(session_id, in_port_list, TRUE, TRUE);
+        
+            for (range_idx = 0; range_idx < in_port_list->cnt; range_idx++) {
+                usid = in_port_list->switch_range[range_idx].usid;
+                for (cnt_idx = 0; cnt_idx < in_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                    uport = in_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+                    ICLI_RC_CHECK(dhcp_snooping_stats_get(topo_usid2isid(usid), uport2iport(uport), &stats), "%% Failed to get DHCP snooping port statistics.\n");
+                    DHCP_SNOOPING_ICLI_port_stat_show(session_id, usid, uport, &stats, first);
+                    if (first) {
+                        first = FALSE;
+                    }
+                }
+            }
+        }
+    } else { //show configuration
+        if (in_interface == FALSE) { //show all port configuraton
+            //get global configuration
+            ICLI_RC_CHECK(dhcp_snooping_mgmt_conf_get(&conf), "%% Failed to get DHCP snooping configuration.\n");
+
+            //show global mode
+            ICLI_PRINTF("Switch DHCP snooping is %s\n", icli_bool_txt(conf.snooping_mode));
+
+            //show port configuration
+            ICLI_PRINTF("DHCP snooping is configured on following\n");
+            memset(&switch_range, 0, sizeof(switch_range));
+            while (icli_switch_get_next(&switch_range)) {
+                ICLI_RC_CHECK(dhcp_snooping_mgmt_port_conf_get(switch_range.isid, &port_conf), "%% Failed to get DHCP snooping port configuration.\n");
+                while (icli_switch_port_get_next(&switch_range)) {
+                    ICLI_PRINTF("%s %s\n",
+                                icli_port_info_txt(switch_range.usid, switch_range.begin_uport, str_buf),
+                                DHCP_SNOOPING_ICLI_port_mode_txt(port_conf.port_mode[switch_range.begin_iport]));
+                }
+            }
+        } else { //show specific port configuraton
+            for (range_idx = 0; range_idx < in_port_list->cnt; range_idx++) {
+                usid = in_port_list->switch_range[range_idx].usid;
+                for (cnt_idx = 0; cnt_idx < in_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                    uport = in_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+
+                    //ignore stacking port
+                    if (port_isid_port_no_is_stack(topo_usid2isid(usid), uport2iport(uport))) {
+                        continue;
+                    }
+
+                    ICLI_RC_CHECK(dhcp_snooping_mgmt_port_conf_get(topo_usid2isid(usid), &port_conf), "%% Failed to get DHCP snooping port configuration.\n");
+                    ICLI_PRINTF("%s %s\n",
+                                icli_port_info_txt(usid, uport, str_buf),
+                                DHCP_SNOOPING_ICLI_port_mode_txt(port_conf.port_mode[uport2iport(uport)]));
+                }
+            }
+        }
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+// NO_FORM_CODE_BEGIN
+// NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = clear ip dhcp snooping statistics [ interface <port_type_list> ]
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the clear ip dhcp snooping statistics privileged EXEC \
+                  command to clear the statistics maintained by IP DHCP \
+                  snooping, or particularly the IP DHCP snooping statistics \
+                  for the interface.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use this command without keywords to clear all IP DHCP snooping statistics, particularly the IP DHCP snooping statistics for the interface.
+DOC_CMD_EXAMPLE = This example shows how to clear ip dhcp snooping statistics:
+DOC_CMD_EXAMPLE = Switch# clear ip dhcp snooping statistics
+DOC_CMD_EXAMPLE = You can verify that the information was deleted by entering the show ip dhcp snooping statistics user EXEC command.
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = dhcp_snooping_clear_stat
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+//NO_FORM_DOC_CMD_DESC    =
+//NO_FORM_DOC_CMD_DEFAULT =
+//NO_FORM_DOC_CMD_USAGE   =
+//NO_FORM_DOC_CMD_EXAMPLE =
+//NO_FORM_DOC_CMD_EXAMPLE =
+//NO_FORM_DOC_CMD_EXAMPLE =
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = in_interface
+CMD_VAR   = in_port_list
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (icli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##ICLI_HELP_CLEAR
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_STATISTICS
+HELP = ##ICLI_HELP_INTERFACE
+HELP = ##ICLI_HELP_PORT_TYPE_LIST
+
+VARIABLE_BEGIN
+    icli_switch_port_range_t    switch_range;
+    u32                         range_idx, cnt_idx;
+    vtss_usid_t                 usid;
+    vtss_port_no_t              uport;
+VARIABLE_END
+
+CODE_BEGIN
+    if (in_interface == FALSE) { //clear all port statistics
+        memset(&switch_range, 0, sizeof(switch_range));
+        while (icli_switch_get_next(&switch_range)) {
+            if (!msg_switch_exists(switch_range.isid)) {
+                continue;
+            }
+            while (icli_switch_port_get_next(&switch_range)) {
+                (void) dhcp_snooping_stats_clear(switch_range.isid, switch_range.begin_iport);
+            }
+        }
+    } else { //clear specific port statistics
+        //Omit non-existing switches from the port range database and display the alert message on ICLI session
+        (void)icli_cmd_port_range_exist(session_id, in_port_list, TRUE, TRUE);
+
+        for (range_idx = 0; range_idx < in_port_list->cnt; range_idx++) {
+            usid = in_port_list->switch_range[range_idx].usid;
+            for (cnt_idx = 0; cnt_idx < in_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                uport = in_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+                (void) dhcp_snooping_stats_clear(topo_usid2isid(usid), uport2iport(uport));
+            }
+        }
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+// NO_FORM_CODE_BEGIN
+// NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = ip dhcp snooping
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the ip dhcp snooping global configuration command to \
+                  globally enable DHCP snooping. Use the no form of this \
+                  command to globally disable DHCP snooping.
+DOC_CMD_DEFAULT = DHCP snooping is disabled.
+DOC_CMD_USAGE   = Enable DHCP snooping global mode.
+DOC_CMD_EXAMPLE = This example shows how to enable DHCP snooping:
+DOC_CMD_EXAMPLE = Switch(config)# ip dhcp snooping
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp snooping user EXEC command.
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = dhcp_snooping_mode
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+NO_FORM_DOC_CMD_DESC    = Use the no ip dhcp snooping global configuration command to \
+                          globally disable DHCP snooping.
+NO_FORM_DOC_CMD_DEFAULT = DHCP snooping is disabled.
+NO_FORM_DOC_CMD_USAGE   = Disable DHCP snooping global mode.
+NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable DHCP snooping:
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# no ip dhcp snooping
+NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp snooping user EXEC command.
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+// CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (icli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##HELP_SNOOPING
+
+// VARIABLE_BEGIN
+// VARIABLE_END
+
+CODE_BEGIN
+    /* enable global mode */
+    (void) DHCP_SNOOPING_ICLI_global_mode_set(session_id, TRUE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_CODE_BEGIN
+    /* disable global mode */
+    (void) DHCP_SNOOPING_ICLI_global_mode_set(session_id, FALSE);
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = ip dhcp snooping trust
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the ip dhcp snooping trust interface configuration command \
+                  to configure a port as trusted for DHCP snooping purposes. Use \
+                  the no form of this command to configure a port as untrusted.
+DOC_CMD_DEFAULT = DHCP snooping trust is enabled.
+DOC_CMD_USAGE   = Configure ports that are connected to a DHCP server or to other switches or routers as trusted.
+DOC_CMD_EXAMPLE = This example shows how to enable DHCP snooping trust on a port:
+DOC_CMD_EXAMPLE = Switch(if-port)# ip dhcp snooping trust
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp snooping user EXEC command.
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = dhcp_snooping_port_mode
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+//MODE_VAR  = mode_port_type
+MODE_VAR  = mode_port_list
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+NO_FORM_DOC_CMD_DESC    = Use the no ip dhcp snooping trust interface configuration command \
+                          to configure a port as untrusted for DHCP snooping purposes.
+NO_FORM_DOC_CMD_DEFAULT = DHCP snooping trust is enabled.
+NO_FORM_DOC_CMD_USAGE   = Configure ports that are connected to DHCP clients as untrusted.
+NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable DHCP snooping trust on a port:
+NO_FORM_DOC_CMD_EXAMPLE = Switch(if-port)# no ip dhcp snooping trust
+NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp snooping user EXEC command.
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+// CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (icli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##HELP_SNOOPING
+HELP = DHCP Snooping trust config
+
+// VARIABLE_BEGIN
+// VARIABLE_END
+
+CODE_BEGIN
+    /* set port mode trust */
+    (void) DHCP_SNOOPING_ICLI_port_mode_set(session_id, mode_port_list, TRUE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_CODE_BEGIN
+    /* set port mode untrust */
+    (void) DHCP_SNOOPING_ICLI_port_mode_set(session_id, mode_port_list, FALSE);
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = show ip dhcp snooping table
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the show ip dhcp snooping table user EXEC command to display \
+                  the IP assigned information that is obtained from DHCP server \
+                  except for local VLAN interface IP addresses.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Configure ports that are connected to a DHCP server or to other switches or routers as trusted.
+DOC_CMD_EXAMPLE = This example shows how to display the IP assigned information:
+DOC_CMD_EXAMPLE = # show ip dhcp snooping table
+DOC_CMD_EXAMPLE = DHCP Snooping IP Assigned Information :
+DOC_CMD_EXAMPLE = ---------------------------------------
+DOC_CMD_EXAMPLE = Entry 1 :
+DOC_CMD_EXAMPLE = ---------
+DOC_CMD_EXAMPLE = MAC Address         : 00-10-60-2b-66-63
+DOC_CMD_EXAMPLE = VLAN ID             : 1
+DOC_CMD_EXAMPLE = Source Port         : GigabitEthernet 1/2
+DOC_CMD_EXAMPLE = IP Address          : 192.168.2.1
+DOC_CMD_EXAMPLE = IP Subnet Mask      : 255.255.255.0
+DOC_CMD_EXAMPLE = DHCP Server Address : 192.168.2.250
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = dhcp_snooping_table
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+// CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (icli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##HELP_SNOOPING
+HELP = show ip dhcp snooping table
+
+VARIABLE_BEGIN
+    u8                                  mac[6] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+    vtss_vid_t                          vid = 0;
+    dhcp_snooping_ip_assigned_info_t    info;
+    char                                buf[32];
+    u32                                 cnt = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    while (dhcp_snooping_ip_assigned_info_getnext(mac, vid, &info)) {
+        if (cnt) {
+            ICLI_PRINTF("\n");
+        }
+        ICLI_PRINTF("Entry ID            : %d\n", ++cnt);
+        ICLI_PRINTF("MAC Address         : %s\n", misc_mac_txt(info.mac, buf));
+        ICLI_PRINTF("VLAN ID             : %d\n", info.vid);
+        ICLI_PRINTF("Source Port         : %s\n", icli_port_info_txt(topo_isid2usid(info.isid), iport2uport(info.port_no), buf));
+        ICLI_PRINTF("IP Address          : %s\n", misc_ipv4_txt(info.assigned_ip, buf));
+        ICLI_PRINTF("IP Subnet Mask      : %s\n", misc_ipv4_txt(info.assigned_mask, buf));
+#if defined(VTSS_SW_OPTION_DHCP_SERVER)
+        ICLI_PRINTF("DHCP Server Address : %s%s\n", misc_ipv4_txt(info.dhcp_server_ip, buf), info.local_dhcp_server ? " (Local)" : " (Remote)");
+#else
+        ICLI_PRINTF("DHCP Server Address : %s\n", misc_ipv4_txt(info.dhcp_server_ip, buf));
+#endif /* VTSS_SW_OPTION_DHCP_SERVER */
+        memcpy(mac, info.mac, 6);
+        vid = info.vid;
+    }
+
+    if (cnt) {
+        ICLI_PRINTF("\nTotal Entries Number : %d\n", cnt);
+    }
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+

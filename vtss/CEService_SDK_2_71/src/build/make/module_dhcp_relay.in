@@ -1,0 +1,98 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files Location
+DIR_dhcp_relay          := $(DIR_APPL)/dhcp_relay
+DIR_dhcp_relay_core     := $(DIR_dhcp_relay)/base
+DIR_dhcp_relay_platform := $(DIR_dhcp_relay)/platform
+
+# Module core objects
+OBJECTS_iscdhcp_libdhcp := $(addprefix iscdhcp_common_, \
+  alloc.o bpf.o comapi.o conflex.o ctrace.o discover.o  \
+  dispatch.o dlpi.o ethernet.o execute.o fddi.o         \
+  inet.o lpf.o memory.o nit.o options.o packet.o        \
+  parse.o print.o raw.o resolv.o socket.o tables.o tr.o \
+  tree.o upf.o heap.o)
+
+OBJECTS_iscdhcp_libomapi := $(addprefix iscdhcp_omapip_, \
+  protocol.o buffer.o alloc.o result.o connection.o      \
+  errwarn.o listener.o dispatch.o generic.o support.o    \
+  handle.o message.o convert.o hash.o auth.o inet_addr.o \
+  array.o trace.o mrtrace.o toisc.o iscprint.o)
+
+OBJECTS_iscdhcp_libdst := $(addprefix iscdhcp_dst_, \
+  dst_support.o dst_api.o hmac_link.o md5_dgst.o    \
+  base64.o prandom.o)
+
+OBJECTS_iscdhcp_relay := $(addprefix iscdhcp_relay_, dhcrelay.o)
+
+# Module platform objects
+OBJECTS_dhcp_relay_platform := dhcp_relay.o \
+  $(if $(MODULE_VCLI),dhcp_relay_cli.o)     \
+  $(if $(MODULE_WEB),dhcp_relay_web.o)      \
+  $(if $(MODULE_CONF_XML),dhcp_relay_xml.o) \
+  $(if $(MODULE_ICFG), dhcp_relay_icfg.o)
+
+# Built-in ICLI
+$(eval $(call add_icli, $(foreach m, dhcp_relay, $(DIR_dhcp_relay_platform)/$(m).icli)))
+
+# Module objects (Module core objects + Module platform objects)
+OBJECTS_dhcp_relay := $(OBJECTS_iscdhcp_libdhcp) $(OBJECTS_iscdhcp_libomapi) $(OBJECTS_iscdhcp_libdst) $(OBJECTS_iscdhcp_relay) $(OBJECTS_dhcp_relay_platform)
+
+# Compiler rules
+$(OBJECTS_iscdhcp_libdhcp): iscdhcp_common_%.o: $(DIR_dhcp_relay_core)/common/%.c
+	$(call compile_c, $@, $<, -DISCDHCP_ECOS)
+
+$(OBJECTS_iscdhcp_libomapi): iscdhcp_omapip_%.o: $(DIR_dhcp_relay_core)/omapip/%.c
+	$(call compile_c, $@, $<, -DISCDHCP_ECOS)
+
+$(OBJECTS_iscdhcp_libdst): iscdhcp_dst_%.o: $(DIR_dhcp_relay_core)/dst/%.c
+	$(call compile_c, $@, $<, -DISCDHCP_ECOS)
+
+$(OBJECTS_iscdhcp_relay): iscdhcp_relay_%.o: $(DIR_dhcp_relay_core)/relay/%.c
+	$(call compile_c, $@, $<, -DISCDHCP_ECOS)
+
+$(OBJECTS_dhcp_relay_platform): %.o: $(DIR_dhcp_relay_platform)/%.c
+	$(call compile_c, $@, $<)
+
+# Include files
+INCLUDES += -I$(DIR_dhcp_relay_core)/includes -I$(DIR_dhcp_relay_core)/includes/isc-dhcp -I$(DIR_dhcp_relay_core)/includes/omapip -I$(DIR_dhcp_relay_core)/includes/arpa -I$(DIR_dhcp_relay_platform)
+
+# Web content generation
+WEB_CONTENT += $(DIR_dhcp_relay_platform)/html
+
+# Lint files
+LINT_FILES_dhcp_relay += $(addprefix $(DIR_dhcp_relay_platform)/,$(OBJECTS_dhcp_relay_platform:.o=.c))
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_dhcp_relay += $(DIR_dhcp_relay_platform)/*.c $(DIR_dhcp_relay_platform)/*.h
+
+# Tidy files
+TIDY_FILES_dhcp_relay += $(DIR_dhcp_relay_platform)/html/*.htm $(DIR_dhcp_relay_platform)/html/help/*.htm
+
+# JSlint files
+JSLINT_FILES_dhcp_relay += $(DIR_dhcp_relay_platform)/html/*.htm $(DIR_dhcp_relay_platform)/html/help/*.htm
+

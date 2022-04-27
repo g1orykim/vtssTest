@@ -1,0 +1,214 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_rmon_alarm_status.htm";
+
+var    LastCtrlId = 0;
+
+var oVSampleType = Array(1, 2);
+var oTSampleType = Array("Absolute", "Delta");
+var oTStartup = Array("Rising", "Falling", "RisingOrFalling");
+var oVStartup = Array(1, 2, 3);
+
+function addRow(index, frag, values) {
+    var tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+    for(var i = 0; i < values.length; i++) {
+        var td = CreateStyledElement("td", "cr");
+        var portno = parseInt(values[0], 10);
+        var test = parseInt(values[3], 10);
+        var txt;
+        if(i === 0) {
+            txt = document.createTextNode(configPortName(portno, 0));
+            var link = document.createElement("a");
+            link.href = "rmon_alarm_detailed.htm?index=" + portno ;
+            link.appendChild(txt); // Add Text
+            td.appendChild(link); // Add link to cell
+	    tr.appendChild(td);         // Add cell to row
+        } else {
+            if (2 == i) {
+                txt = document.createTextNode( ".1.3.6.1.2.1.2.2.1." + values[i] );
+            }
+            else if ( 3 == i) {
+                txt = document.createTextNode(oTSampleType[parseInt(values[i], 10)-1]);
+            }
+            else if ( 5 == i) {
+                txt = document.createTextNode(oTStartup[parseInt(values[i], 10)-1]);
+            }
+            else {
+                txt = document.createTextNode(values[i]);
+            }
+            td.appendChild(txt); // Add text to cell
+	    tr.appendChild(td);         // Add cell to row
+        }
+
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format: <StartCtrlId>,<NumberOfEntries>,<index>/<data_id>/<logTime>/<logDescription>|...
+    if(req.responseText)  {
+        var count = req.responseText.split(",");
+        UpdateIdValue("StartCtrlId", count[0]);
+        UpdateIdValue("NumberOfEntries", count[1]);
+
+        var frag = document.createDocumentFragment();
+        if(count[2] == "NoEntries")
+        {
+            var tr = CreateStyledElement("tr", "notice");
+            addTextCell(tr, "No more entries", "cl", 10);
+            frag.appendChild(tr);
+        }
+        else
+        {
+            var values = count[2].split("|");
+            for(var i = 0; i < values.length; i++) {
+                if (values[i]) {
+                    var pval = values[i].split("/");
+                    LastCtrlId = pval[0];
+                    addRow(i, frag, pval);
+                }
+            }
+        }
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+        var autorefresh = document.getElementById('autorefresh');
+	if(autorefresh.checked) {
+            if(timerID) {
+                clearTimeout(timerID);
+            }
+            timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+        }
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate(type) {
+    document.getElementById("update").style.visibility = "visible";
+    if(type == "NextEntries")
+    {
+        loadXMLDoc("/stat/rmon_alarm_status?GetNextEntry=1&StartCtrlId=" + LastCtrlId + 
+                                "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value, processUpdate, 'rmonAlarmData');
+    }
+    else if(type == "Refresh")
+    {
+        loadXMLDoc("/stat/rmon_alarm_status?GetNextEntry=0&StartCtrlId=" + document.getElementById("StartCtrlId").value + 
+                                "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value, processUpdate, 'rmonAlarmData');
+    }
+    else
+    {
+        loadXMLDoc("/stat/rmon_alarm_status?GetNextEntry=0&StartCtrlId=0" + 
+                    "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value, processUpdate, 'rmonAlarmData');
+    }
+}
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>RMON Alarm Overview</h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate('Refresh'); this.blur();">
+  <input type="button" value=" |<< "   title="First page" onclick="requestUpdate(); this.blur();">
+  <input type="button" value=" >> "    title="Next page" onclick="requestUpdate('NextEntries'); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<form action="#">
+  <p>
+    <span class="displaytext">Start from Control Index</span>
+    <input type="text" id="StartCtrlId" name="StartCtrlId" maxlength="5" value="1" size = "5">
+    <span class="displaytext"> with </span>
+    <input type="text" id="NumberOfEntries" name="NumberOfEntries" maxlength="3" value = "20" size = "3">
+    <span class="displaytext"> entries per page. </span>
+  </p>
+</form>
+<table id="portStats" summary="Switch Port Statistics" class="display">
+ <thead>
+  <tr class="display_header">
+   <th>ID</th>
+   <th>Interval</th>
+   <th>Variable</th>
+   <th>Sample<br>Type</th>
+   <th>Value</th>
+   <th>Startup<br>Alarm</th>
+   <th>Rising<br>Threshold</th>
+   <th>Rising<br>Index</th>
+   <th>Falling<br>Threshold</th>
+   <th>Falling<br>Index</th>
+  </tr>
+ </thead>
+ <tbody id="rmonAlarmData">
+ </tbody>
+</table>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

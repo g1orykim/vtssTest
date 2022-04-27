@@ -1,0 +1,3033 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "mep_icli_functions.h"
+#include "icli_porting_util.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show mep [ <range_list> ] [ peer | cc | lm | dm | lt | lb | tst | aps | client | ais | lck ] [ detail ]
+
+DOC_CMD_DESC    = Show the state of a list of MEP instances. What state to be shown can be selected to be 'basic configuration' or one of the supported 'functionality configuration'.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = show_mep
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! show
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <range_list>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The range of MEP instances
+BYWORD  = <Inst : range_list>
+
+! peer
+CMD_VAR = has_peer
+RUNTIME = 
+HELP    = Show peer mep state
+BYWORD  = peer : Option
+
+! cc
+CMD_VAR = has_cc
+RUNTIME = 
+HELP    = Show CC state
+BYWORD  = cc : Option
+
+! lm
+CMD_VAR = has_lm
+RUNTIME = 
+HELP    = Show LM state
+BYWORD  = lm : Option
+
+! dm
+CMD_VAR = has_dm
+RUNTIME = 
+HELP    = Show DM state
+BYWORD  = dm : Option
+
+! lt
+CMD_VAR = has_lt
+RUNTIME = 
+HELP    = Show LT state
+BYWORD  = lt : Option
+
+! lb
+CMD_VAR = has_lb
+RUNTIME = 
+HELP    = Show LB state
+BYWORD  = lb : Option
+
+! tst
+CMD_VAR = has_tst
+RUNTIME = 
+HELP    = Show TST state
+BYWORD  = tst : Option
+
+! aps
+CMD_VAR = has_aps
+RUNTIME = 
+HELP    = Show APS state
+BYWORD  = aps : Option
+
+! client
+CMD_VAR = has_client
+RUNTIME = 
+HELP    = Show Client state
+BYWORD  = client : Option
+
+! ais
+CMD_VAR = has_ais
+RUNTIME = 
+HELP    = Show AIS state
+BYWORD  = ais : Option
+
+! lck
+CMD_VAR = has_lck
+RUNTIME = 
+HELP    = Show LCK state
+BYWORD  = lck : Option
+
+! detail
+CMD_VAR = has_detail
+RUNTIME = 
+HELP    = Show detailed state including configuration information.
+BYWORD  = detail : Option
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_show_mep(session_id, inst, has_peer, has_cc, has_lm, has_dm, has_lt, has_lb, has_tst, has_aps, has_client, has_ais, has_lck, has_detail);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear mep <uint> { lm | dm | tst }
+
+DOC_CMD_DESC    = Clear measuring information. What measuring information to be cleared can be selected to be one of the supported 'functionality configuration'.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = clear_mep
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! clear
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance.
+BYWORD  = <Inst : uint>
+
+! lm
+CMD_VAR = has_lm
+RUNTIME = 
+HELP    = Clear LM measuring information.
+BYWORD  = lm : Option
+
+! dm
+CMD_VAR = has_dm
+RUNTIME = 
+HELP    = Clear DM measuring information.
+BYWORD  = dm : Option
+
+! tst
+CMD_VAR = has_tst
+RUNTIME = 
+HELP    = Clear TST measuring information.
+BYWORD  = tst : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_clear_mep(session_id, inst, has_lm, has_dm, has_tst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> [ mip ] { up | down } domain { port | evc | vlan } [ vid <vlan_id> ] flow <uint> level <0-7> interface <port_type_id>
+
+DOC_CMD_DESC    = Create a MEP instance.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! mip
+CMD_VAR = has_mip
+RUNTIME = 
+HELP    = This MEP instance is a half-MIP.
+BYWORD  = mip : Option
+
+! up
+CMD_VAR = has_up
+RUNTIME = 
+HELP    = This MEP is a UP-MEP.
+BYWORD  = up : Option
+
+! down
+CMD_VAR = has_down
+RUNTIME = 
+HELP    = This MEP is a Down-MEP.
+BYWORD  = down : Option
+
+! domain
+CMD_VAR = 
+RUNTIME = 
+HELP    = The domain of the MEP.
+BYWORD  = 
+
+! port
+CMD_VAR = has_port
+RUNTIME = 
+HELP    = This MEP is a Port domain MEP.
+BYWORD  = port : Option
+
+! evc
+CMD_VAR = has_evc
+RUNTIME = 
+HELP    = This MEP is a EVC domain MEP.
+BYWORD  = evc : Option
+
+! vlan
+CMD_VAR = has_vlan
+RUNTIME = 
+HELP    = This MEP is a VLAN domain MEP.
+BYWORD  = vlan : Option
+
+! vid
+CMD_VAR = has_vid
+RUNTIME = 
+HELP    = In case the MEP is a port Up-MEP or a EVC customer MIP the VID must be given.
+BYWORD  = vid : Option
+
+! <vlan_id>
+CMD_VAR = vid
+RUNTIME = 
+HELP    = The port Domain MEP VID. This is required for a Port Up-MEP.
+BYWORD  = <Vid : vlan_id>
+
+! flow
+CMD_VAR = 
+RUNTIME = 
+HELP    = The flow instance that the MEP is related to.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = flow
+RUNTIME = 
+HELP    = The flow instance number when not in the port domain.
+BYWORD  = <Flow : uint>
+
+! level
+CMD_VAR = 
+RUNTIME = 
+HELP    = The MEG level of the MEP.
+BYWORD  = 
+
+! <0-7>
+CMD_VAR = level
+RUNTIME = 
+HELP    = The MEG level value.
+BYWORD  = <Level : 0-7>
+
+! interface
+CMD_VAR = 
+RUNTIME = 
+HELP    = The recidence port of the MEP.
+BYWORD  = 
+
+! <port_type_id>
+CMD_VAR = port
+RUNTIME = 
+HELP    = The port number of the MEP recidence port.
+BYWORD  = <Port : port_type_id>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep(session_id, inst, has_mip, has_up, has_down, has_port, has_evc, has_vlan, has_vid, vid, flow, level, port);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint>
+
+DOC_CMD_DESC    = Delete a MEP instance.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_mep
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Delete.
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> meg-id <word> { itu | itu-cc | { ieee [ name <word> ] } }
+
+DOC_CMD_DESC    = Configuring the MEG-ID.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_meg_id
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! meg-id
+CMD_VAR = 
+RUNTIME = 
+HELP    = The ITU/IEEE MEG-ID.
+BYWORD  = 
+
+! <word>
+CMD_VAR = megid
+RUNTIME = 
+HELP    = The MEG-ID string. This is either the ITU MEG-ID or the IEEE Short MA, depending on the selected MEG-ID format. \
+The ITU max. is 13 characters. \
+The ITU-CC max. is 15 characters. \
+The IEEE max. is 16 characters.
+BYWORD  = <Megid : word>
+
+! itu
+CMD_VAR = has_itu
+RUNTIME = 
+HELP    = The MEG-ID has ITU format (ICC - UMC). The meg-id max. is 13 characters.
+BYWORD  = itu : Option
+
+! itu-cc
+CMD_VAR = has_itu_cc
+RUNTIME = 
+HELP    = The MEG-ID has ITU Country Code format (CC - ICC - UMC). The meg-id max. is 15 characters
+BYWORD  = itu-cc : Option
+
+! ieee
+CMD_VAR = has_ieee
+RUNTIME = 
+HELP    = The MEG-ID (Short MA Name) has IEEE Character String format. The meg-id max. is 16 characters.
+BYWORD  = ieee : Option
+
+! name
+CMD_VAR = has_name
+RUNTIME = 
+HELP    = Only relevant for IEEE. The MAID is with Maintenance Domain Name.
+BYWORD  = name : Option
+
+! <word>
+CMD_VAR = name
+RUNTIME = 
+HELP    = Maintenance Domain Name string. The max is 16 characters.
+BYWORD  = <Name : word>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_meg_id(session_id, inst, megid, has_itu, has_itu_cc, has_ieee, has_name, name);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> mep-id <uint>
+
+DOC_CMD_DESC    = Configure the MEP-ID.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_mep_id
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! mep-id
+CMD_VAR = 
+RUNTIME = 
+HELP    = The MEP-ID.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = mepid
+RUNTIME = 
+HELP    = The MEP-ID value.
+BYWORD  = <Mepid : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_mep_id(session_id, inst, mepid);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> performance-monitoring
+
+DOC_CMD_DESC    = Enable the PM Data Set contribution.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = Disable the PM Data Set contribution.
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_performance_monitoring
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! perfomance-monitoring
+CMD_VAR = 
+RUNTIME = 
+HELP    = Performance monitoring Data Set collection (MEF35).
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+mep_mep_pm(session_id, inst);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+mep_no_mep_pm(session_id, inst);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> level <0-7>
+
+DOC_CMD_DESC    = Configure the MEG Level.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_level
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! level
+CMD_VAR = 
+RUNTIME = 
+HELP    = The MEG level of the MEP.
+BYWORD  = 
+
+! <0-7>
+CMD_VAR = level
+RUNTIME = 
+HELP    = The MEG level value.
+BYWORD  = <Level : 0-7>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_level(session_id, inst, level);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> vid <vlan_id>
+
+DOC_CMD_DESC    = Configuration of the MEP VID. This will add a tag in the port domain. This will be the EVC subscriber MIP VID expected behind the EVC tag.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_vid
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! vid
+CMD_VAR = 
+RUNTIME = 
+HELP    = The MEP VID.
+BYWORD  = 
+
+! <vlan_id>
+CMD_VAR = vid
+RUNTIME = 
+HELP    = The MEP VID value.
+BYWORD  = <Vid : vlan_id>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_vid(session_id, inst, vid);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint> vid
+
+DOC_CMD_DESC    = Disable MEP VID. This is only possible in port domain. Port OAM is now un-tagged.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_mep_vid
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Disable.
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! vid
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep_vid(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> voe
+
+DOC_CMD_DESC    = Configuration of MEP to be VOE based. Require VOE supporting platform.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = Configuration of MEP not being VOE based.
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_voe
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! voe
+CMD_VAR = 
+RUNTIME = 
+HELP    = MEP is VOE based.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+mep_mep_voe(session_id, inst);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+mep_no_mep_voe(session_id, inst);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> peer-mep-id <uint> [ mac <mac_addr> ]
+
+DOC_CMD_DESC    = Configuration of a peer MEP.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_peer_mep_id
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! peer-mep-id
+CMD_VAR = 
+RUNTIME = 
+HELP    = The peer MEP-ID.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = mepid
+RUNTIME = 
+HELP    = The peer MEP-ID value.
+BYWORD  = <Mepid : uint>
+
+! mac
+CMD_VAR = has_mac
+RUNTIME = 
+HELP    = The peer MAC. this will be overwritten by any learned MAC - through CCM reception.
+BYWORD  = mac : Option
+
+! <mac_addr>
+CMD_VAR = mac
+RUNTIME = 
+HELP    = The peer MAC string.
+BYWORD  = <Mac : mac_addr>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_peer_mep_id(session_id, inst, mepid, has_mac, mac);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint> peer-mep-id { <uint> | all }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_mep_peer_mep_id
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Delete peer MEP-ID
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! peer-mep-id
+CMD_VAR = 
+RUNTIME = 
+HELP    = The peer MEP-ID.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = mepid
+RUNTIME = 
+HELP    = The peer MEP-ID value.
+BYWORD  = <Mepid : uint>
+
+! all
+CMD_VAR = has_all
+RUNTIME = 
+HELP    = All peer MEP-ID will be deleted.
+BYWORD  = all : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep_peer_mep_id(session_id, inst, mepid, has_all);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> cc <0-7> [ fr300s | fr100s | fr10s | fr1s | fr6m | fr1m | fr6h ]
+
+DOC_CMD_DESC    = Configuration of Continuity Check.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_cc
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! cc
+CMD_VAR = 
+RUNTIME = 
+HELP    = Continuity Check.
+BYWORD  = 
+
+! <0-7>
+CMD_VAR = prio
+RUNTIME = 
+HELP    = Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+BYWORD  = <Prio : 0-7>
+
+! fr300s
+CMD_VAR = has_fr300s
+RUNTIME = 
+HELP    = Frame rate is 300 f/s.
+BYWORD  = fr300s : Option
+
+! fr100s
+CMD_VAR = has_fr100s
+RUNTIME = 
+HELP    = Frame rate is 100 f/s.
+BYWORD  = fr100s : Option
+
+! fr10s
+CMD_VAR = has_fr10s
+RUNTIME = 
+HELP    = Frame rate is 10 f/s.
+BYWORD  = fr10s : Option
+
+! fr1s
+CMD_VAR = has_fr1s
+RUNTIME = 
+HELP    = Frame rate is 1 f/s.
+BYWORD  = fr1s : Option
+
+! fr6m
+CMD_VAR = has_fr6m
+RUNTIME = 
+HELP    = Frame rate is 6 f/min.
+BYWORD  = fr6m : Option
+
+! fr1m
+CMD_VAR = has_fr1m
+RUNTIME = 
+HELP    = Frame rate is 1 f/min.
+BYWORD  = fr1m : Option
+
+! fr6h
+CMD_VAR = has_fr6h
+RUNTIME = 
+HELP    = Frame rate is 6 f/hour.
+BYWORD  = fr6h : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_cc(session_id, inst, prio, has_fr300s, has_fr100s, has_fr10s, has_fr1s, has_fr6m, has_fr1m, has_fr6h);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint> cc
+
+DOC_CMD_DESC    = Disable Continuity Check.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_mep_cc
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Disable Continuity Check.
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! cc
+CMD_VAR = 
+RUNTIME = 
+HELP    = Continuity Check.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep_cc(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> lm <0-7> [ multi | uni ] [ single | dual ] [ fr10s | fr1s | fr6m | fr1m | fr6h ] [ flr <uint> ]
+
+DOC_CMD_DESC    = Configuration of Loss Measurement.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_lm
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! lm
+CMD_VAR = 
+RUNTIME = 
+HELP    = Loss Measurement.
+BYWORD  = 
+
+! <0-7>
+CMD_VAR = prio
+RUNTIME = 
+HELP    = Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+BYWORD  = <Prio : 0-7>
+
+! multi
+CMD_VAR = has_multi
+RUNTIME = 
+HELP    = OAM PDU is transmitted with multicast MAC.
+BYWORD  = multi : Option
+
+! uni
+CMD_VAR = has_uni
+RUNTIME = 
+HELP    = OAM PDU is transmitted with unicast MAC. The MAC is taken from peer MEP MAC database. In case of LM there is only one peer MEP.
+BYWORD  = uni : Option
+
+! single
+CMD_VAR = has_single
+RUNTIME = 
+HELP    = Single ended LM is based on LMM/LMR PDU.
+BYWORD  = single : Option
+
+! dual
+CMD_VAR = has_dual
+RUNTIME = 
+HELP    = Dual ended LM is based on CCM PDU.
+BYWORD  = dual : Option
+
+! fr10s
+CMD_VAR = has_fr10s
+RUNTIME = 
+HELP    = Frame rate is 10 f/s.
+BYWORD  = fr10s : Option
+
+! fr1s
+CMD_VAR = has_fr1s
+RUNTIME = 
+HELP    = Frame rate is 1 f/s.
+BYWORD  = fr1s : Option
+
+! fr6m
+CMD_VAR = has_fr6m
+RUNTIME = 
+HELP    = Frame rate is 6 f/min.
+BYWORD  = fr6m : Option
+
+! fr1m
+CMD_VAR = has_fr1m
+RUNTIME = 
+HELP    = Frame rate is 1 f/min.
+BYWORD  = fr1m : Option
+
+! fr6h
+CMD_VAR = has_fr6h
+RUNTIME = 
+HELP    = Frame rate is 6 f/hour.
+BYWORD  = fr6h : Option
+
+! flr
+CMD_VAR = has_flr
+RUNTIME = 
+HELP    = The Frame Loss Ratio interval.
+BYWORD  = flr : Option
+
+! <uint>
+CMD_VAR = flr
+RUNTIME = 
+HELP    = The Frame Loss Ratio interval value.
+BYWORD  = <Flr : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_lm(session_id, inst, prio, has_uni, has_multi, has_single, has_dual, has_fr10s, has_fr1s, has_fr6m, has_fr1m, has_fr6h, has_flr, flr);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint> lm
+
+DOC_CMD_DESC    = Disable Loss Measurement.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_mep_lm
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Disable Loss Measurement.
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! lm
+CMD_VAR = 
+RUNTIME = 
+HELP    = Loss Measurement.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep_lm(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> dm <0-7> [ multi | { uni mep-id <uint> } ] [ single | dual ] [ rdtrp | flow ] interval <uint> last-n <uint>
+
+DOC_CMD_DESC    = Configuration of Delay Measurement.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_dm
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! dm
+CMD_VAR = 
+RUNTIME = 
+HELP    = Delay Measurement.
+BYWORD  = 
+
+! <0-7>
+CMD_VAR = prio
+RUNTIME = 
+HELP    = Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+BYWORD  = <Prio : 0-7>
+
+! multi
+CMD_VAR = has_multi
+RUNTIME = 
+HELP    = OAM PDU is transmitted with multicast MAC.
+BYWORD  = multi : Option
+
+! uni
+CMD_VAR = has_uni
+RUNTIME = 
+HELP    = OAM PDU is transmitted with unicast MAC. The MAC is taken from peer MEP MAC database.
+BYWORD  = uni : Option
+
+! mep-id
+CMD_VAR = 
+RUNTIME = 
+HELP    = Peer MEP-ID for unicast DM. The MAC is taken from peer MEP MAC database.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = mepid
+RUNTIME = 
+HELP    = Peer MEP-ID value.
+BYWORD  = <Mepid : uint>
+
+! single
+CMD_VAR = has_single
+RUNTIME = 
+HELP    = Delay Measurement based on DMM/DMR PDU.
+BYWORD  = single : Option
+
+! dual
+CMD_VAR = has_dual
+RUNTIME = 
+HELP    = Delay Measurement based on 1DM PDU transmission.
+BYWORD  = dual : Option
+
+! rdtrp
+CMD_VAR = has_rdtrp
+RUNTIME = 
+HELP    = The two way delay is calculated as round trip delay. The far end residence time is not subtracted.
+BYWORD  = rdtrp : Option
+
+! flow
+CMD_VAR = has_flow
+RUNTIME = 
+HELP    = The two way delay is calculated as round trip symmetrical flow delay. The far end residence time is subtracted.
+BYWORD  = flow : Option
+
+! interval
+CMD_VAR = 
+RUNTIME = 
+HELP    = Interval between PDU transmission in 10ms. Min value is 10.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = interval
+RUNTIME = 
+HELP    = Interval value.
+BYWORD  = <Interval : uint>
+
+! last-n
+CMD_VAR = 
+RUNTIME = 
+HELP    = The last N dalays used for average last N calculation. Min value is 10.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = lastn
+RUNTIME = 
+HELP    = The last N value.
+BYWORD  = <Lastn : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_dm(session_id, inst, prio, has_uni, has_multi, mepid, has_dual, has_single, has_rdtrp, has_flow, interval, lastn);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint> dm
+
+DOC_CMD_DESC    = Disable Delay Measurement.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_mep_dm
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Disable Delay Measurement.
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! dm
+CMD_VAR = 
+RUNTIME = 
+HELP    = Delay Measurement.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep_dm(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> dm overflow-reset
+
+DOC_CMD_DESC    = Configuration of reset of all Delay Measurement results on total delay counter overflow.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = Configuration of keep of all Delay Measurement results on total delay counter overflow - stop Delay Measurement.
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_dm_overflow_reset
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! dm
+CMD_VAR = 
+RUNTIME = 
+HELP    = Delay Measurement.
+BYWORD  = 
+
+! overflow-reset
+CMD_VAR = 
+RUNTIME = 
+HELP    = Reset all Delay Measurement results on total delay counter overflow.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+mep_mep_dm_overflow_reset(session_id, inst);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+mep_no_mep_dm_overflow_reset(session_id, inst);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> dm ns
+
+DOC_CMD_DESC    = Configuration of Delay Measurement results represented in Nano Seconds.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = Configuration of Delay Measurement results represented in Micro Seconds.
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_dm_ns
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! dm
+CMD_VAR = 
+RUNTIME = 
+HELP    = Delay Measurement.
+BYWORD  = 
+
+! ns
+CMD_VAR = 
+RUNTIME = 
+HELP    = Nano Seconds
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+mep_mep_dm_ns(session_id, inst);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+mep_no_mep_dm_ns(session_id, inst);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> dm syncronized
+
+DOC_CMD_DESC    = Configuration of syncronized Delay Measurement results. Near end and far end is realtime syncrinized and therefore one way dealy measurement result can be calculated based on DMM/DMR PDU timestamps.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = Configuration of NOT syncronized Delay Measurement results. Only round trip od flow delays are calculated.
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_dm_syncronized
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! dm
+CMD_VAR = 
+RUNTIME = 
+HELP    = Delay Measurement.
+BYWORD  = 
+
+! syncronized
+CMD_VAR = 
+RUNTIME = 
+HELP    = Near enad and far end is real time syncronized.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+mep_mep_dm_syncronized(session_id, inst);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+mep_no_mep_dm_syncronized(session_id, inst);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> dm proprietary
+
+DOC_CMD_DESC    = Configuration of proprietary Delay Measurement. In order to achieve higher accuracy an proprietary OAM PDU type is used to sen follow-up timestamps.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = Configuration of standard (Y.1731) Delay Measurement.
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_dm_proprietary
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! dm
+CMD_VAR = 
+RUNTIME = 
+HELP    = Delay Measurement.
+BYWORD  = 
+
+! proprietary
+CMD_VAR = 
+RUNTIME = 
+HELP    = Proprietary Delay Measurement.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+mep_mep_dm_proprietary(session_id, inst);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+mep_no_mep_dm_proprietary(session_id, inst);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> lt <0-7> { { mep-id <uint> } | { mac <mac_addr> } } ttl <uint>
+
+DOC_CMD_DESC    = Configuration of Link Trace.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_lt
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! lt
+CMD_VAR = 
+RUNTIME = 
+HELP    = Link Trace.
+BYWORD  = 
+
+! <0-7>
+CMD_VAR = prio
+RUNTIME = 
+HELP    = Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+BYWORD  = <Prio : 0-7>
+
+! mep-id
+CMD_VAR = has_mep_id
+RUNTIME = 
+HELP    = Peer MEP-ID for Link Trace target unicast MAC. The MAC is taken from peer MEP MAC database.
+BYWORD  = mep-id : Option
+
+! <uint>
+CMD_VAR = mepid
+RUNTIME = 
+HELP    = Peer MEP-ID value.
+BYWORD  = <Mepid : uint>
+
+! mac
+CMD_VAR = has_mac
+RUNTIME = 
+HELP    = Link Trace target unicast MAC to be used in case of LT against MIP.
+BYWORD  = mac : Option
+
+! <mac_addr>
+CMD_VAR = mac
+RUNTIME = 
+HELP    = Link Trace target unicast MAC value.
+BYWORD  = <Mac : mac_addr>
+
+! ttl
+CMD_VAR = 
+RUNTIME = 
+HELP    = Time To Live.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = ttl
+RUNTIME = 
+HELP    = Time To Live value.
+BYWORD  = <Ttl : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_lt(session_id, inst, prio, has_mep_id, mepid, has_mac, mac, ttl);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint> lt
+
+DOC_CMD_DESC    = Disable of Link Trace.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_mep_lt
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Disable of Link Trace.
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! lt
+CMD_VAR = 
+RUNTIME = 
+HELP    = Link Trace.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep_lt(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> lb <0-7> [ dei ] [ multi | { uni { { mep-id <uint> } | { mac <mac_addr> } } } ] count <uint> size <uint> interval <uint>
+
+DOC_CMD_DESC    = Configuration of Loop Back.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_lb
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! lb
+CMD_VAR = 
+RUNTIME = 
+HELP    = Loop Back.
+BYWORD  = 
+
+! <0-7>
+CMD_VAR = prio
+RUNTIME = 
+HELP    = Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+BYWORD  = <Prio : 0-7>
+
+! dei
+CMD_VAR = has_dei
+RUNTIME = 
+HELP    = Drop Eligible Indicator in case of tagged OAM.
+BYWORD  = dei : Option
+
+! multi
+CMD_VAR = has_multi
+RUNTIME = 
+HELP    = OAM PDU is transmitted with multicast MAC.
+BYWORD  = multi : Option
+
+! uni
+CMD_VAR = has_uni
+RUNTIME = 
+HELP    = OAM PDU is transmitted with unicast MAC. The MAC is taken from peer MEP MAC database.
+BYWORD  = uni : Option
+
+! mep-id
+CMD_VAR = has_mep_id
+RUNTIME = 
+HELP    = Peer MEP-ID for unicast LB. The MAC is taken from peer MEP MAC database.
+BYWORD  = mep-id : Option
+
+! <uint>
+CMD_VAR = mepid
+RUNTIME = 
+HELP    = Peer MEP-ID value
+BYWORD  = <Mepid : uint>
+
+! mac
+CMD_VAR = has_mac
+RUNTIME = 
+HELP    = Loop Back unicast MAC to be used in case of LB against MIP.
+BYWORD  = mac : Option
+
+! <mac_addr>
+CMD_VAR = mac
+RUNTIME = 
+HELP    = Loop Back target unicast MAC value.
+BYWORD  = <Mac : mac_addr>
+
+! count
+CMD_VAR = 
+RUNTIME = 
+HELP    = The number of LBM PDU to send in one loop test. The value 0 indicate infinite transmission (test behaviour). This is HW based LBM/LBR and Requires VOE.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = count
+RUNTIME = 
+HELP    = Number of LBM PDU to send value.
+BYWORD  = <Count : uint>
+
+! size
+CMD_VAR = 
+RUNTIME = 
+HELP    = The number of bytes in the LBM PDU Data Pattern TLV
+HELP    = The LBM frame size. This is entered as the wanted size (in bytes) of a un-tagged frame containing LBM OAM PDU - including CRC (four bytes). \
+Example when 'Size' = 64 => Un-tagged frame size = DMAC(6) + SMAC(6) + TYPE(2) + LBM PDU LENGTH(46) + CRC(4) = 64 bytes. \
+The transmitted frame will be four bytes longer for each tag added - 8 bytes in case of a tunnel EVC. \
+Minimum Size is 64 Bytes. Maximum Size is 9600 Bytes \
+BYWORD  = 
+
+! <uint>
+CMD_VAR = size
+RUNTIME = 
+HELP    = The number of bytes in the LBM PDU Data Pattern TLV
+BYWORD  = <Size : uint>
+
+! interval
+CMD_VAR = 
+RUNTIME = 
+HELP    = The interval between transmitting LBM PDU. in case 'count' != 0 this is in 10ms and max is 100. In case 'count' == 0 this is in 1us and max is 10.000.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = interval
+RUNTIME = 
+HELP    = The interval between transmitting LBM PDU.
+BYWORD  = <Interval : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_lb(session_id, inst, prio, has_dei, has_multi, has_uni, has_mep_id, mepid, has_mac, mac, count, size, interval);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint> lb
+
+DOC_CMD_DESC    = Disable Loop Back.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_mep_lb
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Disable Loop Back.
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! lb
+CMD_VAR = 
+RUNTIME = 
+HELP    = Loop Back.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep_lb(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> tst <0-7> [ dei ] mep-id <uint> [ sequence ] [ all-zero | all-one | one-zero ] rate <uint> size <uint>
+
+DOC_CMD_DESC    = Configuration of Test Signal
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_tst
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! tst
+CMD_VAR = 
+RUNTIME = 
+HELP    = Test Signal
+BYWORD  = 
+
+! <0-7>
+CMD_VAR = prio
+RUNTIME = 
+HELP    = Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+BYWORD  = <Prio : 0-7>
+
+! dei
+CMD_VAR = has_dei
+RUNTIME = 
+HELP    = Drop Eligible Indicator in case of tagged OAM.
+BYWORD  = dei : Option
+
+! mep-id
+CMD_VAR = 
+RUNTIME = 
+HELP    = Peer MEP-ID for unicast TST. The MAC is taken from peer MEP MAC database.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = mepid
+RUNTIME = 
+HELP    = Peer MEP-ID value.
+BYWORD  = <Mepid : uint>
+
+! sequence
+CMD_VAR = has_sequence
+RUNTIME = 
+HELP    = Enable sequence number in TST PDU.
+BYWORD  = sequence : Option
+
+! all-zero
+CMD_VAR = has_all_zero
+RUNTIME = 
+HELP    = Test pattern is set to all zero.
+BYWORD  = all-zero : Option
+
+! all-one
+CMD_VAR = has_all_one
+RUNTIME = 
+HELP    = Test pattern is set to all one.
+BYWORD  = all-one : Option
+
+! one-zero
+CMD_VAR = has_one_zero
+RUNTIME = 
+HELP    = Test pattern is set to 10101010.
+BYWORD  = one-zero : Option
+
+! rate
+CMD_VAR = 
+RUNTIME = 
+HELP    = The TST frame transmission bit rate - in Mega bits pr. second. Limit on Caracal is 400 Mbps. Limit on Serval is 1Gbps. \
+This is the bit rate of a standard frame without any encapsulation. If 1 Mbps rate is selected in a EVC MEP, the added tag will give a higher bitrate on the wire.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = rate
+RUNTIME = 
+HELP    = Transmission rate value.
+BYWORD  = <Rate : uint>
+
+! size
+CMD_VAR = 
+RUNTIME = 
+HELP    = The TST frame size. This is entered as the wanted size (in bytes) of a un-tagged frame containing TST OAM PDU - including CRC (four bytes). \
+Example when 'Size' = 64 => Un-tagged frame size = DMAC(6) + SMAC(6) + TYPE(2) + TST PDU LENGTH(46) + CRC(4) = 64 bytes. \
+The transmitted frame will be four bytes longer for each tag added - 8 bytes in case of a tunnel EVC. \
+Minimum Size is 64 Bytes. Maximum Size is 9600 Bytes.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = size
+RUNTIME = 
+HELP    = Frame size value.
+BYWORD  = <Size : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_tst(session_id, inst, prio, has_dei, mepid, has_sequence, has_all_zero, has_all_one, has_one_zero, rate, size);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> tst tx
+
+DOC_CMD_DESC    = Enable TX of Test Signal.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = Disable TX of Test Signal.
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_tst_tx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! tst
+CMD_VAR = 
+RUNTIME = 
+HELP    = Test Signal.
+BYWORD  = 
+
+! tx
+CMD_VAR = 
+RUNTIME = 
+HELP    = Transmit Test Signal.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+mep_mep_tst_tx(session_id, inst);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+mep_no_mep_tst_tx(session_id, inst);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> tst rx
+
+DOC_CMD_DESC    = Enable RX of Test Signal.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = Disable RX of Test Signal.
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_tst_rx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! tst
+CMD_VAR = 
+RUNTIME = 
+HELP    = Test Signal.
+BYWORD  = 
+
+! rx
+CMD_VAR =
+RUNTIME = 
+HELP    = Receive Test Signal. 
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+mep_mep_tst_rx(session_id, inst);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+mep_no_mep_tst_rx(session_id, inst);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> aps <0-7> [ multi | uni ] { laps | { raps [ octet <uint> ] } }
+
+DOC_CMD_DESC    = Configuration of Automatic Protection Switching protocol.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_aps
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! aps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Automatic Protection Switching protocol.
+BYWORD  = 
+
+! <0-7>
+CMD_VAR = prio
+RUNTIME = 
+HELP    = Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+BYWORD  = <Prio : 0-7>
+
+! multi
+CMD_VAR = has_multi
+RUNTIME = 
+HELP    = OAM PDU is transmitted with multicast MAC. Must me 'multi' in case of RAPS.
+BYWORD  = multi : Option
+
+! uni
+CMD_VAR = has_uni
+RUNTIME = 
+HELP    = OAM PDU is transmitted with unicast MAC. The MAC is taken from peer MEP MAC database. Only possible in case of LAPS.
+BYWORD  = uni : Option
+
+! laps
+CMD_VAR = has_laps
+RUNTIME = 
+HELP    = Linear Automatic Protection Switching protocol.
+BYWORD  = laps : Option
+
+! raps
+CMD_VAR = has_raps
+RUNTIME = 
+HELP    = Ring Automatic Protection Switching protocol.
+BYWORD  = raps : Option
+
+! octet
+CMD_VAR = has_octet
+RUNTIME = 
+HELP    = Then last OCTET in the multivast MAC. Only possible in case of RAPS.
+BYWORD  = octet : Option
+
+! <uint>
+CMD_VAR = octet
+RUNTIME = 
+HELP    = Last OCTET value
+BYWORD  = <Octet : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_aps(session_id, inst, prio, has_multi, has_uni, has_laps, has_raps, has_octet, octet);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint> aps
+
+DOC_CMD_DESC    = Disable Automatic Protection Switching protocol.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_mep_aps
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Disable Automatic Protection Switching protocol.
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! aps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Automatic Protection Switching protocol.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep_aps(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> client domain { evc | vlan }
+
+DOC_CMD_DESC    = Configuartion of transport layer client domain.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_client
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! client
+CMD_VAR = 
+RUNTIME = 
+HELP    = Transport layer Client.
+BYWORD  = 
+
+! domain
+CMD_VAR = 
+RUNTIME = 
+HELP    = Domain.
+BYWORD  = 
+
+! evc
+CMD_VAR = has_evc
+RUNTIME = 
+HELP    = EVC Domain.
+BYWORD  = evc : Option
+
+! vlan
+CMD_VAR = has_vlan
+RUNTIME = 
+HELP    = Vlan Domain
+BYWORD  = vlan : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_client(session_id, inst, has_evc, has_vlan);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> client flow <uint> level <0-7> [ ais-prio [ <0-7> | ais-highest ] ] [ lck-prio [ <0-7> | lck-highest ] ]
+
+DOC_CMD_DESC    = Configuration of client flow instance.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_client_flow
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! client
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! flow
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! <uint>
+CMD_VAR = cflow
+RUNTIME = 
+HELP    = 
+BYWORD  = <Cflow : uint>
+
+! level
+CMD_VAR = 
+RUNTIME = 
+HELP    = The MEG level on the client layer.
+BYWORD  = 
+
+! <0-7>
+CMD_VAR = level
+RUNTIME = 
+HELP    = The MEG level value.
+BYWORD  = <Level : 0-7>
+
+! ais-prio
+CMD_VAR = has_ais_prio
+RUNTIME = 
+HELP    = AIS injection priority.
+BYWORD  = ais-prio : Option
+
+! <0-7>
+CMD_VAR = aisprio
+RUNTIME = 
+HELP    = AIS injection priority value.
+BYWORD  = <Aisprio : 0-7>
+
+! ais-highest
+CMD_VAR = has_ais_highest
+RUNTIME = 
+HELP    = Request the highest possible AIS priority.
+BYWORD  = ais-highest : Option
+
+! lck-prio
+CMD_VAR = has_lck_prio
+RUNTIME = 
+HELP    = LCK injection priority.
+BYWORD  = lck-prio : Option
+
+! <0-7>
+CMD_VAR = lckprio
+RUNTIME = 
+HELP    = LCK injection priority value.
+BYWORD  = <Lckprio : 0-7>
+
+! lck-highest
+CMD_VAR = has_lck_highest
+RUNTIME = 
+HELP    = Request the highest possible LCK priority.
+BYWORD  = lck-highest : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_client_flow(session_id, inst, cflow, level, has_ais_prio, aisprio, has_ais_highest, has_lck_prio, lckprio, has_lck_highest);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint> client-flow { <uint> | all }
+
+DOC_CMD_DESC    = Delete a client flow instance.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_mep_client_flow
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Delete a client flow instance.
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! client-flow
+CMD_VAR = 
+RUNTIME = 
+HELP    = Client flow instance number.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = cflow
+RUNTIME = 
+HELP    = Client flow instance number value.
+BYWORD  = <Cflow : uint>
+
+! all
+CMD_VAR = has_all
+RUNTIME = 
+HELP    = Delete all client flow instances.
+BYWORD  = all : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep_client_flow(session_id, inst, cflow, has_all);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> ais [ fr1s | fr1m ] [ protect ]
+
+DOC_CMD_DESC    = Configure Alarm Indication Signal.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_ais
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! ais
+CMD_VAR = 
+RUNTIME = 
+HELP    = Alarm Indication Signal
+BYWORD  = 
+
+! fr1s
+CMD_VAR = has_fr1s
+RUNTIME = 
+HELP    = Frame rate is 1 f/s.
+BYWORD  = fr1s : Option
+
+! fr1m
+CMD_VAR = has_fr1m
+RUNTIME = 
+HELP    = Frame rate is 1 f/min.
+BYWORD  = fr1m : Option
+
+! protect
+CMD_VAR = has_protect
+RUNTIME = 
+HELP    = The AIS can be used for protection. At the point of state change three AIS PDU is transmitted as fast as possible.
+BYWORD  = protect : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_ais(session_id, inst, has_fr1s, has_fr1m, has_protect);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint> ais
+
+DOC_CMD_DESC    = Disable Alarm Indication Signal.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_mep_ais
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Disable Alarm Indication Signal.
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! ais
+CMD_VAR = 
+RUNTIME = 
+HELP    = Alarm Indication Signal.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep_ais(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> lck [ fr1s | fr1m ]
+
+DOC_CMD_DESC    = Configure Locked Signal.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_lck
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! lck
+CMD_VAR = 
+RUNTIME = 
+HELP    = Locked Signal.
+BYWORD  = 
+
+! fr1s
+CMD_VAR = has_fr1s
+RUNTIME = 
+HELP    = Frame rate is 1 f/s.
+BYWORD  = fr1s : Option
+
+! fr1m
+CMD_VAR = has_fr1m
+RUNTIME = 
+HELP    = Frame rate is 1 f/min.
+BYWORD  = fr1m : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_mep_lck(session_id, inst, has_fr1s, has_fr1m);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mep <uint> lck
+
+DOC_CMD_DESC    = Disable Locked Signal.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Disable Locked Signal.
+BYWORD  = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! lck
+CMD_VAR = 
+RUNTIME = 
+HELP    = Locked Signal
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+mep_no_mep_lck(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mep <uint> volatile
+
+DOC_CMD_DESC    = Change a created MEP instance to be volatile.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = Delete volatile MEP instance.
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = mep_volatile
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = Maintenance Entity Point.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The MEP instance number.
+BYWORD  = <Inst : uint>
+
+! volatile
+CMD_VAR = 
+RUNTIME = 
+HELP    = The MEP instance is change to volatile.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+mep_mep_volatile(session_id, inst);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+mep_no_mep_volatile(session_id, inst);
+NO_FORM_CODE_END
+
+CMD_END
+

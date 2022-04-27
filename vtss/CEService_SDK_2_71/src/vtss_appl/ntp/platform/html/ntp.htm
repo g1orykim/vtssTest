@@ -1,0 +1,262 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>NTP Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_ntp.htm";
+
+// Global variables
+var values, ipv6_supported = 0, is_ipv4;
+var ipaddr_len = 15;
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = Array(0, 1);
+
+var ntpMaxLength = 45;
+
+function checkForm() {
+    
+    // Polling Interval
+    if(!isWithinRange("ntp_polling_interval", 4, 14, "'Polling Interval'")) {
+        return false;
+    }
+
+    for(var i = 1; i <= 5; i++) {
+        var ip_str = (document.getElementById("ntp_server" + i).value);
+        if (!ip_str) {continue;}
+        is_ipv4 = doesNotContain(ip_str, ":");
+        if (ipv6_supported == 1) {
+            if (is_ipv4 === false) {
+                // check ipv6 addr
+                if(!isIpv6Str("ntp_server" + i, "'Server " + i + " Address'", 6, 0)) {
+                    return false; 
+                }    
+            } else {   
+                // check ip addr
+                if(!isHostName("ntp_server" + i, "'Server " + i + " Address'", 0)) {
+                    return false;
+                }    
+            }
+        }
+        else {
+            // check ip addr
+            if (document.getElementById("ntp_server" + i).value) {
+                if(!isHostName("ntp_server" + i, "'Server " + i + " Address'")) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+function addRow(frag, values) {
+    //Mode
+    var tr = document.createElement("tr");
+    addTextCell(tr, "Mode", "param_label");
+    var td = addSelectCell(tr, oTMode, oVMode, values[1], "cl", "ntp_mode");
+    td.style.width = "15em";
+    frag.appendChild(tr);
+
+    //Polling Interval
+    tr = document.createElement("tr");
+    tr.style.display = "none";
+    addLabelTextCell(tr, "Polling Interval", "param_label", "ntp_polling_interval");
+    td = addInputCell(tr, unescape(values[2]), "cl", "ntp_polling_interval", 15);
+    td.setAttribute("maxLength", ntpMaxLength);
+    td.style.width = "15em";
+    frag.appendChild(tr);
+
+    //Server 1
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Server 1", "param_label", "ntp_server1");
+    td = addInputCell(tr, unescape(values[3]), "cl", "ntp_server1", 15);
+    td.setAttribute("maxLength", ntpMaxLength);
+    td.style.width = "15em";
+    frag.appendChild(tr);
+
+    //Server 2
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Server 2", "param_label", "ntp_server2");
+    td = addInputCell(tr, unescape(values[4]), "cl", "ntp_server2", 15);
+    td.setAttribute("maxLength", ntpMaxLength);
+    td.style.width = "15em";
+    frag.appendChild(tr);
+
+    //Server 3
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Server 3", "param_label", "ntp_server3");
+    td = addInputCell(tr, unescape(values[5]), "cl", "ntp_server3", 15);
+    td.setAttribute("maxLength", ntpMaxLength);
+    td.style.width = "15em";
+    frag.appendChild(tr);
+
+    //Server 4
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Server 4", "param_label", "ntp_server4");
+    td = addInputCell(tr, unescape(values[6]), "cl", "ntp_server4", 15);
+    td.setAttribute("maxLength", ntpMaxLength);
+    td.style.width = "15em";
+    frag.appendChild(tr);
+
+    //Server 5
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Server 5", "param_label", "ntp_server5");
+    td = addInputCell(tr, unescape(values[7]), "cl", "ntp_server5", 15);
+    td.setAttribute("maxLength", ntpMaxLength);
+    td.style.width = "15em";
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref) {
+    //Format: [ipv6_supported]/[ntp_mode]/[ntp_polling_interval]/[ntp_server1]/[ntp_server2]/[ntp_server3]/[ntp_server4]/[ntp_server5]
+
+    values = req.responseText.split("/");
+    //var values = req.split("/");    
+    ipv6_supported = values[0];
+    //UpdateIdSelect("ntp_mode", oTMode, oVMode, parseInt(values[1]));
+    //UpdateIdValue('ntp_polling_interval', values[2]);
+    //UpdateIdValue('ntp_server1', values[3]);
+    //UpdateIdValue('ntp_server2', values[4]);
+    //UpdateIdValue('ntp_server3', values[5]);
+    //UpdateIdValue('ntp_server4', values[6]);
+    //UpdateIdValue('ntp_server5', values[7]);
+
+    var frag = document.createDocumentFragment();
+    addRow(frag, values);
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    // change format by the type of ip
+    for(var i = 1; i <= 5; i++) {        
+        if (ipv6_supported == 1) {
+            ipaddr_len = 40;            
+        }
+
+        document.getElementById("ntp_server" + i).size = ipaddr_len;
+        document.getElementById("ntp_server" + i).maxlength = ipaddr_len;
+    }
+
+    //if (ipv6_supported == 1) {
+    //    document.getElementById("ntp_mode").style.width = "20em";
+    //    document.getElementById("ntp_mode").style.width = "20em";
+    //}
+    //else {
+    //    document.getElementById("ntp_mode").style.width = "9.3em";
+    //    document.getElementById("ntp_mode").style.width = "9.3em";
+    //}
+
+    document.getElementById("ntp_polling_interval").size = ipaddr_len;
+    document.getElementById("ntp_polling_interval").maxlength = ipaddr_len;
+}
+
+function requestUpdate() {
+    //var req = "0/0.0.0.0/0/0";
+    //processUpdate(req, null);
+    loadXMLDoc("/config/ntp", processUpdate, 'ntpData');
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>NTP Configuration</h1>
+
+<form method="POST" action="/config/ntp" onsubmit="return checkForm();">
+
+<!--
+<table summary="NTP Configuration" cellspacing="0" class="config">
+ <tr class="config">
+  <td class="param_label">Mode</td>
+  <td class="cl"><select id="ntp_mode" name="ntp_mode" style="width:9em"><option value=0>Disabled</option><option value=1>Enabled</option></select></td>
+ </tr>
+ <tr class="config" style = "display:none">
+   <td class="param_label">Polling Interval</td>
+   <td class="cl"><input type="text" id="ntp_polling_interval" name="ntp_polling_interval" value="0" maxlength="15" size="15"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label">Server 1</td>
+  <td class="cl"><input type="text" id="ntp_server1" name="ntp_server1" value="" size="15" maxlength="45"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label">Server 2</td>
+  <td class="cl"><input type="text" id="ntp_server2" name="ntp_server2" value="" size="15" maxlength="45"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label">Server 3</td>
+  <td class="cl"><input type="text" id="ntp_server3" name="ntp_server3" value="" size="15" maxlength="45"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label">Server 4</td>
+  <td class="cl"><input type="text" id="ntp_server4" name="ntp_server4" value="" size="15" maxlength="45"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label">Server 5</td>
+  <td class="cl"><input type="text" id="ntp_server5" name="ntp_server5" value="" size="15" maxlength="45"></td>
+ </tr>
+</table>
+-->
+
+<table summary="NTP Configuration" cellspacing="0" class="config">
+ <tbody id="ntpData">
+ </tbody>
+</table>
+
+<p>
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,232 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+Vitesse Switch Software.
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>PTP Clock's Monitor Help</title>
+<link href="/lib/help.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="/lib/dynforms.js"></script>
+<script type="text/javascript" src="/lib/mootools-core.js"></script>
+<script type="text/javascript" language="JavaScript">
+  window.addEvent('domready', function() {
+    $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+  });
+</script>
+</head>
+<body>
+<h1>PTP Clock's Monitor Help</h1>
+<dl>
+<dd><p>This page allows the user to inspect the current PTP clock settings</p></dd>
+</dl>
+<h2>Local Clock Current time</h2>
+<dl>
+<dd>Show local clock data</dd>
+</dl>
+<dl>
+ <dt><b>PTP Time</b></dt>
+ <dd>Shows the actual PTP time with nanosecond resolution. </dd>
+ <dt><b>Clock Adjustment Method</b></dt>
+ <dd>  Shows the actual clock adjustment method. The method depends on the available hardware. </dd>
+ <dt><b>Ports Monitor Page </b></dt>
+ <dd> Click to monitor the port data set for the ports assigned to this clock instance.</dd>
+</dl>
+
+<h2> Clock Default Dataset </h2>
+<dl>
+<dd>The clock default data set is defined in the IEEE 1588 Standard. It holds three groups of data: the static members
+defined at clock creation time, the dynamic members defined by the system, and configurable members which can be
+set here.</dd>
+ <dt><b>ClockId </b></dt>
+ <dd>An internal instance id (0..3) </dd>
+ <dt><b>Device Type </b></dt>
+ <dd>Indicates the Type of the Clock Instance. There are five Device Types.</dd>
+ <dd>1. Ord-Bound -  Clock's Device Type is Ordinary-Boundary Clock.</dd>
+ <dd>2. P2p Transp - Clock's Device Type is Peer to Peer Transparent Clock.</dd>
+ <dd>3. E2e Transp - Clock's Device Type is End to End Transparent Clock.</dd>
+ <dd>4. Master Only - Clock's Device Type is Master Only. </dd>
+ <dd>5. Slave Oly - Clock's Device Type is Slave Only. </dd>
+
+ <dt><b> 2 Step Flag </b></dt>
+ <dd> Static member: defined by the system, true if two-step Sync events and Pdelay_Resp events are used </dd>
+ <dt><b> Ports </b></dt>
+ <dd> The total number of physical ports in the node </dd>
+ <dt><b> Clock Identity </b></dt>
+ <dd> It shows unique clock identifier</dd>
+ <dt><b> Dom </b></dt>
+ <dd>  Clock domain [0..127]. </dd>
+ <dt><b> Clock Quality </b></dt>
+ <dd> The clock quality is determined by the system, and holds 3 parts: Clock Class, Clock Accuracy and OffsetScaledLog Variance as defined in IEEE1588.</dd>
+ <dd> The Clock Accuracy values are defined in IEEE1588 table 6 (Currently the clock Accuracy is set to 'Unknown' as default).</dd>
+ <dt><b> Pri1 </b></dt>
+ <dd> Clock priority 1 [0..255] used by the BMC master select algorithm. </dd>
+ <dt><b> Pri2 </b></dt>
+ <dd> Clock priority 2 [0..255] used by the BMC master select algorithm.</dd>
+ <dt><b> Protocol </b></dt>
+ <dd>Transport protocol used by the PTP protocol engine </dd>
+ <dd>Ethernet	PTP over Ethernet multicast </dd>
+ <dd>ip4multi	PTP over IPv4 multicast </dd>
+ <dd>ip4uni     PTP over IPv4 unicast </dd>
+ <dd>      Note : IPv4 unicast protocol only works in Master only and Slave only clocks </dd>
+ <dd>             See parameter Device Type </dd>
+ <dd>             In a unicast Slave only clock you also need configure which master clocks </dd>
+ <dd>             to request Announce and Sync messages from. See: Unicast Slave Configuration </dd>
+
+ <dt><b> One-Way </b></dt>
+ <dd>If true, one-way measurements are used. This parameter applies only to a slave. In one-way mode no delay
+ measurements are performed, i.e. this is applicable only if frequency synchronization is needed. The master always
+ responds to delay requests.</dd>
+ <dt><b> VLAN Tag Enable </b></dt>
+ <dd>Enables the VLAN tagging for the PTP frames.</dd>
+ <dd>   Note:   Packets are only tagged if the port is configured for vlan tagging. i.e:</dd>
+ <dd>           Port Type != Unaware and PortVLAN mode == None, and the port is member of the VLAN.</dd>
+ <dt><b> VID </b></dt>
+ <dd>VLAN Identifier used for tagging the PTP frames.</dd>
+ <dt><b> PCP </b></dt>
+ <dd>Priority Code Point value used for PTP frames.</dd>
+
+</dl>
+
+<h2> Clock current Data Set </h2>
+<dl>
+<dd>The clock current data set is defined in the IEEE 1588 Standard. The current data set is dynamic </dd>
+
+<dt><b> stpRm </b></dt>
+<dd> Steps Removed : It is the number of PTP clocks traversed from the grandmaster to the local slave clock. </dd>
+<dt><b> Offset from master </b></dt>
+<dd> Time difference between the master clock and the local slave clock, measured in ns. </dd>
+<dt><b> mean Path Delay </b></dt>
+<dd> The mean propagation time for the link between the master and the local slave </dd>
+<dt><b> Slave Port </b></dt>
+<dd> Shows which port is in slave mode. The value is 0 if no ports are in slave mode. </dd>
+<dt><b> Slave State </b></dt>
+<dd> Shows synchronization state of the slave. </dd>
+<dt><b> Holdover(pbb) </b></dt>
+<dd> After the slave has been in Locked mode during the stabilization period, this value shows the actual clock offset 
+between the freerun and the actual holdover frequency, the value is shown in parts pr billion (ppb). During the 
+stabilization period, the value is shown as N.A. The stabilization period is 60 sec as default, it can be changed from 
+the CLI interface.</dd>
+</dl>
+<h2> Clock Parent Data Set </h2>
+<dl>
+<dd>The clock parent data set is defined in the IEEE 1588 standard. The parent data set is dynamic.</dd>
+
+ <dt><b> Parent Port Identity </b></dt>
+ <dd> Clock identity for the parent clock, if the local clock is not a slave, the value is the clocks own id.</dd>
+ <dt><b> Port </b></dt>
+ <dd> Port Id for the parent master port </dd>
+ <dt><b> PStat </b></dt>
+ <dd> Parents Stats (always false). </dd>
+ <dt><b> Var </b></dt>
+ <dd> It is observed parent offset scaled log variance </dd>
+ <dt><b> Change Rate </b></dt>
+ <dd> Observed Parent Clock Phase Change Rate. i.e. the slave clocks rate offset compared to the master. (unit = ns per s).</dd>
+ <dt><b> Grand Master Identity </b></dt>
+ <dd> Clock identity for the grand master clock, if the local clock is not a slave, the value is the clocks own id.</dd>
+ <dt><b> Grand Master Clock Quality </b></dt>
+ <dd> The clock quality announced by the grand master (See description of Clock Default DataSet:Clock Quality) </dd>
+ <dt><b> Pri1 </b></dt>
+ <dd> Clock priority 1 announced by the grand master</dd>
+ <dt><b> Pri2 </b></dt>
+ <dd> Clock priority 2 announced by the grand master.</dd>
+</dl>
+
+<h2> Clock Time Properties Data Set </h2>
+<dl>
+<dd> The clock time properties data set is defined in the IEEE 1588 Standard. The data set is both configurable and dynamic, i.e. the parameters can be configured for a grandmaster. In a slave clock the parameters are overwritten by the grandmasters timing properties. The parameters are not used in the current PTP implementation.</dd>
+<dd> The valid values for the Time Source parameter are:</dd>
+<dd>  16 (0x10) ATOMIC_CLOCK </dd>
+<dd>  32 (0x20) GPS </dd>
+<dd>  48 (0x30) TERRESTRIAL_RADIO</dd>
+<dd>  64 (0x40) PTP</dd>
+<dd>  80 (0x50) NTP</dd>
+<dd>  96 (0x60) HAND_SET</dd>
+<dd> 144 (0x90) OTHER</dd>
+<dd> 160 (0xA0) INTERNAL_OSCILLATOR</dd>
+</dl>
+
+<h2> Servo Parameters </h2>
+<dl>
+<dd>The default clock servo uses a PID regulator to calculate the current clock rate. i.e. </dd>
+<dd>clockAdjustment = </dd>
+<dd>  OffsetFromMaster/ P constant + </dd>
+<dd>  Integral(OffsetFromMaster)/ I constant + </dd>
+<dd>  Differential OffsetFromMaster)/ D constant</dd>
+
+ <dt><b> Display </b></dt>
+ <dd>If true then Offset From Master, MeanPathDelay  and clockAdjustment are logged on the debug terminal </dd>
+ <dt><b> P-enable </b></dt>
+ <dd> If true the P part of the algorithm is included </dd>
+ <dt><b> I-Enable </b></dt>
+ <dd> If true the I part of the algorithm is included </dd>
+ <dt><b> D-enable </b></dt>
+ <dd> If true the D part of the algorithm is included </dd>
+ <dt><b> 'P' constant </b></dt>
+ <dd> [1..1000] see above </dd>
+ <dt><b> 'I' constant </b></dt>
+ <dd> [1..10000] see above </dd>
+ <dt><b> 'D' constant </b></dt>
+ <dd> [1..10000] see above </dd>
+</dl>
+
+<h2> Filter Parameters </h2>
+<dl>
+<dd> The default delay filter is a low pass filter, with a time constant of 2*<b>DelayFilter</b>*DelayRequestRate.</dd>
+<dd> The default offset filter uses a minimum offset or a mean filter method </dd>
+<dd> i.e. The minimum measured offset during <b>Period</b> samples is used in the calculation. </dd>
+<dd> The distance between two calculations is <b>Dist</b> periods.</dd>
+<dd> If <b>Dist</b> is 1 the offset is averaged over the <b>Period</b>,</dd>
+<dd> If <b>Dist</b> is >1 the offset is calculated using 'min' offset.</dd>
+
+ <dt><b> DelayFilter </b></dt>
+ <dd> See above </dd>
+ <dt><b> Period </b></dt>
+ <dd> See above </dd>
+ <dt><b> dist </b></dt>
+ <dd> See above </dd>
+</dl>
+
+<h2> Unicast Slave Configuration </h2>
+<dl>
+<dd> When operating in IPv4 Unicast mode, the slave is configured with up to five master IP addresses. The slave then
+requests Announce messages from all the configured masters. The slave uses the BMC algorithm to select one as master clock, the slave then request Sync messages from the selected master.</dd>
+ <dt><b> Duration </b></dt>
+ <dd> The number of seconds a master is requested to send Announce/Sync messages. The request is repeated from the slave each Duration/4 seconds.</dd>
+ <dt><b> IP_address </b></dt>
+ <dd> IPv4 Address of the master clock. </dd>
+ <dt><b>grant</b></dt>
+ <dd> The granted repetition period for the sync message</dd>
+ <dt><b>CommState</b></dt>
+ <dd> The state of the communication with the master, possible values are:</dd>
+ <dd> IDLE : The entry is not in use.</dd>
+ <dd> INIT : Announce is sent to the master (Waiting for a response).</dd>
+ <dd> CONN : The master has responded.</dd>
+ <dd> SELL : The assigned master is selected as current master.</dd>
+ <dd> SYNC : The master is sending Sync messages.</dd>
+</dl>
+
+<h2 >Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+</body>
+</html>

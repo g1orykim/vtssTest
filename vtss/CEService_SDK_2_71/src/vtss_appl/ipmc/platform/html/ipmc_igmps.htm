@@ -1,0 +1,296 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IGMP Snooping Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+var oTThrottling = Array("unlimited", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+var oVThrottling = genArrayInt(0, 10);
+var enable_cnt = 0;
+var ipmc_smb = 0;
+
+// Help page magic
+var help_page = "/help/help_ipmc_igmps.htm";
+
+
+function checkForm()
+{
+    var fld2;
+    var entry_cnt = 0;
+
+    for (var i = configVlanIdMin; i <= configVlanIdMax; i++) {
+        fld2 = document.getElementById("vlan_igmps_" + i);
+        if (fld2) {
+            if (fld2.checked) {
+                entry_cnt++;
+                if (entry_cnt > configIpmcVLANsMax) {
+                    alert("only " + configIpmcVLANsMax + " vlans supported");
+                    return false;
+                }
+            }
+        }
+    }
+
+    if (ipmc_smb) {
+        /* ssm4_range_prefix */
+        if(!isIpStr("ssm4_range_prefix", false, "'IGMP SSM Range'", 3, false)) {
+            return false;
+        }
+
+        /* ssm4_range_length */
+        if(!isWithinRange("ssm4_range_length", 4, 32, "'IGMP SSM Range'")) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function addRow(values)
+{
+    //ipmc_smb
+    ipmc_smb = parseInt(values[0], 10);
+
+    //ipmc_mode
+    UpdateIdChecked("ipmc_mode", parseInt(values[1], 10) ? true : false);
+
+    //unreg_ipmc
+    UpdateIdChecked("unreg_ipmc", parseInt(values[2], 10) ? true : false);
+
+    /* ssm4_range_prefix, ssm4_range_length, leave_proxy, proxy */
+    if (ipmc_smb === 0) {
+        /* don't show ssm_range and leave_proxy and proxy */
+        document.getElementById("ssmRangeConfig").style.display = "none";
+        document.getElementById("leaveProxyConfig").style.display = "none";
+        document.getElementById("proxyConfig").style.display = "none";
+    } else {
+        UpdateIdValue('ssm4_range_prefix', values[3]);
+        UpdateIdValue('ssm4_range_length', values[4]);
+        UpdateIdChecked("leave_proxy", parseInt(values[5], 10) ? true : false);
+        UpdateIdChecked("proxy", parseInt(values[6], 10) ? true : false);
+    }
+}
+
+function addRouterPortHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Port", "param_label");
+    if (configPortType >= 1 && configPortType <= 4) { /* only for WebGRocX */
+        //don't show router_port and throttling
+        addTextHeaderCell(tr, "Fast Leave", "param_label");
+    } else if (ipmc_smb === 0) {
+        //don't show throttling
+        addTextHeaderCell(tr, "Router Port", "param_label");
+        addTextHeaderCell(tr, "Fast Leave", "param_label");
+    } else {
+        addTextHeaderCell(tr, "Router Port", "param_label");
+        addTextHeaderCell(tr, "Fast Leave", "param_label");
+        addTextHeaderCell(tr, "Throttling", "param_label");
+    }
+    frag.appendChild(tr);
+    thead = document.getElementById("router_head");
+    clearChildNodes(thead);
+    thead.appendChild(frag);
+}
+
+function addRouterPortRow(frag, i, values)
+{
+    var tr = CreateStyledElement("tr", i % 2 ? "config_odd" : "config_even");
+    addTextCell(tr, configPortName(values[0], 0), "cr");
+    if (configPortType >= 1 && configPortType <= 4) { /* only for WebGRocX */
+        //filter router_port and throttling
+        addCheckBoxCell(tr, parseInt(values[2], 10), "c", "fast_leave_port_" + values[0]);
+    } else if (ipmc_smb === 0) {
+        //filter throttling
+        addCheckBoxCell(tr, parseInt(values[1], 10), "c", "router_port_" + values[0]);
+        addCheckBoxCell(tr, parseInt(values[2], 10), "c", "fast_leave_port_" + values[0]);
+    } else {
+        addCheckBoxCell(tr, parseInt(values[1], 10), "c", "router_port_" + values[0]);
+        addCheckBoxCell(tr, parseInt(values[2], 10), "c", "fast_leave_port_" + values[0]);
+        addSelectCell(tr, oTThrottling, oVThrottling, parseInt(values[3], 10), "cr", "throttling_port_" + values[0]);
+    }
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    if (req.responseText) {
+        var inputConfig = req.responseText.split(",");
+        addRow(inputConfig[0].split("/"));
+    // Create Table Header
+        var frag = document.createDocumentFragment();
+        addRouterPortHeader(frag);
+        
+    // Create Table Body
+        frag = document.createDocumentFragment();
+        var portConfig = inputConfig[1].split("|");
+        for (var j = 0; j < portConfig.length; j++) {
+            if (portConfig[j]) {
+                addRouterPortRow(frag, j, portConfig[j].split("/"));
+            }
+        }
+
+        var tbody = document.getElementById("router_Data");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+
+        var cBar = new MasterControlBar([{text: "*", className: "cr"}]);
+        if (configPortType >= 1 && configPortType <= 4) { // only for WebGRocX 
+            cBar.extend([{name: "fast_leave_port_"}]);
+        } else if (ipmc_smb === 0) {
+            cBar.extend([{name: "router_port_"}, {name: "fast_leave_port_"}]);
+        } else {
+            cBar.extend([{name: "router_port_"},{name: "fast_leave_port_"},{name: "throttling_port_"}]);
+        }
+        cBar.construct('router_Data');
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate()
+{
+    /* Format: [ipmc_smb]/[ipmc_mode]/[unreg_ipmc]/[ssm4_range_prefix]/[ssm4_range_length]/[leave_proxy]/[proxy]
+               ,[port_no]/[router_port]/[fast_leave]/[throttling]|...
+    */
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/ipmc?ipmc_version=1"), processUpdate, "");
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+    if (configPortType >= 1 && configPortType <= 4) { /* only for WebGRocX */
+        //filter vlan config and leave proxy
+        document.getElementById("vlanConfigTable").style.display = "none";
+        document.getElementById("ssmRangeConfig").style.display = "none";
+        document.getElementById("leaveProxyConfig").style.display = "none";
+        document.getElementById("proxyConfig").style.display = "none";
+    }
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form name="igmpForm" method="POST" action="/config/ipmc" onsubmit="return checkForm();">
+
+<h1>IGMP Snooping Configuration</h1>
+
+<h2 class="SPOM_only">Stack Global Settings</h2>
+
+<table summary="Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th colspan="2">Global Configuration</th>
+  </tr>
+ </thead>
+ <tr class="config_even">
+  <td><label>Snooping Enabled</label></td>
+  <td class="cl"><input type="checkbox" id="ipmc_mode" name="ipmc_mode" value="on"></td>
+ </tr>
+ <tr class="config_odd">
+  <td><label>Unregistered IPMCv4 Flooding Enabled</label></td>
+  <td class="cl"><input type="checkbox" id="unreg_ipmc" name="unreg_ipmc" value="on"></td>
+ </tr>
+ <tr class="config_even" id="ssmRangeConfig">
+  <td><label>IGMP SSM Range</label></td>
+  <td class="cl">
+  <input type="text" id="ssm4_range_prefix" name="ssm4_range_prefix" size="15" maxlength="15">
+  /
+  <input type="text" id="ssm4_range_length" name="ssm4_range_length" size="2" maxlength="2">
+  </td>
+ </tr>
+ <tr class="config_odd" id="leaveProxyConfig">
+  <td><label>Leave Proxy Enabled</label></td>
+  <td class="cl"><input type="checkbox" id="leave_proxy" name="leave_proxy" value="on"></td>
+ </tr>
+ <tr class="config_even" id="proxyConfig">
+  <td><label>Proxy Enabled</label></td>
+  <td class="cl"><input type="checkbox" id="proxy" name="proxy" value="on"></td>
+ </tr>
+</table>
+
+<div id="vlanConfigTable" style="display:none;">
+<p>&nbsp;</p>
+<table id="vlanconfig" summary="VLAN IGMP Snooping Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th>VLAN ID</th>
+   <th>Snooping Enabled</th>
+   <th>Querier Election</th>
+  </tr>
+ </thead>
+</table>
+</div>
+
+<h1>Port Related Configuration <span id="display_sid"></span></h1>
+<table id="router_Config" summary="Port Related Configuration" cellspacing="0" class="config">
+ <thead id="router_head">
+ </thead>
+ <tbody id="router_Data">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="hidden" id="ipmc_version" name="ipmc_version" value="1">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,79 @@
+########################################################-*- mode: text -*-
+# 
+# Vitesse Switch Software.
+# 
+# Copyright (c) 2009 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+# 
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+# 
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+# 
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+# 
+# ------------------------------------------------------------------------
+# 
+
+# PTX - Port Transmit - 17.26 - Fig. 17-17
+
+stm PortTransmit(PORT)
+
+define can_send 	((txCount < TxHoldCount(bridge)) && (helloWhen != 0))
+
+# Default transition guard qualifier (exept UCT)
+>>GUARD: allTransmitReady(port)
+
+BEGIN:
+        >> TRANSMIT_INIT
+
+# XXX This looks like a HACK. And it will make the STM spin....! XXX
+#GLOBAL:
+#        when !portEnabled >> TRANSMIT_INIT
+
+TRANSMIT_INIT:
+        newInfo = newInfoMsti = TRUE;
+        txCount = 0;
+        >> IDLE
+
+IDLE:
+        helloWhen = HelloTime;
+        when helloWhen == 0 >> TRANSMIT_PERIODIC
+        when !sendRSTP && newInfo && role == DesignatedPort && can_send >> TRANSMIT_CONFIG
+        when !sendRSTP && newInfo && role == RootPort && can_send >> TRANSMIT_TCN
+        when sendRSTP && (newInfo || (newInfoMsti && !mstiMasterPort(port))) && can_send >> TRANSMIT_RSTP
+
+TRANSMIT_PERIODIC:
+        newInfo = newInfo || (role == DesignatedPort || (role == RootPort && (tcWhile != 0)));        
+        newInfoMsti = newInfoMsti || mstiDesignatedOrTCpropagatingRootPort(port);
+        >> IDLE
+
+TRANSMIT_CONFIG:
+        newInfo = FALSE;
+        txConfig(port);
+        txCount += 1;
+        tcAck = FALSE;
+        >> IDLE
+
+TRANSMIT_TCN:
+        newInfo = FALSE;
+        txTcn(port); 
+        txCount += 1;
+        >> IDLE
+
+TRANSMIT_RSTP:
+        newInfo = newInfoMsti = FALSE; 
+        txMstp(port); 
+        txCount += 1;
+        tcAck = FALSE;
+        >> IDLE

@@ -1,0 +1,438 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_ports.htm";
+
+var yesno = Array("images/no.gif", "images/yes.gif");
+var ecmT = Array("Discard", "Restart"); // Excessive Collision Modes
+var ecmV = Array("0", "1");
+var totOpt = new Hash();        // total set of speed options
+
+function createTableHdr(fc, hdx)
+{
+  var frag = document.createDocumentFragment();
+  var tr, td;
+
+  tr = CreateStyledElement("tr", "config_header");
+  td = addTextHeaderCell(tr, "Port");
+  td.setAttribute("rowSpan", 2);
+
+  td = addTextHeaderCell(tr, "Link");
+  td.setAttribute("rowSpan", 2);
+
+  addTextHeaderCell(tr, "Speed", "", 2);
+
+  if (fc) {
+      addTextHeaderCell(tr, "Flow Control", "", 3);
+  }
+
+  td = document.createElement("th");
+  td.innerHTML = "Maximum<br/>Frame Size"; // Since it contains a break, we use the innerHTML property
+  td.setAttribute("rowSpan", 2);
+  tr.appendChild(td);
+
+  if (hdx) {
+      td = document.createElement("th");
+      td.innerHTML = "Excessive<br/>Collision Mode"; // Same as above
+      td.setAttribute("rowSpan", 2);
+      tr.appendChild(td);
+  }
+  frag.appendChild(tr);
+
+  tr = CreateStyledElement("tr", "config_header");
+  addTextHeaderCell(tr, "Current");
+  addTextHeaderCell(tr, "Configured");
+
+  if (fc) {
+    addTextHeaderCell(tr, "Current Rx");
+    addTextHeaderCell(tr, "Current Tx");
+    addTextHeaderCell(tr, "Configured");
+  }
+  frag.appendChild(tr);
+    
+  var thead = document.getElementById('portHdr');
+  clearChildNodes(thead);
+  thead.appendChild(frag);
+}
+
+function SpeedSelectOptions(capabilities, enabled, auto, speed, fdx, fiber_speed)
+{
+    var oT = Array("Disabled"); // Text
+    var oV = Array("0A0A0A0A0"); // enabled, auto, speed, fdx
+    var val = oV[oV.length-1];
+    if(capabilities & 0x00000001) { /* Auto negotiation */
+        oT.push("Auto");
+        oV.push("1A1A0A0A0"); // 0 corresponds VTSS_SPEED_FIBER_NOT_SUPPORTED
+        if(enabled && auto) {
+            val = oV[oV.length-1];
+	}
+    }
+    if(capabilities & 0x00000002) { /* 10 Mbps, half duplex */
+        oT.push("10Mbps HDX");
+        oV.push("1A0A1A0A0"); // 0 corresponds VTSS_SPEED_FIBER_NOT_SUPPORTED
+        if(enabled && !auto && speed == 1 && !fdx) {
+            val = oV[oV.length-1];
+	}
+    }
+    if(capabilities & 0x00000004) { /* 10 Mbps, full duplex */
+        oT.push("10Mbps FDX");
+        oV.push("1A0A1A1A0"); // 0 corresponds VTSS_SPEED_FIBER_NOT_SUPPORTED
+        if(enabled && !auto && speed == 1 && fdx) {
+            val = oV[oV.length-1];
+	}
+    }
+    if(capabilities & 0x00000008) { /* 100 Mbps, half duplex */
+        oT.push("100Mbps HDX");
+        oV.push("1A0A2A0A0"); // 0 corresponds VTSS_SPEED_FIBER_NOT_SUPPORTED
+        if(enabled && !auto && speed == 2 && !fdx) {
+            val = oV[oV.length-1];
+	}
+    }
+    if(capabilities & 0x00000010) { /* 100 Mbps, full duplex */
+        oT.push("100Mbps FDX");
+        oV.push("1A0A2A1A0"); // 0 corresponds VTSS_SPEED_FIBER_NOT_SUPPORTED
+        /* if SFP detect and NOT auto and NOT 1G and NOT 2.5G */
+        if (enabled && (capabilities & 0x00800000) && !(capabilities & 0x00000001) && !(capabilities & 0x00000020) && !(capabilities & 0x00000040)) {
+                val = oV[oV.length-1];
+        } else {
+            if(enabled && !auto && speed == 2 && fdx) {
+                val = oV[oV.length-1];
+            } 
+        }
+    }
+    if(capabilities & 0x00000020) { /* 1 Gbps, full duplex */
+        oT.push("1Gbps FDX");
+        oV.push("1A0A3A1A0"); // 0 corresponds VTSS_SPEED_FIBER_NOT_SUPPORTED
+        if(enabled && !auto && speed == 3) {
+            val = oV[oV.length-1];
+	}
+    }
+    if(capabilities & 0x00000040) { /* 2.5 Gbps, full duplex */
+        oT.push("2.5Gbps FDX");
+        oV.push("1A0A4A1A0"); // 0 corresponds VTSS_SPEED_FIBER_NOT_SUPPORTED
+        if(enabled && !auto && speed == 4) {
+            val = oV[oV.length-1];
+	}
+    }
+    if(capabilities & 0x00000080) { /* 5Gbps, full duplex */
+        oT.push("5Gbps FDX");
+        oV.push("1A0A5A1A0");// 0 corresponds VTSS_SPEED_FIBER_NOT_SUPPORTED
+        if(enabled && !auto && speed == 5) {
+            val = oV[oV.length-1];
+	}
+    }
+    if(capabilities & 0x00000100) { /* 10Gbps, full duplex */
+        oT.push("10Gbps FDX");
+        oV.push("1A0A6A1A0"); // 0 corresponds VTSS_SPEED_FIBER_NOT_SUPPORTED
+        if(enabled && !auto && speed == 6) {
+            val = oV[oV.length-1];
+	}
+    }
+
+    if(capabilities & 0x02000000) { /* SFP Auto negotiation - See PORT_CAP_DUAL_SFP_DETECT in c-code*/
+        oT.push("SFP_Auto_AMS");
+	oV.push("1A1A3A1A4");
+        if(enabled && auto && fiber_speed == 4) { //4 corresponds to VTSS_SPEED_FIBER_AUTO
+	    val = oV[oV.length-1];
+	}
+    }
+
+    if(capabilities & 0x00100000) { /* 100Fx - See PORT_CAP_DUAL_FIBER_100FX in c-code  */
+        oT.push("100-FX_AMS");
+        oV.push("1A1A2A1A2"); 
+        if(enabled && auto && fiber_speed == 2) { //  2 corresponds VTSS_SPEED_FIBER_100FX
+	    val = oV[oV.length-1];
+	}
+    }
+
+    if(capabilities & 0x00010000) { /* 1000-BASE-X, See PORT_CAP_DUAL_FIBER in c-code */
+        oT.push("1000-X_AMS");
+        oV.push("1A1A3A1A3"); 
+        if(enabled && auto && fiber_speed == 3 ) { // 3 corresponds VTSS_SPEED_FIBER_1000X
+	    val = oV[oV.length-1];
+	}
+    }
+
+  if(capabilities & 0x00010000) { /* 1000-BASE-X, See PORT_CAP_DUAL_FIBER in c-code */
+        oT.push("100-FX");
+        oV.push("1A0A2A1A2"); 
+        if(enabled && speed == 2 && !auto && fiber_speed == 2) { //2 corresponds VTSS_SPEED_FIBER_100FX
+	    val = oV[oV.length-1];
+	}
+    }
+  
+  
+  if(capabilities & 0x00010000) { /* 1000-BASE-X, See PORT_CAP_DUAL_FIBER in c-code */
+        oT.push("1000-X");
+        oV.push("1A0A3A1A3"); 
+        if(enabled && speed == 3 && !auto && fiber_speed == 3) { // 3 corresponds VTSS_SPEED_FIBER_1000X
+	    val = oV[oV.length-1];
+	}
+    }
+
+    // Collect the total set of options
+    oV.each(function(val, ix){ totOpt.set(val, oT[ix]); });
+    return [oT, oV, val];
+}
+
+function SpeedSelect(tr, name, capabilities, enabled, auto, speed, fdx, fiber_speed)
+{
+    var opts = SpeedSelectOptions(capabilities, enabled, auto, speed, fdx, fiber_speed);
+    var sel_fld = addSelectCell(tr, opts[0], opts[1], opts[2], "cr", name);
+    // Make sure that all listboxes in the same column have the same width.
+    // We use the 'em' units, which dynamically scales the listbox
+    // with the zoom-factor. If we used the 'px' unit, the listbox
+    // would have the same width no matter the zoom factor.
+    // '1em' is the width of an 'M'.
+    sel_fld.style.width = "9em"; // The longest string in the listbox is 11 characters wide, but none use capital Ms only, so we reduce it a few chars.
+}
+
+function addRow(index, frag, values) {
+    var portno = parseInt(values[0], 10);
+
+    var capa = parseInt(values[1], 10);
+    var enable = parseInt(values[2], 10);
+    var auto = parseInt(values[3], 10);
+    var speed = parseInt(values[4], 10);
+    var fdx = parseInt(values[5], 10);
+    var maxframe = parseInt(values[6], 10);
+    var fc = parseInt(values[7], 10);
+    var flow = parseInt(values[8], 10);
+    var link = values[9];
+    var state = values[10];
+    var rxpause = parseInt(values[11], 10);
+    var txpause = parseInt(values[12], 10);
+    var hdx = parseInt(values[13], 10);
+    var exc = parseInt(values[14], 10);
+    var power = parseInt(values[15], 10); // Legacy not used any more
+    var pwr_mode = parseInt(values[16], 10);
+    var fiber = parseInt(values[17], 10);
+    var fiber_speed = parseInt(values[18], 10);
+    
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    addTextCell(tr, configPortName(portno, 0), "cr");
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    addTextCell(tr, state);
+    SpeedSelect(tr, "speed_" + portno, capa, enable, auto, speed, fdx, fiber_speed);
+
+    // Flow control
+    if (fc) {
+	if (fc == 2) {
+	    addImageCell(tr, "c", yesno[rxpause], "Rx Pause");
+	    addImageCell(tr, "c", yesno[txpause], "Tx Pause");
+	    addCheckBoxCell(tr, flow, "c", "flow_" + portno);
+	} else {
+	    addTextCell(tr, " ", "c", 3);
+	}
+    }
+
+    var edit_ctrl = addInputCell(tr, maxframe, "cr", "max_" + portno, 5);
+    edit_ctrl.setAttribute("maxLength", configPortFrameSizeMax > 9999 ? 5 : 4);
+
+    /* Excessive Collision only for HDX-capable */
+    if (hdx) {
+	if (hdx == 2) {
+	    addSelectCell(tr, ecmT, ecmV, exc, "cr", "exc_" + portno);
+	} else {
+	    addTextCell(tr, " ", "c");
+	}
+    }
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function CreateControlBar(fc, hdx)
+{
+    var oV = totOpt.getKeys().sort();
+    var oT = oV.map(function(val) { return totOpt.get(val); });
+    var cBar = new MasterControlBar([{text: "*", className: "cr"},
+                                     "", "",
+                                    {name: "speed_", options: [oT, oV]}]);
+    if (fc) {
+        cBar.extend([null, null, {name: "flow_"}]);
+    }
+
+    cBar.extend([{name: "max_"}]);
+    
+    if (hdx) {
+	cBar.extend([{name: "exc_"}]);
+    }
+
+
+    cBar.construct('portData');
+}
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req, "/stack_error.htm")) {
+        return;
+    }
+    var portconfig = req.responseText.split("|");
+    var fc = 0;
+    var hdx = 0;
+    var power = 0; // Legacy not used any more
+    var fiber = 0;
+
+    // Create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    for(var i = 0; i < portconfig.length; i++) {
+        if(portconfig[i]) {
+            var pval = portconfig[i].split("/");
+            if(i === 0) {
+		fc = parseInt(pval[7], 10);
+		hdx = parseInt(pval[13], 10);
+		power = parseInt(pval[15], 10); // Legacy not used any more
+		fiber = parseInt(pval[17], 10);
+		createTableHdr(fc, hdx);
+            }
+            addRow(i, frag, pval);
+        }
+    }
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    CreateControlBar(fc, hdx);
+
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate() {
+    document.getElementById("update").style.visibility = "visible";
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/ports"), processUpdate, 'portData');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm(form)
+{
+    for(var i = configPortMin; i <= configNormalPortMax; i++) {
+        if(configPortType >= 3 && configPortName(configPortMin, 0) == "WAN") {
+            continue;
+	}
+        var fld = document.getElementById("max_" + i);
+        if (fld) {
+            if(!isWithinRange("max_" + i, configPortFrameSizeMin, configPortFrameSizeMax, 
+			      "'Maximum Frame Size'", " bytes.")) {
+		return false;
+	    }
+        }
+    }
+    return true;                // Feed the chickens and go home
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function redirect()
+{
+    document.location.href = "ports.htm";
+}
+
+function saveConfig()
+{
+    if (checkForm() === false) {
+        return false;
+    }
+    document.configForm.submit();
+    /* Users maybe change connect port setting, it'll cause the HTTP seccsion disconnect.
+       We request again if over 3 seconds no response */
+    setTimeout('redirect()', 3 * 1000);
+    return true;
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Port Configuration <span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<form name="configForm" method="POST" action="/config/ports" onsubmit="return checkForm(this);">
+
+<table id="portConfig" summary="Switch Port Configuration" class="config">
+ <thead id="portHdr">
+ </thead>
+ <tbody id="portData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="button" value="Save" onclick="saveConfig();">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+
+<!-- IE caching bug -->
+ <div style="visibility: hidden;">
+ <img alt="" src="images/yes.gif">
+ <img alt="" src="images/no.gif">
+</div>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,245 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IP Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_ip_status.htm";
+
+function addInterfaceRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    
+    addTextCell(tr, values[0], "c");
+    addTextCell(tr, values[1], "c");
+    addTextCell(tr, values[2], "cl");
+    addTextCell(tr, values[3], "cl");
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRouteRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    
+    addTextCell(tr, values[0], "cr");
+    addTextCell(tr, values[1], "cl");
+    addTextCell(tr, values[2], "cl");
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addNbcRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    
+    addTextCell(tr, values[0], "cr");
+    addTextCell(tr, values[1], "cl");
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processList(values, rowFunc, id)
+{
+    var frag = document.createDocumentFragment();
+    for(var i = 0; i < values.length; i++) {
+        if(values[i]) {
+            rowFunc(i, frag, values[i]);
+        }
+    }
+    var tbody = document.getElementById(id);
+    clearChildNodes(tbody);
+    tbody.appendChild(frag);
+}
+
+function ifMunge(data)
+{
+    var values = new Array();
+    var lines = data.split("\n");
+    var iface;
+    for(var i = 0; i < lines.length; i++) {
+	var m, line = lines[i];
+	if(line.match(/^(\S+)/)) {
+	    iface = line;
+	} else if ((m = line.match(/^\s+(LINK):\s*(\S+).+(<[^>]+>)/))) {
+	    values.push(new Array(iface, m[1], m[2], m[3]));
+	} else if ((m = line.match(/^\s+(IPv[46]):\s*(\S+)/))) {
+	    values.push(new Array(iface, m[1], m[2], ""));
+	}
+    }
+    return values;
+}
+
+function rtMunge(data)
+{
+    var values = new Array();
+    var lines = data.split("\n");
+    for(var i = 0; i < lines.length; i++) {
+	var m, line = lines[i];
+	if ((m = line.match(/^(\S+) via (\S+) (<[^>]+>)/))) {
+	    values.push(new Array(m[1], m[2], m[3]));
+	}
+    }
+    return values;
+}
+
+function nbcMunge(data)
+{
+    var values = new Array();
+    var lines = data.split("\n");
+    for(var i = 0; i < lines.length; i++) {
+	var m, line = lines[i];
+	if ((m = line.match(/^(\S+) via (\S+)/))) {
+	    values.push(new Array(m[1], m[2]));
+	}
+    }
+    return values;
+}
+
+function processUpdateData(data)
+{
+    var cfg = data.split("^@^@^");
+    if(cfg[0]) {
+	processList(ifMunge(cfg[0]), addInterfaceRow, 'tbody_if');
+    }
+    if(cfg[1]) {
+	processList(rtMunge(cfg[1]), addRouteRow, 'tbody_rt');
+    }
+    if(cfg[2]) {
+	processList(nbcMunge(cfg[2]), addNbcRow, 'tbody_nbc');
+    }
+}
+
+function processUpdate(req, ref)
+{
+    var reset_data = req.responseText;
+    processUpdateData(reset_data);
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate() {
+    loadXMLDoc("/stat/ip2_status", processUpdate, null);
+}
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<h1>IP Interfaces</h1>
+
+<table summary="IP Interfaces" class="config">
+ <thead>
+  <tr class="display_header">
+    <th>Interface</th>
+    <th>Type</th>
+    <th>Address</th>
+    <th>Status</th>
+  </tr>
+ </thead>
+ <tbody id="tbody_if">
+ </tbody>
+</table>
+
+<h1>IP Routes</h1>
+
+<table summary="IP Routes" class="config">
+ <thead>
+  <tr class="display_header">
+    <th>Network</th>
+    <th>Gateway</th>
+    <th>Status</th>
+  </tr>
+ </thead>
+ <tbody id="tbody_rt">
+ </tbody>
+</table>
+
+<h1>Neighbour cache</h1>
+
+<table summary="IP Neighbour" class="config">
+ <thead>
+  <tr class="display_header">
+    <th>IP Address</th>
+    <th>Link Address</th>
+  </tr>
+ </thead>
+ <tbody id="tbody_nbc">
+ </tbody>
+</table>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

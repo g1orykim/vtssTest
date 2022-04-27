@@ -1,0 +1,230 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_thermal_protect_config.htm";
+
+var priorities_cnt = 0;
+
+
+//
+// Table for the thermal temperature for the different priorities
+//
+function UpdateThermalTemperatureTable (thermal_prio_temp) {
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+
+    clearChildNodes(document.getElementById('thermalTempTable')); // Delete table if it already exists
+    
+    // Create header
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"Priority","hdrc",1);
+    addTextHeaderCell(tr,"Temperature","hdrc",2);
+    frag.appendChild(tr);       // Add row to fragment
+
+    temperatures = thermal_prio_temp.split(","); // Get the temperature for each priority 
+    priorities_cnt = temperatures.length;
+
+    for(var priority = 0; priority < priorities_cnt; priority++) {
+        if(temperatures[priority].length) {
+	    tr = CreateStyledElement("tr", priority % 2 ? "config_odd" : "config_even");
+	    addTextCell(tr, priority, "cr");
+	    addInputCell(tr, temperatures[priority], "c", "thermal_prio_temp_" + priority, 3, 3);
+	    addTextCell(tr, "\u00b0C", "cr"); // print °C
+	    frag.appendChild(tr);       // Add row to fragment
+        }
+    }
+    FinishTable(frag,'thermalTempTable');
+}
+
+//
+// Table for the suisude priorities for the ports
+//
+function UpdateThermalPortsTable(thermal_prios) {
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+
+    clearChildNodes(document.getElementById('thermalPortsHead')); // Delete table if it already exists
+    
+    // Create header
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"Port","hdrc",1);
+    addTextHeaderCell(tr,"Priority","hdrc",1);
+    frag.appendChild(tr);       // Add row to fragment
+
+    FinishTable(frag,'thermalPortsHead');
+
+    prios = thermal_prios.split(",");
+    
+    // Make a list with all the priorities
+    var oT = Array();
+    for (var i = 0; i < priorities_cnt; i++) {
+	oT[i] = i; // Add to array
+    }
+    
+    // Create the table
+    for (var port = configPortMin; port <= prios.length; port++) {
+	var index = port - configPortMin;
+	if(prios[index].length) {
+	    var tr3 = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+	    addTextCell(tr3, port, "cr");
+	    addSelectCell(tr3, oT, oT, prios[index], "cr", "thermal_port_prio_" + index);
+	    frag.appendChild(tr3);       // Add row to fragment
+	}
+    }
+    FinishTable(frag,'thermalPortsBody');
+
+    var cBar = new MasterControlBar([{text: "*", className: "cr"},
+    {name: "thermal_port_prio_"}]);
+    
+    cBar.construct('thermalPortsBody', 'config_odd');
+}
+
+//
+// Update when web page is loaded
+//
+function processUpdate(req, ref)
+{
+    // Format: 
+    //  <err_msg>|<t_max>|<t_on>
+    
+    if(redirectOnError(req)) {
+        return;
+    }
+
+    if(req.responseText) {
+        // Get and set configurations settings
+        var config = req.responseText.split("|");
+
+
+		var err_msg            = config[0];
+		var thermal_prio_temp  = config[1]; // Get the temperature where the different priorities shall do thermal protection
+		var thermal_port_prios = config[2]; // Get the thermal priority for each port
+
+		// Error message
+		if (err_msg !== "") {
+		    alert(err_msg);
+		}
+		
+		UpdateThermalTemperatureTable(thermal_prio_temp);
+		UpdateThermalPortsTable(thermal_port_prios);        
+
+    } else {
+        SpomHandleError();   
+    }
+}
+
+//
+// Check all input when "save" button is pressed.
+//
+function checkForm(form)
+{
+
+    for(var priority = 0; priority < priorities_cnt; priority++) {
+	if(!isWithinRange("thermal_prio_temp_" + priority , 0 ,255, "'Temperature'", " C")) {
+	    return false;
+	}
+    }
+    return true;                // Feed the chickens and go home
+}
+
+
+//
+// Web page updated
+//
+function requestUpdate() {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/thermal_protect_config"), processUpdate, 'config');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+//
+// Check if the switch in the stack is changed.
+//
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+</script>
+
+</head>
+<body class="content" onload="requestUpdate();">
+<h1>Thermal Protection Configuration</h1>
+<form name="ConfigForm" method="POST" action="/config/thermal_protect_config" onsubmit="if (!checkForm()) { return false; } changeForm('grayOut');">
+
+
+<h2>Temperature settings for priority groups</h2>
+<table id="ThermalPrioTemp" summary="Thermal Protection Temperature Shutdown" class="config">
+ <tbody id="thermalTempTable">
+ </tbody>
+</table>
+
+
+<h2>Port priorities <span id="display_sid"></span></h2>
+<table id="thermalonfig" summary="Port Thermal Protection Configuration" class="config">
+ <tbody id="thermalPortsHead"> </tbody>
+ <tbody id="thermalPortsBody"> </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+</form>
+</body>
+</html>
+     
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

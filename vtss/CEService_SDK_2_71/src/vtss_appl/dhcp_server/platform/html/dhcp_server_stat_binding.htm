@@ -1,0 +1,250 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DHCP Relay Statistics Declined</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+
+var style_width = "6em";
+
+var binding_delete_ip = "";
+
+// Help page macic
+var help_page = "/help/help_dhcp_server_stat_binding.htm";
+
+function CreateTableHeader()
+{
+    var tbody, tr, td;
+
+    tbody = document.getElementById("bindingIp");
+    clearChildNodes( tbody );
+
+    tr = CreateStyledElement("tr", "display_header");
+
+    td = addTextHeaderCell(tr, "Delete",        "hdrc");
+    td.style.width = style_width;
+
+    td = addTextHeaderCell(tr, "IP",        "hdrc");
+    td.style.width = style_width;
+
+    td = addTextHeaderCell(tr, "Type",      "hdrc");
+    td.style.width = style_width;
+
+    td = addTextHeaderCell(tr, "State",     "hdrc");
+    td.style.width = style_width;
+
+    td = addTextHeaderCell(tr, "Pool Name", "hdrc");
+    td.style.width = style_width;
+
+    td = addTextHeaderCell(tr, "Server ID", "hdrc");
+
+    tbody.appendChild(tr);
+}
+
+function bindingUpdate( v, i )
+{
+    var tbody, tr, j, td, dv, index;
+
+    tbody = document.getElementById("bindingIp");
+
+    // create new row
+    tr = CreateStyledElement("tr", i % 2 ? "display_odd" : "display_even");
+
+    // Get database
+    dv = v.split(",");
+
+    // add checkbox
+    index = 0;
+
+    td = addCheckBoxCell(tr, 0, "c", "binding_delete_" + dv[index]);
+    if ( binding_delete_ip === "" ) {
+        binding_delete_ip = dv[index];
+    } else {
+        binding_delete_ip += "," + dv[index];
+    }
+    td.style.width = "6em";
+    
+    // add hyper link
+    addLink(tr, "cl", "dhcp_server_stat_binding_data.htm?binding_ip=" + dv[index], dv[index]);
+    ++index;
+
+    // display database
+    for ( ; index < dv.length; ++index) {
+        addTextCell( tr, dv[index], "cl" );
+    }
+
+    // Add row to fragment
+    tbody.appendChild( tr );
+}
+
+function processUpdate( req, ref )
+{
+    var binding, autorefresh, i;
+
+    if ( redirectOnError(req) ) {
+        return;
+    }
+
+    CreateTableHeader();
+
+    if ( req.responseText === null ) {
+        return;
+    }
+
+    if ( req.responseText !== "" ) {
+        //
+        // Format: <binding IP database>|<binding IP database>|...
+        //   <binding IP database> = IP, state, type, pool name, server ID
+        //
+        binding_delete_ip = "";
+        binding = req.responseText.split("|");
+
+        if ( binding.length > 0 && binding[0] !== "\r\n") {
+            for ( i = 0; i < binding.length; i++ ) {
+                bindingUpdate( binding[i], i );
+            }
+        }
+    }
+
+    // Update the timer
+    autorefresh = document.getElementById("autorefresh");
+    if ( autorefresh.checked ) {
+        if ( timerID ) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate()
+{
+    loadXMLDoc("/stat/dhcp_server_binding", processUpdate, "");
+    document.getElementById("update").style.visibility = "visible";
+}
+
+function chkRefresh( fld )
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+function requestClearSelected()
+{
+    var dv, clear_ip, i, j;
+
+    document.getElementById("update").style.visibility = "visible";
+
+    // Get database
+    clear_ip = "";
+    if ( binding_delete_ip !== "") {
+        j = 0;
+        dv = binding_delete_ip.split(",");
+        for ( i = 0; i < dv.length; i++ ) {
+            if ( document.getElementById("binding_delete_" + dv[i]).checked ) {
+                if ( clear_ip === "" ) {
+                    clear_ip = "clear_" + j + "=" + dv[i];
+                } else {
+                    clear_ip += ",clear_" + j + "=" + dv[i];
+                }
+                ++j;
+            }
+        }
+    }
+
+    loadXMLDoc("/stat/dhcp_server_binding?" + clear_ip, processUpdate, "");
+}
+
+function requestClearAutomatic()
+{
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc("/stat/dhcp_server_binding?clear_automatic=1", processUpdate, "");
+}
+
+function requestClearManual()
+{
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc("/stat/dhcp_server_binding?clear_manual=1", processUpdate, "");
+}
+
+function requestClearExpired()
+{
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc("/stat/dhcp_server_binding?clear_expired=1", processUpdate, "");
+}
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <input type="button" value="Clear Selected" onclick="requestClearSelected(); this.blur();">
+  <input type="button" value="Clear Automatic" onclick="requestClearAutomatic(); this.blur();">
+  <input type="button" value="Clear Manual" onclick="requestClearManual(); this.blur();">
+  <input type="button" value="Clear Expired" onclick="requestClearExpired(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<h1>DHCP Server Binding IP</h1>
+
+<h2>Binding IP Address</h2>
+<table id="bindingIpTable" summary="DHCP Server Binding IP Address" cellspacing="0" class="display">
+    <tbody id="bindingIp">
+    </tbody>
+</table>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

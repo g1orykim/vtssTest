@@ -1,0 +1,276 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Ingress Port Classification</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_qos_port_classification.htm";
+
+var oTPCP      = genArrayStr(0, 7);
+var oVPCP      = genArrayInt(0, 7);
+var oTDEI      = genArrayStr(0, 1);
+var oVDEI      = genArrayInt(0, 1);
+var oTCOS      = genArrayStr(0, 7);
+var oVCOS      = genArrayInt(0, 7);
+var oTDPL      = genArrayStr(0, configQosDplMax);
+var oVDPL      = genArrayInt(0, configQosDplMax);
+var oTAddrMode = ["Source", "Destination"];
+var oVAddrMode = [0, 1];
+var oTKeyType  = ["Normal", "Double Tag", "IP Address", "MAC and IP Address"];
+var oVKeyType  = [0, 1, 2, 3];
+
+var tagClassNames = ["Disabled", "Enabled"];
+
+function addHeader(ref, show_pcp_dei, show_tag, show_dscp, show_qcl_addr_mode, show_qcl_key_type)
+{
+  var frag;
+  var tr;
+  var thead;
+
+  tr = document.createElement("tr");
+
+  addTextHeaderCell(tr, "Port", "cl");
+  addTextHeaderCell(tr, "CoS", "cl", 2);
+  addTextHeaderCell(tr, "DPL", "cl");
+  if (show_pcp_dei) {
+      addTextHeaderCell(tr, "PCP", "cl");
+      addTextHeaderCell(tr, "DEI", "cl");
+  }
+  if (show_tag) {
+    addTextHeaderCell(tr, "Tag Class.", "cl");
+  }
+  if (show_dscp) {
+    addTextHeaderCell(tr, "DSCP Based", "cl");
+  }
+  if (show_qcl_key_type) {
+    addTextHeaderCell(tr, "Key Type", "cl");
+  }
+  if (show_qcl_addr_mode) {
+    addTextHeaderCell(tr, "Address Mode", "cl");
+  }
+
+  frag = document.createDocumentFragment();
+  frag.appendChild(tr);
+
+  thead = document.getElementById(ref);
+  clearChildNodes(thead);
+  thead.appendChild(frag);
+}
+
+function addRow(i, frag, portInfo, show_pcp_dei, show_tag, show_dscp, show_qcl_addr_mode, show_qcl_key_type) {
+  var tr = CreateStyledElement("tr", i % 2 ? "config_odd" : "config_even");
+  var config  = portInfo.split("#");
+  var portno;
+  var vol_class;
+
+  if (config.length >= 7) {
+      portno = parseInt(config[0], 10);
+
+    addTextCell(tr, configPortName(portno, 0), "cr");
+    addSelectCell(tr, oTCOS, oVCOS, parseInt(config[3], 10), "c", "class_" + portno);
+    vol_class = parseInt(config[4], 10);
+    if (vol_class === -1) {
+      addTextCell(tr, " ", "no_padding");
+    } else {
+      addTextCell(tr, "(" + vol_class + ")", "no_padding");
+    }
+    addSelectCell(tr, oTDPL, oVDPL, parseInt(config[5], 10), "c", "dpl_" + portno);
+
+    if (show_pcp_dei) {
+        addSelectCell(tr, oTPCP, oVPCP, parseInt(config[1], 10), "c", "pcp_" + portno);
+        addSelectCell(tr, oTDEI, oVDEI, parseInt(config[2], 10), "c", "dei_" + portno);
+    }
+
+    if (show_tag) {
+        addLink(tr, "c", "qos_port_classification_map.htm?port=" + portno, tagClassNames[parseInt(config[6], 10)]);
+    }
+    if (show_dscp) {
+        addCheckBoxCell(tr, parseInt(config[7], 10), "c", "dscp_enable_" + portno);
+    }
+    if (show_qcl_key_type) {
+        addSelectCell(tr, oTKeyType, oVKeyType, parseInt(config[9], 10), "c", "key_type_" + portno);
+    }
+    if (show_qcl_addr_mode) {
+        addSelectCell(tr, oTAddrMode, oVAddrMode, parseInt(config[8], 10), "c", "dmac_dip_" + portno);
+    }
+
+    frag.appendChild(tr);  // Add row to fragment
+  }
+}
+
+/*
+ * Format:
+ * <options>|<ports>
+ *
+ * options :== <show_pcp_dei>,<show_tag_classification>,<show_dscp_classification>,<show_qcl_addr_mode>,<show_qcl_key_type>
+ *   show_pcp_dei             :== 0..1 // 0: hide - , 1: show pcp and dei select cells
+ *   show_tag_classification  :== 0..1 // 0: hide - , 1: show tag classification
+ *   show_dscp_classification :== 0..1 // 0: hide - , 1: show dscp classification
+ *   show_qcl_addr_mode       :== 0..1 // 0: hide - , 1: show qcl address mode
+ *   show_qcl_key_type        :== 0..1 // 0: hide - , 1: show qcl key type
+ *
+ * ports :== <port 1>,<port 2>,<port 3>,...<port n>
+ *   port x :== <port_no>#<default_pcp>#<default_dei>#<default_class>#<volatile_class>#<default_dpl>#<tag_class>#<dscp_class>#<dmac_dip>#<key_type>
+ *     port_no        :== 1..max
+ *     default_pcp    :== 0..7
+ *     default_dei    :== 0..1
+ *     default_class  :== 0..7
+ *     volatile_class :== 0..7 or -1 if volatile is not set
+ *     default_dpl    :== 0..3 on jaguar, 0..1 on luton26
+ *     tag_class      :== 0..1 // 0: Disabled, 1: Enabled
+ *     dscp_class     :== 0..1 // 0: Disabled, 1: Enabled
+ *     dmac_dip       :== 0..1 // 0: Disabled, 1: Enabled
+ *     key_type       :== 0..3 // One of vtss_vcap_key_type_t
+ */
+function processUpdate(req, ref)
+{
+  var values;
+  var options;
+  var show_pcp_dei;
+  var show_tag_class;
+  var show_dscp_class;
+  var show_qcl_addr_mode;
+  var show_qcl_key_type;
+  var ports;
+  var frag;
+  var i;
+  var tbody;
+  var cBar;
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  if (req.responseText) {
+    values             = req.responseText.split("|");
+    options            = values[0].split(",");
+    show_pcp_dei       = parseInt(options[0], 10);
+    show_tag_class     = parseInt(options[1], 10);
+    show_dscp_class    = parseInt(options[2], 10);
+    show_qcl_addr_mode = parseInt(options[3], 10);
+    show_qcl_key_type  = parseInt(options[4], 10);
+    ports              = values[1].split(",");
+
+    // Create Port QoS Table Header
+    addHeader('qos_thead', show_pcp_dei, show_tag_class, show_dscp_class, show_qcl_addr_mode, show_qcl_key_type);
+
+    // Create Port QoS Table Body
+    frag = document.createDocumentFragment();
+    for (i = 0; i < ports.length; i++) {
+        addRow(i, frag, ports[i], show_pcp_dei, show_tag_class, show_dscp_class, show_qcl_addr_mode, show_qcl_key_type);
+    }
+    tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    tbody.appendChild(frag);
+
+    cBar = new MasterControlBar([{text: "*", className: "cr"}, 
+                                 {name: "class_"},
+                                 {text: " ", className: "no_padding"},
+                                 {name: "dpl_"}]);
+    if (show_pcp_dei) {
+      cBar.extend([{name: "pcp_"},
+                   {name: "dei_"}]);
+    }
+    if (show_tag_class) {
+      cBar.extend([{text: " "}]);
+    }
+    if (show_dscp_class) {
+      cBar.extend([{name: "dscp_enable_"}]);
+    }
+    if (show_qcl_key_type) {
+      cBar.extend([{name: "key_type_"}]);
+    }
+    if (show_qcl_addr_mode) {
+      cBar.extend([{name: "dmac_dip_"}]);
+    }
+    cBar.construct(ref);
+  } else {
+      SpomHandleError();
+  }
+}
+
+function requestUpdate() {
+  if (SpomNavigationLoading()) {
+    return;                 // Bail out, navigation will trigger update
+  }
+  loadXMLDoc(SpomAddSidArg("/config/qos_port_classification"), processUpdate, "qos_tbody");
+  SpomUpdateDisplaySid("display_sid");
+  SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+  SpomSetCurrentSid(sid);     // Save current SID
+  requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form id="qos_port_classification" method="POST" action="/config/qos_port_classification">
+
+<h1>QoS Ingress Port Classification <span id="display_sid"></span></h1>
+
+<table summary="QoS Port Classification Overview" cellspacing="0" class="config">
+ <thead id="qos_thead">
+ </thead>
+ <tbody id="qos_tbody">
+ </tbody>
+</table>
+
+<p>
+ <input type="hidden" id="submit_sid" name="sid">    
+ <input type="submit" value="Save">
+ <input type="reset" value="Reset">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

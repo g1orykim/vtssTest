@@ -1,0 +1,618 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RFC2544 Profile Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Help page magic
+var help_page = "/help/help_rfc2544_profile_edit.htm";
+
+var old_profile_name = ''; // Default to a new profile.
+var pageArgs = searchArgs(window.location.search);
+if (pageArgs.profile) {
+    old_profile_name = pageArgs.profile;
+}
+
+var PARM_IDX_CMN_EDIT_NAME =  0;
+var PARM_IDX_CMN_NAME      =  1;
+var PARM_IDX_CMN_DSCR      =  2;
+var PARM_IDX_CMN_VID       =  3;
+var PARM_IDX_CMN_PCP       =  4;
+var PARM_IDX_CMN_DEI       =  5;
+var PARM_IDX_CMN_PORT      =  6;
+var PARM_IDX_CMN_MEL       =  7;
+var PARM_IDX_CMN_DMAC      =  8;
+var PARM_IDX_CMN_DWELL     =  9;
+var PARM_IDX_CMN_SEQ       = 10;
+var PARM_IDX_CMN_TEST_MASK = 11;
+var PARM_IDX_CMN_CNT       = PARM_IDX_CMN_TEST_MASK + 1;
+
+var PARM_IDX_TP_DUR        = 0;
+var PARM_IDX_TP_MIN        = 1;
+var PARM_IDX_TP_MAX        = 2;
+var PARM_IDX_TP_STEP       = 3;
+var PARM_IDX_TP_PASS       = 4;
+var PARM_IDX_TP_CNT        = PARM_IDX_TP_PASS + 1;
+
+var PARM_IDX_LA_DUR        = 0;
+var PARM_IDX_LA_DMM        = 1;
+var PARM_IDX_LA_PASS       = 2;
+var PARM_IDX_LA_CNT        = PARM_IDX_LA_PASS + 1;
+
+var PARM_IDX_FL_DUR        = 0;
+var PARM_IDX_FL_MIN        = 1;
+var PARM_IDX_FL_MAX        = 2;
+var PARM_IDX_FL_STEP       = 3;
+var PARM_IDX_FL_CNT        = PARM_IDX_FL_STEP + 1;
+
+var PARM_IDX_BB_DUR        = 0;
+var PARM_IDX_BB_TRIAL_CNT  = 1;
+var PARM_IDX_BB_CNT        = PARM_IDX_BB_TRIAL_CNT + 1;
+
+var TEST_MASK_TP = 1;
+var TEST_MASK_LA = 2;
+var TEST_MASK_FL = 4;
+var TEST_MASK_BB = 8;
+
+function enable_disable()
+{
+  // When Latency test is included, so must the throughput test.
+  if ($('cmn_la').checked) {
+    $('cmn_tp').checked = true;
+  }
+
+  // Common Parameters: VID/PCP/DEI.
+  var portmep = parseInt($('cmn_type').value, 10) === 0;
+  $('cmn_vid').disabled = portmep;
+  $('cmn_pcp').disabled = portmep;
+  $('cmn_dei').disabled = portmep;
+
+  // Test Tables
+  $('tbl_tp').style.display = $('cmn_tp').checked ? '' : 'none';
+  $('tbl_la').style.display = $('cmn_la').checked ? '' : 'none';
+  $('tbl_fl').style.display = $('cmn_fl').checked ? '' : 'none';
+  $('tbl_bb').style.display = $('cmn_bb').checked ? '' : 'none';
+}
+
+//------------------------------------------------------------------------------
+// add_common()
+//------------------------------------------------------------------------------
+function add_common(values, fs)
+{
+  if (values.length != PARM_IDX_CMN_CNT) {
+    alert("add_common");
+    return;
+  }
+
+  var vid       = parseInt(values[PARM_IDX_CMN_VID],       10);
+  var mask      = parseInt(values[PARM_IDX_CMN_TEST_MASK], 10);
+  var edit_name = unescape(values[PARM_IDX_CMN_EDIT_NAME]); // The name of the profile we're currently editing.
+  var name      = unescape(values[PARM_IDX_CMN_NAME]);
+
+  if (name.length) {
+    UpdateIdValue    ('cmn_name',  name);
+  } else {
+    UpdateIdValue    ('cmn_name',  "NewProfile");
+  }
+  UpdateIdValue    ('orig_name', edit_name);
+  UpdateIdValue    ('cmn_dscr',  unescape(values[PARM_IDX_CMN_DSCR]));
+  UpdateIdSetSelect('cmn_mel',   parseInt(values[PARM_IDX_CMN_MEL],   10));
+  UpdateIdChecked  ('cmn_seq',   parseInt(values[PARM_IDX_CMN_SEQ],   10));
+  UpdateIdValue    ('cmn_dwell', parseInt(values[PARM_IDX_CMN_DWELL], 10));
+  UpdateIdSetSelect('cmn_port',  parseInt(values[PARM_IDX_CMN_PORT],  10));
+  UpdateIdSetSelect('cmn_type',  vid === 0 ? 0 : 1);
+  UpdateIdValue    ('cmn_vid',   vid === 0 ? 1 : vid);
+  UpdateIdSetSelect('cmn_pcp',   parseInt(values[PARM_IDX_CMN_PCP], 10));
+  UpdateIdSetSelect('cmn_dei',   parseInt(values[PARM_IDX_CMN_DEI], 10));
+  UpdateIdValue    ('cmn_dmac',  values[PARM_IDX_CMN_DMAC]);
+  UpdateIdChecked  ('cmn_tp',    mask & TEST_MASK_TP);
+  UpdateIdChecked  ('cmn_la',    mask & TEST_MASK_LA);
+  UpdateIdChecked  ('cmn_fl',    mask & TEST_MASK_FL);
+  UpdateIdChecked  ('cmn_bb',    mask & TEST_MASK_BB);
+
+  var frag = document.createDocumentFragment();
+
+  for (var i = 0; i < fs.length; i += 2) {
+    var tr;
+    if ((i % 10) === 0) {
+      tr = document.createElement('tr');
+      tr.setAttribute('class', 'config');
+      frag.appendChild(tr);
+    }
+
+    var td = document.createElement('td');
+    td.width='115px';
+
+    var f = document.createElement('input');
+    f.type = "checkbox";
+    f.id = f.name = 'frm_sz_' + (i / 2);
+    if (parseInt(fs[i + 1], 10)) {
+      f.setAttribute("checked", true); // FF
+      f.setAttribute("defaultChecked", true); // MSIE+W3C
+    }
+
+    var l = document.createElement('label');
+    l.setAttribute('for', f.name);
+    l.innerHTML = fs[i];
+
+    td.appendChild(f);
+    td.appendChild(l);
+    tr.appendChild(td);
+  }
+
+  clearChildNodes($('frm_sz'));
+  $('frm_sz').appendChild(frag);
+}
+
+//------------------------------------------------------------------------------
+// add_tp()
+//------------------------------------------------------------------------------
+function add_tp(values)
+{
+  if (values.length != PARM_IDX_TP_CNT) {
+    alert("add_tp");
+    return;
+  }
+
+  UpdateIdValue('tp_dur',  parseInt(values[PARM_IDX_TP_DUR],  10));
+  UpdateIdValue('tp_min',  parseInt(values[PARM_IDX_TP_MIN],  10));
+  UpdateIdValue('tp_max',  parseInt(values[PARM_IDX_TP_MAX],  10));
+  UpdateIdValue('tp_step', parseInt(values[PARM_IDX_TP_STEP], 10));
+  UpdateIdValue('tp_pass', parseInt(values[PARM_IDX_TP_PASS], 10));
+}
+
+//------------------------------------------------------------------------------
+// add_la()
+//------------------------------------------------------------------------------
+function add_la(values)
+{
+  if (values.length != PARM_IDX_LA_CNT) {
+    alert("add_la");
+    return;
+  }
+
+  UpdateIdValue('la_dur',  parseInt(values[PARM_IDX_LA_DUR], 10));
+  UpdateIdValue('la_dmm',  parseInt(values[PARM_IDX_LA_DMM], 10));
+  UpdateIdValue('la_pass', parseInt(values[PARM_IDX_LA_PASS], 10));
+}
+
+//------------------------------------------------------------------------------
+// add_fl()
+//------------------------------------------------------------------------------
+function add_fl(values)
+{
+  if (values.length != PARM_IDX_FL_CNT) {
+    alert("add_fl");
+    return;
+  }
+
+  UpdateIdValue('fl_dur',  parseInt(values[PARM_IDX_FL_DUR],  10));
+  UpdateIdValue('fl_min',  parseInt(values[PARM_IDX_FL_MIN],  10));
+  UpdateIdValue('fl_max',  parseInt(values[PARM_IDX_FL_MAX],  10));
+  UpdateIdValue('fl_step', parseInt(values[PARM_IDX_FL_STEP], 10));
+}
+
+//------------------------------------------------------------------------------
+// add_bb()
+//------------------------------------------------------------------------------
+function add_bb(values)
+{
+  if (values.length != PARM_IDX_BB_CNT) {
+    alert("add_bb");
+    return;
+  }
+
+  UpdateIdValue('bb_dur',  parseInt(values[PARM_IDX_BB_DUR], 10));
+  UpdateIdValue('bb_cnt',  parseInt(values[PARM_IDX_BB_TRIAL_CNT], 10));
+}
+
+//------------------------------------------------------------------------------
+// processUpdate()
+//------------------------------------------------------------------------------
+function processUpdate(req, ref)
+{
+  // Format: err_msg#[Common]#[FrameSizes]#[Throughput]#[Latency]#[FrameLoss]#[BackToBack]
+  //         [Common]     = edit_name/name/dscr/vlan_id/vlan_pcp/vlan_dei/egress_port_no/meg_level/dmac/dwell_time/seq_number_check/sel_tests_mask
+  //         [FrameSizes] = frame_size_1/frame_size_sel_1/frame_size_2/frame_size_sel_2/.../frame_size_N/frame_size_sel_N
+  //         [Throughput] = trial_duration/rate_min/rate_max/rate_step/pass_criterion
+  //         [Latency]    = trial_duration/dmm_interval/pass_criterion
+  //         [FrameLoss]  = trial_duration/rate_min/rate_max/rate_step
+  //         [BackToBack] = trial_duration/trial_cnt
+  var values = req.responseText.split("#");
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  var cmn = values[1].split("/"); // Common section
+  var fs  = values[2].split("/"); // Frame size selects
+  var tp  = values[3].split("/"); // Throughput section
+  var la  = values[4].split("/"); // Latentcy section
+  var fl  = values[5].split("/"); // Frame Loss section
+  var bb  = values[6].split("/"); // Back-to-Back section
+
+  add_common(cmn, fs);
+  add_tp(tp);
+  add_la(la);
+  add_fl(fl);
+  add_bb(bb);
+  enable_disable();
+
+  // Error message
+  var err_msg = unescape(values[0]);
+  if (err_msg !== "") {
+    $('cmn_name').focus();
+    alert(err_msg);
+  }
+}
+
+//------------------------------------------------------------------------------
+// checkForm()
+//------------------------------------------------------------------------------
+function checkForm()
+{
+  var fld, str, i;
+  
+  fld = $('cmn_name');
+  str = fld.value;
+  if (str.length === 0) {
+    GiveAlert("Profile name cannot be empty", fld);
+    return false;
+  }
+
+  for (i = 0; i < str.length; i++) {
+    if (str.charCodeAt(i) < 33 || str.charCodeAt(i) > 126) {
+      GiveAlert("Profile Name may only contain characters in the ASCII code range [33; 126]. Found \"" + str.charAt(i) + "\" which is ASCII code " + str.charCodeAt(i), fld);
+      return false;
+    }
+  }
+
+  fld = $('cmn_dscr');
+  str = fld.value;
+  for (i = 0; i < str.length; i++) {
+    if (str.charCodeAt(i) < 32 || str.charCodeAt(i) > 126) {
+      GiveAlert("Description may only contain characters in the ASCII code range [32; 126]. Found \"" + str.charAt(i) + "\" which is ASCII code " + str.charCodeAt(i), fld);
+      return false;
+    }
+  }
+
+  if (!isWithinRange('cmn_dwell', rfc2544_dwell_min, rfc2544_dwell_max, "'Dwell Time'")) {
+    return false;
+  }
+
+  fld = $('cmn_type');
+  if (parseInt(fld.options[fld.selectedIndex].value, 10) > 0) {
+    // It's a VLAN-based MEP. Check those VLAN properties not drop-down-boxed
+    if (!isWithinRange('cmn_vid', 1, 4095, "'VLAN ID'")) {
+      return false;
+    }
+  }
+
+  // Check DMAC.
+  if (!IsValidMacAddress('cmn_dmac')) {
+    return false;
+  }
+
+  i = 0;
+  var at_least_one_set = false;
+  while ((fld = $('frm_sz_' + i)) !== null) {
+    i++;
+    if (fld.checked) {
+      at_least_one_set = true;
+      break;
+    }
+  }
+
+  if (!at_least_one_set) {
+    GiveAlert("At least one frame size must be selected", $('frm_sz_0'));
+    return false;
+  }
+
+  if (!$('cmn_tp').checked && !$('cmn_la').checked && !$('cmn_fl').checked && !$('cmn_bb').checked) {
+    GiveAlert("At least one test type must be selected", $('cmn_tp'));
+    return false;
+  }
+
+  if ($('cmn_la').checked && !$('cmn_tp').checked) {
+    GiveAlert("Latency test depends on throughput test", $('cmn_tp'));
+    return false;
+  }
+
+  // Throughput
+  var t = "'Throughput ";
+  if ($('cmn_tp').checked) {
+    if (!isWithinRange('tp_dur',  rfc2544_tp_dur_min,  rfc2544_tp_dur_max,  t + "Trial Duration'") ||
+        !isWithinRange('tp_min',  rfc2544_tp_min_min,  rfc2544_tp_min_max,  t + "Minimum Rate'")   ||
+        !isWithinRange('tp_max',  rfc2544_tp_max_min,  rfc2544_tp_max_max,  t + "Maximum Rate'")   ||
+        !isWithinRange('tp_step', rfc2544_tp_step_min, rfc2544_tp_step_max, t + "Accuracy'")       ||
+        !isWithinRange('tp_pass', rfc2544_tp_pass_min, rfc2544_tp_pass_max, t + "Allowed Frame Loss'")) {
+       return false;
+    }
+
+    if (parseInt($('tp_min').value, 10) > parseInt($('tp_max').value, 10)) {
+      GiveAlert("Throughput maximum rate must be greater than or equal to the throughput minimum rate", $('tp_max'));
+      return false;
+    }
+  }
+
+  // Latency
+  t = "'Latency ";
+  if ($('cmn_la').checked) {
+    if (!isWithinRange('la_dur',  rfc2544_la_dur_min,  rfc2544_la_dur_max,  t + "Trial Duration'")       ||
+        !isWithinRange('la_dmm',  rfc2544_la_dmm_min,  rfc2544_la_dmm_max,  t + "Delay Meas. Interval'") ||
+        !isWithinRange('la_pass', rfc2544_la_pass_min, rfc2544_la_pass_max, t + "Allowed Frame Loss'")) {
+       return false;
+    }
+
+    if (parseInt($('la_dur').value, 10) <= parseInt($('la_dmm').value, 10)) {
+      // Can't get into this one for the time being.
+      GiveAlert("Latency trial duration must be greater than the delay measurement interval", $('la_dur'));
+      return false;
+    }
+  }
+
+  // Frame Loss
+  t = "'Frame Loss ";
+  if ($('cmn_fl').checked) {
+    if (!isWithinRange('fl_dur',  rfc2544_fl_dur_min,  rfc2544_fl_dur_max,  t + "Trial Duration'") ||
+        !isWithinRange('fl_min',  rfc2544_fl_min_min,  rfc2544_fl_min_max,  t + "Minimum Rate'")   ||
+        !isWithinRange('fl_max',  rfc2544_fl_max_min,  rfc2544_fl_max_max,  t + "Maximum Rate'")   ||
+        !isWithinRange('fl_step', rfc2544_fl_step_min, rfc2544_fl_step_max, t + "Rate Step'")) {
+       return false;
+    }
+
+    var mi = parseInt($('fl_min').value,  10);
+    var ma = parseInt($('fl_max').value,  10);
+    var st = parseInt($('fl_step').value, 10);
+
+    if (mi >= ma) {
+      GiveAlert("Frame loss maximum rate must be greater than frame loss minimum rate", $('fl_max'));
+      return false;
+    }
+
+    if ((ma - mi) < st) {
+      GiveAlert("Frame loss step size must be less than or equal to the maximum rate minus the minimum rate", $('fl_step'));
+      return false;
+    }
+  }
+
+  // Back-to-Back
+  t = "'Back-to-Back ";
+  if ($('cmn_bb').checked) {
+    if (!isWithinRange('bb_dur', rfc2544_bb_dur_min, rfc2544_bb_dur_max, t + "Trial Duration'") ||
+        !isWithinRange('bb_cnt', rfc2544_bb_cnt_min, rfc2544_bb_cnt_max, t + "Trial Count'")) {
+       return false;
+    }
+  }
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
+// requestUpdate()
+//------------------------------------------------------------------------------
+function requestUpdate()
+{
+  var url = "/config/rfc2544_profile_edit";
+  if (old_profile_name.length) {
+    url += "?profile=" + old_profile_name;
+  }
+  loadXMLDoc(url, processUpdate, null);
+}
+
+//------------------------------------------------------------------------------
+// add_select()
+//------------------------------------------------------------------------------
+function add_select(name, max)
+{
+  var sel = $(name);
+  var frag = document.createDocumentFragment();
+  for (x = 0; x < max; x++) {
+    var opt = document.createElement('option');
+    opt.appendChild(document.createTextNode(x));
+    opt.setAttribute("value", x);
+    if (x === 0) {
+      opt.setAttribute("selected", true);
+    }
+    frag.appendChild(opt);
+  }
+  sel.appendChild(frag);
+}
+
+//------------------------------------------------------------------------------
+// docLoad()
+//------------------------------------------------------------------------------
+function docLoad()
+{
+  var slashIx;
+  var referrer;
+
+  // Populate those select boxes that have fixed values, but are too tedious to add in the HTML
+
+  // First the port selector. Use the function in spom.js, which knows about ports on this platform.
+  SpomUpdatePortSelector("cmn_port", 1);
+
+  // PCP
+  add_select('cmn_pcp', 8);
+
+  // DEI
+  add_select('cmn_dei', 2);
+
+  // MEG Level
+  add_select('cmn_mel', 8);
+
+  $('cmn_type' ).onchange = function () {enable_disable();};
+  $('cmn_tp'   ).onchange = function () {enable_disable();};
+  $('cmn_la'   ).onchange = function () {enable_disable();};
+  $('cmn_fl'   ).onchange = function () {enable_disable();};
+  $('cmn_bb'   ).onchange = function () {enable_disable();};
+
+  // Figure out which page referred to us.
+  if (document.referrer && (document.referrer.search(document.location.pathname) === -1)) {
+    slashIx = document.referrer.lastIndexOf('/');
+    if (slashIx === -1) {
+      referrer = document.referrer; // Use whole string
+    } else {
+      referrer = document.referrer.substring(slashIx + 1); // Use substring after last '/'
+    }
+    parent.setPageData("rfc2544", "referrer", referrer);
+  }
+  requestUpdate();
+}
+
+//------------------------------------------------------------------------------
+// goBack()
+//------------------------------------------------------------------------------
+function goBack()
+{
+  // Go back to the page that referred to this one (page data saved in docLoad()).
+  document.location.href = parent.getPageData("rfc2544", "referrer");
+}
+
+//------------------------------------------------------------------------------
+// resetForm()
+//------------------------------------------------------------------------------
+function resetForm(form)
+{
+  form.reset();
+  enable_disable();
+}
+
+ </script>
+</head>
+
+<body class="content" onload="docLoad();">
+
+<h1>RFC2544 Profile Configuration</h1>
+<form method="POST" onsubmit="return checkForm();" action="/config/rfc2544_profile_edit">
+
+<table summary="RFC2544 Common" cellspacing="0" class="config" style="width: 650px">
+  <tbody>
+    <tr class="config"><td class="param_label c" colspan="2">Common Parameters</td></tr>
+    <tr class="config"><td class="param_label" style="width: 165px">Profile Name</td><td class="cl"><input id="cmn_name" name="cmn_name" style="width: 400px" maxlength="32"/></td></tr>
+    <tr class="config"><td class="param_label">Description</td><td class="cl"><input id="cmn_dscr" name="cmn_dscr" style="width: 400px" maxlength="128"/></td></tr>
+    <tr class="config"><td class="param_label">MEG Level</td><td class="cl"><select id="cmn_mel" name="cmn_mel" style="width: 405px"/></td></tr>
+    <tr class="config"><td class="param_label">Egress Port</td><td class="cl"><select id="cmn_port" name="cmn_port" style="width: 405px"/></td></tr>
+    <tr class="config"><td class="param_label">Sequence Number Check</td><td class="cl"><input id="cmn_seq" name="cmn_seq" type="checkbox"/></td></tr>
+    <tr class="config"><td class="param_label">Dwell Time</td><td class="cl"><input id="cmn_dwell" name="cmn_dwell" style="width: 400px"/>&nbsp;secs</td></tr>
+    <tr class="config"><td class="param_label">Type</td><td class="cl"><select id="cmn_type" name="cmn_type" style="width: 405px"><option value="0">Port Down-MEP</option><option value="1">VLAN-based Down-MEP</option></select></td></tr>
+    <tr class="config"><td class="param_label">VLAN ID</td><td class="cl"><input id="cmn_vid" name="cmn_vid" style="width: 400px" maxlength="4"/></td></tr>
+    <tr class="config"><td class="param_label">PCP</td><td class="cl"><select id="cmn_pcp" name="cmn_pcp" style="width: 405px"/></td></tr>
+    <tr class="config"><td class="param_label">DEI</td><td class="cl"><select id="cmn_dei" name="cmn_dei" style="width: 405px"/></td></tr>
+    <tr class="config"><td class="param_label">DMAC</td><td class="cl"><input id="cmn_dmac" name="cmn_dmac" style="width: 400px" maxlength="17"/></td></tr>
+
+    <tr class="config"><td class="param_label c" colspan="2">Frame Sizes</td></tr>
+    <tr class="config"><td colspan="2"><table summary="Frame Sizes"><tbody id="frm_sz"></tbody></table></td></tr>
+
+    <tr class="config"><td class="param_label c" colspan="2">Tests to Run</td></tr>
+    <tr class="config"><td colspan="2"><table summary="Tests"><tbody><tr>
+    <td style="width: 142px"><input id="cmn_tp" name="cmn_tp" type="checkbox"/><label for="cmn_tp">Throughput</label></td>
+    <td style="width: 142px"><input id="cmn_la" name="cmn_la" type="checkbox"/><label for="cmn_la">Latency</label></td>
+    <td style="width: 142px"><input id="cmn_fl" name="cmn_fl" type="checkbox"/><label for="cmn_fl">Frame Loss</label></td>
+    <td style="width: 142px"><input id="cmn_bb" name="cmn_bb" type="checkbox"/><label for="cmn_bb">Back-to-Back</label></td>
+    </tr></tbody></table>
+  </tbody>
+</table>
+
+<div id="tbl_tp">
+  <br/>
+  <table summary="Throughput Test Parameters" cellspacing="0" class="config" style="width: 650px">
+    <tbody>
+      <tr class="config"><td class="param_label c" colspan="2">Throughput Test Parameters</td></tr>
+      <tr class="config"><td class="param_label" style="width: 165px">Trial Duration</td><td class="cl"><input id="tp_dur" name="tp_dur" style="width: 400px" maxlength="4"/>&nbsp;secs</td></tr>
+      <tr class="config"><td class="param_label">Minimum Rate</td><td class="cl"><input id="tp_min" name="tp_min" style="width: 400px" maxlength="4"/>&nbsp;&permil;</td></tr>
+      <tr class="config"><td class="param_label">Maximum Rate</td><td class="cl"><input id="tp_max" name="tp_max" style="width: 400px" maxlength="4"/>&nbsp;&permil;</td></tr>
+      <tr class="config"><td class="param_label">Accuracy</td><td class="cl"><input id="tp_step" name="tp_step" style="width: 400px" maxlength="4"/>&nbsp;&permil;</td></tr>
+      <tr class="config"><td class="param_label">Allowed Frame Loss</td><td class="cl"><input id="tp_pass" name="tp_pass" style="width: 400px" maxlength="4"/>&nbsp;&permil;</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div id="tbl_la">
+  <br/>
+  <table summary="Latency Test Parameters" cellspacing="0" class="config" style="width: 650px">
+    <tbody>
+      <tr class="config"><td class="param_label c" colspan="2">Latency Test Parameters</td></tr>
+      <tr class="config"><td class="param_label" style="width: 165px">Trial Duration</td><td class="cl"><input id="la_dur" name="la_dur" style="width: 400px" maxlength="4"/>&nbsp;secs</td></tr>
+      <tr class="config"><td class="param_label" style="width: 165px">Delay Meas. Interval</td><td class="cl"><input id="la_dmm" name="la_dmm" style="width: 400px" maxlength="2"/>&nbsp;secs</td></tr>
+      <tr class="config"><td class="param_label">Allowed Frame Loss</td><td class="cl"><input id="la_pass" name="la_pass" style="width: 400px" maxlength="4"/>&nbsp;&permil;</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div id="tbl_fl">
+  <br/>
+  <table summary="Frame Loss Test Parameters" cellspacing="0" class="config" style="width: 650px">
+    <tbody>
+      <tr class="config"><td class="param_label c" colspan="2">Frame Loss Test Parameters</td></tr>
+      <tr class="config"><td class="param_label" style="width: 165px">Trial Duration</td><td class="cl"><input id="fl_dur" name="fl_dur" style="width: 400px" maxlength="4"/>&nbsp;secs</td></tr>
+      <tr class="config"><td class="param_label" style="width: 165px">Minimum Rate</td><td class="cl"><input id="fl_min" name="fl_min" style="width: 400px" maxlength="4"/>&nbsp;&permil;</td></tr>
+      <tr class="config"><td class="param_label" style="width: 165px">Maximum Rate</td><td class="cl"><input id="fl_max" name="fl_max" style="width: 400px" maxlength="4"/>&nbsp;&permil;</td></tr>
+      <tr class="config"><td class="param_label" style="width: 165px">Rate Step</td><td class="cl"><input id="fl_step" name="fl_step" style="width: 400px" maxlength="4"/>&nbsp;&permil;</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div id="tbl_bb">
+  <br/>
+  <table summary="Back-to-Back Test Parameters" cellspacing="0" class="config" style="width: 650px">
+    <tbody>
+      <tr class="config"><td class="param_label c" colspan="2">Back-to-Back Test Parameters</td></tr>
+      <tr class="config"><td class="param_label" style="width: 165px">Trial Duration</td><td class="cl"><input id="bb_dur" name="bb_dur" style="width: 400px" maxlength="5"/>&nbsp;msecs</td></tr>
+      <tr class="config"><td class="param_label" style="width: 165px">Trial Count</td><td class="cl"><input id="bb_cnt" name="bb_cnt" style="width: 400px" maxlength="3"/></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p>
+<input type="hidden" id="orig_name" name="orig_name"/>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm(this.form);">
+<input type="button" value="Cancel" onclick="goBack();">
+</p>
+
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

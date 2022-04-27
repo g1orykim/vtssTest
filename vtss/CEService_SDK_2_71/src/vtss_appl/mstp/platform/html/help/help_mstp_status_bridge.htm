@@ -1,0 +1,185 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>STP Detailed Bridge Status Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+   $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+
+<body>
+<h1>STP Detailed Bridge Status Help</h1>
+
+<p>This page provides detailed information on a single <a href="glossary.htm#rstp" class="glossary">STP</a> bridge
+instance, along with port state for all active ports associated.</p>
+
+<p>The page contains two tables with the following information:</p>
+
+<h2>STP Bridge Status</h2>
+
+<dl>
+ <dt>Bridge Instance</dt>
+ <dd>
+ The Bridge instance - <samp>CIST</samp>, <samp>MST1</samp>, ...
+ </dd>
+
+ <dt>Bridge ID</dt>
+ <dd>
+ The Bridge ID of this Bridge instance.
+ </dd>
+
+ <dt>Root ID</dt>
+ <dd>
+ The Bridge ID of the currently elected root bridge.
+ </dd>
+
+ <dt>Root Port</dt>
+ <dd>
+ The switch port currently assigned the <i>root</i> port role.
+ </dd>
+
+ <dt>Root Cost</dt>
+ <dd>
+ Root Path Cost. For the Root Bridge this is zero. For all other
+ Bridges, it is the sum of the Port Path Costs on the least cost path
+ to the Root Bridge.
+ </dd>
+
+ <dt>Regional Root</dt>
+ <dd>
+ The Bridge ID of the currently elected regional root bridge, inside
+ the 
+ <a href="glossary.htm#mstp" class="glossary">MSTP</a>
+ region of this bridge. <em>(For the CIST instance
+ only)</em>.
+ </dd>
+
+ <dt>Internal Root Cost</dt>
+ <dd>
+ The Regional Root Path Cost. For the Regional Root Bridge this is
+ zero. For all other CIST instances in the same MSTP region, it is the
+ sum of the Internal Port Path Costs on the least cost path to the
+ Internal Root Bridge. <em>(For the CIST instance only)</em>.
+ </dd>
+
+ <dt>Topology Flag</dt>
+ <dd>
+ The current state of the Topology Change Flag of this Bridge
+ instance.
+ </dd>
+
+ <dt>Topology Change Count</dt>
+ <dd>
+ The number of times where the topology change flag has been set
+ (during a one-second interval).
+ </dd>
+
+ <dt>Topology Change Last</dt>
+ <dd>
+ The time passed since the Topology Flag was last set.
+ </dd>
+
+</dl>
+
+<h2>CIST Ports<span class="haveAggregations"> &amp; Aggregations</span> State</h2>
+<dl>
+
+ <dt class="SPOM_only"><a href="glossary.htm#switch_id" class="glossary">Switch ID</a></dt>
+ <dd class="SPOM_only">
+ The Switch ID of the logical port.
+ </dd>
+
+ <dt>Port</dt>
+ <dd>
+   The switch port number of the logical STP port.
+ </dd>
+
+ <dt>Port ID</dt>
+ <dd>
+   The port id as used by the STP protocol. This is the priority part
+   and the logical port index of the bridge port.
+ </dd>
+
+ <dt>Role</dt>
+ <dd>
+ The current STP port role. The port role can be one of the following
+ values: 
+ <samp>AlternatePort</samp> <samp>BackupPort</samp> 
+ <samp>RootPort</samp> <samp>DesignatedPort</samp>.
+ </dd>
+
+ <dt>State</dt>
+ <dd>
+ The current STP port state. The port state can be one of the following
+ values:
+ <samp>Discarding</samp> <samp>Learning</samp> <samp>Forwarding</samp>.
+ </dd>
+
+ <dt>Path Cost</dt>
+ <dd>
+ The current STP port path cost. This will either be a value computed
+ from the <samp>Auto</samp> setting, or any explicitly configured
+ value.
+ </dd>
+
+ <dt>Edge</dt>
+ <dd>
+ The current STP port (operational) Edge Flag. An Edge Port is a
+ switch port to which no Bridges are attached. The flag may be
+ automatically computed or explicitly configured. Each Edge Port
+ transits directly to the Forwarding Port State, since there is no
+ possibility of it participating in a loop.
+ </dd>
+
+ <dt>Point-to-Point</dt>
+ <dd>
+ The current STP port point-to-point flag. A point-to-point port
+ connects to a non-shared LAN media. The flag may be automatically
+ computed or explicitly configured. The point-to-point properties of a
+ port affect how fast it can transit to STP state.
+ </dd>
+
+ <dt>Uptime</dt>
+ <dd>
+   The time since the bridge port was last initialized.
+ </dd>
+
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+
+</body>
+</html>

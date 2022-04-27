@@ -1,0 +1,288 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_poe_status.htm";
+
+
+//
+// Constants
+//
+
+// Define power types 
+var PSE = "0"; // PSE = Power Sourcing Entity
+var PD  = "1"; // PD = Power Device  
+
+//
+// Global variables
+//
+
+var POEconfig = Array();
+
+// Refresh timer
+var timerID;
+
+//
+// Java script functions
+//
+function UpdateTable (ref, frag)
+{
+    // Check that data is available
+    if (POEconfig.length > 1) { 
+
+	// Variable for calculating the Total cunsumption/allocated power
+	totalPowerUsed = parseInt(0, 10);
+	totalPowerRequested = parseInt(0, 10);
+	totalPowerAllocated = parseInt(0, 10);
+	totalCurrentUsed = parseInt(0, 10);
+
+	var tr;
+	// Loop though all data
+        for(var index = 0; index < POEconfig.length -1 ; index++) {
+	    // Change color for every 2nd row.
+	    tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+
+	    // Get status
+	    var pval = POEconfig[index].split("/");
+	    portNum       = pval[0];
+	    powerRequested= pval[1];
+	    powerUsed     = pval[2];
+	    powerPriority = pval[3];
+	    currentUsed   = pval[4];
+	    portStatus    = pval[5];
+	    pdClass       = pval[6];
+	    powerAllocated= pval[7];
+	    // Update the total used power
+	    totalPowerUsed     += parseInt(powerUsed, 10);
+	    totalCurrentUsed   += parseInt(currentUsed, 10);
+	    totalPowerRequested += parseInt(powerRequested, 10);
+	    totalPowerAllocated += parseInt(powerAllocated, 10);
+	    
+
+
+	    // Add port number to the table
+	    addTextCell(tr, portNum, "c");  
+
+	    addTextCell(tr, pdClass, "c");  
+	    addTextCell(tr, powerRequested / 10 + " [W]", "c");  
+	    addTextCell(tr, powerAllocated / 10 + " [W]", "c");  
+	    
+	    if (parseInt(powerUsed, 10)  > parseInt(powerAllocated, 10)) { 
+		// This shall be checked by the chip, and should never happen
+		addTextCell(tr, powerUsed / 10   + "[W]", "c");  // Power used
+		addTextCell(tr, currentUsed + "[mA]", "c");  // Current used
+	    } else {
+		addTextCell(tr, powerUsed  / 10 + " [W]", "c");    // Power used 
+		addTextCell(tr, currentUsed + " [mA]", "c"); // Current used  
+	    }
+	    
+
+	    // Add power priority to the table ( See Table 17 in TIA-1057 )
+	    switch (powerPriority) 
+		{
+	        case "0": 
+		    addTextCell(tr, "Low", "c");  
+		    break;
+		case "1": 
+		    addTextCell(tr, "High", "c");  
+		    break;
+		case "2": 
+		    addTextCell(tr, "Critical", "c");  
+		    break;
+		default: 
+		    // Shall never happen
+		    addTextCell(tr, "Unknown", "c");  
+		    break;
+		}
+
+	    if (portStatus == "PoE not available - No PoE chip found") {
+		addTextCell(tr, portStatus, "alert2");  
+	    } else {
+		addTextCell(tr, portStatus, "c");  
+	    }
+
+
+	    frag.appendChild(tr);       // Add row to fragment
+	} // End for loop
+
+	tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+	addTextCell(tr,"Total", "c");
+	addTextCell(tr,"", "c");
+	addTextCell(tr,totalPowerRequested / 10 + " [W]", "c");
+	addTextCell(tr,totalPowerAllocated / 10 + " [W]", "c");  
+	addTextCell(tr,totalPowerUsed / 10 + " [W]", "c");  
+	addTextCell(tr,totalCurrentUsed  + " [mA]", "c");  
+	addTextCell(tr,"", "c");
+	addTextCell(tr,"", "c");
+	frag.appendChild(tr);       // Add row to fragment
+
+        var tbody = document.getElementById(ref);	
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+	    alert("This browser doesn't support dynamic tables.");
+	}
+
+
+    } // end POEconfig.length > 1
+}
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req)) {
+        return;
+    }
+
+    if(req.responseText) {
+
+
+        // Get number of entries
+	config    = req.responseText.split("¤");
+
+	// Error message
+	var ErrMsg = config[0];
+	if (String(ErrMsg) !== "") {
+	    alert(ErrMsg);
+	} else {
+	
+	    POEconfig = config[1].split("|");
+	
+	
+	    // create holder for accumulated tbody elements and text nodes
+	    var frag = document.createDocumentFragment();
+	    
+	    // Create the table
+	    UpdateTable(ref, frag);
+	}
+    } else {
+	SpomHandleError();
+    }
+    document.getElementById("update").style.visibility = "hidden";
+    
+    // Update the timer
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+	}
+
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/stat/poe_status"), processUpdate, 'POEData');
+    
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function chkRefresh(fld)
+{
+  if(!fld.checked) {
+      if(timerID) {
+	  clearTimeout(timerID);
+      }
+
+    timerID = null;
+  } else {
+      requestUpdate();
+  }
+}
+
+// Update when SID is changed.
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Power Over Ethernet Status <span id="display_sid"></span></h1>
+
+<form name="POEPoEForm" method="POST" action="/stat/poe_status" onsubmit="return checkForm(this);"> </form>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<table id="PoETable" summary="PoE" cellspacing="0" class="display">
+ <thead>
+  <tr class="display_header">
+    <th>Local Port</th>
+    <th>PD class</th>
+    <th>Power Requested</th>
+    <th>Power Allocated</th>
+    <th>Power Used</th>
+    <th>Current Used</th>
+    <th>Priority</th>
+    <th>Port Status</th>
+  </tr>
+ </thead>
+ <tbody id="POEData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

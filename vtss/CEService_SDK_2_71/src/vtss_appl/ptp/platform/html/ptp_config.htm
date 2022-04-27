@@ -1,0 +1,388 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>PTP Clock Configuration Page</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_ptp_clocks_config.htm";
+
+var bool_array = Array("True", "False");
+var ptp_clocks = Array();
+var ptp_dev_types = Array();
+var clock_identity = Array();
+var one_pps_mode_options = Array();
+var ptp_protocol_method = Array();
+var vlansUsed = Array();
+var entrycnt = 0;
+var new_entry_cnt = 0;
+var next_valid_clock_index = 0;
+var print_new_entry_header = 0;
+var portcount = configNormalPortMax - configPortMin + 1;
+var pcp = genArrayInt(0, 7);
+var ptp_transparent_clock_exists;
+
+function CreateTableHeader (frag)
+{
+     var tr;
+     tr = CreateStyledElement("tr", "config_header");
+     addTextHeaderCell(tr, "", "hdrc", 3);
+     addTextHeaderCell(tr, "Port List", "hdrc", portcount);
+     frag.appendChild(tr);       // Add row to fragment
+     tr = CreateStyledElement("tr", "config_header");
+     addTextHeaderCell(tr,"Delete","hdrc");
+     addTextHeaderCell(tr,"Clock Instance","hdrc");
+     addTextHeaderCell(tr,"Device Type","hdrc");
+     for (var i = configPortMin; i <= configNormalPortMax; i++ )
+         addTextHeaderCell(tr, configPortName(i, 0), "portno");
+     frag.appendChild(tr);       // Add row to fragment
+}
+
+function CreateNewClockHeader (frag)
+{
+     var tr;
+     tr = CreateStyledElement("tr", "config_header");
+     addTextHeaderCell(tr,"Delete","hdrc");
+     addTextHeaderCell(tr,"Clock Instance","hdrc");
+     addTextHeaderCell(tr,"Device Type","hdrc");
+     addTextHeaderCell(tr,"2 Step Flag","hdrc");
+     addTextHeaderCell(tr,"Clock Identity","hdrc");
+     addTextHeaderCell(tr,"One Way","hdrc");
+     addTextHeaderCell(tr,"Protocol","hdrc");
+     addTextHeaderCell(tr,"VLAN Tag Enable","hdrc");
+     addTextHeaderCell(tr,"VID","hdrc");
+     addTextHeaderCell(tr,"PCP","hdrc");
+
+     frag.appendChild(tr);       // Add row to fragment
+}
+
+function on_delete_click(elem, frag)
+{
+    new_entry_cnt--;
+    entrycnt--;
+    document.getElementById('NewPtpConf').deleteRow(elem.rowIndex);
+    while (elem.childNodes.length > 0) {
+        elem.removeChild(elem.firstChild);
+    }
+    if(new_entry_cnt == 0)
+        document.getElementById("newPTPConfig").style.visibility = "hidden";
+
+    return elem;
+}
+
+
+function addRow(index, frag, values) {
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    entrycnt++;
+    addCheckBoxCell(tr, 0, "c", "delete_" + values[0]);
+    var td = CreateStyledElement("td", "c");
+    var txt = document.createTextNode(values[0]);
+    var link = document.createElement("a");
+    link.href = "ptp_clock_config.htm?clock_inst=" + parseInt(values[0]);
+    link.appendChild(txt);  // Add Text
+    td.appendChild(link);   // Add link to cell
+    tr.appendChild(td);     // Add cell to row
+    if (parseInt(values[0]) == next_valid_clock_index) {
+        next_valid_clock_index++;
+    }
+
+    addTextCell(tr, values[1], "c", 1);
+    if (values[1] == "E2eTransp") {
+        ptp_transparent_clock_exists = true;
+    }
+    if (values[1] == "P2pTransp") {
+        ptp_transparent_clock_exists = true;
+    }
+    for(var i = 2; i < values.length ; i++) {
+        if(values[i] != "")
+            addCheckBoxCell(tr, parseInt(values[i]), "c", "mask_" + values[0] + "_" + (i -  1));
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format:
+    // |<clock_instance>/<clock_type>/<en>/<en>/..../<en>/|....
+    // !1/ord_bound/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1|....
+
+    if(redirectOnError(req))
+        return;
+
+    if (req.responseText) {
+        var data_options = req.responseText.split("^");
+            one_pps_mode_options = data_options[1].split("/");
+            clock_identity       = data_options[2].split("|");
+            ptp_protocol_method  = data_options[3].split("/");
+        var one_pps_mode_data    = data_options[4].split("|");
+        var ptp_data             = data_options[5].split("#");
+
+        ptp_dev_types = ptp_data[0].split("|");
+        ptp_clocks = ptp_data[1].split("|");
+
+        var frag = document.createDocumentFragment();
+        var tr = CreateStyledElement("tr","config_even");
+        addTextCell(tr, "One_PPS_Mode", "param_label");
+        var td = addSelectCell(tr, one_pps_mode_options, one_pps_mode_options, one_pps_mode_data[0], "cl", "one_pps_mode");
+        td.style.width = "16em";
+        frag.appendChild(tr);
+
+        var tr = CreateStyledElement("tr","config_odd");
+        addTextCell(tr, "External Enable", "param_label");
+        var td = addSelectCell(tr, bool_array, bool_array, one_pps_mode_data[1], "cl", "external_enable");
+        td.style.width = "16em";
+        frag.appendChild(tr);
+
+        var tr = CreateStyledElement("tr","config_even");
+        addTextCell(tr, "VCXO Enable", "param_label");
+        var td = addSelectCell(tr, bool_array, bool_array, one_pps_mode_data[3], "cl", "vcxo_enable");
+        td.style.width = "16em";
+        frag.appendChild(tr);
+
+        var tr = CreateStyledElement("tr","config_odd");
+        addTextCell(tr, "Clock Frequency", "param_label");
+        var td = addInputCell(tr, one_pps_mode_data[2], "cl", "clock_freq");
+        td.style.width = "16em";
+        frag.appendChild(tr);
+
+
+        var tbody = document.getElementById("ptpExtClockConfigData");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        CreateTableHeader(frag);
+        // Determine if there are any entries
+        if (ptp_clocks.length > 1) {
+            for(var i = 0; i < ptp_clocks.length; i++) {
+                if(ptp_clocks[i]) {
+                    addRow(i, frag, ptp_clocks[i].split("/"));
+                }
+            }
+        } else {
+           // no entries found - Display that in the table
+            var tr = CreateStyledElement("tr","config_even");
+            addTextCell(tr, "", "c");
+            addTextCell(tr, "No Clock Instances Present", "c");
+            addTextCell(tr, "", "c");
+            for(var i = 0; i < portcount; i++) {
+                addTextCell(tr, "", "c");
+            }
+            frag.appendChild(tr);       // Add row to fragment
+        }
+        var tbody = document.getElementById("ptpData");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+    print_new_entry_header = 0;
+    loadXMLDoc(SpomAddSidArg("/config/ptp_config"), processUpdate, null);
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm(form)
+{
+   var invalid_identity = false;
+
+   var clock_frequency = document.getElementById("clock_freq");
+   if (clock_frequency.value) {
+       if(!isWithinRange("clock_freq", 1, 25000000, "Clock Frequency")) {
+           return false;
+       }
+   }
+
+   // Search for all the newly created entries before submitting.
+   for (var new_idx = 0; new_idx < new_entry_cnt; new_idx++) {
+        // clock_instance
+        var clock_inst_value = document.getElementById("clock_inst_new_"+ new_idx);
+        if (clock_inst_value.value) {
+            if(!isWithinRange("clock_inst_new_"+ new_idx, 0, 3, "Clock Instance")) {
+                return false;
+            }
+        }
+        // Check for Device Type
+        if (ptp_transparent_clock_exists) {
+            var device_type_data = document.getElementById("devType_new_"+ new_idx);
+            if (device_type_data.value == "E2eTransp") {
+                alert("Transparent Clock Already Exists");
+                return false;
+            }
+            if (device_type_data.value == "P2pTransp") {
+                alert("Transparent Clock Already Exists");
+                return false;
+            }
+        }
+        // Check for Clock Identity
+        var iden_value = document.getElementById("clock_identity_new_"+ new_idx);
+        if (iden_value.value) {
+            var elem_based_identity = iden_value.value.split(":");
+            if( elem_based_identity.length != 8) {
+                invalid_identity = true;
+            }
+            for (var i = 0; i < elem_based_identity.length; i++) {
+                if (elem_based_identity[i].length > 2) {
+                    invalid_identity = true;
+                }
+                var hex_value = IsHex(elem_based_identity[i]);
+                if (!IsHex(elem_based_identity[i])) {
+                    invalid_identity = true;
+                }
+
+            }
+
+            if (invalid_identity == true) {
+                var str = "Invalid Clock Identity - " + iden_value.value;
+                alert(str);
+                return false;
+            }
+        }
+        // Check for VLAN Id
+        if(!isWithinRange("vid_new_"+ new_idx, 0, 4095, "'VLAN ID'")) {
+            return false;
+        }
+   }
+   return true;                // Feed the chickens and go home
+}
+
+function AddNewRow()
+{
+    var new_idx = 0;
+    for(new_idx = 0; new_idx < 4; new_idx++) {
+      if(!document.getElementById("clock_inst_new_" + new_idx)) {
+        break;
+      }
+    }
+    if (entrycnt >= 4) {
+      alert("Maximum of 4 clock instances can be created.");
+      return false;
+    }
+
+    new_entry_cnt++;
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (entrycnt + new_idx) % 2 ? "config_even" : "config_odd");
+
+    if (!print_new_entry_header) {
+      CreateNewClockHeader (frag);
+    }
+    print_new_entry_header++;
+    if(new_entry_cnt != 0)
+        document.getElementById("newPTPConfig").style.visibility = "visible";
+
+    var del_button = document.createElement('input');
+/*    del_button.onclick = function() {new_entry_cnt--; entrycnt--; clearChildNodes(tr);}; */
+    del_button.onclick = function() {on_delete_click(tr, frag);};
+    del_button.type = "button";
+    del_button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, del_button);
+
+    var edit_ctrl = addInputCell(tr, next_valid_clock_index, "c", "clock_inst_new_" + new_idx, 1);
+    edit_ctrl.setAttribute("maxLength", 1);
+
+    addSelectCell(tr, ptp_dev_types, ptp_dev_types, ptp_dev_types[1], "c", "devType_new_" + new_idx);
+
+    addSelectCell(tr, bool_array, bool_array, bool_array[0], "c", "2_step_flag_new_" + new_idx);
+    var edit_ctrl = addInputCell(tr, clock_identity[next_valid_clock_index] , "c", "clock_identity_new_" + new_idx, 23);
+    edit_ctrl.setAttribute("maxLength", 23);
+
+    addSelectCell(tr, bool_array, bool_array, bool_array[1], "c", "one_way_new_" + new_idx);
+    addSelectCell(tr, ptp_protocol_method, ptp_protocol_method, ptp_protocol_method[0], "c", "protocol_method_new_" + new_idx);
+    addCheckBoxCell(tr, 0, "c", "vlan_ena_new_" + new_idx);
+    addInputCell(tr, 1, "c", "vid_new_" + new_idx, 5);
+    addSelectCell(tr, pcp, pcp, pcp[0], "c", "pcp_new_" + new_idx);
+
+    entrycnt++;
+    frag.appendChild(tr);       // Add row to fragment
+
+    var tbody = document.getElementById("NewPtpConf");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+</script>
+</head>
+ <body class="content" onload="requestUpdate();">
+  <form method="POST" action="/config/ptp_config" onsubmit="return checkForm(this);">
+   <h1>PTP External Clock Mode <span id="display_sid"></span></h1>
+    <table id="PTPExtClockMode" summary="PTP External Clock Mode Configuration" cellspacing="0" class="config">
+        <tbody id="ptpExtClockConfigData"></tbody>
+   </table>
+   <h1>&nbsp;</h1>
+   <h1>PTP Clock Configuration </h1>
+    <table id="PTPConfig" summary="PTP Clock Configuration" cellspacing="0" class="config">
+        <tbody id="ptpData"></tbody>
+    </table>
+    <table id="newPTPConfig" summary="Add New PTP Clock Configuration" cellspacing="0" class="config">
+        <tbody id="NewPtpConf"></tbody>
+    </table>
+   <p>
+    <input type="hidden" id="submit_sid" name="sid">
+    <input type="button" id="addNewEntry" value="Add New PTP Clock" onclick="AddNewRow()">
+    <input type="submit" value="Save">
+    <input type="reset" value="Reset">
+   </p>
+ </form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

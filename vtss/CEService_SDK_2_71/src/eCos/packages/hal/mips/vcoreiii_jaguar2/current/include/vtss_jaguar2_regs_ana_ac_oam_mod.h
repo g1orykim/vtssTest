@@ -1,0 +1,56 @@
+#ifndef _VTSS_JAGUAR2_REGS_ANA_AC_OAM_MOD_H_
+#define _VTSS_JAGUAR2_REGS_ANA_AC_OAM_MOD_H_
+
+/*
+ *
+ * VCore-III Register Definitions
+ *
+ * Copyright (C) 2012 Vitesse Semiconductor Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+
+#include "vtss_jaguar2_regs_common.h"
+
+#define VTSS_ANA_AC_OAM_MOD_VOE_SRV_LM_CNT_SRV_LM_CNT_LSB(gi)  VTSS_IOREG_IX(VTSS_TO_ANA_AC_OAM_MOD,0x0,gi,1,0,0)
+
+#define VTSS_ANA_AC_OAM_MOD_VOE_PORT_LM_CNT_PORT_LM_CNT_LSB(gi)  VTSS_IOREG_IX(VTSS_TO_ANA_AC_OAM_MOD,0x2400,gi,1,0,0)
+
+#define VTSS_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_TEMP_CNT_REG(gi)  VTSS_IOREG_IX(VTSS_TO_ANA_AC_OAM_MOD,0x2000,gi,8,0,0)
+#define  VTSS_F_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_TEMP_CNT_REG_TEMP_CNT_VAL(x)  VTSS_ENCODE_BITFIELD(x,0,16)
+#define  VTSS_M_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_TEMP_CNT_REG_TEMP_CNT_VAL     VTSS_ENCODE_BITMASK(0,16)
+#define  VTSS_X_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_TEMP_CNT_REG_TEMP_CNT_VAL(x)  VTSS_EXTRACT_BITFIELD(x,0,16)
+
+#define VTSS_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_LM_CNT_FRAME(gi)  VTSS_IOREG_IX(VTSS_TO_ANA_AC_OAM_MOD,0x2000,gi,8,0,1)
+#define  VTSS_F_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_LM_CNT_FRAME_SRV_CNT_FRM  VTSS_BIT(1)
+#define  VTSS_F_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_LM_CNT_FRAME_PATH_CNT_FRM  VTSS_BIT(0)
+
+#define VTSS_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_CCM_LM_INFO_REG(gi)  VTSS_IOREG_IX(VTSS_TO_ANA_AC_OAM_MOD,0x2000,gi,8,0,2)
+#define  VTSS_F_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_CCM_LM_INFO_REG_CCM_LM_INFO_VLD  VTSS_BIT(11)
+#define  VTSS_F_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_CCM_LM_INFO_REG_CCM_LM_VOE_IDX(x)  VTSS_ENCODE_BITFIELD(x,0,11)
+#define  VTSS_M_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_CCM_LM_INFO_REG_CCM_LM_VOE_IDX     VTSS_ENCODE_BITMASK(0,11)
+#define  VTSS_X_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_CCM_LM_INFO_REG_CCM_LM_VOE_IDX(x)  VTSS_EXTRACT_BITFIELD(x,0,11)
+
+#define VTSS_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_CCM_LM_TX_B_REG(gi)  VTSS_IOREG_IX(VTSS_TO_ANA_AC_OAM_MOD,0x2000,gi,8,0,3)
+
+#define VTSS_ANA_AC_OAM_MOD_OAM_PDU_MOD_CONT_CCM_LM_RX_B_REG(gi)  VTSS_IOREG_IX(VTSS_TO_ANA_AC_OAM_MOD,0x2000,gi,8,0,4)
+
+#define VTSS_ANA_AC_OAM_MOD_PDU_MOD_CFG_DM_PTP_DOMAIN_CFG(ri)  VTSS_IOREG(VTSS_TO_ANA_AC_OAM_MOD,0x2370 + (ri))
+#define  VTSS_F_ANA_AC_OAM_MOD_PDU_MOD_CFG_DM_PTP_DOMAIN_CFG_PTP_DOMAIN(x)  VTSS_ENCODE_BITFIELD(x,0,2)
+#define  VTSS_M_ANA_AC_OAM_MOD_PDU_MOD_CFG_DM_PTP_DOMAIN_CFG_PTP_DOMAIN     VTSS_ENCODE_BITMASK(0,2)
+#define  VTSS_X_ANA_AC_OAM_MOD_PDU_MOD_CFG_DM_PTP_DOMAIN_CFG_PTP_DOMAIN(x)  VTSS_EXTRACT_BITFIELD(x,0,2)
+
+
+#endif /* _VTSS_JAGUAR2_REGS_ANA_AC_OAM_MOD_H_ */

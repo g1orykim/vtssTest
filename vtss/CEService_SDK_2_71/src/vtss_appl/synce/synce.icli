@@ -1,0 +1,1264 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "synce_icli_functions.h"
+#include "icli_porting_util.h"
+INCLUDE_END
+
+NETWORK_CLOCK_HELP = network-clock
+NETWORK_CLOCK_SRC_HELP = clk-source - commands related to a specific clock source.
+NETWORK_CLOCK_SRC_VALUE_HELP = Clock source number
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = show network-clock
+
+NETWORK_CLOCK_SHOW_HELP = Show selector state.
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_SHOW_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_SHOW_HELP
+
+DOC_CMD_EXAMPLE = show network-clock
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+! 1: show
+! 2: network-clock
+
+HELP = 
+HELP = ##NETWORK_CLOCK_SHOW_HELP
+
+CODE_BEGIN
+   VTSS_RC(synce_icli_show(session_id));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = clear network-clock clk-source <range_list>
+
+NETWORK_CLOCK_CLR_HELP = Clear active WTR timer.
+DOC_CMD_DESC    = ##NETWORK_CLOCK_CLR_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_CLR_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = synce_icli_runtime_synce_sources
+
+! 1: network-clock
+! 2: clear
+! 3: clk-source
+! 4: <uint>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clk_list
+
+HELP =
+HELP = ##NETWORK_CLOCK_CLR_HELP
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_clear(session_id, clk_list));    
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock clk-source <range_list> nominate { clk-in | {interface <port_type_id>} }
+
+NETWORK_CLOCK_NOMINATE_CLK_HELP = Nominate a clk input to become a selectable clock source.
+DOC_CMD_DESC    = ##NETWORK_CLOCK_NOMINATE_CLK_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_NOMINATE_CLK_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = synce_icli_runtime_synce_sources
+
+! 1: network-clock
+! 2: nominate
+! 3: clk-source
+! 4: <uint>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clk_list
+CMD_VAR = 
+CMD_VAR = has_clk_in
+CMD_VAR = 
+CMD_VAR = port
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+HELP = ##NETWORK_CLOCK_NOMINATE_CLK_HELP
+HELP = Nominate the station clock input as a source. The PCB104 SyncE module supports 10 MHz station clock input
+HELP = Nominate an ethernet interface as a source
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_nominate(session_id, clk_list, has_clk_in, &port, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock clk-source <range_list> nominate 
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_NOMINATE_CLK_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_NOMINATE_CLK_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = synce_icli_runtime_synce_sources
+
+! 1: no
+! 2: network-clock
+! 3: nominate
+! 4: clk-source
+! 5: <uint>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clk_list
+
+HELP =
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+HELP = ##NETWORK_CLOCK_NOMINATE_CLK_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_nominate(session_id, clk_list, FALSE, NULL, TRUE));
+CODE_END
+
+CMD_END
+
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock input-source { 1544khz | 2048khz | 10mhz }
+
+NETWORK_CLOCK_INPUT_SOURCE_HELP = Sets the station clock input frequency
+NETWORK_CLOCK_1544_HELP = Station clock set to 1544 kHZ
+NETWORK_CLOCK_2048_HELP = Station clock set to 2048 kHZ
+NETWORK_CLOCK_10M_HELP = Station clock set to 10 MHz
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_INPUT_SOURCE_HELP
+DOC_CMD_DEFAULT = Ibnput source disabled.
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_INPUT_SOURCE_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME = 
+RUNTIME = synce_icli_runtime_any_input_freq
+RUNTIME = synce_icli_runtime_input_1544khz
+RUNTIME = synce_icli_runtime_input_2048khz
+RUNTIME = synce_icli_runtime_input_10MHz
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_1544
+CMD_VAR = has_2048
+CMD_VAR = has_10M
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_INPUT_SOURCE_HELP
+HELP = ##NETWORK_CLOCK_1544_HELP
+HELP = ##NETWORK_CLOCK_2048_HELP
+HELP = ##NETWORK_CLOCK_10M_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_station_clk(session_id, TRUE, has_1544, has_2048, has_10M, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock input-source
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = synce_icli_runtime_any_input_freq	
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP = 
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_INPUT_SOURCE_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_station_clk(session_id, TRUE, FALSE, FALSE, FALSE, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock output-source { 1544khz | 2048khz | 10mhz }
+
+NETWORK_CLOCK_OUTPUT_SOURCE_HELP = Sets the station clock output frequency
+
+RUNTIME = 
+RUNTIME = synce_icli_runtime_any_output_freq
+RUNTIME = synce_icli_runtime_output_1544khz
+RUNTIME = synce_icli_runtime_output_2048khz
+RUNTIME = synce_icli_runtime_output_10MHz
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_OUTPUT_SOURCE_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_OUTPUT_SOURCE_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_1544
+CMD_VAR = has_2048
+CMD_VAR = has_10M
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_OUTPUT_SOURCE_HELP
+HELP = ##NETWORK_CLOCK_1544_HELP
+HELP = ##NETWORK_CLOCK_2048_HELP
+HELP = ##NETWORK_CLOCK_10M_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_station_clk(session_id, FALSE, has_1544, has_2048, has_10M, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock output-source
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = synce_icli_runtime_any_output_freq	
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP = 
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_OUTPUT_SOURCE_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_station_clk(session_id, FALSE, FALSE, FALSE, FALSE, TRUE));
+CODE_END
+
+CMD_END
+
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock clk-source <range_list> aneg-mode { master | slave | forced}
+
+NETWORK_CLOCK_ANEG_HELP = Sets the preferred negotiation.
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_ANEG_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_ANEG_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME =
+RUNTIME =
+RUNTIME = synce_icli_runtime_synce_sources
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clk_src
+CMD_VAR = 
+CMD_VAR = has_master
+CMD_VAR = has_slave
+CMD_VAR = has_forced
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+HELP = ##NETWORK_CLOCK_ANEG_HELP
+HELP = Activate prefer master negotiation
+HELP = Activate prefer slave negotiation
+HELP = Activate forced slave negotiation
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Master : option>
+BYWORD = <Slave : option>
+BYWORD = <Forced : option>
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_aneg(session_id, clk_src, has_master, has_slave, has_forced, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock clk-source <range_list> aneg-mode
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_ANEG_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_ANEG_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME = 
+RUNTIME =
+RUNTIME =
+RUNTIME = synce_icli_runtime_synce_sources
+
+! 1: no
+! 2: network-clock
+! 3: clk-source
+! 4: <uint>
+! 5: aneg-mode
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clk_src
+CMD_VAR = 
+
+HELP = 
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+HELP = ##NETWORK_CLOCK_ANEG_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_aneg(session_id, clk_src, FALSE, FALSE, FALSE, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock clk-source <range_list> hold-timeout <3-18>
+
+NETWORK_CLOCK_HOLD_TIMEOUT_HELP =  The hold off timer value in 100 ms.Valid values are range 3-18. 
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_HOLD_TIMEOUT_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_HOLD_TIMEOUT_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = synce_icli_runtime_synce_sources
+
+
+! 1: network-clock
+! 2: clk-source
+! 3: <uint>
+! 4: hold-timeout
+! 5: <3-18>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clk_src
+CMD_VAR = 
+CMD_VAR = v_3_to_18
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+HELP = ##NETWORK_CLOCK_HOLD_TIMEOUT_HELP
+HELP = Value in 100ms. E.g 9 gives a hold timeput of 900 ms.
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_hold_time(session_id, clk_src, v_3_to_18, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock clk-source <range_list> hold-timeout
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_HOLD_TIMEOUT_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_HOLD_TIMEOUT_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = synce_icli_runtime_synce_sources
+
+! 1: no
+! 2: network-clock
+! 3: clk-source
+! 4: <uint>
+! 5: hold-timeout
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clk_src
+CMD_VAR = 
+
+HELP = 
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+HELP = ##NETWORK_CLOCK_HOLD_TIMEOUT_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_hold_time(session_id, clk_src, 0, TRUE));
+CODE_END
+
+CMD_END
+
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock selector { { manual clk-source <uint>  } | selected | nonrevertive | revertive | holdover | freerun }
+
+NETWORK_CLOCK_SELECTOR_HELP = Selection mode of nominated clock sources
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_SELECTOR_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_SELECTOR_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = synce_icli_runtime_synce_sources
+
+
+! 1: network-clock
+! 2: mode
+! 3: clk-source
+! 4: <uint>
+! 5: manual
+! 6: selected
+! 7: nonrevertive
+! 8: revertive
+! 9: holdover
+! 10: freerun
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_manual
+CMD_VAR = 
+CMD_VAR = v_uint
+CMD_VAR = has_selected
+CMD_VAR = has_nonrevertive
+CMD_VAR = has_revertive
+CMD_VAR = has_holdover
+CMD_VAR = has_freerun
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SELECTOR_HELP
+HELP = Selector is manually set to the chosen clock source
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+HELP = Selector is manually set to the pt. selected clocfk source (not possible in unlocked mode)
+HELP = Selector is automatically selecting the best clock source - non revertively
+HELP = Selector is automatically selecting the best clock source - revertively
+HELP = Selector is forced in holdover
+HELP = Selector is forced in free run
+
+BYWORD = 
+BYWORD = 
+BYWORD = <ClkSource : option>
+BYWORD = 
+BYWORD = 
+BYWORD = <Selected : option>
+BYWORD = <Nonrevertive : option>
+BYWORD = <Revertive : option>
+BYWORD = <Holdover : option>
+BYWORD = <Freerun : option>
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_selector(session_id, v_uint, has_manual, has_selected, has_nonrevertive, has_revertive, has_holdover, has_freerun, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock selector
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_SELECTOR_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_SELECTOR_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+! 1: no
+! 2: network-clock
+! 3: mode
+
+HELP = 
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SELECTOR_HELP
+
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_selector(session_id, 0, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock clk-source <range_list> priority <0-1>
+
+NETWORK_CLOCK_PRIO_HELP = Priority of nominated clock sources.
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_PRIO_HELP
+DOC_CMD_DEFAULT = default is 0
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_PRIO_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+ 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = synce_icli_runtime_synce_sources
+
+! 1: network-clock
+! 2: clk-source
+! 3: <uint>
+! 4: priority
+! 5: <0-2>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clk_src
+CMD_VAR =
+CMD_VAR = prio
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+HELP = ##NETWORK_CLOCK_PRIO_HELP
+HELP = Priority number
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_prio(session_id, clk_src, prio, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock clk-source <range_list> priority
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_PRIO_HELP
+DOC_CMD_DEFAULT = default is 0
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_PRIO_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = synce_icli_runtime_synce_sources
+
+! 1: no
+! 2: network-clock
+! 3: clk-source
+! 4: <uint>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clk_src
+
+HELP = 
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+HELP = ##NETWORK_CLOCK_PRIO_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_prio(session_id, clk_src, 0, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock wait-to-restore <0-12>
+
+NETWORK_CLOCK_WTR_HELP = WTR time (0-12 min) '0' is disable
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_WTR_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_WTR_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+! 1: network-clock
+! 2: wait-to-restore
+! 3: <0-12>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = wtr_value
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_WTR_HELP
+HELP = wait-to-restore value in min
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_wtr(session_id, wtr_value, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock wait-to-restore
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_WTR_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_WTR_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+! 1: no
+! 2: network-clock
+! 3: wait-to-restore
+
+
+HELP = 
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_WTR_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_wtr(session_id, 0, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock ssm-holdover { prc | ssua | ssub | eec2 | eec1 | dnu | inv }
+
+NETWORK_CLOCK_HOLDOVER_HELP = Hold Over SSM overwrite
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_HOLDOVER_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_HOLDOVER_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+! 1: network-clock
+! 2: ssm-holdover
+! 3: prc
+! 4: ssua
+! 5: ssub
+! 6: eec2
+! 7: eec1
+! 8: dnu
+! 9: inv
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_prc
+CMD_VAR = has_ssua
+CMD_VAR = has_ssub
+CMD_VAR = has_eec2
+CMD_VAR = has_eec1
+CMD_VAR = has_dnu
+CMD_VAR = has_inv
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_HOLDOVER_HELP
+HELP = prc
+HELP = ssua
+HELP = ssub
+HELP = eec2
+HELP = eec1
+HELP = dnu
+HELP = inv
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Prc : option>
+BYWORD = <Ssua : option>
+BYWORD = <Ssub : option>
+BYWORD = <Eec2 : option>
+BYWORD = <Eec1 : option>
+BYWORD = <Dnu : option>
+BYWORD = <Inv : option>
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_ssm(session_id, NULL, HOLDOVER, has_prc, has_ssua, has_ssub, has_eec2, has_eec1, has_dnu, has_inv, FALSE));     
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock ssm-holdover
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_HOLDOVER_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_HOLDOVER_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+! 1: no
+! 2: network-clock
+! 3: ssm-holdover
+
+HELP = 
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_HOLDOVER_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_ssm(session_id, NULL, HOLDOVER, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock ssm-freerun { prc | ssua | ssub | eec2 | eec1 | dnu | inv }
+
+NETWORK_CLOCK_FREERUN_HELP = Free Running SSM overwrite
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_FREERUN_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_FREERUN_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+! 1: network-clock
+! 2: ssm-freerun
+! 3: prc
+! 4: ssua
+! 5: ssub
+! 6: eec2
+! 7: eec1
+! 8: dnu
+! 9: inv
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_prc
+CMD_VAR = has_ssua
+CMD_VAR = has_ssub
+CMD_VAR = has_eec2
+CMD_VAR = has_eec1
+CMD_VAR = has_dnu
+CMD_VAR = has_inv
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_FREERUN_HELP
+HELP = prc
+HELP = ssua
+HELP = ssub
+HELP = eec2
+HELP = eec1
+HELP = dnu
+HELP = inv
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Prc : option>
+BYWORD = <Ssua : option>
+BYWORD = <Ssub : option>
+BYWORD = <Eec2 : option>
+BYWORD = <Eec1 : option>
+BYWORD = <Dnu : option>
+BYWORD = <Inv : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_ssm(session_id, NULL, FREERUN, has_prc, has_ssua, has_ssub, has_eec2, has_eec1, has_dnu, has_inv, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock ssm-freerun
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_FREERUN_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_FREERUN_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+! 1: no
+! 2: network-clock
+! 3: ssm-freerun
+
+HELP = 
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_FREERUN_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_ssm(session_id, NULL, FREERUN, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock clk-source <range_list> ssm-overwrite { prc | ssua | ssub | eec2 | eec1 | dnu }
+
+NETWORK_CLOCK_OVERWRITE_HELP = Clock source SSM overwrite
+DOC_CMD_DESC    = ##NETWORK_CLOCK_OVERWRITE_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_OVERWRITE_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+RUNTIME =
+RUNTIME =
+RUNTIME = synce_icli_runtime_synce_sources
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+! 1: network-clock
+! 2: clk-source
+! 3: <uint>
+! 4: ssm-overwrite
+! 5: prc
+! 6: ssua
+! 7: ssub
+! 8: eec2
+! 9: eec1
+! 10: dnu
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clk_src
+CMD_VAR = 
+CMD_VAR = has_prc
+CMD_VAR = has_ssua
+CMD_VAR = has_ssub
+CMD_VAR = has_eec2
+CMD_VAR = has_eec1
+CMD_VAR = has_dnu
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+HELP = ##NETWORK_CLOCK_OVERWRITE_HELP
+HELP = prc
+HELP = ssua
+HELP = ssub
+HELP = eec2
+HELP = eec1
+HELP = dnu
+HELP = inv
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Prc : option>
+BYWORD = <Ssua : option>
+BYWORD = <Ssub : option>
+BYWORD = <Eec2 : option>
+BYWORD = <Eec1 : option>
+BYWORD = <Dnu : option>
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_ssm(session_id, clk_src, OVERWRITE, has_prc, has_ssua, has_ssub, has_eec2, has_eec1, has_dnu, FALSE, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock clk-source <range_list> ssm-overwrite
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_OVERWRITE_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_OVERWRITE_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME = 
+RUNTIME =
+RUNTIME =
+RUNTIME = synce_icli_runtime_synce_sources
+
+! 1: no
+! 2: network-clock
+! 3: clk-source
+! 4: <uint>
+! 5: ssm-overwrite
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clk_src
+CMD_VAR = 
+
+HELP = 
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SRC_HELP
+HELP = ##NETWORK_CLOCK_SRC_VALUE_HELP
+HELP = ##NETWORK_CLOCK_OVERWRITE_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_ssm(session_id, clk_src, OVERWRITE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE)); 
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock option { eec1 | eec2 }
+
+NETWORK_CLOCK_OPTION_HELP = EEC options
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_OPTION_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_OPTION_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+
+! 1: network-clock
+! 2: option
+! 3: eec1
+! 4: eec2
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_eec1
+CMD_VAR = has_eec2
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_OPTION_HELP
+HELP = EEC1: DPLL bandwidth = 3,5 Hz, pull-in range = +/-12 ppm
+HELP = EEC2: DPLL bandwidth = 0,1 Hz, pull-in range = +/-12 ppm
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Eec1 : option>
+BYWORD = <Eec2 : option>
+
+CODE_BEGIN
+    VTSS_RC(sycne_icli_option(session_id, has_eec1, has_eec2, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = no network-clock option
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_OPTION_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_OPTION_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+! 1: no
+! 2: network-clock
+! 3: option
+
+HELP = 
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_OPTION_HELP
+
+CODE_BEGIN
+    VTSS_RC(sycne_icli_option(session_id, FALSE, FALSE, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SYNCE
+
+COMMAND = network-clock synchronization ssm
+
+NETWORK_CLOCK_SYNCH_HELP = SSM enable/disable.
+
+DOC_CMD_DESC    = ##NETWORK_CLOCK_SYNCH_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##NETWORK_CLOCK_SYNCH_HELP
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: network-clock
+! 2: synchronization
+! 3: ssm
+
+
+HELP = ##NETWORK_CLOCK_HELP
+HELP = ##NETWORK_CLOCK_SYNCH_HELP
+HELP = ##NETWORK_CLOCK_SYNCH_HELP
+
+CODE_BEGIN
+    VTSS_RC(synce_icli_sync(session_id, plist, FALSE)); 
+CODE_END
+
+NO_FORM_CODE_BEGIN     
+    VTSS_RC(synce_icli_sync(session_id, plist, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+

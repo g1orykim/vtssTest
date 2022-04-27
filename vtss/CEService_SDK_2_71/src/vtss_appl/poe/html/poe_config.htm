@@ -1,0 +1,512 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_poe_config.htm";
+
+
+var BackupPowerSupplySupported; // Variable telling if the hardware supports backup power supply
+
+
+// Variable for storing max and min power supply supported by the poe chip set.
+// The value is given via web.c
+var POE_MAX_POWER_SUPPLY = 0;
+var POE_MIN_POWER_SUPPLY = 0;
+var port_supports_poe = Array();
+
+// Function that return the maximum power allowed for a port for a specific mode
+// In - port - The port at which the maximum power shall be returned-
+// Return - Maximum power for the port.
+function poe_max_port_power (port) {
+    // poe mode 
+    // 0 = POE_MODE_POE_DISABLED
+    // 1 = POE_MODE_POE
+    // 2 = POE_MODE_POE_PLUS
+    if (document.getElementById("poe_mode_" + port).value === 0) {
+	return 0;
+    } else if (document.getElementById("poe_mode_" + port).value == 1) {
+	return 15.4;
+    } else {
+	return 30;
+    }
+}
+
+var poe_port_cnt; // Variable for holding the number of ports that have PoE.
+
+// Function that is disabling ( graying out )fields that is not used
+// in the current selected mode
+var DisableNotUsedFields = function() {
+    // By default all feilds are enabled.
+    MaxPowerFieldsDisabled = 0;
+    PriorityFieldsDisabled = 0; 
+
+    // Determine if any fields shall be disabled
+    if (document.getElementById("Allocation").checked) {
+	if (document.getElementById("ActualConsumption").checked) {
+	    PriorityFieldsDisabled = 0;
+	} else {
+	    PriorityFieldsDisabled = 1;
+	}
+    }
+    
+    if (document.getElementById("Class").checked || document.getElementById("LLDP-Med").checked) {
+	MaxPowerFieldsDisabled = 1;
+    }
+
+    document.getElementById("__ctl__2").disabled = PriorityFieldsDisabled; // Master control bar priority 
+    document.getElementById("__ctl__3").disabled = MaxPowerFieldsDisabled; // Master control bar max power 
+
+    for(var i = 0; i < poe_port_cnt ; i++) {
+	if (port_supports_poe[i] === 0) {
+	    // Port doesn't support PoE - So gray out the configuration feilds.
+	    document.getElementById("poe_mode_" + i).disabled = 1;
+	    document.getElementById("max_power_" + i).disabled = 1;
+	    document.getElementById("priority_" + i).disabled  = 1;
+	} else if (document.getElementById("poe_mode_" + i).value !== 0) {
+	    document.getElementById("max_power_" + i).disabled = MaxPowerFieldsDisabled;
+	    document.getElementById("priority_" + i).disabled  = PriorityFieldsDisabled;
+	} else {
+	    document.getElementById("max_power_" + i).disabled = 1;
+	    document.getElementById("priority_" + i).disabled  = 1;
+	}
+    }
+};
+
+
+
+
+fld = document.getElementById("Class");
+function addRow(index, frag, values) {
+    var portno          = values[0];
+    var priority        = values[1];
+    var max_power       = values[2];
+    var poe_mode        = values[3];
+    port_supports_poe[parseInt(index, 10)] = parseInt(values[4], 10); // Remember if this ports supported PoE (values[4] is a boolean)
+
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    
+    // Adding port number
+    addTextCell(tr, portno, "cr");    
+    
+    // Add poe mode drop down list
+    var oT = Array("Disabled","PoE","PoE+"); // Text
+    var oV = Array("0","1","2"); 
+    fld = addSelectCell(tr, oT, oV, poe_mode, "cr", "poe_mode_" + index);
+
+    fld.onclick = DisableNotUsedFields; // Call DisableNotUsedFields function when the chceckbox is changed
+    
+
+    // Add the drop down list
+    oT = Array("Low","High","Critical"); // Text
+    oV = Array("0","1","2"); 
+    addSelectCell(tr, oT, oV, priority, "cr", "priority_" + index);
+
+
+
+    // The Max. power can be given with 1 digit, but we will not use floting point
+    // variables, the value is stored as an integer. We have one visible cell which shows the 
+    // max power value with one digit, while we a hidden cell which is containing the max 
+    // power value as an integer 
+    addInputCell(tr, max_power/10, "cr", "max_power_" + index); 
+
+    frag.appendChild(tr);       // Add row to fragment
+    tr = CreateStyledElement("tr", "config_odd");
+    
+
+    // Add hidden port_no cell that can be read by web.c (text cell can't be read by web.c)
+    addHiddenInputCell(tr, portno, "cr", "hidden_portno_" + index);     
+
+    // Because we can not read the value of the selectcell if it is disabled we have a hidden InputCell which 
+    // contains a copy of the Selcetcell value.
+    addHiddenInputCell(tr, poe_mode, "cr", "hidden_poe_mode_" + index); 
+    addHiddenInputCell(tr, priority, "cr", "hidden_priority_" + index); 
+
+    // See note at max_power
+    addHiddenInputCell(tr, max_power, "cr", "hidden_max_power_" + index); 
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function UpdateTable (ref, poeconfig) {
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+
+    // Create Header
+    clearChildNodes(document.getElementById('PoeHead')); // Delete table if it already exists
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Port", "hdrc", 1);
+    addTextHeaderCell(tr, "PoE Mode", "hdrc", 1);
+    addTextHeaderCell(tr, "Priority", "hdrc", 1);
+    addTextHeaderCell(tr, "Maximum Power [W]", "hdrc", 1);
+    frag.appendChild(tr);       // Add row to fragment
+    FinishTable(frag, 'PoeHead');
+
+    poe_port_cnt = 0;
+    // Loop until poeconfig.length -1 because we don't have a "end" seperator  
+     for(var i = 0; i < poeconfig.length -1 ; i++) {
+        if(poeconfig[i].length) {
+            var pval = poeconfig[i].split("/");
+            addRow(i, frag, pval);
+	    poe_port_cnt++; // keep track of how many port that have PoE
+        }
+    }
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+    
+    var cBar = new MasterControlBar([{text: "*", className: "cr"},
+    {name: "poe_mode_"}, 
+    {name: "priority_"}, 
+    {name: "max_power_"}]);
+    
+    cBar.construct('PoeData', 'config_odd');
+}
+
+
+function UpdatePowerSupplyTable (ref, config) {
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    
+
+    var PrimaryPowerSupply         = config[0];
+    var BackupPowerSupply          = config[1];
+    BackupPowerSupplySupported = config[2]; // 0 = Backup power not support.
+    POE_MIN_POWER_SUPPLY = config[3];
+    POE_MAX_POWER_SUPPLY = config[4];
+    LLDPsupported        = config[5]; // 0 = LLDP not support.    
+
+    // Hide LLDP in case that LLDP isn't supported
+    if (LLDPsupported == "1") {
+	document.getElementById("LLDP-Med").style.visibility = "visible";
+	document.getElementById('LLDP-MED_Label').firstChild.nodeValue="LLDP-MED";
+    } else {
+	document.getElementById('LLDP-MED_Label').firstChild.nodeValue="";
+    }   
+    
+    clearChildNodes(document.getElementById('PowerSupplyData')); // Delete table if it already exists
+
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"Primary Power Supply [W]","hdrc", 1);
+    if (BackupPowerSupplySupported != "0") {
+	addTextHeaderCell(tr,"Backup Power Supply [W]","hdrc",1);
+    }
+    frag.appendChild(tr);       // Add row to fragment
+	
+
+    tr = CreateStyledElement("tr", "config_odd");
+
+    addInputCell(tr, PrimaryPowerSupply, "cr", "PrimaryPowerSupply", 4, 4); 
+    if (BackupPowerSupplySupported != "0") {
+	addInputCell(tr, BackupPowerSupply, "cr", "BackupPowerSupply", 4, 4); 
+    }
+    frag.appendChild(tr);       // Add row to fragment
+
+    var tbody = document.getElementById("PowerSupplyData");
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+
+// Function that sets one of the management radio buttons
+function setManagmentRadioButtons (val) 
+{
+
+    // Start by deselecting all radio button, so we are in a known state
+    fld = document.getElementById("Class");
+    fld.checked = false;
+    fld.defaultChecked = false;   
+    fld = document.getElementById("Allocation");
+    fld.checked = false;
+    fld.defaultChecked = false;   
+    fld = document.getElementById("LLDP-Med");
+    fld.checked = false;
+    fld.defaultChecked = false;   
+    fld = document.getElementById("ActualConsumption");
+    fld.checked = false;
+    fld.defaultChecked = false;   
+    fld = document.getElementById("ReservedPower");
+    fld.checked = false;
+    fld.defaultChecked = false;   
+    // Select the radio button in question. ( See poe_api.h for defintion of poe_power_mgmt_t.)
+    if(val === 0) 
+	{
+	fld = document.getElementById("Class");
+	fld1 = document.getElementById("ReservedPower");
+	} 
+    else if(val == 1) 
+	{
+	fld = document.getElementById("Class");
+	fld1 = document.getElementById("ActualConsumption");
+	}
+    else if(val == 2) 
+	{
+	fld = document.getElementById("Allocation");
+	fld1 = document.getElementById("ReservedPower");
+	}
+    else if(val == 3) {
+	fld = document.getElementById("Allocation");
+	fld1 = document.getElementById("ActualConsumption");
+    }
+    else if(val == 4) 
+	{
+	fld = document.getElementById("LLDP-Med");
+	fld1 = document.getElementById("ReservedPower");
+	}
+    else if(val == 5) 
+	{
+	fld = document.getElementById("LLDP-Med");
+	fld1 = document.getElementById("ActualConsumption");
+	}
+    else 
+	{
+	// This shall never happen
+	alert("Unknown management mode - defaulting to Class - Val:" + val);
+	fld = document.getElementById("Class");
+	fld1 = document.getElementById("ActualConsumption");
+	}
+
+    fld.checked = true;
+    fld.defaultChecked = true;
+    fld1.checked = true;
+    fld1.defaultChecked = true;
+	
+}
+
+
+function processUpdate(req, ref)
+{
+
+    if(redirectOnError(req)) {
+        return;
+    }
+
+    if(req.responseText) {
+
+        // Get and set tx configurations ettings
+        var config = req.responseText.split("|");
+        var pval = config[0].split("/");
+
+	// Management mode 
+	setManagmentRadioButtons(parseInt(pval, 10));
+
+	// Power supply
+	UpdatePowerSupplyTable(ref, config[1].split("/"));
+
+        // Create the table
+        UpdateTable(ref, config[2].split(","));
+
+	
+
+	// Disable any fields that are not used in the current selected mode.
+	DisableNotUsedFields();
+    } else {
+        SpomHandleError();   
+    }
+}
+
+
+// Check that all forms contains valid values
+function checkForm(form)
+{    
+    
+    if(!isWithinRange("PrimaryPowerSupply", parseInt(POE_MIN_POWER_SUPPLY, 10), parseInt(POE_MAX_POWER_SUPPLY, 10), "'Primary Power Source Max. Power'", " watts")) {
+        return false;
+    }
+    fld = document.getElementById("PrimaryPowerSupply");
+    PrimaryPowerSupply = fld.value;
+    
+    if (BackupPowerSupplySupported == "1") {
+	if(!isWithinRange("BackupPowerSupply", parseInt(POE_MIN_POWER_SUPPLY, 10),parseInt( POE_MAX_POWER_SUPPLY, 10) , "'Backup Power Source Max. Power'", " watts")) {
+	    return false;
+	}
+	
+	fld = document.getElementById("BackupPowerSupply");
+	BackupPowerSupply = fld.value;
+
+    } else {
+	fld = document.getElementById("BackupPowerSupply");
+	BackupPowerSupply = 0;
+    }
+
+
+    TotalPowerReserved = 0; // Variable for calculating the total power reserved by all ports
+
+    for(var i = 0; i < poe_port_cnt ; i++) {
+	if (document.getElementById("max_power_" + i).disabled != 1) {
+	    // OK - max power is used. Check that it is within valid range.
+	    if(!isWithinRangeFloat("max_power_" + i, 0, parseFloat(poe_max_port_power(i)), "'Max. Power'", " watts.")) {
+		return false;
+	    }
+	} else {
+	    // Max power isn't used, but check that we don't exceed 30 W (Max for poe+)
+	    if(!isWithinRangeFloat("max_power_" + i, 0, 30, "'Max. Power'", " watts.")) {
+		return false;
+	    }
+	}
+
+	// Update the hidden max power cell ( See comment where the hidden cell is defined )
+	MaxPowerFld = document.getElementById("max_power_" + i);
+	HiddenMaxPowerFld = document.getElementById("hidden_max_power_" + i);
+	HiddenMaxPowerFld.value = MaxPowerFld.value * 10;
+	// Update the total power reserved by all ports that are enabled
+	if (document.getElementById("poe_mode_" + i).value !== 0 && document.getElementById("max_power_" + i).disabled != 1) {
+	    TotalPowerReserved += parseInt(HiddenMaxPowerFld.value, 10);
+	}
+       // Copy to select cell value to the hidden cell. ( See comment where the hidden cell is defined )
+	document.getElementById("hidden_priority_" + i).value = document.getElementById("priority_" + i).value;
+	document.getElementById("hidden_poe_mode_" + i).value = document.getElementById("poe_mode_" + i).value;
+    }
+   
+
+    // Make sure that the user hasn't reserved more power than available.
+    if (document.getElementById("Allocation").checked && document.getElementById("ReservedPower").checked) {
+	if (TotalPowerReserved/10 > parseInt(PrimaryPowerSupply, 10)) {
+	    alert("You have reserved more power (" +  TotalPowerReserved/10 + " Watts) than available from the primary power supply");
+	    return false;
+	}
+    }
+    return true;                // Feed the chickens and go home
+}
+
+function requestUpdate() {
+
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+
+    document.getElementById('LLDP-MED_Label').firstChild.nodeValue=""; // Work around for not being able to have an empty string for a radio button ( The child is not created is the label is empty )
+    loadXMLDoc(SpomAddSidArg("/config/poe_config"), processUpdate, 'PoeData');
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateDisplaySid("display_sid_1");
+    SpomUpdateFormSid("submit_sid");
+}
+
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+
+// Because we disables some of the element in "runtime", we need to
+// do take special care of the reset.
+function ResetUpdate() {
+    document.PoEConfigForm.reset();
+    DisableNotUsedFields();
+}
+
+
+ </script>
+</head>
+
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Power Over Ethernet Configuration</h1>
+
+<form name="PoEConfigForm" method="POST" action="/config/poe_config" onsubmit="return checkForm(this);">
+
+<table id="config" summary="Switch Default Class Configuration" class="config">
+ <tbody>
+  <tr class="config">
+
+  <td class="param_label">Reserved Power determined by</td>
+     <td><input type="radio" name="base_group" id="Class"     value="Class" onclick="DisableNotUsedFields();">Class<br> </td>
+     <td><input type="radio" name="base_group" id="Allocation" value="Allocation" onclick="DisableNotUsedFields();">Allocation<br> </td>
+     <td><input style="visibility:hidden;"  type="radio" name="base_group" value="LLDP-Med" id="LLDP-Med" onclick="DisableNotUsedFields();" />
+    <label for="LLDP-Med" id="LLDP-MED_Label"/>. </td>
+ 
+   </tr>
+  <tr class="config2">
+     <td class="param_label">Power Management Mode</td>
+     <td><input type="radio" name="mode_group" id="ActualConsumption"    value="ActualConsumption" onclick="DisableNotUsedFields();">Actual Consumption<br> </td>
+     <td><input type="radio" name="mode_group" id="ReservedPower" value="ReservedPower" onclick="DisableNotUsedFields();">Reserved Power<br> </td>
+      <td><input style="visibility:hidden;"  type="radio" name="base_group" value="dummy" id="dummy"></td>
+     </tr>
+
+</tbody>
+</table>
+
+<h2>PoE Power Supply Configuration <span id="display_sid"></span></h2>
+
+<table id="PowerSupplyConfig" summary="Power Supply Configuration" class="config">
+ <tbody id="PowerSupplyData">
+ </tbody>
+</table>
+
+<h2>PoE Port Configuration  <span id="display_sid_1"></span></h2>
+
+<table id="poeconfig" summary="Switch Port Configuration" class="config">
+ <tbody id="PoeHead"> </tbody>
+ <tbody id="PoeData"> </tbody>
+</table>
+
+
+
+
+<!-- Buttons -->
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset" onclick="ResetUpdate();">
+</p>
+</form>
+</body>
+</html>
+     
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

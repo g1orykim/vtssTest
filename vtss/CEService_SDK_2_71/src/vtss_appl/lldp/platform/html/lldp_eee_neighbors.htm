@@ -1,0 +1,224 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_lldp_eee.htm";
+
+//
+// Global variables
+//
+
+
+
+// Refresh timer
+var timerID;
+
+//
+// Java script functions
+//
+
+function UpdateTable (ref, frag, lldp_eee_infomation)
+{
+    var tr;
+    // Check that data is available 
+    if (lldp_eee_infomation.length > 0 && lldp_eee_infomation[0] !== "No EEE info") { 
+	// Loop though all data
+        for(var index = 0; index < lldp_eee_infomation.length; index++) {
+	    // Change color for every 2nd row.
+	    tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+
+	        
+	    // Get all EEE information for current neighbor
+	    var pval = lldp_eee_infomation[index].split("/");
+
+
+	    var local_port  = pval[0];
+	    var tx_tw       = pval[1];
+	    var rx_tw       = pval[2];
+	    var fallback_tw = pval[3];
+	    var echo_tx_tw  = pval[4];
+	    var echo_rx_tw  = pval[5];
+	    var eee_in_sync  = pval[6];
+	    var resolved_tx_tw  = pval[7];
+	    var resolved_rx_tw  = pval[8];
+	    
+	    addTextCell(tr, local_port,  "c");  
+	    addTextCell(tr, tx_tw, "c");  
+	    addTextCell(tr, rx_tw, "c");  
+	    addTextCell(tr, fallback_tw, "c");  
+	    addTextCell(tr, echo_tx_tw, "c");  
+	    addTextCell(tr, echo_rx_tw, "c");  
+	    addTextCell(tr, resolved_tx_tw, "c");  
+	    addTextCell(tr, resolved_rx_tw, "c");  
+
+	    
+	    if (eee_in_sync === "1") {
+	      addImageCell(tr, "c", "images/led-" + "up" + ".gif", "In Sync");
+	    } else {
+	      addImageCell(tr, "c", "images/led-" + "down" + ".gif", "Not in Sync");
+            }
+
+
+	    frag.appendChild(tr);       // Add row to fragment
+	}   
+    } else {
+	// No LLDP entries found 
+	tr = CreateStyledElement("tr", "display_even");
+	addTextCell(tr,"No LLDP EEE information found", "c", 9);
+	frag.appendChild(tr);       // Add row to fragment
+    }
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    
+    FinishTable(frag,ref);
+}
+
+function processUpdate(req, ref)
+{
+   
+    if(redirectOnError(req)) {
+        return;
+    }
+
+    if(req.responseText) {
+        // Get number of entries
+	lldp_eee_infomation = req.responseText.split("|");
+
+	// create holder for accumulated tbody elements and text nodes
+	var frag = document.createDocumentFragment();
+	
+	// Create the table
+	UpdateTable(ref, frag, lldp_eee_infomation);
+    } else {
+        SpomHandleError();
+    }
+    document.getElementById("update").style.visibility = "hidden";
+
+    // Update the timer
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+	}
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+}
+
+function requestUpdate(type) {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/stat/lldp_eee_neighbors"), processUpdate, 'LLDP_EEE_Data');
+    
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function chkRefresh(fld)
+{
+  if(!fld.checked) {
+      if(timerID) {
+	  clearTimeout(timerID);
+      }
+      timerID = null;
+  } else {
+      requestUpdate();
+  }
+}
+
+// Update when SID is changed.
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>LLDP Neighbors EEE Information <span id="display_sid"></span></h1>
+
+<form name="LLDP_EEE_Form" method="POST" action="/stat/lldp_eee_neighbors" onsubmit="return checkForm(this);"> </form>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<table id="LLDP_EEE_Table" summary="LLDP EEE Table" cellspacing="0" class="display">
+ <thead>
+  <tr class="display_header">
+    <th>Local Port</th>
+    <th>Tx Tw</th>
+    <th>Rx Tw</th>
+    <th>Fallback Receive Tw</th>
+    <th>Echo Tx Tw</th>
+    <th>Echo Rx Tw</th>
+    <th>Resolved Tx Tw</th>
+    <th>Resolved Rx Tw</th>
+    <th>EEE in Sync</th>
+  </tr>
+ </thead>
+ <tbody id="LLDP_EEE_Data">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,733 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>SNMP System Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/deviceid.js"></script>
+ <script type="text/javascript">
+
+var pool_name = "";
+
+var pool_type_TMode = Array("None", "Network", "Host");
+var pool_type_VMode = genArrayInt(0, 2);
+
+var netbios_node_type_TMode = Array("None", "B-node", "P-node", "M-node", "H-node");
+var netbios_node_type_oVMode = genArrayInt(0, 4);
+
+var client_id_type_TMode = Array("None", "FQDN", "MAC");
+var client_id_type_oVMode = genArrayInt(0, 2);
+
+var reqObject;
+var cell_width  = 16;
+var style_width = "20em";
+
+// Help page magic
+var help_page = "/help/help_dhcp_server_pool_config.htm";
+
+var pageArgs = searchArgs( window.location.search );
+if ( pageArgs.pool_name ) {
+    pool_name = pageArgs.pool_name;
+}
+
+function selectUpdate( selConf )
+{
+    var sel, frag, i, opt;
+
+    sel = document.getElementById("pool_select");
+
+    clearChildNodes(sel);
+
+    frag = document.createDocumentFragment();
+
+    for ( i = 0; i < selConf.length; i++ ) {
+        opt = document.createElement("option");
+        opt.appendChild( document.createTextNode( unescape(selConf[i]) ) );
+        opt.setAttribute("value", selConf[i]);
+        if ( pool_name == selConf[i] ) {
+            opt.setAttribute("selected", true);
+        }
+        opt.style.width = style_width;
+        frag.appendChild(opt);
+    }
+    sel.appendChild(frag);
+}
+
+function dataUpdate( frag, title, value, id, maxLen, b_disabled )
+{
+    var tr, td;
+
+    tr = document.createElement("tr");
+    addTextCell(tr, title, "param_label");
+    td = addInputCell(tr, value, "cl", id, cell_width);
+    td.setAttribute("maxLength", maxLen);
+    td.style.width = style_width;
+    td.disabled = b_disabled;
+    frag.appendChild(tr);
+}
+
+function serverUpdate( frag, title, sv, id )
+{
+    var tr, str, std, val, i;
+
+    tr = document.createElement("tr");
+    addTextCell(tr, title, "param_label");
+    for ( i = 0; i < 4; i++ ) {
+        str = document.createElement("tr");
+        if ( sv && sv[i] ) {
+            val = sv[i];
+        } else {
+            val = "";
+        }
+        std = addInputCell(str, val, "cl", id+i, cell_width);
+        std.setAttribute("maxLength", 16);
+        std.style.width = style_width;
+        tr.appendChild(str);
+        frag.appendChild(tr);
+    }
+}
+
+function vendorUpdate( frag, sv, n )
+{
+    var tr, td, val;
+
+    tr = document.createElement("tr");
+    addTextCell(tr, "Vendor "+(n+1)+" Class Identifier", "param_label");
+    if ( sv && sv[0] ) {
+        val = unescape( sv[0] );
+    } else {
+        val = "";
+    }
+    td = addInputCell(tr, val, "cl", "pool_class_identifier_"+n, cell_width);
+    td.setAttribute("maxLength", 64);
+    td.style.width = style_width;
+    frag.appendChild(tr);
+
+    tr = document.createElement("tr");
+    addTextCell(tr, "Vendor "+(n+1)+" Specific Information", "param_label");
+    if ( sv && sv[1] ) {
+        val = unescape( sv[1] );
+    } else {
+        val = "";
+    }
+    td = addInputCell(tr, val, "cl", "pool_specific_info_"+n, cell_width);
+    td.setAttribute("maxLength", 66);
+    td.style.width = style_width;
+    frag.appendChild(tr);
+}
+
+// name is group name that will handle radio behavior
+function radioUpdate( frag, tr, type, value, title, name, id )
+{
+    var str, std;
+
+    str = document.createElement("tr");
+    std = addRadioCell(str, (type == value), "cl", name, id, title);
+    std.disabled = 0;
+    tr.appendChild(str);
+    frag.appendChild(tr);
+}
+
+function poolTypeChangeUpdate()
+{
+    var fld, b;
+
+    // Type
+    fld = document.getElementById("pool_type");
+
+    // disable IP and netmask
+    if ( parseInt(fld.value, 10) === 0 ) {
+        b = true;
+    } else {
+        b = false;
+    }
+
+    fld = document.getElementById("pool_ip");
+    if ( fld ) {
+        fld.disabled = b;
+    }
+
+    fld = document.getElementById("pool_netmask");
+    if ( fld ) {
+        fld.disabled = b;
+    }
+}
+
+function clientIdTypeChangeUpdate()
+{
+    var fld, b;
+
+    fld = document.getElementById("pool_client_id_type");
+    if ( parseInt(fld.value, 10) === 0 ) {
+        b = true;
+    } else {
+        b = false;
+    }
+
+    fld = document.getElementById("pool_client_id_value");
+    if ( fld ) {
+        fld.disabled = b;
+    }
+}
+
+function addRow( frag, values )
+{
+    var tr, td, index, i, sv, str, std, client_id, b_disabled, pool_type;
+
+    index = 0;
+
+    // name
+    tr = document.createElement("tr");
+    addTextCell(tr, "Pool Name", "param_label");
+    td = addInputCell(tr, unescape(values[index++]), "cl", "pool_name", cell_width);
+    td.setAttribute("maxLength", 32);
+    td.style.width = style_width;
+    td.disabled = true;
+    frag.appendChild(tr);
+
+    // type
+    pool_type = values[index++];
+    tr = document.createElement("tr");
+    addTextCell(tr, "Type", "param_label");
+    td = addSelectCell(tr, pool_type_TMode, pool_type_VMode, pool_type, "cl", "pool_type");
+    td.style.width = style_width;
+    td.onchange = poolTypeChangeUpdate;
+    frag.appendChild(tr);
+
+    // if disable IP and netmask or not
+    if ( pool_type > 0 ) {
+        b_disabled = false;
+    } else {
+        b_disabled = true;
+    }
+
+    // ip
+    dataUpdate(frag, "IP", unescape(values[index++]), "pool_ip", 16, b_disabled);
+
+    // netmask
+    dataUpdate(frag, "Subnet Mask", unescape(values[index++]), "pool_netmask", 16, b_disabled);
+
+    // lease time
+    sv = values[index++].split("/");
+    tr = document.createElement("tr");
+    addTextCell(tr, "Lease Time", "param_label");
+
+    str = document.createElement("tr");
+    std = addInputCellWithText(str, sv[0], "cl", "pool_lease_days", 12, 4, 0, "", " days (0-365)");
+    std.setAttribute("maxLength", 3);
+    tr.appendChild(str);
+    frag.appendChild(tr);
+
+    str = document.createElement("tr");
+    std = addInputCellWithText(str, sv[1], "cl", "pool_lease_hours", 12, 4, 0, "", " hours (0-23)");
+    std.setAttribute("maxLength", 2);
+    tr.appendChild(str);
+    frag.appendChild(tr);
+
+    str = document.createElement("tr");
+    std = addInputCellWithText(str, sv[2], "cl", "pool_lease_minutes", 12, 4, 0, "", " minutes (0-59)");
+    std.setAttribute("maxLength", 2);
+    tr.appendChild(str);
+    frag.appendChild(tr);
+
+    // domain name
+    dataUpdate(frag, "Domain Name", unescape(values[index++]), "pool_domain_name", 128);
+
+    // broadcast address
+    dataUpdate(frag, "Broadcast Address", unescape(values[index++]), "pool_broadcast_addr", 16);
+
+    // Default Router
+    serverUpdate(frag, "Default Router", values[index++].split("/"), "pool_default_router_");
+
+    // DNS Server
+    serverUpdate(frag, "DNS Server", values[index++].split("/"), "pool_dns_server_");
+
+    // NTP Server
+    serverUpdate(frag, "NTP Server", values[index++].split("/"), "pool_ntp_server_");
+
+    // NetBIOS Node Type
+    tr = document.createElement("tr");
+    addTextCell(tr, "NetBIOS Node Type", "param_label");
+    td = addSelectCell(tr, netbios_node_type_TMode, netbios_node_type_oVMode, values[index++], "cl", "pool_netbios_node_type");
+    td.style.width = style_width;
+    frag.appendChild(tr);
+
+    // NetBIOS Scope
+    dataUpdate(frag, "NetBIOS Scope", unescape(values[index++]), "pool_netbios_scope", 128);
+
+    // NetBIOS Name Server
+    serverUpdate(frag, "NetBIOS Name Server", values[index++].split("/"), "pool_netbios_name_server_");
+
+    // NIS Domain Name
+    dataUpdate(frag, "NIS Domain Name", unescape(values[index++]), "pool_nis_domain_name", 128);
+
+    // NIS Server
+    serverUpdate(frag, "NIS Server", values[index++].split("/"), "pool_nis_server_");
+
+    // Client Identifier
+    client_id = values[index++].split("/");
+
+    tr = document.createElement("tr");
+    addTextCell(tr, "Client Identifier", "param_label");
+
+    str = document.createElement("tr");
+    std = addSelectCell(str, client_id_type_TMode, client_id_type_oVMode, client_id[0], "cl", "pool_client_id_type");
+    std.onchange = clientIdTypeChangeUpdate;
+    tr.appendChild(str);
+
+    str = document.createElement("tr");
+    std = addInputCell(str, client_id[1], "cl", "pool_client_id_value", cell_width);
+    std.setAttribute("maxLength", 128);
+    std.style.width = style_width;
+    if ( client_id[0] === "0" ) {
+        std.disabled = true;
+    }
+    tr.appendChild(str);
+
+    frag.appendChild(tr);
+
+    // Hardware Address
+    dataUpdate(frag, "Hardware Address", values[index++], "pool_hardware_address", 17);
+
+    // Client Name
+    dataUpdate(frag, "Client Name", unescape(values[index++]), "pool_client_name", 32);
+
+    // Vendor Class Info List
+    for ( i = 0; i < 8; i++ ) {
+        vendorUpdate(frag, values[index++].split("/"), i);
+    }
+}
+
+function processUpdate( req, ref )
+{
+    var configData, oTName, names, i, frag, tbody;
+
+    if ( req.responseText === null ) {
+        return;
+    }
+
+    if ( reqObject != req ) {
+        reqObject = req;
+    }
+
+    //
+    //  Format: <pool_name_list>|<pool_config>
+    //
+    //      <pool_name_list> : name1,name2,...
+    //      <pool_config>    : name,type,ip,netmask,lease,domain-name,broadcast-address,
+    //                         <default_router_list>,<dns_server_list>,<ntp_server_list>,
+    //                         netbios-node-type,netbios-scope,<netbios_name_server_list>,
+    //                         nis-domain-name,<nis_server_list>,client-identifier,hardware-addr,
+    //                         client-name,<class-identifier-specific-info-list>
+    //
+
+    // pools and configurations
+    configData = req.responseText.split("|");
+
+    // pool select
+    oTName = Array();
+    names  = configData[0].split(",");
+
+    for ( i = 0; i < names.length; i++ ) {
+        if ( names[i] ) {
+            oTName[oTName.length] = names[i];
+        }
+    }
+    selectUpdate( oTName );
+
+    // pool configuration
+    frag = document.createDocumentFragment();
+    addRow(frag, configData[1].split(","));
+
+    // Add Frag to table body
+    tbody = document.getElementById("pool_data");
+    clearChildNodes( tbody );
+
+    if ( ! tbody.appendChild(frag) ) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function requestUpdate()
+{
+    loadXMLDoc("/config/dhcp_server_pool_config?pool_name=" + pool_name, processUpdate, "");
+}
+
+function poolReset()
+{
+    // update page
+    processUpdate( reqObject, "" );
+}
+
+function poolSelect()
+{
+    var sel;
+
+    sel = document.getElementById("pool_select");
+    pool_name = sel.options[sel.selectedIndex].value;
+    requestUpdate();
+}
+
+function serverCheck( id, title )
+{
+    var fld, i;
+
+    for ( i = 0; i < 4; i++ ) {
+        fld = document.getElementById( id+i );
+        if ( fld && fld.value !== "" ) {
+            if ( ! isIpStr(id+i, false, title+", "+fld.value+",", 2) ) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function nameCheck( id, title )
+{
+    var fld, j;
+
+    fld = document.getElementById( id );
+    if ( fld && fld.value !== "" ) {
+        for ( j = 0; j <= fld.value.length; j++ ) {
+        	if ( fld.value.charAt(j) == " " ) {
+                GiveAlert(title+", "+fld.value+", can not contain SPACE.", fld);
+                return false;
+        	}
+        }
+    }
+    return true;
+}
+
+function _isHex( v )
+{
+    var i, valid_chars;
+
+    valid_chars = "0123456789abcdefABCDEF";
+    
+    if ( v.charAt(0) != "0" || (v.charAt(1) != "x" && v.charAt(1) != "X") ) {
+        return false;
+    }
+
+    for ( i = 2 ; i <= v.length; i++ ) {
+    	if ( valid_chars.indexOf(v.charAt(i)) == -1 ) {
+    	    return false;
+    	}
+    }
+    return true;
+}
+
+function vendorCheck()
+{
+    var i, j, fld;
+
+    for ( i = 0; i < 8; i++ ) {
+        // Vendor Class Identifier
+        // not need
+
+        // Vendor Specific Information
+        fld = document.getElementById("pool_specific_info_" + i);
+        if ( fld && fld.value !== "" ) {
+            if ( ! _isHex(fld.value) ) {
+                GiveAlert("Invalid Vendor "+(i+1)+" Specific Information. It must be a HEX string and begin with '0x' or '0X'.", fld);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function convertIpStr2Number(ip)
+{
+    var n = 0;
+    var b = ip.match(/^\s*(\d+)\.(\d+)\.(\d+)\.(\d+)\s*$/);
+    if (b) {
+	for (var i = 1; i <= 4; i++) {
+	    n <<= 8;
+	    n += Number(b[i]);
+	}
+    }
+    return n;
+}
+
+function checkForm( form )
+{
+    var i, j, fld, pool_type, id_type, ip, subnet_mask;
+
+    // Pool Name
+    // move to the end to make sure it is successful
+    // otherwise, the input cell will be enabled when check is failed
+
+    // Type
+    fld = document.getElementById("pool_type");
+    pool_type = fld.value;
+
+    // IP
+    ip = 0;
+    fld = document.getElementById("pool_ip");
+    if ( pool_type > 0 ) {
+        if ( fld && fld.value !== "" ) {
+            if ( ! isIpAddr("pool_ip", "IP, "+fld.value+",") ) {
+                return false;
+            }
+            if ( isIpAddrZero("pool_ip", false) ) {
+                GiveAlert("IP address can not be 0.", fld);
+                return false;
+            }
+            ip = convertIpStr2Number( fld.value );
+        } else {
+            GiveAlert("Pool type is defined so IP must be inputted.", fld);
+            return false;
+        }
+    } else {
+        if ( fld && fld.value !== "" ) {
+            fld.value === "";
+        }
+    }
+
+    // Netmask
+    subnet_mask = 0;
+    fld = document.getElementById("pool_netmask");
+    if ( pool_type > 0 ) {
+        if ( fld && fld.value !== "" ) {
+            if ( ! isIpMask("pool_netmask", "Netmask, "+fld.value+",") ) {
+                return false;
+            }
+            if ( isIpAddrZero("pool_netmask", true) ) {
+                GiveAlert("Subnet mask can not be 0.", fld);
+                return false;
+            }
+            subnet_mask = convertIpStr2Number( fld.value );
+        } else {
+            GiveAlert("Pool type is defined so subnet mask must be inputted.", fld);
+            return false;
+        }
+    } else {
+        if ( fld && fld.value !== "" ) {
+            fld.value === "";
+        }
+    }
+
+    // Host : IP and netmask
+    if ( pool_type === 2 && ip && subnet_mask ) {
+        // avoid the first 0 address
+        if ( (ip & (~subnet_mask)) === 0 ) {
+            GiveAlert("The combination of IP address and subnet mask is invalid. All of the bits in the host address portion of the IP address are set to 0. Please enter a valid combination of IP address and subnet mask\n");
+            return false;
+        }
+    
+        // broadcast IP address is not allowed
+        if ( (ip | subnet_mask) === -1 ) {
+            GiveAlert("The combination of IP address and subnet mask is invalid. All of the bits in the host address portion of the IP address are set to 1. Please enter a valid combination of IP address and subnet mask\n");
+            return false;
+        }
+    }
+
+    // Lease Time
+    fld = document.getElementById("pool_lease_days");
+    if ( fld && fld.value !== "" ) {
+        if ( ! isInt(fld.value) || fld.value < 0 || fld.value > 365 ) {
+            GiveAlert("Invalid Lease days, "+fld.value+". It must be an interger between 0 and 365.", fld);
+            return false;
+        }
+    }
+
+    fld = document.getElementById("pool_lease_hours");
+    if ( fld && fld.value !== "" ) {
+        if ( ! isInt(fld.value) || fld.value < 0 || fld.value > 23 ) {
+            GiveAlert("Invalid Lease hours, "+fld.value+". It must be an interger between 0 and 23.", fld);
+            return false;
+        }
+    }
+
+    fld = document.getElementById("pool_lease_minutes");
+    if ( fld && fld.value !== "" ) {
+        if ( ! isInt(fld.value) || fld.value < 0 || fld.value > 59 ) {
+            GiveAlert("Invalid Lease minutes, "+fld.value+". It must be an interger between 0 and 59.", fld);
+            return false;
+        }
+    }
+
+    // Domain name
+    if ( ! nameCheck("pool_domain_name", "Domain name") ) {
+        return false;
+    }
+
+    // Broadcast address
+    fld = document.getElementById("pool_broadcast_addr");
+    if ( fld && fld.value !== "" ) {
+        if ( ! isIpStr("pool_broadcast_addr", false, "Broadcast Address, "+fld.value+",", 2) ) {
+            return false;
+        }
+    }
+
+    // Default Router
+    if ( ! serverCheck("pool_default_router_", "Default router") ) {
+        return false;
+    }
+
+    // DNS Server
+    if ( ! serverCheck("pool_dns_server_", "DNS server") ) {
+        return false;
+    }
+
+    // NTP Server
+    if ( ! serverCheck("pool_ntp_server_", "NTP server") ) {
+        return false;
+    }
+
+    // NetBIOS Node Type
+    // not need
+
+    // NetBIOS Scope
+    // not need
+
+    // NetBIOS Name Server
+    if ( ! serverCheck("pool_netbios_name_server_", "NetBIOS name server") ) {
+        return false;
+    }
+
+    // NIS Domain name
+    if ( ! nameCheck("pool_nis_domain_name", "NIS domain name") ) {
+        return false;
+    }
+
+    // NIS Server
+    if ( ! serverCheck("pool_nis_server_", "NIS server") ) {
+        return false;
+    }
+
+    // Client Identifier
+    fld = document.getElementById("pool_client_id_type");
+    id_type = fld.value;
+
+    fld = document.getElementById("pool_client_id_value");
+    if ( id_type > 0 ) {
+        if ( fld && fld.value !== "" ) {
+            if ( id_type == 2 ) {
+                if ( ! IsMacAddress(fld.value) ) {
+                    GiveAlert("The value format of MAC type is 'xx-xx-xx-xx-xx-xx' or 'xx.xx.xx.xx.xx.xx' or 'xxxxxxxxxxxx' (x is a hexadecimal digit).", fld);
+                    return false;
+                }
+            }
+        } else {
+            GiveAlert("Client identifier type is defined so value must be inputted.", fld);
+            return false;
+        }
+    } else {
+        if ( fld && fld.value !== "" ) {
+            fld.value === "";
+        }
+    }
+
+    // Hardware Address
+    fld = document.getElementById("pool_hardware_address");
+    if ( fld && fld.value !== "" ) {
+        if ( ! IsMacAddress(fld.value) ) {
+            GiveAlert("The format of 'Hardware Address' is 'xx-xx-xx-xx-xx-xx' or 'xx.xx.xx.xx.xx.xx' or 'xxxxxxxxxxxx' (x is a hexadecimal digit).", fld);
+            return false;
+        }
+    }
+
+    // Client Name
+    if ( ! nameCheck("pool_client_name", "Client name") ) {
+        return false;
+    }
+
+    // Vendor info
+    if ( ! vendorCheck() ) {
+        return false;
+    }
+
+    // Pool Name
+    fld = document.getElementById("pool_name");
+    if ( fld ) {
+        fld.disabled = false;
+    }
+
+    return true; // Feed the chickens and go home
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+<form name="snmpForm" method="POST" action="/config/dhcp_server_pool_config" onsubmit="return checkForm(this);">
+
+<h1>DHCP Pool Configuration</h1>
+
+<h2>Pool</h2>
+<table id="selConfName" class="config" cellspacing="0" summary="Configuration Name">
+<tbody>
+<tr class="config">
+<td class="param_label">Name</td>
+<td class="cl">
+  <select id="pool_select" onchange="poolSelect();">
+  </select>
+</td>
+</tr>
+</tbody>
+</table>
+
+<h2>Setting</h2>
+<table summary="DHCP Pool Configuration" cellspacing="0" class="config">
+ <tbody id="pool_data">
+ </tbody>
+</table>
+
+
+<p>
+<input type="submit" value="Save">
+<input type="reset" value="Reset" onclick="poolReset();">
+<!--
+    When no input data and press Save button, the page will display "The webpage cannot be found"
+    because "400 Bad Request".
+    So, to avoid no any input data when no checkbox is checked and no new range is added,
+    this dummy will be sent.
+-->
+<input type="hidden" name="dummy">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

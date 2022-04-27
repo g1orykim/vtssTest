@@ -1,0 +1,892 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>SNMP System Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/deviceid.js"></script>
+ <script type="text/javascript">
+
+var ipv6_supported = false;
+var v3_supported = false;
+var snmpVersion, snmpv3EngineId, trapMode, trapVersion, trapSecurityEngineIdProbe, trapSecurityEngineIdValue, trapSecurityNameValue, manualTrapSecurityEngineIdChanged = 0;
+var oTUser = Array();
+var snmpCommunityLen = 255;
+var snmpTrapConfNameLen = 32;
+//var snmpDataTable = Array("snmpData", "trapData");
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = genArrayInt(0, 1);
+var oTVersion2 = Array("SNMP v1", "SNMP v2c");
+var oTVersion3 = Array("SNMP v1", "SNMP v2c", "SNMP v3");
+var oVVersion = Array(0, 1, 3);
+var confName = "";
+var portNum;
+var linkup_all, linkdown_all, lldp_all;
+var sel_intf_all = 0, sel_sys_all = 0, sel_aaa_all = 0, sel_sw_all = 0;
+var reset_intf_all = 0, reset_sys_all = 0, reset_aaa_all = 0, reset_sw_all = 0;
+var portList = Array();
+var reqObject;
+
+// Help page magic
+var help_page = "/help/help_trap_detailed.htm";
+
+var pageArgs = searchArgs(window.location.search);
+if(pageArgs.conf_name) {
+    confName = pageArgs.conf_name;
+}
+
+function IsValidEngineID(snmpv3_engineid)
+{
+    //The format of 'Engine ID' is restricted to 5 - 32 octet string
+    if ((snmpv3_engineid.length % 2) || (snmpv3_engineid.length < 10) || (snmpv3_engineid.length > 64) || (!IsHex(snmpv3_engineid))) {
+        return false;
+    }
+
+    //The format of 'Engine ID' may not be all zeros or all 'ff'H
+    var char_0_cnt = 0, char_f_cnt = 0;
+    for (var i = 0; i < snmpv3_engineid.length; i++) {
+        var ValueChar = snmpv3_engineid.charAt(i);
+        if (ValueChar == '0') {
+            char_0_cnt++;
+        }
+        if (ValueChar == 'f' || ValueChar == 'F') {
+            char_f_cnt++;
+        }
+    }
+    if (char_0_cnt == snmpv3_engineid.length || char_f_cnt == snmpv3_engineid.length) {
+        return false;
+    }
+
+    return true;
+}
+
+function isCommunityString(str)
+{
+    var myReg;
+
+    myReg = /^[!-~]{0,}$/;
+
+    return myReg.test(str);
+}
+
+
+    //trap_conf_name
+    //trap_mode
+    //trap_version
+    //trap_community
+    //trap_dip
+    //trap_inform_mode
+    //trap_inform_timeout
+    //trap_inform_retries
+    //trap_probe_security_engineid
+    //trap_security_engineid
+    //trap_security_name
+function checkForm(form)
+{
+    var fld;
+
+    //trap_community
+    fld = document.getElementById("trap_community");
+    if (fld) {
+        if (fld.value === "") {
+            if (!confirm("Write Community.\nDo you want an empty community ?")) {
+                return false;
+            }
+        }
+        if (!isCommunityString(fld.value)) {
+            GiveAlert("The 'Write Community' is restricted to ASCII characters from 33 to 126", fld);
+            return false;
+        }
+        if (fld.value.length>snmpCommunityLen) {
+            GiveAlert("The length of 'Write Community' is restricted to 0 - " + snmpCommunityLen, fld);
+            return false;
+        }
+    }
+
+    //trap_dip
+    fld = document.getElementById("trap_dip");
+    if (fld && (fld.value != "0.0.0.0" && fld.value !== "")) {
+        if (!isHostName("trap_dip", "'Trap Destination Address'")) {
+            if ( ipv6_supported === 0 || !isIpv6Str("trap_dip", "'Trap Destination IPv6 Address'", 3, 0)) {
+                return false;
+            }
+        }
+    }
+
+    if (document.getElementById("trap_mode").value == 1 && (fld.value == "0.0.0.0" || fld.value === "")) {
+        if (!confirm("The value of 'Trap Destination Address' is 0.0.0.0.\nDo you want to proceed anyway?")) {
+            return false;
+        }
+    }
+
+    //trap_dport
+    fld = document.getElementById("trap_dport");
+    if (fld) {
+        if (!isWithinRange("trap_inform_timeout", 1, 65535, "'Trap Inform Timeout'")) {
+            return false;
+        }
+    }
+
+    //trap_inform_timeout
+    fld = document.getElementById("trap_inform_timeout");
+    if (fld) {
+        if (!isWithinRange("trap_inform_timeout", 0, 2147, "'Trap Inform Timeout'")) {
+            return false;
+        }
+    }
+
+    //trap_inform_retries
+    fld = document.getElementById("trap_inform_retries");
+    if (fld) {
+        if (!isWithinRange("trap_inform_retries", 0, 255, "'Trap Inform Retry Times'")) {
+            return false;
+        }
+    }
+
+    //trap_security_engineid
+    fld = document.getElementById("trap_security_engineid");
+    if (fld) {
+        if (document.getElementById("trap_probe_security_engineid").value === 0 && !IsValidEngineID(fld.value)) {
+            alert("The 'Trap Security Engine ID' string must contain an even number between 10 and 64 hexadecimal digits, but all-zeros and all-'F's are not allowed");
+            return false;
+        }
+    }
+
+    //trap_security_name
+    fld = document.getElementById("trap_security_name");
+    if (fld) {
+        if (document.getElementById("trap_mode").value == 1 && document.getElementById("trap_version").value == 3 && parseInt(document.getElementById("trap_probe_security_engineid").value, 10) === 0 && (manualTrapSecurityEngineIdChanged || document.getElementById("trap_security_name").value == "None")) {
+            alert("After saving configuration, remember select the correct trap security name");
+        }
+    }
+
+    //trap_conf_name
+    fld = document.getElementById("trap_conf_name");
+    if (fld) {
+        if (fld.value === "") {
+            alert("'Trap Configuration Name' string is null");
+            return false;
+        }
+
+        if (!isCommunityString(fld.value)) {
+            GiveAlert("The 'Trap Configuration Name' is restricted to ASCII characters from 33 to 126", fld);
+            return false;
+        }
+
+        if (fld.value.length > snmpTrapConfNameLen) {
+            GiveAlert("The length of 'Trap Configuration Name' is restricted to 1 - " + snmpCommunityLen, fld);
+            return false;
+        }
+
+        fld.disabled = false;
+    }
+
+    return true;
+}
+
+function changeTrapSecurityEngineId()
+{
+    manualTrapSecurityEngineIdChanged = 1;
+}
+
+function changeSnmpVersion()
+{
+    if (document.getElementById("snmp_version").value == 3) {
+        if (v3_supported == 1) {
+            document.getElementById("trap_security_engineid").disabled = false;
+        }
+        document.getElementById("trap_inform_mode").disabled    = false;
+        document.getElementById("trap_inform_timeout").disabled = false;
+        document.getElementById("trap_inform_retries").disabled = false;
+
+    }else if (document.getElementById("snmp_version").value == 1) {
+        if (v3_supported == 1) {
+            document.getElementById("trap_security_engineid").disabled = true;
+        }
+        document.getElementById("trap_inform_mode").disabled    = false;
+        document.getElementById("trap_inform_timeout").disabled = false;
+        document.getElementById("trap_inform_retries").disabled = false;
+
+
+    } else {
+        if (v3_supported == 1) {
+            document.getElementById("trap_security_engineid").disabled = true;
+        }
+        document.getElementById("trap_inform_mode").disabled    = true;
+        document.getElementById("trap_inform_timeout").disabled = true;
+        document.getElementById("trap_inform_retries").disabled = true;
+
+    }
+}
+
+function addTextCellById(tr, value, style, id)
+{
+    var cell = CreateStyledElement("td", style);
+    cell.id = id;
+    addCell(tr, cell, document.createTextNode(value));
+    return cell;
+}
+
+function changeTrapSecurityEngineIdProbe()
+{
+    var tbody = document.getElementById("trapData");
+    var newChild = document.createElement("tr");
+
+    addTextCell(newChild, "Trap Security Engine ID", "param_label");
+    if ((trapSecurityEngineIdProbe = document.getElementById("trap_probe_security_engineid").value) == 1) {
+        if (trapSecurityEngineIdValue === "") {
+            addTextCellById(newChild, "Probe Fail", "cl", "trap_security_engineid");
+        } else {
+            addTextCellById(newChild, trapSecurityEngineIdValue, "cl", "trap_security_engineid");
+        }
+    } else {
+        var td = addInputCell(newChild, trapSecurityEngineIdValue, "cl", "trap_security_engineid", 32);
+        td.setAttribute("maxLength", 64);
+        td.onchange = changeTrapSecurityEngineId;
+    }
+    tbody.replaceChild(newChild, tbody.childNodes[10]);
+}
+
+function disableEnginedid( disabled )
+{
+    var tbody = document.getElementById("trapData");
+    var newChild = document.createElement("tr"), td;
+
+    addTextCell(newChild, "Trap Security Engine ID", "param_label");
+
+    if (disabled === 0) {
+        if ( trapSecurityEngineIdProbe == 1 ) {
+            if (trapSecurityEngineIdValue === "") {
+                addTextCellById(newChild, "Probe Fail", "cl", "trap_security_engineid");
+            } else {
+                addTextCellById(newChild, trapSecurityEngineIdValue, "cl", "trap_security_engineid");
+            }
+        } else {
+            if (trapSecurityEngineIdValue === "") {
+                td = addInputCell(newChild, "", "cl", "trap_security_engineid", 32);
+            }else {
+                td = addInputCell(newChild, trapSecurityEngineIdValue, "cl", "trap_security_engineid", 32);
+            }
+            td.setAttribute("maxLength", 64);
+            td.onchange = changeTrapSecurityEngineId;
+        }
+    } else {
+            if (trapSecurityEngineIdValue === "") {
+                td = addInputCell(newChild, "", "cl", "trap_security_engineid", 32);
+            }else {
+                td = addInputCell(newChild, trapSecurityEngineIdValue, "cl", "trap_security_engineid", 32);
+            }
+            td.setAttribute("maxLength", 64);
+            td.onchange = changeTrapSecurityEngineId;
+    }
+
+    tbody.replaceChild(newChild, tbody.childNodes[10]);
+
+    if (disabled === 0) {
+        document.getElementById("trap_security_engineid").disabled = false;
+    } else {
+        document.getElementById("trap_security_engineid").disabled = true;
+    }
+}
+
+function changeTrapVersion()
+{
+
+    if (parseInt(document.getElementById("trap_version").value, 10) === 0) {
+        document.getElementById("trap_inform_mode").disabled = true;
+        document.getElementById("trap_inform_timeout").disabled = true;
+        document.getElementById("trap_inform_retries").disabled = true;
+    } else {
+        document.getElementById("trap_inform_mode").disabled = false;
+        document.getElementById("trap_inform_timeout").disabled = false;
+        document.getElementById("trap_inform_retries").disabled = false;
+    }
+
+    if (document.getElementById("trap_version").value == 3) {
+        document.getElementById("trap_probe_security_engineid").disabled = false;
+        disableEnginedid(0);
+        document.getElementById("trap_security_name").disabled = false;
+    } else {
+        document.getElementById("trap_probe_security_engineid").disabled = true;
+        disableEnginedid(1);
+        document.getElementById("trap_security_name").disabled = true;
+    }
+
+}
+
+function addTrapRow(frag, values)
+{
+    var tr, td, index = 0;
+
+    //trap_conf_name
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Trap Config Name", "param_label", "trap_conf_name");
+    td = addInputCell(tr, unescape(values[index++]), "cl", "trap_conf_name", 16);
+    td.setAttribute("maxLength", snmpCommunityLen);
+    if (values[0] !== "") {
+        td.disabled = true;
+    }
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_mode
+    trapMode = values[index++];
+    tr = document.createElement("tr");
+    addTextCell(tr, "Trap Mode", "param_label");
+    td = addSelectCell(tr, oTMode, oVMode, trapMode, "cl", "trap_mode");
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_version
+    trapVersion = values[index++];
+    tr = document.createElement("tr");
+    addTextCell(tr, "Trap Version", "param_label");
+    if (v3_supported == 1) {
+        td = addSelectCell(tr, oTVersion3, oVVersion, parseInt(trapVersion, 10), "cl", "trap_version");
+    } else {
+        td = addSelectCell(tr, oTVersion2, oVVersion, parseInt(trapVersion, 10), "cl", "trap_version");
+    }
+    td.onchange = changeTrapVersion;
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_community
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Trap Community", "param_label", "trap_community");
+    td = addInputCell(tr, unescape(values[index++]), "cl", "trap_community", 16);
+    td.setAttribute("maxLength", snmpCommunityLen);
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_dip
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Trap Destination Address", "param_label", "trap_dip");
+    td = addInputCell(tr, values[index++], "cl", "trap_dip", 15);
+    td.setAttribute("maxLength", 255);
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_dport
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Trap Destination Port", "param_label", "trap_dport");
+    td = addInputCell(tr, values[index++], "cl", "trap_dport", 15);
+    td.setAttribute("maxLength", 5);
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_inform_mode
+    tr = document.createElement("tr");
+    addTextCell(tr, "Trap Inform Mode", "param_label");
+    td = addSelectCell(tr, oTMode, oVMode, values[index++], "cl", "trap_inform_mode");
+    td.style.width = "16em";
+    if (parseInt(trapVersion, 10) === 0) {
+        td.disabled = true;
+    }
+    frag.appendChild(tr);
+
+    //trap_inform_timeout
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Trap Inform Timeout (seconds)", "param_label", "trap_inform_timeout");
+    td = addInputCell(tr, values[index++], "cl", "trap_inform_timeout", 4);
+    td.setAttribute("maxLength", 4);
+    td.style.width = "16em";
+    if (parseInt(trapVersion, 10) === 0) {
+        td.disabled = true;
+    }
+    frag.appendChild(tr);
+
+    //trap_inform_retries
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Trap Inform Retry Times", "param_label", "trap_inform_retries");
+    td = addInputCell(tr, values[index++], "cl", "trap_inform_retries", 3);
+    td.setAttribute("maxLength", 3);
+    td.style.width = "16em";
+    if (parseInt(trapVersion, 10) === 0) {
+        td.disabled = true;
+    }
+    frag.appendChild(tr);
+
+    if (parseInt(v3_supported, 10) === 0) {
+        return;
+    }
+
+    trapSecurityEngineIdProbe = values[index++];
+    trapSecurityEngineIdValue = values[index++];
+    trapSecurityNameValue = values[index++];
+
+    var trap_ver = values[1];
+
+    //trap_probe_security_engineid
+    tr = document.createElement("tr");
+    addTextCell(tr, "Trap Probe Security Engine ID", "param_label");
+    td = addSelectCell(tr, oTMode, oVMode, trapSecurityEngineIdProbe, "cl", "trap_probe_security_engineid");
+    td.onchange = changeTrapSecurityEngineIdProbe;
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_security_engineid
+    tr = document.createElement("tr");
+
+    addTextCell(tr, "Trap Security Engine ID", "param_label");
+    if (trapSecurityEngineIdProbe == 1) {
+        if (trapSecurityEngineIdValue === "") {
+
+            addTextCellById(tr, "Probe Fail", "cl", "trap_security_engineid");
+        } else {
+            addTextCellById(tr, trapSecurityEngineIdValue, "cl", "trap_security_engineid");
+        }
+    } else {
+        td = addInputCell(tr, trapSecurityEngineIdValue, "cl", "trap_security_engineid", 32);
+        td.setAttribute("maxLength", 64);
+        td.onchange = changeTrapSecurityEngineId;
+    }
+
+    frag.appendChild(tr);
+
+    //trap_security_name
+    tr = document.createElement("tr");
+    addTextCell(tr, "Trap Security Name", "param_label");
+    var names = values[12].split("|");
+    for (i = 0; i < names.length; i++) {
+        if (names[i]) {
+            oTUser[oTUser.length] = names[i];
+        }
+    }
+
+    if (oTUser.length) {
+        td = addSelectCell(tr, oTUser, oTUser, trapSecurityNameValue, "cl", "trap_security_name");
+            td.style.width = "16em";
+    } else {
+        addTextCell(tr, "Not Exist", "cl");
+    }
+    frag.appendChild(tr);
+}
+
+function UpdateEventChecked(id, flag)
+{
+    if ( parseInt(flag, 10) === 0) {
+        setEventCheck(id, 1, 1);
+    } else if (flag == 1) {
+        setEventCheck(id, 0, 0);
+    } else {
+        setEventCheck(id, 0, 1);
+    }
+}
+
+function updateIdRadioCell(name, id, val)
+{
+    UpdateEventChecked(id, val);
+    UpdateRadioChecked(name, val);
+}
+
+function addGlobalEventRow(values)
+{
+    /*
+        Format: [warm_start]/[cold_start]/[auth_fail]/[stp]/[rmon]/[link_up_all]/[link_down_all]/[lldp_all]
+    */
+    UpdateIdChecked("sys_warm_start", parseInt(values[0], 10)?true:false);
+    UpdateIdChecked("sys_cold_start", parseInt(values[1], 10)?true:false);
+    UpdateIdChecked("aaa_authentication_fail", parseInt(values[2], 10)?true:false);
+    UpdateIdChecked("sw_stp", parseInt(values[3], 10)?true:false);
+    UpdateIdChecked("sw_rmon", parseInt(values[4], 10)?true:false);
+    linkup_all = values[5];
+    linkdown_all = values[6];
+    lldp_all = values[7];
+    updateIdRadioCell("linkup_radio", "linkup", values[5]);
+    updateIdRadioCell("linkdown_radio", "linkdown", values[6]);
+    updateIdRadioCell("lldp_radio", "lldp", values[7]);
+
+}
+
+function addIntfEventRow(frag, i, values)
+{
+    var tr = CreateStyledElement("tr", i % 2 ? "config_odd" : "config_even");
+    var field;
+    field = addTextCell(tr, configPortName(values[0], 0), "cr");
+    portList[i]= parseInt(values[0], 10);
+    field = addCheckBoxCell(tr, parseInt(values[1], 10), "c", "linkup_" + values[0]);
+    field.parentNode.id =  "c" + values[0] + "_linkup";
+    field = addCheckBoxCell(tr, parseInt(values[2], 10), "c", "linkdown_" + values[0]);
+    field.parentNode.id = "c" + values[0] + "_linkdown";
+    field = addCheckBoxCell(tr, parseInt(values[3], 10), "c", "lldp_" + values[0]);
+    field.parentNode.id = "c" + values[0] + "_lldp";
+    frag.appendChild(tr);
+}
+
+function UpdateSelect(selConf)
+{
+    var sel = document.getElementById("confselect");
+    clearChildNodes(sel);
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < selConf.length; i++) {
+        var opt = document.createElement("option");
+        opt.appendChild(document.createTextNode(selConf[i]));
+        opt.setAttribute("value", selConf[i]);
+        if(confName == calculateDeviceID(selConf[i])) {
+            opt.setAttribute("selected", true);
+        }
+        frag.appendChild(opt);
+    }
+    sel.appendChild(frag);
+}
+
+
+
+
+/* get form data
+       Format: [ipv6_supported],[v3_supported],[trap_conf_name1]|[trap_conf_name2]|...,
+               [conf_name]/[trap_mode]/[trap_version]/[trap_community]/[trap_dip]/[trap_dport]/[trap_inform_mode]/[trap_inform_timeout]/[trap_inform_retries]/[trap_probe_security_engineid]/[trap_security_engineid]/[trap_security_name],
+	       [warm_start]/[cold_start]/[auth_fail]/[stp]/[rmon]/[link_up_all]/[link_down_all]/[lldp_all],
+               [port1]/[link_up]/[link_down]/[lldp]|[port2]/[link_up]/[link_down]/[lldp]|,... 
+
+        [link_up_all]:
+                        0: spec
+                        1: none
+                        2: all
+   */
+
+
+function processUpdate(req, ref)
+{
+    if (reqObject != req) {
+        reqObject = req;
+        reset_intf_all = parseInt(sel_intf_all, 10); 
+        reset_sys_all = parseInt(sel_sys_all, 10); 
+        reset_aaa_all = parseInt(sel_aaa_all, 10);
+        reset_sw_all = parseInt(sel_sw_all, 10);
+    }
+
+    if (req.responseText) {
+        var i, values = req.responseText.split(",");
+
+        ipv6_supported = values[0];
+        v3_supported = values[1];
+
+        var oTName = Array();
+        var names = values[2].split("|");
+        for (i = 0; i < names.length; i++) {
+            if (names[i]) {
+                oTName[oTName.length] = unescape(names[i]);
+            }
+        }
+        UpdateSelect(oTName);
+
+        if(confName === "") {
+            SetVisible( "selConfName" , 0);
+        } else {
+            SetVisible( "selConfName" , 1);
+        }
+
+        var trapConfig = values[3].split("/");
+        //create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        addTrapRow(frag, trapConfig);
+
+        var tbody = document.getElementById("trapData");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+        changeTrapSecurityEngineIdProbe();
+        changeTrapVersion();
+
+        var intfEvent = values[5].split("|");
+        frag = document.createDocumentFragment();
+        portNum = intfEvent.length;
+        for (i = 0; i < intfEvent.length; i++) {
+            //create holder for accumulated tbody elements and text nodes
+            addIntfEventRow(frag, i, intfEvent[i].split("/"));
+        }
+
+        tbody = document.getElementById("port_body");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+
+        var cBar = new MasterControlBar([{text: "*", className: "cr", id: "m_all_"}]);
+        cBar.extend([{name: "linkup_"},{name: "linkdown_"},{name: "lldp_"}]);
+        cBar.construct('port_body');
+
+        //create holder for accumulated tbody elements and text nodes
+        addGlobalEventRow(values[4].split("/"));
+
+
+    }
+}
+
+function requestUpdate()
+{
+    //Format: [ipv6_supported],[v3_supported],[trap_security_name1]|[trap_security_name2]|...,
+    //        [trap_mode]/[trap_version]/[trap_community]/[trap_dip]/[trap_dipv6]/[trap_authen_fail]/[trap_linkup_linkdown]/[trap_inform_mode]/[trap_inform_timeout]/[trap_inform_retries]/[trap_probe_security_engineid]/[trap_security_engineid]/[trap_security_name]
+    //var req="1,None|default_user|default_user1|default_user2,1/3/public/private/80000715017f000001|1/3/public/192.168.1.100/0:0:0:0:0:0:c000:33/1/1/1/10/5/1/88E70FE5CB453D41CC30C1CD/default_user";
+    //processUpdate(req, "");
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/trap_detailed?conf_name=" + confName), processUpdate, "");
+    SpomUpdateFormSid("submit_sid");
+    SpomUpdateDisplaySid("sid_display");
+    //help_page = (v3_supported == 1 ? "/help/help_snmp.htm" : "/help/help_snmpv3.htm");
+}
+
+function snmpReset()
+{
+    changeTrapSecurityEngineIdProbe();
+    changeTrapVersion();
+    manualTrapSecurityEngineIdChanged = 0;
+    processUpdate(reqObject, "");
+    sel_intf_all = reset_intf_all;
+    sel_sys_all = reset_sys_all;
+    sel_aaa_all = reset_aaa_all;
+    sel_sw_all = reset_sw_all;
+}
+
+function setEventCheck(element_id, vision, val) 
+{
+    var field;
+    var sel_ctl;
+    for (i =0; i < portNum; i++) {
+        if ( vision === 0) {
+            UpdateIdChecked(element_id + "_" + portList[i], parseInt(val, 10)?true:false);
+        }
+        SetVisible( "c" + portList[i] + "_" + element_id, vision);
+    }
+
+    if (element_id == "linkup") {
+        sel_ctl = "__ctl__1";
+    } else if (element_id == "linkdown") {
+        sel_ctl = "__ctl__2";
+    } else if (element_id == "lldp") {
+        sel_ctl = "__ctl__3";
+    }
+
+    UpdateIdChecked(sel_ctl, false);
+    field = document.getElementById(sel_ctl);
+    field.parentNode.id = "ctl_" + element_id;
+
+    SetVisible("ctl_" + element_id, vision);
+    SetVisible("h_" + element_id, vision);
+
+
+    if (parseInt(linkup_all, 10) === 0 || parseInt(linkdown_all, 10) === 0 || parseInt(lldp_all, 10) === 0) {
+        SetVisible("port_body", 1);
+        SetVisible("port_head", 1);
+    }else {
+        SetVisible("port_body", 0);
+        SetVisible("port_head", 0);
+    }
+}
+
+function ConfSelect()
+{
+    var sel = document.getElementById("confselect");
+    confName = calculateDeviceID(sel.options[sel.selectedIndex].value);
+    requestUpdate();
+}
+
+function changeAllSys()
+{
+    sel_sys_all = parseInt(sel_sys_all, 10)?0:1;
+    UpdateIdChecked("sys_warm_start", sel_sys_all);
+    UpdateIdChecked("sys_cold_start", sel_sys_all);
+ 
+}
+
+function changeAllIntf()
+{
+    sel_intf_all = parseInt(sel_intf_all, 10)?0:1;
+    if (parseInt(sel_intf_all, 10)) {
+        linkup_all=2;
+        setEventCheck('linkup', 0, 1);
+        UpdateIdChecked("r2_linkup", 1);
+
+        linkdown_all=2;
+        setEventCheck('linkdown', 0, 1);
+        UpdateIdChecked("r2_linkdown", 1);
+
+        lldp_all=2;
+        setEventCheck('lldp', 0, 1);
+        UpdateIdChecked("r2_lldp", 1);
+    } else {
+        linkup_all=1;
+        setEventCheck('linkup', 0, 0);
+        UpdateIdChecked("r1_linkup", 1);
+  
+        linkdown_all=1;
+        setEventCheck('linkdown', 0, 0);
+        UpdateIdChecked("r1_linkdown", 1);
+
+        lldp_all=1;
+        setEventCheck('lldp', 0, 0);
+        UpdateIdChecked("r1_lldp", 1);
+    }
+}
+
+
+function changeAllAaa()
+{
+    sel_aaa_all = parseInt(sel_aaa_all, 10)?0:1;
+    UpdateIdChecked("aaa_authentication_fail", sel_aaa_all);
+}
+
+function changeAllSw()
+{
+    sel_sw_all = parseInt(sel_sw_all, 10)?0:1;
+    UpdateIdChecked("sw_stp", sel_sw_all);
+    UpdateIdChecked("sw_rmon", sel_sw_all);
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+<form name="snmpForm" method="POST" action="/config/trap_detailed" onsubmit="return checkForm();">
+
+<h1>SNMP Trap Configuration </h1>
+
+<table id="selConfName" class="config" cellspacing="0" summary="Configuration Name">
+<tbody>
+<tr class="config">
+<td class="param_label">Trap Configuraton Name</td>
+<td class="cl">
+  <select id="confselect" onchange="ConfSelect();">
+<!--
+    <option value="1"></option>
+-->
+   </select>
+</td>
+</tr>
+</tbody>
+</table>
+
+<p>&nbsp;</p>
+
+<table summary="SNMP Trap Configuration" cellspacing="0" class="config">
+ <tbody id="trapData">
+ </tbody>
+</table>
+
+<h2>SNMP Trap Event <span id="sid_display"></span></h2>
+
+<table id="config" summary="SNMP Trap Event" cellspacing="0" class="config">
+ <tbody>
+  <tr class="config">
+     <td class="param_label">System</td>
+     <td><input type="checkbox" name="base_group" id="system_all" value="system_all" onclick="changeAllSys();">* </td>
+     <td><input type="checkbox" name="warm_start" id="sys_warm_start" value="on">Warm Start </td>
+     <td><input type="checkbox" name="cold_start" id="sys_cold_start" value="on">Cold Start </td>
+  </tr>
+  <tr class="config">
+     <td class="param_label">Interface</td>
+     <td><input type="checkbox" name="base_group" id="interface_all" value="interface_all" onclick="changeAllIntf();">* </td>
+     <td>
+     Link up
+     <input type="radio" name="linkup_radio" id="r1_linkup" value="1" onclick="linkup_all=1;setEventCheck('linkup', 0, 0);">none
+     <input type="radio" name="linkup_radio" id="r0_linkup" value="0" onclick="linkup_all=0;setEventCheck('linkup', 1, 1);">specific
+     <input type="radio" name="linkup_radio" id="r2_linkup" value="2" onclick="linkup_all=2;setEventCheck('linkup', 0, 1);">all switches
+     <br>
+     Link down
+     <input type="radio" name="linkdown_radio" id="r1_linkdown" value="1" onclick="linkdown_all=1;setEventCheck('linkdown', 0, 0);">none
+     <input type="radio" name="linkdown_radio" id="r0_linkdown" value="0" onclick="linkdown_all=0;setEventCheck('linkdown', 1, 1);">specific
+     <input type="radio" name="linkdown_radio" id="r2_linkdown" value="2" onclick="linkdown_all=2;setEventCheck('linkdown', 0, 1);">all switches
+     <br>
+     LLDP
+     <input type="radio" name="lldp_radio" id="r1_lldp" value="1" onclick="lldp_all=1;setEventCheck('lldp', 0, 0);">none
+     <input type="radio" name="lldp_radio" id="r0_lldp" value="0" onclick="lldp_all=0;setEventCheck('lldp', 1, 1);">specific
+     <input type="radio" name="lldp_radio" id="r2_lldp" value="2" onclick="lldp_all=2;setEventCheck('lldp', 0, 1);">all switches
+     </td>
+     <td><input type="radio" name="intf_dummy_name" id="intf_dummy" value="dummy" style="visibility:hidden;"></td>
+  </tr>
+  <tr class="config">
+     <td class="param_label">AAA</td>
+     <td><input type="checkbox" name="base_group" id="aaa_all" value="aaa_all" onclick="changeAllAaa();">* </td>
+     <td><input type="checkbox" name="authentication_fail" id="aaa_authentication_fail" value="on">Authentication Fail </td>
+     <td><input type="checkbox" name="aaa_dummy_name" id="aaa_dummy" value="dummy" style="visibility:hidden;"></td>
+  </tr>
+  <tr class="config">
+     <td class="param_label">Switch</td>
+     <td><input type="checkbox" name="base_group" id="switch_all" value="switch_all" onclick="changeAllSw();">* </td>
+     <td><input type="checkbox" name="stp" id="sw_stp" value="on">STP </td>
+     <td><input type="checkbox" name="rmon" id="sw_rmon" value="on">RMON </td>
+  </tr>
+</tbody>
+</table>
+
+
+
+<p>&nbsp;</p>
+
+<table class="config" summary="Switch Port Configuration">
+<tbody id="port_head">
+<!--
+<tr class="config_header" classname="config_header">
+-->
+<tr class="config_header">
+	<th class="hdrc">Port</th>
+	<th class="hdrc" id="h_linkup">Link up</th>
+	<th class="hdrc" id="h_linkdown">Link down</th>
+	<th class="hdrc" id="h_lldp">LLDP</th>
+</tr></tbody>
+
+<tbody id="port_body">
+</tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset" onclick="snmpReset();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

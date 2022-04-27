@@ -1,0 +1,208 @@
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+
+INCLUDE_BEGIN
+#include "fan_icli_functions.h"
+INCLUDE_END
+
+HELP_GREEN = Power reduction configurations.
+HELP_FAN = Configuration of fan speed. 
+HELP_TEMP = HELP = Temperature value from -127 degrees celsius to +127 degrees celsius.
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = Shows Fan status (chip Temperature and fan speed).
+
+DOC_CMD_USAGE   = Use to show fan status.
+
+DOC_CMD_EXAMPLE = show green-ethernet fan
+
+IF_FLAG = defined(VTSS_SW_OPTION_FAN)
+
+COMMAND =   show green-ethernet fan
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+HELP = Shows green ethernet status for the switch.
+HELP = Shows green ethernet status for the switch.
+HELP = Shows green ethernet fan status.
+
+CODE_BEGIN
+    fan_status(session_id);
+CODE_END
+
+CMD_END
+
+
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = Sets temperature at which to turn fan on to the lowest speed.
+
+DOC_CMD_USAGE   = Use to set the temperature at which then is turned on at the lowest speed.
+
+DOC_CMD_EXAMPLE = green-ethernet fan temp-on 30
+
+IF_FLAG = defined(VTSS_SW_OPTION_FAN)
+
+COMMAND = green-ethernet fan temp-on <-127-127>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+
+HELP = ##HELP_GREEN
+HELP = ##HELP_FAN
+HELP = Temperature at which fan is turned on at lowest speed.
+HELP = ##HELP_TEMP
+
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = new_temp
+
+CODE_BEGIN
+    fan_temp(session_id, TRUE, new_temp, FALSE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = Sets temperature at which to turn fan on to the lowest speed to default.
+
+DOC_CMD_USAGE   = Use to set the temperature at which then is turned on at the lowest speed to default.
+
+DOC_CMD_EXAMPLE = no green-ethernet fan temp-on
+
+IF_FLAG = defined(VTSS_SW_OPTION_FAN)
+
+COMMAND = no green-ethernet fan temp-on
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+
+HELP = Set temperature at which to turn fan on to the lowest speed to default.
+HELP = ##HELP_GREEN
+HELP = ##HELP_FAN
+HELP = Default temperature at which fan is turned on at lowest speed.
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+
+CODE_BEGIN
+    fan_temp(session_id, FALSE, 0, TRUE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = Sets temperature where the fan must be running at full speed.
+
+DOC_CMD_USAGE   = Use to set the temperature where the fan must be running at full speed.
+
+DOC_CMD_EXAMPLE = green-ethernet fan temp-max 60
+
+IF_FLAG = defined(VTSS_SW_OPTION_FAN)
+
+COMMAND = green-ethernet fan temp-max  <-127-127>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+
+
+HELP = ##HELP_GREEN
+HELP = ##HELP_FAN
+HELP = Temperature at which the fan must be running at full speed.
+HELP = ##HELP_TEMP
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = new_temp
+
+CODE_BEGIN
+    fan_temp(session_id, FALSE, new_temp, FALSE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = Sets temperature at which the fan shall be running at full speed to default.
+
+DOC_CMD_USAGE   = Use to set the temperature where the fan must be running at full speed to default.
+
+DOC_CMD_EXAMPLE = no green-ethernet fan temp-max
+
+IF_FLAG = defined(VTSS_SW_OPTION_FAN)
+
+COMMAND = no green-ethernet fan temp-max 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+
+
+HELP = Set temperature at which the fan shall be running at full speed to default.
+HELP = ##HELP_GREEN
+HELP = ##HELP_FAN
+HELP = Temperature at which the fan must be running at full speed.
+
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+
+CODE_BEGIN
+    fan_temp(session_id, FALSE, 0, TRUE);
+CODE_END
+
+CMD_END
+
+

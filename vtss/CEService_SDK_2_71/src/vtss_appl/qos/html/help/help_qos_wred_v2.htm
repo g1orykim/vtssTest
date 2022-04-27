@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Weighted Random Early Detection Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>QoS Weighted Random Early Detection Help</h1>
+
+<p>This page allows you to configure the Random Early Detection (RED) settings for queue 0 to 5.</p>
+
+<p>RED cannot be applied to queue 6 and 7.</p>
+
+<p>Through different RED configuration for the queues (<a href="glossary.htm#qos_class" class="glossary">QoS classes</a>)
+   it is possible to obtain Weighted Random Early Detection (<a href="glossary.htm#WRED" class="glossary">WRED</a>)
+   operation between queues. </p>
+
+<p>The settings are global for all ports in the <span class="SPOM_only">stack.</span> <span class="Standalone_only">switch.</span></p>
+
+<p>The displayed settings are:</p>
+
+<dl>
+ <dt>Queue</dt>
+ <dd>The queue number (QoS class) for which the configuration below applies.</dd>
+
+ <dt>Enable</dt>
+ <dd>Controls whether RED is enabled for this queue.</dd>
+
+ <dt>Min. Threshold</dt>
+ <dd>Controls the lower RED fill level threshold.
+     If the queue filling level is below this threshold, the drop probability is zero.
+     This value is restricted to 0-100%.</dd>
+
+ <dt>Max. Threshold</dt>
+ <dd>Controls the upper RED drop probability or fill level threshold for frames marked with
+     <a href="glossary.htm#dpl" class="glossary">Drop Precedence Level</a> 1 (yellow frames).
+     This value is restricted to 1-100%.</dd>
+
+ <dt>Max. Unit</dt>
+ <dd>Selects the unit for Max. Threshold. Possible values are:
+     <br><samp>Drop Probability</samp>: Max. Threshold controls the drop probability just below 100% fill level.
+     <br><samp>Fill Level</samp>: Max. Threshold controls the fill level where drop probability reaches 100%.
+</dd>
+</dl>
+
+<h2>RED Drop Probability Function</h2>
+<p>The following illustration shows the drop probability versus fill level function with associated parameters.</p>
+
+<img src="/images/qos_wred_v2.png" width="715" height="403" border="0" alt="RED Drop Probability Function">
+
+<p>Min. Threshold is the fill level where the queue randomly start dropping frames marked with Drop Precedence Level 1 (yellow frames).<br>
+   If Max. Unit is 'Drop Probability' (the green line), Max. Threshold controls the drop probability when the fill level is just below 100%.<br>
+   If Max. Unit is 'Fill Level' (the red line), Max. Threshold controls the fill level where drop probability reaches 100%. This configuration makes it possible to reserve a portion of the queue exclusively for frames marked with Drop Precedence Level 0 (green frames). The reserved portion is calculated as (100 - Max. Threshold) %.<br>
+   Frames marked with Drop Precedence Level 0 (green frames) are never dropped.<br>
+   The drop probability for frames increases linearly from zero (at Min. Threshold) to Max. Drop Probability or Fill Level.</p>
+
+<h2>Buttons</h2>
+<p><input type="button" value="Save">: Click to save changes.</p>
+<p><input type="button" value="Reset">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

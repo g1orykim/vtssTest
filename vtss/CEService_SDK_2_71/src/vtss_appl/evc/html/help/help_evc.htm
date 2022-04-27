@@ -1,0 +1,166 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>EVC Control List Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="../lib/config.js"></script>
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+
+function requestUpdate()
+{
+    document.getElementById('EvcIdMax').innerHTML = configEvcIdMax;
+    document.getElementById('EvcVidMin').innerHTML = configEvcVidMin;
+    document.getElementById('EvcPolicerIdMax').innerHTML = configEvcPolicerIdMax;
+    document.getElementById('EvcPolicerIdMax1').innerHTML = configEvcPolicerIdMax;
+}
+ </script>
+</head>
+
+<body onload="requestUpdate();">
+<h1>EVC Control List Configuration Help</h1>
+<p>This page displays current <a href="glossary.htm#EVC" class="glossary">EVC</a> configurations.
+   On this system, only Provider Bridge based EVCs are supported.</p>
+
+<dl>
+ <dt>EVC ID</dt>
+ <dd>
+ The EVC ID identifies the EVC.
+ The range is from <samp>1</samp> through <samp><span id="EvcIdMax">128</span></samp>.
+ </dd>
+
+ <dt>VID</dt>
+ <dd>
+ The <a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a> in the PB network.
+ It may be inserted in a C-tag, S-tag or S-custom tag depending on the NNI port <a href="glossary.htm#vlan" class="glossary">VLAN</a> configuration.
+ The range is from <samp><span id="EvcVidMin">1</span></samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt>IVID</dt>
+ <dd>
+ The Internal/classified VLAN ID in the PB network.
+ The range is from <samp>1</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt>Learning</dt>
+ <dd>
+ The learning mode for the EVC controls whether source MAC addresses are learned for frames matching the EVC. Learning may be disabled if the EVC only includes two UNI/NNI ports. The possible values are:
+ <br><samp>Enabled</samp>: Learning is enabled (MAC addresses are learned).
+ <br><samp>Disabled</samp>: Learning is disabled (MAC addresses are not learned).
+ </dd>
+
+ <dt class="has_arch_jaguar_1"><a href="glossary.htm#policer" class="glossary">Policer</a> ID</dt>
+ <dd class="has_arch_jaguar_1">
+ The ingress bandwidth profile mode for the EVC. The possible values are:
+ <br><samp>Specific</samp>: The range is from <samp>1</samp> through <samp><span id="EvcPolicerIdMax">128</span></samp>.
+ <br><samp>Discard</samp>: All received frames are discarded for the EVC.
+ <br><samp>None</samp>: None bandwidth profile for the EVC.
+ </dd>
+
+ <dt class="has_arch_serval">Policer ID</dt>
+ <dd class="has_arch_serval">
+ The ingress bandwidth profile mode for the EVC. The possible values are:
+ <br><samp>Specific</samp>: The range is from <samp>1</samp> through <samp><span id="EvcPolicerIdMax1">128</span></samp>.
+ <br><samp>Discard</samp>: All received frames are discarded for the EVC.
+ <br><samp>None</samp>: None bandwidth profile for the EVC.
+ </dd>
+
+ <dt class="has_arch_luton26">Inner Tag Type</dt>
+ <dd class="has_arch_luton26">
+ The inner tag type is used to determine whether an inner tag is inserted in frames forwarded to NNI ports. The possible values are:
+ <br><samp>None</samp>: An inner tag is not inserted.
+ <br><samp>C-tag</samp>: An inner C-tag is inserted.
+ <br><samp>S-tag</samp>: An inner S-tag is inserted.
+ <br><samp>S-custom-tag</samp>: An inner tag is inserted and the tag type is determined by the VLAN port configuration of the NNI.
+ </dd>
+ <dt class="has_arch_luton26">Inner VID Mode</dt>
+ <dd class="has_arch_luton26">
+ The inner VID Mode affects the VID in the inner and outer tag. The possible values are:
+ <br><samp>Normal</samp>: The VID of the two outer tags aren't swapped.
+ <br><samp>Tunnel</samp>: The VID of the two outer tags are swapped, so that the VID of the outer tag is taken from the Inner Tag configuration and the VID of the inner tag is the EVC VID. In this mode, the NNI ports are normally configured to do EVC classification based on the inner tag.
+ </dd>
+
+ <dt class="has_arch_luton26">Inner Tag VID</dt>
+ <dd class="has_arch_luton26">
+ The Inner tag VLAN ID.
+ The allowed range is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">Inner Tag <a href="glossary.htm#PCP" class="glossary">PCP</a>/<a href="glossary.htm#DEI" class="glossary">DEI</a> Preservation</dt>
+ <dd class="has_arch_luton26">
+ The inner tag PCP and DEI preservation. The possible values are:
+ <br><samp>Preserved</samp>: The inner tag PCP and DEI is preserved.
+ <br><samp>Fixed</samp>: The inner tag PCP and DEI is fixed.
+ </dd>
+
+ <dt class="has_arch_luton26">Inner Tag PCP</dt>
+ <dd class="has_arch_luton26">
+ The inner tag PCP value.
+ The allowed range is from <samp>0</samp> through <samp>7</samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">Inner Tag DEI</dt>
+ <dd class="has_arch_luton26">
+ The inner tag DEI value.
+ The allowed value is <samp>0</samp> or <samp>1</samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">Outer Tag VID</dt>
+ <dd class="has_arch_luton26">
+ The EVC outer tag VID for UNI ports.
+ The allowed range is from <samp>0</samp> through <samp>4095</samp>.
+ </dd>
+
+ <dt>NNI Ports</dt>
+ <dd>
+ The list of Network to Network Interfaces for the EVC.
+ </dd>
+</dl>
+
+<h2>Modification Buttons</h2>
+<dl>
+ <dd>
+ You can modify each EVC in the table using the following buttons:
+ <br><img src="../images/edit.gif" alt="Edit">: Edits the EVC row.
+ <br><img src="../images/del.gif" alt="Delete">: Deletes the EVC.
+ <br><img src="../images/add.gif" alt="Add">: Adds new EVC.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page.</p>
+<p><input type="button" value=" Remove All ">: Click to remove all EVCs.</p>
+
+</body>
+</html>

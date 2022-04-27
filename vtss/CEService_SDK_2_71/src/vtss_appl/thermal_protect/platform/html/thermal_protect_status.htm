@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/misc.js"></script>
+
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_thermal_protect_status.htm";
+
+
+
+// Refresh timer
+var timerID;
+
+
+//
+// Process data, Called via requestUpdate.
+//
+function processUpdate(req, ref)
+{
+
+    var status = req.responseText.split("|");
+
+    // Error message
+    var err_msg = status[0];
+    if (err_msg !== "") {
+	alert(err_msg);
+    }
+
+
+    var tr = CreateStyledElement("tr", "display_header");
+    var LearnBody = document.getElementById('Temperatures');
+    clearChildNodes(LearnBody);
+  
+    addTextHeaderCell(tr,"Port","hdrc");
+    addTextHeaderCell(tr,"Temperature","hdrc", 2);
+    addTextHeaderCell(tr,"Port status","hdrc", 1);
+
+
+    LearnBody.appendChild(tr);       // Add row to fragment
+
+
+    // Loop through all ports and show the corresponding temperature
+    for (var port = configPortMin; port <= configNormalPortMax; port++ ) {
+	var port_status = status[port].split("&");
+	// Change color for every 2nd row.
+	tr = CreateStyledElement("tr", port % 2 ? "display_even" : "display_odd");
+
+	addTextCell(tr, port, "c");  
+	addTextCell(tr, port_status[0], "c");  
+	addTextCell(tr, "\u00B0C", "c");
+
+	// Add text about if port is powered down
+	addTextCell(tr, port_status[1]);
+
+
+	LearnBody.appendChild(tr);       // Add row to fragment
+    }
+
+    document.getElementById("update").style.visibility = "hidden";
+
+    // Update the timer
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+	}
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+}
+
+//
+// Web page updated
+//
+function requestUpdate() {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    document.getElementById("update").style.visibility = "visible"; 
+    loadXMLDoc(SpomAddSidArg("/stat/thermal_protect_status"), processUpdate, 'stat');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+//
+// Auto refresh 
+//
+function chkRefresh(fld)
+{
+  if(!fld.checked) {
+      if(timerID) {
+	clearTimeout(timerID);
+      }
+    timerID = null;
+  } else {
+      requestUpdate();
+  }
+}
+
+
+//
+// Check if the switch in the stack is changed.
+//
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();
+}
+
+</script>
+</head>
+<body class="content" onload="requestUpdate();">
+<h1>Thermal Protection Status</h1>
+<form name="StatusForm" method="POST" action="/stat/thermal_protect_status"></form>
+
+<div class="refreshbar">
+ <form action="#">
+    <label for="autorefresh">Auto-refresh</label>
+    <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+    <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+    <img id="update" alt="" src="images/updating.gif">
+  </form>
+</div>
+
+<h2>Thermal Protection Port Status<span id="display_sid"></span></h2>
+
+<table id="TemperatureTable" summary="Temperatures" cellspacing="0" class="display">
+ <tbody id="Temperatures">
+ </tbody>
+</table>
+
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+</body>
+</html>
+     
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

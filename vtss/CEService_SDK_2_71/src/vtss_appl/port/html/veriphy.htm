@@ -1,0 +1,356 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>VeriPHY Cable Diagnostics</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_veriphy.htm";
+
+// Auto-refresh as long as VeriPHY is running on a port or we don't get a response
+var timerID;
+var currentReq;
+
+// This one tells us whether we've populated the Port list drop-down box
+// since we don't wanna do that again if it's already populated with
+// VeriPHYable ports, because if we did, the user would not be able
+// so select another port for as long as we auto-refresh, because
+// we would then delete what he was about to click on before adding it
+// again, and the drop-ødown list would disappear.
+var portSelectorPopulated = false;
+
+//    VTSS_VERIPHY_STATUS_OK      = 0,  /* Correctly terminated pair */
+//    VTSS_VERIPHY_STATUS_OPEN    = 1,  /* Open pair */
+//    VTSS_VERIPHY_STATUS_SHORT   = 2,  /* Short pair */
+//    VTSS_VERIPHY_STATUS_ABNORM  = 4,  /* Abnormal termination */
+//    VTSS_VERIPHY_STATUS_SHORT_A = 8,  /* Cross-pair short to pair A */
+//    VTSS_VERIPHY_STATUS_SHORT_B = 9,  /* Cross-pair short to pair B */
+//    VTSS_VERIPHY_STATUS_SHORT_C = 10, /* Cross-pair short to pair C */
+//    VTSS_VERIPHY_STATUS_SHORT_D = 11, /* Cross-pair short to pair D */
+//    VTSS_VERIPHY_STATUS_COUPL_A = 12, /* Abnormal cross-pair coupling, pair A */
+//    VTSS_VERIPHY_STATUS_COUPL_B = 13, /* Abnormal cross-pair coupling, pair B */
+//    VTSS_VERIPHY_STATUS_COUPL_C = 14, /* Abnormal cross-pair coupling, pair C */
+//    VTSS_VERIPHY_STATUS_COUPL_D = 15  /* Abnormal cross-pair coupling, pair D */
+var VeriPHYstatus = Array("OK","Open","Short","--","Abnormal","--","--","--","Short A","Short B","Short C","Short D","Cross A","Cross B","Cross C","Cross D");
+
+var START_UPD_REASON_START_BUTTON_CLICK      = 0;
+var START_UPD_REASON_POLL_TIMEOUT            = 1;
+var START_UPD_REASON_HTTP_TIMEOUT            = 2;
+var START_UPD_REASON_AT_LEAST_ONE_IS_RUNNING = 3;
+
+function addRow(idx, frag, port_data) {
+  var running = false;
+  var tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+
+  // If veriphy_status_n is 0, VeriPHY has not been run in this port, and the remaining data is invalid.
+  // If veriphy_status_n is 1, VeriPHY is in progress, and the remaining data is invalid.
+  // If veriphy_status_n is 2, VeriPHY has been run on this port, and the remaining data is ok.
+
+  addTextCell(tr, port_data[0], "cr"); // Port
+  if (port_data[1] == 1) {
+    // VeriPHY is currently running
+    addTextCell(tr, "VeriPHY is running...", "cl", 8);
+    running = true;
+  } else if(port_data[1] == 2) {
+    // VeriPHY has previously been running. Present latest data
+    for(var i = 0; i < 4; i++) {
+      // Status
+      var j = (2 * i) + 2;
+      if(port_data[j] > 15) {
+        addTextCell(tr, "--", "c");
+      } else {
+        addTextCell(tr, VeriPHYstatus[port_data[j]], "c");
+      }
+      
+      // Length
+      if(port_data[j + 1] == 255) {
+        addTextCell(tr, "--", "cr");
+      } else {
+        addTextCell(tr, port_data[j + 1], "cr");
+      }
+    }
+  } else {
+    // VeriPHY has not been run (or invalid veriphy_status)
+    for(var i = 0; i < 4; i++) {
+      addTextCell(tr, "--", "c");
+      addTextCell(tr, "--", "cr");
+    }
+  }
+
+  frag.appendChild(tr);       // Add row to fragment
+  return running;
+}
+
+function startUpdate(reason)
+{
+  timerID = setTimeout('doPoll(-1)', 2000);
+}
+
+function processUpdate(responseText) {
+
+  document.getElementById("update").style.visibility = "hidden";
+
+  if(!responseText) {
+    // When the responseText is empty, it's probably because we timed out
+    // because we're currently VeriPHYing the port that this PC is connected
+    // through. Clear the status table and add a row telling this.
+    var tr = CreateStyledElement("tr", "config_even");
+    addTextCell(tr, "Switch is currently not responding. Please wait...", "cl", 9);
+    
+    var status_tbody = document.getElementById("VeriPHYData");
+    clearChildNodes(status_tbody);
+    if(!status_tbody.appendChild(tr)) {
+      alert("This browser doesn't support dynamic tables.");
+    }
+    return; // Nothing more to do.
+  }
+
+  // Format of data (only ports that have a PHY are in the data):
+  // port_1/veriphy_status_1/status_1_1/length_1_1/status_1_2/length_1_2/status_1_3/length_1_3/status_1_4/length_1_4;
+  // port_2/veriphy_status_2/status_2_1/length_2_1/status_2_2/length_2_2/status_2_3/length_2_3/status_2_4/length_2_4;
+  // ...
+  // port_n/veriphy_status_n/status_n_1/length_n_1/status_n_2/length_n_2/status_n_3/length_n_3/status_n_4/length_n_4;
+
+  // Notes:
+  //   If veriphy_status_n is 0, VeriPHY has not been run in this port, and the remaining data is invalid.
+  //   If veriphy_status_n is 1, VeriPHY is in progress, and the remaining data is invalid.
+  //   If veriphy_status_n is 2, VeriPHY has been run on this port, and the remaining data is ok.
+  //   port_1 doesn't mean "port #1", but the first port that supports VeriPHY, which doesn't have to be port #1.
+  var all_port_data = responseText.split(";");
+  var idx;
+
+  // Create the Port Selector
+  var selector_field;
+
+  if(!portSelectorPopulated) {
+    selector_field    = document.createElement('select');
+    selector_field.id = selector_field.name = "port_id";
+
+    // Create the "All" item for the Port Selector
+    var AllOptionItem;
+    AllOptionItem = document.createElement('option');
+    AllOptionItem.value = 0;
+    AllOptionItem.setAttribute("selected", true);
+    AllOptionItem.setAttribute("defaultSelected", true);
+    AllOptionItem.appendChild(document.createTextNode('All'));
+    selector_field.appendChild(AllOptionItem);
+  }
+
+  // Create the fragment holding the status table body
+  var status_frag = document.createDocumentFragment();
+  var at_least_one_running = false;
+
+  for(idx = 0; idx < all_port_data.length; idx++) {
+    var port_data = all_port_data[idx].split("/");
+
+    if(!portSelectorPopulated) {
+      var port = port_data[0];
+
+      // Add a port selector item with this port number
+      var optionItem = document.createElement('option');
+      optionItem.value = port;
+      optionItem.appendChild(document.createTextNode(port));
+      selector_field.appendChild(optionItem);
+    }
+
+    // Add a status row for this port.
+    if(addRow(idx, status_frag, port_data)) {
+      at_least_one_running = true;
+    }
+  }
+
+  if(!portSelectorPopulated) {
+    // Clear current Port Selector cell contents
+    var selector_td = document.getElementById("VeriPHYSelector");
+    clearChildNodes(selector_td);
+    selector_td.appendChild(selector_field);
+  }
+
+  portSelectorPopulated = true;
+
+  // Clear current status table body and add thge new fragment
+  var status_tbody = document.getElementById("VeriPHYData");
+  clearChildNodes(status_tbody);
+  if(!status_tbody.appendChild(status_frag)) {
+    alert("This browser doesn't support dynamic tables.");
+  }
+
+  var but = document.getElementById("start_button");
+  but.disabled = false;
+
+  if(at_least_one_running) {
+    startUpdate(START_UPD_REASON_AT_LEAST_ONE_IS_RUNNING);
+  }
+}
+
+function pollTimeout()
+{
+  try {
+    if(currentReq) {
+      currentReq.abort();
+    }
+  } catch(e) {
+  }
+  currentReq = null;
+  processUpdate(null);
+  startUpdate(START_UPD_REASON_POLL_TIMEOUT);
+}
+
+function privateLoadXMLDoc(port)
+{
+  var req = initXMLHTTP();
+
+  req.open("GET", SpomAddSidArg("/config/veriphy?port=" + port), true);
+  req.onreadystatechange = function() {
+    try {
+      clearTimeout(timerID);
+    } catch(e) {
+    }
+    timerID = null;
+
+    try {
+      if(req.readyState == 4) {
+        if(req.status && req.status == 200) {
+                if(req.getResponseHeader("X-ReadOnly") == "null") {
+                    document.location.href = 'insuf_priv_lvl.htm';
+                } else {
+                    processUpdate(req.responseText);
+                    if(req.getResponseHeader("X-ReadOnly") == "true")
+                        ChangeFormReadOnly(req);
+                }
+                req = currentReq = null;
+        } else {
+          req = currentReq = null;
+          // Do not start a new now, since it's (probably) beacuse we aborted ourselves.
+        }
+      }
+    } catch(e) {
+      req = null;
+    }
+  }
+  req.setRequestHeader("If-Modified-Since", "0"); // None cache
+  req.send("");
+  currentReq = req;
+  timerID = setTimeout('pollTimeout()', 2000);
+}
+
+function doPoll(port) {
+  if(SpomNavigationLoading())
+    return; // Bail out, navigation will trigger update
+  // We need to take care of requesting the page ourselves,
+  // because if VeriPHY is running on the port through which this
+  // browser is connected, and the port is running 10 or 100Mbps,
+  // we don't get any responses.
+  document.getElementById("update").style.visibility = "visible";
+  privateLoadXMLDoc(port);
+  SpomUpdateDisplaySid("display_sid");
+}
+
+function onStartButtonClick() {
+  var port_selector = document.getElementById("port_id");
+  if(port_selector) {
+    // Well in fact, we use the HTTP GET method to
+    // start VeriPHY because the HTTP POST method causes
+    // a form reload, which we cannot control in terms
+    // of timeouts in case the port that is to be VeriPHYed
+    // is a 10/100 port that this browser is connected through.
+    doPoll(port_selector.value);
+    var but = document.getElementById("start_button");
+    but.disabled = true;
+  }
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+  SpomSetCurrentSid(sid); // Save current SID
+  portSelectorPopulated = false;
+  doPoll(-1);             // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="doPoll(-1);">
+
+  <h1>VeriPHY Cable Diagnostics <span id="display_sid"></span></h1>
+  <div class="refreshbar">
+   <img id="update" alt="" src="images/updating.gif">
+  </div>
+
+  <table summary="VeriPHY" cellspacing="0" class="config">
+    <tbody>
+      <tr class="config_even">
+        <td class="param_label">Port</td>
+        <td class="cl" id="VeriPHYSelector"/>
+      </tr>
+    </tbody>
+  </table>
+
+  <br/>
+  <form action="#">
+  <input type="button" id="start_button" value="Start" onClick="onStartButtonClick();">
+  </form>
+  <br/><br/>
+
+  <table summary="VeriPHY Cable Diagnostics" class="display">
+    <thead>
+      <tr class="display_header">
+        <th colspan="9">Cable Status</th>
+      </tr>
+      <tr class="display_header">
+        <th>Port</th>
+        <th>Pair A</th>
+        <th>Length A</th>
+        <th>Pair B</th>
+        <th>Length B</th>
+        <th>Pair C</th>
+        <th>Length C</th>
+        <th>Pair D</th>
+        <th>Length D</th>
+      </tr>
+    </thead>
+    <tbody id="VeriPHYData"></tbody>
+  </table>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

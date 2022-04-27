@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QCL Status Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.qceMax').set('text', configQCEMax);
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+
+<body>
+<h1>QCL Status Help</h1>
+
+<h2><a href="glossary.htm#q" class="glossary">QCL</a> Status Help</h2>
+
+<p>This page shows the QCL status by different QCL users. Each row
+describes the <a href="glossary.htm#q" class="glossary">QCE</a> that is defined. It is a conflict if a specific
+QCE is not applied to the hardware due to hardware limitations.
+The maximum number of QCEs is <samp><span class="qceMax">?</span></samp>
+on each switch.</p>
+
+<dl>
+ <dt>User</dt>
+ <dd>
+ Indicates the QCL user.
+ </dd>
+
+
+<dt>QCE</dt>
+ <dd>
+ Indicates the QCE id.
+ </dd>
+
+ <dt>Port</dt>
+ <dd>
+ Indicates the list of ports configured with the QCE.
+ </dd>
+
+ <dt>Frame Type</dt>
+ <dd>
+ Indicates the type of frame. Possible values are:
+ <br><samp>Any</samp>: Match any frame type.
+ <br><samp>Ethernet</samp>: Match EtherType frames.
+ <br><samp>LLC</samp>: Match (<a href="glossary.htm#llc" class="glossary">LLC</a>) frames.
+ <br><samp>SNAP</samp>: Match (<a href="glossary.htm#snap" class="glossary">SNAP</a>) frames.
+ <br><samp>IPv4</samp>: Match IPv4 frames.
+ <br><samp>IPv6</samp>: Match IPv6 frames.
+ </dd>
+
+ <dt>Action</dt>
+ <dd>
+ Indicates the classification action taken on ingress frame if parameters configured are matched with the frame's content.
+ <br>Possible actions are:
+ <br><samp>CoS</samp>: Classify <a href="glossary.htm#qos_class" class="glossary">Class of Service</a>.
+ <br><samp>DPL</samp>: Classify <a href="glossary.htm#dpl" class="glossary">Drop Precedence Level</a>.
+ <br><samp>DSCP</samp>: Classify <a href="glossary.htm#dscp" class="glossary">DSCP</a> value.
+ <span class="has_arch_serval">
+  <br><samp>PCP</samp>: Classify <a href="glossary.htm#PCP" class="glossary">PCP</a> value.
+  <br><samp>DEI</samp>: Classify <a href="glossary.htm#DEI" class="glossary">DEI</a> value.
+  <br><samp>Policy</samp>: Classify ACL Policy number.
+ </span>
+ </dd>
+
+ <dt>Conflict</dt>
+ <dd>Displays Conflict status of QCL entries. As H/W resources are shared by multiple applications. It may happen that resources required to add a QCE may not be available, in that case it shows conflict status as 'Yes', otherwise it is always 'No'. Please note that conflict can be resolved by releasing the H/W resources required to add QCL entry on pressing 'Resolve Conflict' button.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+
+<p><select>
+<option>Combined</option>
+<option>Static</option>
+<option>Voice Vlan</option>
+<option>Conflict</option>
+</select> : Select the QCL status from this drop down list.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value="Resolve Conflict">: Click to release the resources required to add QCL entry, in case the conflict status for any QCL entry is 'yes'.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page.</p>
+
+</body>
+</html>

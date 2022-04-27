@@ -1,0 +1,74 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_vcl := $(DIR_APPL)/vcl
+DIR_vcl_platform := $(DIR_vcl)/platform
+DIR_vcl_base := $(DIR_vcl)/base
+DIR_vcl_html := $(DIR_vcl_platform)/html
+
+OBJECTS_vcl_base := vtss_vcl.o
+OBJECTS_vcl_platform := vcl.o \
+    $(if $(MODULE_VCLI),vcl_cli.o) \
+    $(if $(MODULE_ICLI),vcl_icli_functions.o)  \
+    $(if $(MODULE_WEB),vcl_web.o) \
+    $(if $(MODULE_CONF_XML),vcl_xml.o) \
+    $(if $(MODULE_ICFG),vcl_icfg.o)
+
+
+OBJECTS_vcl := $(OBJECTS_vcl_platform) $(OBJECTS_vcl_base)
+
+$(OBJECTS_vcl_platform): %.o: $(DIR_vcl_platform)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vcl_base): %.o: $(DIR_vcl_base)/%.c
+	$(call compile_c, $@, $<)
+
+INCLUDES += -I$(DIR_vcl_platform)/include -I$(DIR_vcl_base)/include
+
+# Built-in ICLI
+$(eval $(call add_icli,$(foreach m, vcl,$(DIR_vcl_platform)/$(m).icli)))
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_vcl_html)
+
+# Lint files
+LINT_FILES_vcl += $(DIR_vcl_base)/vtss_vcl.c
+LINT_FILES_vcl += $(DIR_vcl_platform)/vcl.c
+LINT_FILES_vcl += $(if $(MODULE_ICLI),$(DIR_vcl_platform)/vcl_icli_functions.c)
+LINT_FILES_vcl += $(if $(MODULE_VCLI), $(DIR_vcl_platform)/vcl_cli.c)
+LINT_FILES_vcl += $(if $(MODULE_CONF_XML), $(DIR_vcl_platform)/vcl_xml.c)
+LINT_FILES_vcl += $(if $(MODULE_WEB), $(DIR_vcl_platform)/vcl_web.c)
+LINT_FILES_vcl += $(if $(MODULE_ICFG), $(DIR_vcl_platform)/vcl_icfg.c)
+
+# Coding style check
+VTSS_CODE_STYLE_CHK_FILES_vcl += $(DIR_vcl_base)/*.c
+VTSS_CODE_STYLE_CHK_FILES_vcl += $(DIR_vcl_base)/include/*.h
+VTSS_CODE_STYLE_CHK_FILES_vcl += $(DIR_vcl_platform)/*.c
+VTSS_CODE_STYLE_CHK_FILES_vcl += $(DIR_vcl_platform)/include/*.h
+
+# Tidy files
+TIDY_FILES_vcl += $(DIR_vcl_html)/*.htm $(DIR_vcl_html)/help/*.htm
+

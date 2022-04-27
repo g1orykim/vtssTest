@@ -1,0 +1,52 @@
+# ====================================================================
+#
+#	vcoreiii_eth_driver.cdl
+#
+#	Ethernet driver
+#	Vitesse VCore-III ethernet interface
+#
+# ====================================================================
+# ====================================================================
+######DESCRIPTIONBEGIN####
+#
+# Author(s):      Lars Povlsen <lpovlsen@vitesse.com>
+# Original data:
+# Contributors:	  
+# Date:           22-01-2010
+#
+#####DESCRIPTIONEND####
+#
+# ====================================================================
+
+# NOTE!!!!!
+# This is just a placeholder for being able to enable various packages
+# requiring 'CYGHWR_NET_DRIVERS' to be > 0 (e.g. CYGPKG_NET_DHCP).
+# We really don't create a real eth device, since transmission and
+# reception of frames is handled solely by the application.
+
+cdl_package CYGPKG_DEVS_ETH_MIPS_VCOREIII {
+    display       "VCore-III ethernet driver"
+    description   "Ethernet driver for VCore-III."
+
+    parent        CYGPKG_IO_ETH_DRIVERS
+    active_if	  CYGPKG_IO_ETH_DRIVERS
+    
+    cdl_component CYGPKG_DEVS_ETH_MIPS_VCOREIII_ETH0 {
+        display       "Ethernet port 0 driver"
+        flavor        bool
+        default_value 1
+
+        implements CYGHWR_NET_DRIVERS
+        implements CYGHWR_NET_DRIVER_ETH0
+
+        cdl_option CYGDAT_DEVS_ETH_MIPS_VCOREIII_ETH0_NAME {
+            display       "Device name for the ETH0 ethernet port 0 driver"
+            flavor        data
+            default_value {"\"eth0\""}
+            description   "
+                This option sets the name of the ethernet device for the
+                vcoreiii ethernet port 0."
+        }
+    }
+}
+

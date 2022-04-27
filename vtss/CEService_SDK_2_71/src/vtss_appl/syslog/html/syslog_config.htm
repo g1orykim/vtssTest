@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>System Log Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_syslog_config.htm";
+
+// Global variables
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = Array(0, 1);
+var oTLevel = Array("Info", "Warning", "Error");
+var oVLevel = Array(0, 1, 2);
+
+function checkForm()
+{
+    if (!isHostName("server_addr", "'Server Address'")) {
+        return false;
+    }
+
+    document.getElementById("submitbutton").disabled = true;
+    return true;
+}
+
+function addRow(frag, values) {
+    var tr;
+
+    //server_mode
+    tr = document.createElement("tr");
+    addTextCell(tr, "Server Mode", "param_label");
+    addSelectCell(tr, oTMode, oVMode, values[0], "cl", "server_mode", "100%");
+    frag.appendChild(tr);
+
+    //server_addr
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Server Address", "param_label", "server_addr");
+    addInputCell(tr, values[1], "cl", "server_addr", 15, 45, "100%");
+    frag.appendChild(tr);
+
+    //syslog_level
+    tr = document.createElement("tr");
+    addTextCell(tr, "Syslog Level", "param_label");
+    addSelectCell(tr, oTLevel, oVLevel, values[2], "cl", "syslog_level", "100%");
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    // Format: [server_mode]/[server_addr]/[syslog_level]
+
+    if (req.responseText) {
+        var values = req.responseText.split("/");
+        //var values = req.split("/");
+
+        //create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        addRow(frag, values);
+
+        var tbody = document.getElementById("tableData");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+}
+
+function requestUpdate()
+{
+    //var req = "0/1.2.3.4/0";
+    //processUpdate(req, null);
+    loadXMLDoc("/config/syslog_config", processUpdate, null);
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>System Log  Configuration</h1>
+
+<form method="POST" action="/config/syslog_config" onsubmit="return checkForm();">
+
+<table summary="System Log Configuration" cellspacing="0" class="config">
+ <tbody id="tableData">
+ </tbody>
+</table>
+
+<p>
+<input type="submit" id="submitbutton" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

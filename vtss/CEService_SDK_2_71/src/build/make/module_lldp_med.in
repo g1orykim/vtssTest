@@ -1,0 +1,74 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Base files
+DIR_lldp_med_base     := $(DIR_APPL)/lldp/base/lldpmed
+OBJECTS_lldp_med_base := lldpmed_rx.o lldpmed_tx.o lldporg_spec_tlvs_rx.o
+
+# Compile options for the mandatory LLDP
+$(OBJECTS_lldp_med_base): %.o: $(DIR_lldp_med_base)/%.c
+	$(call compile_c, $@, $<)
+
+# Platform files
+DIR_lldp_med_platform     := $(DIR_APPL)/lldp/platform/lldpmed
+
+OBJECTS_lldp_med_platform := $(if $(MODULE_VCLI),lldpmed_cli.o)  \
+			    $(if $(MODULE_ICLI),lldpmed_icli_functions.o)  
+
+$(OBJECTS_lldp_med_platform): %.o: $(DIR_lldp_med_platform)/%.c 
+	$(call compile_c, $@, $<)
+
+#Built-in ICLI
+$(eval $(call add_icli,$(DIR_lldp_med_platform)/lldpmed.icli))
+
+# Compile all objects
+OBJECTS_lldp_med := $(OBJECTS_lldp_med_base) $(OBJECTS_lldp_med_platform)
+
+# Lint files
+LINT_FILES_lldp_med += $(DIR_lldp_med_platform)/*.c $(DIR_lldp_med_base)/*.c
+
+# Include directories
+INCLUDES += -I$(DIR_lldp_med_base) -I$(DIR_lldp_med_platform)
+
+# For now the organizationally Specific TLVs are included when we have LLDP-MED. This might
+# change in the future
+DEFINES += -DVTSS_SW_OPTION_LLDP_ORG
+DEFINES += -DVTSS_SW_OPTION_LLDP_MED_NETWORK_POLICY
+DEFINES += -DVTSS_SW_OPTION_LLDP_MED_DEBUG
+
+# Code style
+VTSS_CODE_STYLE_CHK_FILES_lldp_med += $(DIR_lldp_med_base)/*.h
+VTSS_CODE_STYLE_CHK_FILES_lldp_med += $(DIR_lldp_med_base)/*.c
+VTSS_CODE_STYLE_CHK_FILES_lldp_med += $(DIR_lldp_med_platform)/lldpmed_cli.h
+VTSS_CODE_STYLE_CHK_FILES_lldp_med += $(DIR_lldp_med_platform)/lldpmed_cli.c
+
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_lldp_med += $(DIR_lldp_med_platform)/lldpmed_icli_functions.c 
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_lldp_med += $(DIR_lldp_med_platform)/lldpmed_icli_functions.h 
+
+
+# JSlint files
+JSLINT_FILES_lldp_med += $(DIR_APPL)/lldp/platform/html/lldp_med_config.htm
+

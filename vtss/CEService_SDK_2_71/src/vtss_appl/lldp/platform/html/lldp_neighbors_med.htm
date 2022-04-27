@@ -1,0 +1,303 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_lldpmed_neighbors.htm";
+
+//
+// Global variables
+//
+
+var LLDPMEDconfig = Array();
+
+// Refresh timer
+var timerID;
+
+//
+// Java script functions
+//
+
+function UpdateTable (ref, frag)
+{
+    // Check that data is available
+    if (LLDPMEDconfig.length > 1) { 
+	// Loop though all data
+	for(var index = 0; index < LLDPMEDconfig.length -1 ; index++) {
+	    // LLDPMEDconfig is split as this : <port id>?<capabilities information>?<policy information>?<location_infomation>?<mac_phy_conf>
+	    var pval = LLDPMEDconfig[index].split("?");
+	    var port_id     = pval[0];
+	    var capa_info   = pval[1];
+	    var policy_info = pval[2];
+	    var loc_info    = pval[3];
+	    var mac_phy_conf = pval[4];
+	    
+	    
+	    // If no lldp neighbor entries is found then display that.
+	    if (port_id == "") {
+		var tr = CreateStyledElement("tr", "display_header");
+		addTextHeaderCell(tr,"Local Port", "hdrc", 1);
+		frag.appendChild(tr);       // Add row to fragment
+
+		var tr = CreateStyledElement("tr", "display_even");
+		addTextCell(tr,"No LLDP-MED neighbor information found", "c",1);
+		frag.appendChild(tr);       // Add row to fragment
+		break;
+	    }
+
+	    //
+	    // PORTS
+	    //
+	    var tr = CreateStyledElement("tr", "display_separate_header");
+	    addTextHeaderCell(tr, port_id, "hdrc",20);
+	    frag.appendChild(tr);       // Add row to fragment
+
+
+	    //
+	    // Capabilities TLV
+	    //
+
+	    // capabilities information is split as this <capabilities>¤<device_type>
+
+	    if (capa_info.length > 0 ) {
+	        var capa_tlv = capa_info.split("&");
+		var tr = CreateStyledElement("tr", "config_header");
+		addTextHeaderCell(tr, "Device Type", "hdrc", 1);
+		addTextHeaderCell(tr, "Capabilities", "hdrc", 20);
+		frag.appendChild(tr);       // Add row to fragment
+	
+		
+		var tr = CreateStyledElement("tr", "display_odd");
+		addTextCell(tr, capa_tlv[0], "c",1);  
+		addTextCell(tr, capa_tlv[1], "c",10);  
+		frag.appendChild(tr);       // Add row to fragment
+	    }
+	    
+
+	    //
+	    // Policies
+	    //
+	    
+	    // policy information is split as this <Number of policies>~<policies TLVs>
+	    if (policy_info.length > 0 ) {
+		var policy = policy_info.split("~");
+	    
+		var policy_cnt = policy[0];
+	    
+		if (policy_cnt > 0) {
+		    // Each policy tlvs is split as this <Application Type>¤<Policy>¤<TAG>¤<VLAN ID>¤<Priority>¤<DSCP>
+		    var tr = CreateStyledElement("tr", "config_header");
+		    addTextHeaderCell(tr, "Application Type", "hdrc", 1);
+		    addTextHeaderCell(tr, "Policy", "hdrc", 1);
+		    addTextHeaderCell(tr, "Tag", "hdrc", 1);
+		    addTextHeaderCell(tr, "VLAN ID", "hdrc", 1);
+		    addTextHeaderCell(tr, "Priority", "hdrc", 1);
+		    addTextHeaderCell(tr, "DSCP", "hdrc", 1);
+		    frag.appendChild(tr);       // Add row to fragment
+		    
+		    for(var policy_idx = 1; policy_idx <= policy_cnt;policy_idx++) {
+			// The policies TLVs is split like this <Application type>,<Unknown policy>,<tagged>,<vlan id>,<priority>,<dscp>
+			var policy_tlv = policy[policy_idx].split("¤");
+			var tr = CreateStyledElement("tr", "display_odd");
+			for (var p_index = 0; p_index < policy_tlv.length;p_index ++) {
+			    addTextCell(tr,policy_tlv[p_index], "c");  
+			}
+			frag.appendChild(tr);       // Add row to fragment
+		    }
+		}
+	    }
+
+		
+	    //
+	    // Locations
+	    //
+
+	    if (loc_info.length > 0) {
+		// location  information is split as this <Number of locations tlvs>~<location TLV 1>~<location TLV 2>~<location TLV 2>
+		var location = loc_info.split("~");
+		var loc_cnt = location[0]; // The number of location entries
+
+		
+		if (loc_cnt > 0) {
+		    var tr = CreateStyledElement("tr", "config_header");
+		    addTextHeaderCell(tr, "Location", "hdrc", 10);
+		    frag.appendChild(tr);       // Add row to fragment
+		    
+		    for(var idx = 1; idx <= loc_cnt;idx++) {	    
+			var tr = CreateStyledElement("tr", "display_odd");    
+			addTextCell(tr,location[idx], "c",10);  
+			frag.appendChild(tr);       // Add row to fragment
+		    }
+		}
+	    }
+
+	    //
+	    // MAC/PHY conf
+	    //
+
+	    if (mac_phy_conf.length > 0) {
+		// mac_phy conf is split as this <Autoneg Support>~<Autoneg status>~<Autoneg capa>~<Mau type>
+		var mac_phy = mac_phy_conf.split("~");
+		
+		var tr = CreateStyledElement("tr", "config_header");
+		addTextHeaderCell(tr, "Auto-negotiation", "hdrc", 1);
+		addTextHeaderCell(tr, "Auto-negotiation status", "hdrc", 1);
+		addTextHeaderCell(tr, "Auto-negotiation Capabilities", "hdrc", 1);
+		addTextHeaderCell(tr, "MAU Type", "hdrc", 5);
+		frag.appendChild(tr);       // Add row to fragment
+		
+		var tr = CreateStyledElement("tr", "display_odd");
+		for (var p_index = 0; p_index < mac_phy.length;p_index ++) {
+		    if (p_index < mac_phy.length -1) {
+			addTextCell(tr,mac_phy[p_index], "c");  
+		    } else {
+			addTextCell(tr,mac_phy[p_index], "c",5);  
+		    }
+		}
+		frag.appendChild(tr);       // Add row to fragment
+	    }
+
+	} // End for loop
+
+
+        var tbody = document.getElementById(ref);	
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+	    alert("This browser doesn't support dynamic tables.");
+	}
+
+	
+
+    } // end LLDPMEDconfig.length > 1
+}
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req))
+        return;
+    if(req.responseText) {
+
+        // Get number of entries
+	LLDPMEDconfig = req.responseText.split("|");
+
+	
+	// create holder for accumulated tbody elements and text nodes
+	var frag = document.createDocumentFragment();
+    
+	// Create the table
+	UpdateTable(ref, frag);
+
+    } else {
+        SpomHandleError();
+    }
+    document.getElementById("update").style.visibility = "hidden";
+
+    // Update the timer
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+}
+
+function requestUpdate(type) {
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/stat/lldpmed_neighbors"), processUpdate, 'LLDPMEDData');
+    
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function chkRefresh(fld)
+{
+  if(!fld.checked) {
+    if(timerID)
+      clearTimeout(timerID);
+    timerID = null;
+  } else {
+      requestUpdate();
+  }
+}
+
+// Update when SID is changed.
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>LLDP-MED Neighbor Information <span id="display_sid"></span></h1>
+
+<form name="LLDPMEDNeighborsForm" method="POST" action="/stat/lldpmed_neighbors" onsubmit="return checkForm(this);"> </form>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<table id="LLDPMEDNeighborsTable" summary="LLDPMED Neighbors Table" cellspacing="0" class="display">
+ <tbody id="LLDPMEDData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

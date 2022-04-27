@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port DSCP Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="../lib/config.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     if (!configArchLuton26 && !configArchServal) {
+       $$('.hasDpl').setStyle('display', 'none');
+     }
+     if (!configArchJaguar_1) {
+       $$('.hasNoDpl').setStyle('display', 'none');
+     }
+   });
+ </script>
+</head>
+
+<body>
+<h1>Port DSCP Configuration Help</h1>
+
+<p>This page allows you to configure the basic <a href="glossary.htm#qos" class="glossary">QoS</a> Port <a href="glossary.htm#dscp" class="glossary">DSCP</a> Configuration settings for all switch ports.</p>
+
+<p class="SPOM_only">The settings relate to the currently selected stack
+unit, as reflected by the page header.</p>
+
+<p>The displayed settings are:</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>The Port column shows the list of ports for which you can configure dscp ingress and egress settings.</dd>
+ 
+ <dt>Ingress</dt>
+ <dd>In Ingress settings you can change ingress translation and classification settings for individual ports.<br>There are two configuration parameters available in Ingress: 
+     <br><samp>1. Translate</samp>
+	 <br><samp>2. Classify</samp>
+</dd>
+ <dt>1. Translate</dt>
+ <dd>To Enable the Ingress Translation click the checkbox.</dd>
+ <dt>2. Classify</dt>
+ <dd>Classification for a port have 4 different values.
+ <ul>
+  <li><samp>Disable</samp>: No Ingress DSCP Classification.</li>
+  <li><samp>DSCP=0</samp>: Classify if incoming (or translated if enabled) DSCP is 0.</li>
+  <li><samp>Selected</samp>: Classify only selected DSCP for which classification is enabled as specified in DSCP Translation window for the specific DSCP.</li>
+  <li><samp>All</samp>: Classify all DSCP.</li>
+ </ul>
+</dd>
+ <dt>Egress</dt>
+ <dd>Port Egress Rewriting can be one of -<br>
+  <ul>
+   <li><samp>Disable</samp>: No Egress rewrite.</li>
+   <li><samp>Enable</samp>: Rewrite enabled without remapping.</li>
+   <li class="hasDpl"><samp>Remap DP Unaware</samp>: DSCP from analyzer is remapped and frame is remarked with remapped DSCP value.
+    The remapped DSCP value is always taken from the 'DSCP Translation->Egress Remap DP0' table.
+   </li>
+   <li class="hasDpl"><samp>Remap DP Aware</samp>: DSCP from analyzer is remapped and frame is remarked with remapped DSCP value.
+    Depending on the DP level of the frame, the remapped DSCP value is either taken from the 'DSCP Translation->Egress Remap DP0' table or from the 'DSCP Translation->Egress Remap DP1' table.
+   </li>
+   <li class="hasNoDpl"><samp>Remap</samp>: DSCP from analyzer is remapped and frame is remarked with remapped DSCP value.</li>
+  </ul>
+ </dd>
+ </dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value="Save">: Click to save changes.</p>
+<p><input type="button" value="Reset">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

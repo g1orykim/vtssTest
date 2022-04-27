@@ -1,0 +1,64 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files Location
+DIR_syslog := $(DIR_APPL)/syslog
+
+# Module objects
+OBJECTS_syslog := syslog.o \
+$(if $(MODULE_VCLI),syslog_cli.o) \
+$(if $(MODULE_WEB),syslog_web.o) \
+$(if $(MODULE_CONF_XML),syslog_xml.o) \
+$(if $(MODULE_ICFG),syslog_icfg.o)
+
+# Compiler rules
+$(OBJECTS_syslog): %.o: $(DIR_syslog)/%.c
+	$(call compile_c, $@, $<)
+
+# Built-in ICLI
+$(eval $(call add_icli,$(foreach m, syslog,$(DIR_syslog)/$(m).icli)))
+
+# Include files
+INCLUDES += -I$(DIR_syslog)
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_syslog)/html
+
+LINT_FILES_syslog += $(DIR_syslog)/syslog.c      \
+  $(if $(MODULE_VCLI),$(DIR_syslog)/syslog_cli.c) \
+  $(if $(MODULE_WEB),$(DIR_syslog)/syslog_web.c) \
+  $(if $(MODULE_XML),$(DIR_syslog)/syslog_xml.c) \
+  $(if $(MODULE_ICFG),$(DIR_syslog)/syslog_icfg.c)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_syslog += $(DIR_syslog)/*.c $(DIR_syslog)/*.h
+
+# Tidy files
+TIDY_FILES_syslog += $(DIR_syslog)/html/*.htm $(DIR_syslog)/html/help/*.htm
+
+# JSlint files
+JSLINT_FILES_syslog += $(TIDY_FILES_syslog)
+

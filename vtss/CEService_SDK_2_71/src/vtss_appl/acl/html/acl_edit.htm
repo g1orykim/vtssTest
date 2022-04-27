@@ -1,0 +1,2393 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Access Control List</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_acl_edit.htm";
+
+var pageAceConfigFlag = 3;
+var pageSelectAceId = 0;
+var pageArgs = searchArgs(window.location.search);
+var pageArgsName = 'aceConfigFlag';
+if(pageArgs[pageArgsName]) {
+    pageAceConfigFlag = parseInt(pageArgs[pageArgsName], 10);
+}
+pageArgsName = 'SelectAceId';
+if(pageArgs[pageArgsName]) {
+    pageSelectAceId = parseInt(pageArgs[pageArgsName], 10);
+}
+
+var hasAclEvcPolicer = 1;
+var hasAclV2 = 1;
+var hasAclLogging = 1;
+var hasAclShutdown = 1;
+var hasAclIpv6 = 1;
+
+function portIsFilter(portNo) {
+    if (configPortType >= 3 && (configPortName(portNo, 0) == "WAN" || configPortName(portNo, 0) == "WAN2" || configPortName(portNo, 0) == "EPON")) {
+        return true;
+    }
+    return false;
+}
+
+var oVRouterPortIngressPort = Array(0,1,2,3,4,5,6,7,8,10,11,12,13);
+var oVRouterPortPortCopy = Array(0,2,3,4,5);
+var AceDataTable = Array("aceData_RuleType", "aceData_Mac", "aceData_Ip", "aceData_Arp", "aceData_EthType", "aceData_Action", "aceData_Vlan", "aceData_Icmp", "aceData_ArpFlags", "aceData_Ipv6", "aceData_Icmpv6");
+var oTPort = Array("All");
+for (var port_idx = configPortMin; port_idx <= configNormalPortMax + configRgmiiWifi; port_idx++) {
+    if (portIsFilter(port_idx)) {
+        continue;
+    }
+    oTPort.push(configPortName(port_idx, 1));
+}
+var oVNormal = genArrayInt(0, configNormalPortMax > 8 ? configNormalPortMax : 8);
+
+var oTAction = Array("Deny", "Permit");
+var oldFilterPortValue;
+var oTRateLimiter = Array("Disabled").concat(genArrayStr(1, configAclRateLimitIdMax));
+var oVRateLimiter = genArrayInt(0, oTRateLimiter.length);
+var oTPortCopy = Array("Disabled");
+for (port_idx = configPortMin; port_idx <= configNormalPortMax; port_idx++) {
+    if (portIsFilter(port_idx)) {
+        continue;
+    }
+    oTPortCopy.push(configPortName(port_idx, 1));
+}
+var oTEnable = Array("Disabled","Enabled");
+var oTTagged = Array("Any","Disabled","Enabled");
+var oTTagPriority = Array("0","1","2","3","4","5","6","7","0-1","2-3","4-5","6-7","0-3","4-7","Any");
+var oVTagPriority = genArrayInt(0, oTTagPriority.length);
+var oTFrameType = Array("Any","Ethernet Type","ARP","IPv4","IPv6");
+var oTFlagsAct = Array("Any","0","1");
+var oVFlagsAct = Array(2,0,1);
+var oTIpTtl = Array("Any","Non-zero","Zero");
+var oVIpTtl = Array(2,1,0);
+var oTIpOption = Array("Any","Yes","No");
+var oVIpOption = Array(2,1,0);
+var oTFilter = Array("Any","Specific");
+var oTDmacFilter = Array("Any","MC","BC","UC","Specific");
+var oTDmacFilter1 = Array("Any","MC","BC","UC");
+var oTProtocolFilter = Array("Any","ICMP","UDP","TCP","Other");
+var oTIpFilter = Array("Any","Host","Network");
+var oTArpRarp = Array("Any","ARP","RARP","Other");
+var oVArpRarp = Array(2,1,0,3);
+var oTRequestReply = Array("Any","Request","Reply");
+var oVRequestReply = Array(2,1,0);
+var oTPortFilter = Array("Any","Specific","Range");
+var oVPortFilter = Array(0,1,2);
+
+var oldEvcPolicerIdValue = "1";
+var oldPolicyValue = "0x0";
+var oldPolicyBitmaskValue = "0xFF";
+var oldFrameType;
+var oldPortCopyValue = 0;
+var oldVidValue = "1";
+var oldSmacValue = "00-00-00-00-00-01";
+var oldDmacValue = "00-00-00-00-00-02";
+var oldEthTypeValue = "FFFF";
+var oldProtocolValue = "255";
+var oldSipAddrValue, oldSipMaskValue, oldDipAddrValue, oldDipMaskValue;
+var oldArpSipAddrValue, oldArpSipMaskValue, oldArpDipAddrValue, oldArpDipMaskValue;
+oldSipAddrValue = oldArpSipAddrValue = "0.0.0.0";
+oldSipMaskValue = oldArpSipMaskValue = "255.255.255.0";
+oldDipAddrValue = oldArpDipAddrValue = "0.0.0.0";
+oldDipMaskValue = oldArpDipMaskValue = "255.255.255.0";
+var oldIcmpTypeValue, oldIcmpCodeValue;
+oldIcmpTypeValue    = oldIcmpCodeValue = "255";
+var oldSportLowValue, oldSportHighValue, oldDportLowValue, oldDportHighValue;
+oldSportLowValue = oldDportLowValue = "0";
+oldSportHighValue = oldDportHighValue = "255";
+var oldNextHeaderValue = "255";
+var oldSipv6AddrValue = "::";
+var oldSipV6MaskValue   = "FFFFFFFF";
+
+var switch_sel = Array();
+var aceEditReq;
+var singleAceConfigDate;
+var AceIdMapTbl = Array();
+var aclConfig = Array();
+var aclConfigIdx = 0;
+
+var idx = 0;
+var idx_isid            = idx++;
+var idx_ace_id          = idx++;
+var idx_next_ace_id     = idx++;
+var idx_action          = idx++;
+var idx_filer_port      = idx++;
+var idx_lookup          = idx++;
+var idx_ingress_port    = idx++;
+var idx_policy_filter   = idx++;
+var idx_policy          = idx++;
+var idx_policy_bitmask  = idx++;
+var idx_rate_limiter    = idx++;
+var idx_evc_police      = idx++;
+var idx_evc_policer_id  = idx++;
+var idx_port_copy       = idx++;
+var idx_mirror          = idx++;
+var idx_logging         = idx++;
+var idx_shutdown        = idx++;
+var idx_dmac_filter     = idx++;
+var idx_dmac            = idx++;
+var idx_tagged          = idx++;
+var idx_vid_mask        = idx++;
+var idx_vid             = idx++;
+var idx_user_prio       = idx++;
+var idx_vlan_cfi        = idx++;
+var idx_counters        = idx++;
+var idx_frame_type      = idx++;
+var idx_protocol_filter, idx_protocol;
+var idx_ip_flags0, idx_ip_flags1, idx_ip_flags2;
+var idx_sip_filter, idx_sip, idx_sip_mask, idx_dip_filter, idx_dip, idx_dip_mask;
+var idx_sport_filter, idx_sport_low, idx_sport_high,idx_dport_filter, idx_dport_low, idx_dport_high;
+var idx_smac_filter, idx_smac;
+var idx_arp_flags0, idx_arp_flags1, idx_arp_flags2, idx_arp_flags3, idx_arp_flags4, idx_arp_flags5, idx_arp_flags6, idx_arp_flags7;
+var idx_arp_sip_filter, idx_arp_sip, idx_arp_sip_mask, idx_arp_dip_filter, idx_arp_dip, idx_arp_dip_mask;
+var idx_icmp_type_filter, idx_icmp_type, idx_icmp_code_filter, idx_icmp_code;
+var idx_next_header_filter, idx_next_header, idx_ether_type_filter, idx_ether_type;
+var idx_sip_v6_filter, idx_sip_v6, idx_sip_v6_mask, idx_hop_limit;
+idx_protocol_filter     = idx_smac_filter      = idx_next_header_filter = idx++;
+idx_protocol            = idx_smac             = idx_next_header        = idx++;
+idx_ip_flags0           = idx_arp_flags0       = idx_ether_type_filter  = idx_sip_v6_filter  = idx++;
+idx_ip_flags1           = idx_arp_flags1       = idx_ether_type         = idx_sip_v6         = idx++;
+idx_ip_flags2           = idx_arp_sip_filter   = idx_sip_v6_mask        = idx++;
+idx_sip_filter          = idx_arp_sip          = idx_hop_limit          = idx++;
+idx_sip                 = idx_arp_sip_mask     = idx++;
+idx_sip_mask            = idx_arp_dip_filter   = idx++;
+idx_dip_filter          = idx_arp_dip          = idx++;
+idx_dip                 = idx_arp_dip_mask     = idx++;
+idx_dip_mask            = idx_arp_flags3       = idx++;
+idx_sport_filter        = idx_icmp_type_filter = idx_arp_flags4        = idx++;
+idx_sport_low           = idx_icmp_type        = idx_arp_flags5        = idx++;
+idx_sport_high          = idx_icmp_code_filter = idx_arp_flags6        = idx++;
+idx_dport_filter        = idx_icmp_code        = idx_arp_flags7        = idx++;
+idx_dport_low           = idx++;
+idx_dport_high          = idx++;
+var idx_tcp_flags0      = idx++;
+var idx_tcp_flags1      = idx++;
+var idx_tcp_flags2      = idx++;
+var idx_tcp_flags3      = idx++;
+var idx_tcp_flags4      = idx++;
+var idx_tcp_flags5      = idx++;
+var totalFiledNum       = idx++;
+
+// Predeclare processUpdate(). This makes JSLint happy.
+var changeAceTable;
+
+function tableDisplay(id, display) {
+    var elm = document.getElementById(id);
+    if (elm) {
+        elm.style.display = display;
+    }
+}
+
+function isBitmask(str, MinVal, MaxVal)
+{
+    var myReg;
+
+    if (!str) {
+        return false;
+    }
+
+    myReg = /^[A-Fa-f0-9]{1,2}$/;
+
+    var result = myReg.test(str);
+    if (result) {
+        var intFormat = parseInt("0x" + str, 10);
+        if (intFormat < MinVal || intFormat > MaxVal) {
+            return false;
+        }
+    }
+    return result;
+}
+
+function isEthType(str)
+{
+    var myReg;
+
+    if (!str) {
+        return false;
+    }
+
+    myReg = /^[A-Fa-f0-9]{1,4}$/;
+
+    var result = myReg.test(str);
+    if (result) {
+        var intFormat = parseInt("0x" + str, 16);
+        if (intFormat == 0x800 || intFormat == 0x806 || intFormat == 0x86DD) {
+            alert("The value of 'Ethernet Type' should not be equal to 0x800(IPv4), 0x806(ARP) or 0x86DD(IPv6)");
+            return false;
+        }
+        if (intFormat < 0x600) {
+            return false;
+        }
+    }
+    return result;
+}
+
+function isPolicyBitmask(str)
+{
+    var myReg;
+
+    if (!str) {
+        return false;
+    }
+
+    myReg = /^[A-Fa-f0-9]{1,2}$/;
+
+    var result = myReg.test(str);
+    if (result && (parseInt(str, 16) > configPolicyBitmaskMax)) {
+        return false;
+    }
+    return result;
+}
+
+function checkForm()
+{
+    var fld, fld1, fld2, i, range_low, range_high, fld_name_txt;
+
+    //policy
+    fld = document.getElementById("policy");
+    if (fld && !isWithinRange("policy", 0, configPolicyMax, "'Policy'")) {
+        return false;
+    }
+
+    //policy_bitmask
+    fld = document.getElementById("policy_bitmask");
+    if (fld) {
+        if (!isPolicyBitmask(fld.value)) {
+            GiveAlert("The format of 'Policy Bitmask Value' is '0x0-0x" + configPolicyBitmaskMax.toString(16) + "'", fld);
+            return false;
+        }
+    }
+
+    if (hasAclV2) {
+        //ingress_port
+        fld = document.getElementById("ingress_port");
+        if (fld.options[0].selected) {
+            for (i = 1; i < fld.options.length; i++) {
+                if (fld.options[i].selected) {
+                    alert("The parameter of 'Ingress Port' is invalid. (Either All or ports)");
+                    fld.focus();
+                    return false;
+                }
+            }
+        }
+
+        //evc_police
+        fld = document.getElementById("evc_police");
+        if (fld && parseInt(fld.value, 10) !== 0 &&
+            parseInt(document.getElementById("rate_limiter").value, 10) !== 0) {
+            alert("The ACL rate limiter and EVC policer can not both be enabled.");
+            return false;
+        }
+
+        //evc_policer_id
+        fld = document.getElementById("evc_policer_id");
+        if (fld && !isWithinRange("evc_policer_id", configAclEvcPolicerMin, configAclEvcPolicerMax, "'EVC Policer ID'")) {
+            return false;
+        }
+
+        //filter_port
+        fld = document.getElementById("filter_port");
+        if (fld && fld.options[0].selected) {
+            for (i = 1; i < fld.options.length; i++) {
+                if (fld.options[i].selected) {
+                    alert("The parameter of 'Filter Port' is invalid. (Either All or ports)");
+                    fld.focus();
+                    return false;
+                }
+            }
+        }
+
+        //port_copy
+        fld = document.getElementById("port_copy");
+        if (fld && fld.options[0].selected) {
+            for (i = 1; i < fld.options.length; i++) {
+                if (fld.options[i].selected) {
+                    if (configArchLuton28) {
+                        alert("The parameter of 'Port Copy' is invalid. (Either disabled or ports)");
+                    } else {
+                        alert("The parameter of 'Port Redirect' is invalid. (Either disabled or ports)");
+                    }
+                    fld.focus();
+                    return false;
+                }
+            }
+        }
+
+        //tagged
+        fld1 = document.getElementById("vid");
+        fld2 = document.getElementById("tag_priority");
+        fld = document.getElementById("tagged");
+        if (fld2 && fld && fld.value == 1 && (fld1 || oTTagPriority[parseInt(fld2.value, 10)] != "Any")) {
+            GiveAlert("The parameter of 'VLAN ID' and 'Tag Priority' can't be set when 802.1Q Tagged is disabled", fld);
+            return false;
+        }
+    }
+
+    // vid
+    fld = document.getElementById("vid");
+    if (fld && !isWithinRange("vid", 1, 4095, "'VLAN ID'")) {
+        return false;
+    }
+
+    // ether_type
+    fld = document.getElementById("ether_type");
+    if (fld) {
+        if (!isEthType(fld.value)) {
+            GiveAlert("The format of 'Ethernet Type Value' is '0x600-0xFFFF'", fld);
+            return false;
+        }
+    }
+
+    // protocol
+    fld = document.getElementById("protocol");
+    if (fld && !isWithinRange("protocol", 0, 255, "'IP Protocol Value'")) {
+        return false;
+    }
+
+    // icmp_type
+    fld = document.getElementById("icmp_type");
+    if (fld && !isWithinRange("icmp_type", 0, 255, "'ICMP Type Value'")) {
+        return false;
+    }
+
+    // icmp_code
+    fld = document.getElementById("icmp_code");
+    if (fld && !isWithinRange("icmp_code", 0, 255, "'ICMP Code Value'")) {
+        return false;
+    }
+
+    // smac
+    fld = document.getElementById("smac");
+    if (fld) {
+        if (!IsMacAddress(fld.value)) {
+            GiveAlert("The format of 'SMAC Value' is 'xx-xx-xx-xx-xx-xx' or 'xx.xx.xx.xx.xx.xx' or 'xxxxxxxxxxxx' (x is a hexadecimal digit).", fld);
+            return false;
+        }
+    }
+
+    // dmac
+    fld = document.getElementById("dmac");
+    if (fld) {
+        if (!IsMacAddress(fld.value)) {
+            GiveAlert("The format of 'DMAC Value' is 'xx-xx-xx-xx-xx-xx' or 'xx.xx.xx.xx.xx.xx' or 'xxxxxxxxxxxx' (x is a hexadecimal digit).", fld);
+            return false;
+        }
+    }
+
+    // arp_sip
+    fld = document.getElementById("arp_sip");
+    if (fld) {
+        // Allow any IP address
+        if (!isIpStr("arp_sip", false, "'Sender IP Address'", 2)) {
+            return false;
+        }
+    }
+
+    // arp_sip_mask
+    fld = document.getElementById("arp_sip_mask");
+    if (fld) {
+        if (!isIpStr("arp_sip_mask", true, "'Sender IP Mask'", 0)) {
+            return false;
+        }
+    }
+
+    // arp_dip
+    fld = document.getElementById("arp_dip");
+    if (fld) {
+        // Allow any IP address
+        if (!isIpStr("arp_dip", false, "'Target IP Address'", 2)) {
+            return false;
+        }
+    }
+
+    // arp_dip_mask
+    fld = document.getElementById("arp_dip_mask");
+    if (fld) {
+        if (!isIpStr("arp_dip_mask", true, "'Target IP Mask'")) {
+            return false;
+        }
+    }
+
+    // sip
+    fld = document.getElementById("sip");
+    if (fld) {
+        // Allow any IP address
+        if (!isIpStr("sip", false, "'SIP Address'", 2)) {
+            return false;
+        }
+    }
+
+    // sip_mask
+    fld = document.getElementById("sip_mask");
+    if (fld) {
+        if (!isIpStr("sip_mask", true, "'SIP Mask'")) {
+            return false;
+        }
+    }
+
+    // dip
+    fld = document.getElementById("dip");
+    if (fld) {
+        // Allow any IP address
+        if (!isIpStr("dip", false, "'DIP Address'", 2)) {
+            return false;
+        }
+    }
+
+    // dip_mask
+    fld = document.getElementById("dip_mask");
+    if (fld) {
+        if (!isIpStr("dip_mask", true, "'DIP Mask'")) {
+            return false;
+        }
+    }
+
+    // sport_low, sport_high
+    range_low = document.getElementById("sport_low");
+    range_high = document.getElementById("sport_high");
+
+    if (range_low) {
+        if (range_high) {
+            fld_name_txt = "'Source Port Range lower'";
+        } else {
+            fld_name_txt = "'Source Port No.'";
+        }
+
+        if (!isWithinRange("sport_low", 0, 65535, fld_name_txt)) {
+            return false;
+        }
+    }
+
+    if (range_high && !isWithinRange("sport_high", 0, 65535, "'Source Port Range higher'")) {
+        return false;
+    }
+
+    // Inter-check
+    if (range_low && range_high) {
+        if (parseInt(range_low.value, 10) > parseInt(range_high.value, 10)) {
+            GiveAlert("The higher value of the 'Source Port Range' must be at or above the lower.", range_low);
+            return false;
+        }
+    }
+
+    // dport_low, dport_high
+    range_low = document.getElementById("dport_low");
+    range_high = document.getElementById("dport_high");
+
+    if (range_low) {
+        if (range_high) {
+            fld_name_txt = "'Dest. Port Range lower'";
+        } else {
+            fld_name_txt = "'Dest. Port No.'";
+        }
+        if (!isWithinRange("dport_low", 0, 65535, fld_name_txt)) {
+            return false;
+        }
+    }
+
+    if (range_high && !isWithinRange("dport_high", 0, 65535, "'Dest. Port Range higher'")) {
+        return false;
+    }
+
+    // Inter-check
+    if (range_low && range_high) {
+        if (parseInt(range_low.value, 10) > parseInt(range_high.value, 10)) {
+            GiveAlert("The higher value of the 'Dest. Port Range' must be at or above the lower.", range_low);
+            return false;
+        }
+    }
+
+    // next_header
+    fld = document.getElementById("next_header");
+    if (fld && !isWithinRange("next_header", 0, 255, "'Next Header Value'")) {
+        return false;
+    }
+
+    //sip_v6
+    fld = document.getElementById("sip_v6");
+    if (fld) {
+        if (!isIpv6Str("sip_v6", "'Source IPv6 Address'", 0, 0)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function appendAceIdFiled()
+{
+    var values = singleAceConfigDate.split("/");
+    UpdateIdValue("ace_id", values[idx_ace_id]);
+    UpdateIdValue("next_ace_id", values[idx_next_ace_id]);
+}
+
+function aceSubmit() {
+    if (!checkForm()) {
+        return;
+    }
+    document.getElementById("buttons").style.visibility = "hidden";
+    appendAceIdFiled();
+    document.aceConfigForm.submit();
+}
+
+function aceCancel() {
+    document.location.href="acl.htm";
+}
+
+function changeFrameType()
+{
+    var clearTbl, hideTbl;
+    var newFrameType = document.getElementById("frame_type").value;
+    var values = singleAceConfigDate.split("/");
+    values[idx_frame_type] = newFrameType;
+    for (var i = idx_protocol_filter; i < totalFiledNum; i++) {
+        values[i] = "";
+    }
+
+    if (oTFrameType[newFrameType] == "Any") {
+        clearTbl = Array("aceData_Mac", "aceData_Ip", "aceData_Arp", "aceData_EthType", "aceData_Icmp", "aceData_ArpFlags", "aceData_Ipv6", "aceData_Icmpv6");
+        hideTbl  = Array("ip_parameters", "arp_parameters", "ether_type_parameters", "icmp_parameters", "ipv6_parameters", "icmpv6_parameters");
+    } else {
+        if (oTFrameType[newFrameType] == "IPv4") {
+            clearTbl = Array("aceData_Mac", "aceData_Arp", "aceData_EthType", "aceData_ArpFlags", "aceData_Ipv6");
+            hideTbl = Array("arp_parameters", "ether_type_parameters", "ipv6_parameters");
+            changeAceTable(values, "aceData_Ip");
+            changeAceTable(values, "aceData_Icmp");
+        } else if (oTFrameType[newFrameType] == "ARP") {
+            clearTbl = Array("aceData_Mac", "aceData_Ip", "aceData_EthType", "aceData_Icmp", "aceData_Ipv6", "aceData_Icmpv6");
+            hideTbl = Array("ip_parameters", "icmp_parameters", "ether_type_parameters", "ipv6_parameters", "icmpv6_parameters");
+            changeAceTable(values, "aceData_Arp");
+            changeAceTable(values, "aceData_ArpFlags");
+        } else if (oTFrameType[newFrameType] == "IPv6") {
+            clearTbl = Array("aceData_Ip", "aceData_Mac", "aceData_Arp", "aceData_EthType", "aceData_ArpFlags");
+            hideTbl = Array("ip_parameters", "arp_parameters", "ether_type_parameters");
+            changeAceTable(values, "aceData_Ipv6");
+            changeAceTable(values, "aceData_Icmpv6");
+        } else { //Ethernet Type
+            clearTbl = Array("aceData_Mac", "aceData_Ip", "aceData_Arp", "aceData_Icmp", "aceData_ArpFlags", "aceData_Ipv6", "aceData_Icmpv6");
+            hideTbl = Array("ip_parameters", "icmp_parameters", "arp_parameters", "ipv6_parameters", "icmpv6_parameters");
+            changeAceTable(values, "aceData_EthType");
+        }
+    }
+
+    for (i = 0; i < clearTbl.length; i++) {
+        var ref = clearTbl[i];
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+    }
+
+    changeAceTable(values, "aceData_Mac");
+
+    for (i = 0; i < hideTbl.length; i++) {
+        tableDisplay(hideTbl[i], "none");
+    }
+}
+
+function changeIpFlag(event)
+{
+    var fld = document.getElementById("ip_flags1");
+    var newIpFragment, newIpOption;
+    if (fld) {
+        newIpFragment = document.getElementById("ip_flags1").value;
+    } else {
+        newIpFragment = 2;
+    }
+
+    fld = document.getElementById("ip_flags2");
+    if (fld) {
+        newIpOption = document.getElementById("ip_flags2").value;
+    } else {
+        newIpOption = 2;
+    }
+
+    if (newIpFragment == 1 || newIpOption == 1) {
+        var tbody = document.getElementById("aceData_Icmp");
+        clearChildNodes(tbody);
+        tableDisplay("icmp_parameters", "none");
+    } else {
+        var newProtocolFilter;
+        var newFrameType = document.getElementById("frame_type").value;
+        fld = document.getElementById("protocol_filter");
+        if (fld) {
+            newProtocolFilter = document.getElementById("protocol_filter").value;
+        } else {
+            newProtocolFilter = 0;
+        }
+        var values = singleAceConfigDate.split("/");
+        values[idx_frame_type] = newFrameType;
+        values[idx_protocol_filter] = newProtocolFilter;
+
+        if (event != "firstTime") {
+            for (var i = idx_dip_mask; i < totalFiledNum; i++) {
+                values[i] = "";
+            }
+        }
+        changeAceTable(values, "aceData_Icmp");
+    }
+}
+
+function changeProtocolFilter()
+{
+    var clearTbl, ref, tobdy;
+    var newFrameType = document.getElementById("frame_type").value;
+    var newProtocolFilter = document.getElementById("protocol_filter").value;
+    var values = singleAceConfigDate.split("/");
+    values[idx_frame_type] = newFrameType;
+    values[idx_protocol_filter] = newProtocolFilter;
+    for (var i = idx_dip_mask; i < totalFiledNum; i++) {
+        values[i] = "";
+    }
+
+    if (oTProtocolFilter[newProtocolFilter] == "Any") {
+        clearTbl = Array("aceData_Arp", "aceData_EthType", "aceData_Icmp", "aceData_ArpFlags", "aceData_Icmpv6");
+        tableDisplay("icmp_parameters", "none");
+    } else {
+        clearTbl = Array("aceData_Arp", "aceData_EthType", "aceData_ArpFlags");
+        changeAceTable(values, "aceData_Icmp");
+        tableDisplay("icmp_parameters", "");
+    }
+
+    for (i = 0; i < clearTbl.length; i++) {
+        ref = clearTbl[i];
+        tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+    }
+
+    tbody = document.getElementById("aceData_Ip");
+    var newChild = document.createElement("tr");
+    if (oTProtocolFilter[this.value] == "Other") {
+        addLabelTextCell(newChild, "IP Protocol Value", "param_label", "protocol");
+        addInputCell(newChild, oldProtocolValue, "cl", "protocol", 10, 3);
+        tableDisplay("icmp_parameters", "none");
+    }
+    var oldChild = tbody.childNodes[1];
+    tbody.replaceChild(newChild, oldChild);
+
+    changeIpFlag("");
+}
+
+function changeNextHeaderFilter()
+{
+    var clearTbl, ref, tobdy;
+    var newFrameType = document.getElementById("frame_type").value;
+    var newProtocolFilter = document.getElementById("next_header_filter").value;
+    var values = singleAceConfigDate.split("/");
+    values[idx_frame_type] = newFrameType;
+    values[idx_next_header_filter] = newProtocolFilter;
+    for (var i = idx_dip_mask; i < totalFiledNum; i++) {
+        values[i] = "";
+    }
+
+    if (oTProtocolFilter[newProtocolFilter] == "Any") {
+        clearTbl = Array("aceData_Arp", "aceData_EthType", "aceData_Icmp", "aceData_ArpFlags", "aceData_Icmpv6");
+        tableDisplay("icmpv6_parameters", "none");
+    } else {
+        clearTbl = Array("aceData_Arp", "aceData_EthType", "aceData_ArpFlags");
+        changeAceTable(values, "aceData_Icmpv6");
+        tableDisplay("icmpv6_parameters", "");
+    }
+
+    for (i = 0; i < clearTbl.length; i++) {
+        ref = clearTbl[i];
+        tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+    }
+
+    tbody = document.getElementById("aceData_Ipv6");
+    var newChild = document.createElement("tr");
+    if (oTProtocolFilter[this.value] == "Other") {
+        addLabelTextCell(newChild, "Next Header Value", "param_label", "protocol");
+        addInputCell(newChild, oldNextHeaderValue, "cl", "next_header", 10, 3);
+        tableDisplay("icmpv6_parameters", "none");
+    }
+    var oldChild = tbody.childNodes[1];
+    tbody.replaceChild(newChild, oldChild);
+
+    changeAceTable(values, "aceData_Icmpv6");
+}
+
+function changeFilter()
+{
+    var tobdy, td, newChild, oldChild, hex_header, input_value, range_low, range_high, dash_text, chosen;
+    
+    switch (this.id) {
+        case "action" :
+            if (hasAclV2) {
+                //filter_port
+                tbody = document.getElementById("aceData_Action");
+                newChild = document.createElement("tr");
+                if (oTAction[this.value] == "Filter") {
+                    addTextCell(newChild, "Filter Port", "param_label");
+                    chosen = oldFilterPortValue.split(":");
+                    addMultiSelectCell(newChild, oTPort, oVNormal, chosen, "cl", "filter_port", 5, "100%");
+                }
+                oldChild = tbody.childNodes[1];
+                tbody.replaceChild(newChild, oldChild);
+            }
+            if (!configArchLuton28) {
+                //port_copy
+                tbody = document.getElementById("aceData_Action");
+                newChild = document.createElement("tr");
+                if (oTAction[this.value] == "Deny") {
+                    if (configArchLuton28) {
+                        addTextCell(newChild, "Port Copy", "param_label");
+                    } else {
+                        addTextCell(newChild, "Port Redirect", "param_label");
+                    }
+                    if (hasAclV2) {
+                        chosen = oldPortCopyValue.split(":");
+                        addMultiSelectCell(newChild, oTPortCopy, oVNormal, chosen, "cl", "port_copy", 5, "100%");
+                    } else {
+                        addSelectCell(newChild, oTPortCopy, oVNormal, oldPortCopyValue, "cl", "port_copy", "100%");
+                    }
+                }
+                oldChild = tbody.childNodes[hasAclV2 ? hasAclEvcPolicer ? 5 : 3 : 2];
+                tbody.replaceChild(newChild, oldChild);
+            }
+            break;
+
+        case "vid_filter" :
+            tbody = document.getElementById("aceData_Vlan");
+            newChild = document.createElement("tr");
+            if (oTFilter[this.value] == "Specific") {
+                addLabelTextCell(newChild, "VLAN ID", "param_label", "vid");
+                addInputCell(newChild, oldVidValue, "cl", "vid", 15, 4);
+            }
+            if (hasAclV2) {
+                oldChild = tbody.childNodes[2];
+            } else {
+                oldChild = tbody.childNodes[1];
+            }
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "smac_filter" :
+            tbody = document.getElementById("aceData_Mac");
+            newChild = document.createElement("tr");
+            if (oTFilter[this.value] == "Specific") {
+                addLabelTextCell(newChild, "SMAC Value", "param_label", "smac");
+                addInputCell(newChild, oldSmacValue, "cl", "smac", 17, 17);
+            }
+            oldChild = tbody.childNodes[1];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "dmac_filter" :
+            tbody = document.getElementById("aceData_Mac");
+            newChild = document.createElement("tr");
+            if (oTDmacFilter[this.value] == "Specific") {
+                addLabelTextCell(newChild, "DMAC Value", "param_label", "dmac");
+                addInputCell(newChild, oldDmacValue, "cl", "dmac", 17, 17);
+            } else {
+                addTextCell(newChild, "", "cl", 2);
+            }
+            var newFrameType = document.getElementById("frame_type").value;
+            if (oTFrameType[newFrameType] == "Any" || oTFrameType[newFrameType] == "IPv4") {
+                oldChild = tbody.childNodes[1];
+            } else {
+            oldChild = tbody.childNodes[3];
+            }
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "ether_type_filter" :
+            tbody = document.getElementById("aceData_EthType");
+            newChild = document.createElement("tr");
+            if (oTFilter[this.value] == "Specific") {
+                addLabelTextCell(newChild, "Ethernet Type Value", "param_label", "ether_type");
+                //addInputCell(newChild, oldEthTypeValue, "cl", "ether_type", 4, 4);
+                td = CreateTd("cl");
+                hex_header = document.createTextNode("0x");
+                td.appendChild(hex_header);
+
+                input_value = document.createElement('input');
+                input_value.id = input_value.name = "ether_type";
+                input_value.setAttribute("size", 6);
+                input_value.setAttribute("maxLength", 4);
+                input_value.setAttribute("value", oldEthTypeValue);
+                input_value.setAttribute("defaultValue", oldEthTypeValue);
+                td.appendChild(input_value);
+                newChild.appendChild(td);
+            } else {
+                addTextCell(newChild, "", "cl", 2);
+            }
+            oldChild = tbody.childNodes[1];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "sip_filter" :
+            tbody = document.getElementById("aceData_Ip");
+            //sip
+            newChild = document.createElement("tr");
+            if (oTIpFilter[this.value] != "Any") {
+                addLabelTextCell(newChild, "SIP Address", "param_label", "sip");
+                addInputCell(newChild, oldSipAddrValue, "cl", "sip", 15, 15);
+            }
+            oldChild = tbody.childNodes[6];
+            tbody.replaceChild(newChild, oldChild);
+
+            //sip_mask
+            newChild = document.createElement("tr");
+            if (oTIpFilter[this.value] == "Network") {
+                addLabelTextCell(newChild, "SIP Mask", "param_label", "sip_mask");
+                addInputCell(newChild, oldSipMaskValue, "cl", "sip_mask", 15, 15);
+            }
+            oldChild = tbody.childNodes[7];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "dip_filter" :
+            tbody = document.getElementById("aceData_Ip");
+            //dip
+            newChild = document.createElement("tr");
+            if (oTIpFilter[this.value] != "Any") {
+                addLabelTextCell(newChild, "DIP Address", "param_label", "dip");
+                addInputCell(newChild, oldDipAddrValue, "cl", "dip", 15, 15);
+            }
+            oldChild = tbody.childNodes[9];
+            tbody.replaceChild(newChild, oldChild);
+
+            //dip_mask
+            newChild = document.createElement("tr");
+            if (oTIpFilter[this.value] == "Network") {
+                addLabelTextCell(newChild, "DIP Mask", "param_label", "dip_mask");
+                addInputCell(newChild, oldDipMaskValue, "cl", "dip_mask", 15, 15);
+            } else {
+                addTextCell(newChild, "", "cl", 2);
+            }
+            oldChild = tbody.childNodes[10];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "arp_sip_filter" :
+            tbody = document.getElementById("aceData_Arp");
+            //arp_sip
+            newChild = document.createElement("tr");
+            if (oTIpFilter[this.value] != "Any") {
+                addLabelTextCell(newChild, "Sender IP Address", "param_label", "arp_sip");
+                addInputCell(newChild, oldArpSipAddrValue, "cl", "arp_sip", 15, 15);
+            }
+            oldChild = tbody.childNodes[3];
+            tbody.replaceChild(newChild, oldChild);
+
+            //arp_sip_mask
+            newChild = document.createElement("tr");
+            if (oTIpFilter[this.value] == "Network") {
+                addLabelTextCell(newChild, "Sender IP Mask", "param_label", "arp_sip_mask");
+                addInputCell(newChild, oldArpSipMaskValue, "cl", "arp_sip_mask", 15, 15);
+            }
+            oldChild = tbody.childNodes[4];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "arp_dip_filter" :
+            tbody = document.getElementById("aceData_Arp");
+            //arp_dip
+            newChild = document.createElement("tr");
+            if (oTIpFilter[this.value] != "Any") {
+                addLabelTextCell(newChild, "Target IP Address", "param_label", "arp_dip");
+                addInputCell(newChild, oldArpDipAddrValue, "cl", "arp_dip", 15, 15);
+            }
+            oldChild = tbody.childNodes[6];
+            tbody.replaceChild(newChild, oldChild);
+
+            //arp_dip_mask
+            newChild = document.createElement("tr");
+            if (oTIpFilter[this.value] == "Network") {
+                addLabelTextCell(newChild, "Target IP Mask", "param_label", "arp_dip_mask");
+                addInputCell(newChild, oldArpDipMaskValue, "cl", "arp_dip_mask", 15, 15);
+            } else {
+                addTextCell(newChild, "", "cl", 2);
+            }
+            oldChild = tbody.childNodes[7];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "icmp_type_filter" :
+            if (oTFrameType[document.getElementById("frame_type").value] == "IPv4") {
+                tbody = document.getElementById("aceData_Icmp");
+            } else {
+                tbody = document.getElementById("aceData_Icmpv6");
+            }
+            newChild = document.createElement("tr");
+            if (oTFilter[this.value] == "Specific") {
+                addLabelTextCell(newChild, "ICMP Type Value", "param_label", "icmp_type");
+                addInputCell(newChild, oldIcmpTypeValue, "cl", "icmp_type", 8, 3);
+            }
+            oldChild = tbody.childNodes[1];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "icmp_code_filter" :
+            if (oTFrameType[document.getElementById("frame_type").value] == "IPv4") {
+                tbody = document.getElementById("aceData_Icmp");
+            } else {
+                tbody = document.getElementById("aceData_Icmpv6");
+            }
+            newChild = document.createElement("tr");
+            if (oTFilter[this.value] == "Specific") {
+                addLabelTextCell(newChild, "ICMP Code Value", "param_label", "icmp_code");
+                addInputCell(newChild, oldIcmpCodeValue, "cl", "icmp_code", 8, 3);
+            } else {
+                addTextCell(newChild, "", "cl", 2);
+            }
+            oldChild = tbody.childNodes[3];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "sport_filter" :
+            if (oTFrameType[document.getElementById("frame_type").value] == "IPv4") {
+                tbody = document.getElementById("aceData_Icmp");
+            } else {
+                tbody = document.getElementById("aceData_Icmpv6");
+            }
+            newChild = document.createElement("tr");
+            if (oTPortFilter[this.value] == "Specific") {
+                addLabelTextCell(newChild, "Source Port No.", "param_label", "sport_low");
+                addInputCell(newChild, oldSportLowValue, "cl", "sport_low", 8, 5);
+            } else if (oTPortFilter[this.value] == "Range") {
+                addLabelTextCell(newChild, "Source Port Range", "param_label", "sport_low");
+                td = CreateTd("cl");
+                range_low = document.createElement('input');
+                range_low.id = range_low.name = "sport_low";
+                range_low.setAttribute("size", 5);
+                range_low.setAttribute("maxLength", 5);
+                range_low.setAttribute("value", oldSportLowValue);
+                range_low.setAttribute("defaultValue", oldSportLowValue);
+
+                dash_text = document.createTextNode("-");
+                td.appendChild(range_low);
+                td.appendChild(dash_text);
+
+                range_high = document.createElement('input');
+                range_high.id = range_high.name = "sport_high";
+                range_high.setAttribute("size", 5);
+                range_high.setAttribute("maxLength", 5);
+                range_high.setAttribute("value", oldSportHighValue);
+                range_high.setAttribute("defaultValue", oldSportHighValue);
+                td.appendChild(range_high);
+                newChild.appendChild(td);
+            }
+
+            oldChild = tbody.childNodes[1];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "dport_filter" :
+            if (oTFrameType[document.getElementById("frame_type").value] == "IPv4") {
+                tbody = document.getElementById("aceData_Icmp");
+            } else {
+                tbody = document.getElementById("aceData_Icmpv6");
+            }
+            newChild = document.createElement("tr");
+            if (oTPortFilter[this.value] == "Specific") {
+                addLabelTextCell(newChild, "Dest. Port No.", "param_label", "dport_low");
+                addInputCell(newChild, oldDportLowValue, "cl", "dport_low", 8, 5);
+            } else if (oTPortFilter[this.value] == "Range") {
+                addLabelTextCell(newChild, "Dest. Port Range", "param_label", "dport_low");
+                td = CreateTd("cl");
+                range_low = document.createElement('input');
+                range_low.id = range_low.name = "dport_low";
+                range_low.setAttribute("size", 5);
+                range_low.setAttribute("maxLength", 5);
+                range_low.setAttribute("value", oldDportLowValue);
+                range_low.setAttribute("defaultValue", oldDportLowValue);
+
+                dash_text = document.createTextNode("-");
+                td.appendChild(range_low);
+                td.appendChild(dash_text);
+
+                range_high = document.createElement('input');
+                range_high.id = range_high.name = "dport_high";
+                range_high.setAttribute("size", 5);
+                range_high.setAttribute("maxLength", 5);
+                range_high.setAttribute("value", oldDportHighValue);
+                range_high.setAttribute("defaultValue", oldDportHighValue);
+                td.appendChild(range_high);
+                newChild.appendChild(td);
+            }
+
+            oldChild = tbody.childNodes[3];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "next_header_filter" :
+            tbody = document.getElementById("aceData_Ipv6");
+            newChild = document.createElement("tr");
+            if (oTFilter[this.value] == "Specific") {
+                addLabelTextCell(newChild, "Next Header Value", "param_label", "next_header");
+                addInputCell(newChild, oldNextHeaderValue, "cl", "next_header", 15, 3);
+            }
+            oldChild = tbody.childNodes[1];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "sip_v6_filter" :
+            tbody = document.getElementById("aceData_Ipv6");
+            //sip_v6
+            newChild = document.createElement("tr");
+            if (oTIpFilter[this.value] != "Any") {
+                addLabelTextCell(newChild, "SIP Address (32 bits)", "param_label", "sip_v6");
+                addInputCell(newChild, oldSipv6AddrValue, "cl", "sip_v6", 40, 40);
+            } else {
+                addTextCell(newChild, "", "cl", 2);
+            }
+            oldChild = tbody.childNodes[3];
+            tbody.replaceChild(newChild, oldChild);
+
+            //sip_v6_mask
+            if (hasAclIpv6) {
+                newChild = document.createElement("tr");
+                if (oTFilter[this.value] != "Any") {
+                    addLabelTextCell(newChild, "SIP Bitmask (32 bits)", "param_label", "sip_v6_mask");
+                        td = CreateTd("cl");
+                        hex_header = document.createTextNode("0x");
+                        td.appendChild(hex_header);
+                
+                        input_value = document.createElement('input');
+                        input_value.id = input_value.name = "sip_v6_mask";
+                        input_value.setAttribute("size", 38);
+                        input_value.setAttribute("maxlength", 8);
+                        input_value.setAttribute("value", oldSipV6MaskValue);
+                        input_value.setAttribute("defaultValue", oldSipV6MaskValue);
+                        td.appendChild(input_value);
+                        newChild.appendChild(td);
+                } else {
+                    addTextCell(newChild, "", "cl", 2);
+                }
+                oldChild = tbody.childNodes[4];
+                tbody.replaceChild(newChild, oldChild);     
+            }
+            break;
+
+        case "policy_filter" :
+            tbody = document.getElementById("aceData_RuleType");
+            //policy
+            newChild = document.createElement("tr");
+            if (oTFilter[this.value] == "Specific") {
+                addLabelTextCell(newChild, "Policy Value", "param_label", "policy");
+                addInputCell(newChild, oldPolicyValue, "cl", "policy", 15, 3);
+            }
+            oldChild = tbody.childNodes[configArchServal ? 3 : 2];
+            tbody.replaceChild(newChild, oldChild);
+
+            //policy_bitmask
+            newChild = document.createElement("tr");
+            if (oTFilter[this.value] == "Specific") {
+                addLabelTextCell(newChild, "Policy Bitmask", "param_label", "policy_bitmask");
+                addInputCellWithText(newChild, oldPolicyBitmaskValue, "cl", "policy_bitmask", 13, 2, "", "0x");
+            }
+            oldChild = tbody.childNodes[configArchServal ? 4 : 3];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        case "evc_police" :
+            tbody = document.getElementById("aceData_Action");
+            //evc_policer_id
+            newChild = document.createElement("tr");
+            if (oTEnable[this.value] == "Enabled") {
+                addLabelTextCell(newChild, "EVC Policer ID", "param_label", "evc_policer_id");
+                addInputCell(newChild, oldEvcPolicerIdValue, "cl", "evc_policer_id", 9, 3);
+            }
+            oldChild = tbody.childNodes[hasAclV2 ? 4 : 3];
+            tbody.replaceChild(newChild, oldChild);
+            break;
+
+        default:
+            break;
+    }
+}
+
+function addRowAceConfigTbl(frag, values, ref)
+{
+    var tr, td, i, hex_header, input_value, chosen, range_low, range_high, dash_text;
+
+    if (typeof(configHasAclEvcPolicer) == "function") {
+        hasAclEvcPolicer = configHasAclEvcPolicer();
+    }
+    if (typeof(configHasAclV2) == "function") {
+        hasAclV2 = configHasAclV2();
+    }
+    if (hasAclV2 && oTAction.length == 2) {
+        oTAction.push("Filter");
+    }
+    if (typeof(configHasAclLogging) == "function") {
+        hasAclLogging = configHasAclLogging();
+    }
+    if (typeof(configHasAclShutdown) == "function") {
+        hasAclShutdown = configHasAclShutdown();
+    }
+    if (typeof(confighasAclIpv6) == "function") {
+        hasAclIpv6 = confighasAclIpv6();
+        oTFrameType = Array("Any","Ethernet Type","ARP","IPv4");
+    }
+
+    if (0) {
+        //don't remove, it's for debuging
+        //ace_id, next_ace_id
+        tr = document.createElement("tr");
+        addTextCell(tr, "ACE ID", "param_label");
+        addTextCell(tr, values[idx_ace_id], "cl");
+        frag.appendChild(tr);
+        tr = document.createElement("tr");
+        addTextCell(tr, "Next ACE ID", "param_label");
+        addTextCell(tr, values[idx_next_ace_id], "cl");
+        frag.appendChild(tr);
+    }
+
+    switch (ref) {
+        case "aceData_RuleType":
+            //lookup
+            if (configArchServal) {
+                tr = document.createElement("tr");
+                addTextCell(tr, "Lookup", "param_label");
+                addSelectCell(tr, oTEnable, oVNormal, values[idx_lookup], "cl", "lookup", "100%");
+                frag.appendChild(tr);
+            }
+                    
+            //ingress_port
+            tr = document.createElement("tr");
+            addTextCell(tr, "Ingress Port", "param_label");
+            if (hasAclV2) {
+                chosen = values[idx_ingress_port].split(":");
+                addMultiSelectCell(tr, oTPort, oVNormal, chosen, "cl", "ingress_port", 5, "100%");
+            } else {
+                addSelectCell(tr, oTPort, oVNormal, parseInt(values[idx_ingress_port], 10), "cl", "ingress_port", "100%");
+            }
+            frag.appendChild(tr);
+
+            //policy_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "Policy Filter", "param_label");
+            if (String(values[idx_policy_filter]) === "") {
+                values[idx_policy_filter] = 0;
+            }
+            td = addSelectCell(tr, oTFilter, oVNormal, values[idx_policy_filter], "cl", "policy_filter", "100%");
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            //policy
+            tr = document.createElement("tr");
+            if (oTFilter[values[idx_policy_filter]] == "Specific") {
+                addLabelTextCell(tr, "Policy Value", "param_label", "policy");
+                addInputCell(tr, values[idx_policy], "cl", "policy", 15, 3);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_policy]) !== "") {
+                oldPolicyValue = values[idx_policy];
+            }
+
+            //policy_bitmask
+            tr = document.createElement("tr");
+            if (oTFilter[values[idx_policy_filter]] == "Specific") {
+                addLabelTextCell(tr, "Policy Bitmask", "param_label", "policy_bitmask");
+                addInputCellWithText(tr, values[idx_policy_bitmask], "cl", "policy_bitmask", 13, 2, "", "0x");
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_policy_bitmask]) !== "") {
+                oldPolicyBitmaskValue = values[idx_policy_bitmask];
+            }
+
+            //switch_id
+            if (SpomStackPortCount()) {
+                tr = document.createElement("tr");
+                addTextCell(tr, "Switch", "param_label");
+                oTSwitch = Array();
+                oVSwitch = Array();
+                oTSwitch[0] = "Any";
+                oVSwitch[0] = configSidMax + 1;
+                for (i = 0; i < switch_sel.length; i++) {
+                    if (switch_sel[i]) {
+                        oTSwitch[i + 1] = "Switch " + switch_sel[i];
+                        oVSwitch[i + 1] = switch_sel[i];
+                    }
+                }
+                td = addSelectCell(tr, oTSwitch, oVSwitch, parseInt(values[idx_isid], 10), "cl", "switch_id", "100%");
+                frag.appendChild(tr);
+            }
+
+            //frame_type
+            oldFrameType = values[idx_frame_type];
+            tr = document.createElement("tr");
+            addTextCell(tr, "Frame Type", "param_label");
+            td = addSelectCell(tr, oTFrameType, oVNormal, values[idx_frame_type], "cl", "frame_type", "100%");
+            td.onchange = changeFrameType;
+            frag.appendChild(tr);
+
+            break;
+
+        case "aceData_Mac":
+            if (hasAclV2 && oTFrameType[values[idx_frame_type]] == "Any") {
+                tableDisplay("mac_parameters", "none");
+                break;
+            } else {
+                tableDisplay("mac_parameters", "");
+            }
+
+            if ((oTFrameType[values[idx_frame_type]] == "ARP") || (oTFrameType[values[idx_frame_type]] == "Ethernet Type")) {
+                //smac_filter
+                tr = document.createElement("tr");
+                addTextCell(tr, "SMAC Filter", "param_label");
+                if (String(values[idx_smac_filter]) === "") {
+                    values[idx_smac_filter] = 0;
+                }
+                td = addSelectCell(tr, oTFilter, oVNormal, values[idx_smac_filter], "cl", "smac_filter", "100%");
+                td.onchange = changeFilter;
+                frag.appendChild(tr);
+
+                //smac_value
+                tr = document.createElement("tr");
+                if (oTFilter[values[idx_smac_filter]] == "Specific") {
+                    addLabelTextCell(tr, "SMAC Value", "param_label", "smac");
+                    addInputCell(tr, values[idx_smac], "cl", "smac", 17, 17);
+                }
+                frag.appendChild(tr);
+
+                if (String(values[idx_smac]) !== "") {
+                    oldSmacValue = values[idx_smac];
+                }
+            }
+
+            //dmac_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "DMAC Filter", "param_label");
+            if (String(values[idx_dmac_filter]) === "") {
+                values[idx_dmac_filter] = 0;
+            }
+            if (oTFrameType[values[idx_frame_type]] == "Ethernet Type") {
+                td = addSelectCell(tr, oTDmacFilter, oVNormal, values[idx_dmac_filter], "cl", "dmac_filter", "100%");
+            } else {
+                if (values[idx_dmac_filter] == 4) {
+                    values[idx_dmac_filter] = 0;
+                }
+                td = addSelectCell(tr, oTDmacFilter1, oVNormal, values[idx_dmac_filter], "cl", "dmac_filter", "100%");
+            }
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            //dmac_value
+            tr = document.createElement("tr");
+            if (oTDmacFilter[values[idx_dmac_filter]] == "Specific") {
+                addLabelTextCell(tr, "DMAC Value", "param_label", "dmac");
+                addInputCell(tr, values[idx_dmac], "cl", "dmac", 17, 17);
+            } else {
+                addTextCell(tr, "", "cl", 2);
+            }
+            frag.appendChild(tr);
+
+            oldDmacValue = values[idx_dmac];
+
+            break;
+
+        case "aceData_Ip":
+            if (oTFrameType[values[idx_frame_type]] != "IPv4") {
+                tableDisplay("ip_parameters", "none");
+                return;
+            } else {
+                tableDisplay("ip_parameters", "");
+                var ip_protocol_filter_value = oTProtocolFilter[values[idx_protocol_filter]];
+                if (ip_protocol_filter_value == "ICMP" || ip_protocol_filter_value == "UDP" || ip_protocol_filter_value == "TCP") {
+                    UpdateId("icmp_parameters_header", ip_protocol_filter_value + " Parameters");
+                } else {
+                    tableDisplay("icmp_parameters", "none");
+                }
+            }
+
+            //protocol_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "IP Protocol Filter", "param_label");
+            if (String(values[idx_protocol_filter]) === "") {
+                values[idx_protocol_filter] = 0;
+            }
+            td = addSelectCell(tr, oTProtocolFilter, oVNormal, values[idx_protocol_filter], "cl", "protocol_filter", "100%");
+            td.onchange = changeProtocolFilter;
+            frag.appendChild(tr);
+
+            //protocol
+            tr = document.createElement("tr");
+            if (oTProtocolFilter[values[idx_protocol_filter]] == "Other") {
+                addLabelTextCell(tr, "IP Protocol Value", "param_label", "protocol");
+                addInputCell(tr, values[idx_protocol], "cl", "protocol", 10, 3);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_protocol]) !== "") {
+                oldProtocolValue = values[idx_protocol];
+            }
+
+            //ip_ttl (ip_flags0)
+            tr = document.createElement("tr");
+            if (String(values[idx_ip_flags0]) === "") {
+                values[idx_ip_flags0] = 2;
+            }
+            addTextCell(tr, "IP TTL", "param_label");
+            addSelectCell(tr, oTIpTtl, oVIpTtl, values[idx_ip_flags0], "cl", "ip_flags0", "100%");
+            frag.appendChild(tr);
+
+            //ip_frag (ip_flags1)
+            tr = document.createElement("tr");
+            if (String(values[idx_ip_flags1]) === "") {
+                values[idx_ip_flags1] = 2;
+            }
+            addTextCell(tr, "IP Fragment", "param_label");
+            td = addSelectCell(tr, oTIpOption, oVIpOption, values[idx_ip_flags1], "cl", "ip_flags1", "100%");
+            td.onchange = changeIpFlag;
+            frag.appendChild(tr);
+
+            //ip_option (ip_flags2)
+            tr = document.createElement("tr");
+            if (String(values[idx_ip_flags2]) === "") {
+                values[idx_ip_flags2] = 2;
+            }
+            addTextCell(tr, "IP Option", "param_label");
+            td = addSelectCell(tr, oTIpOption, oVIpOption, values[idx_ip_flags2], "cl", "ip_flags2", "100%");
+            td.onchange = changeIpFlag;
+            frag.appendChild(tr);
+
+            //sip_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "SIP Filter", "param_label");
+            if (String(values[idx_sip_filter]) === "") {
+                values[idx_sip_filter] = 0;
+            }
+            td = addSelectCell(tr, oTIpFilter, oVNormal, values[idx_sip_filter], "cl", "sip_filter", "100%");
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            //sip
+            tr = document.createElement("tr");
+            if (oTIpFilter[values[idx_sip_filter]] != "Any") {
+                addLabelTextCell(tr, "SIP Address", "param_label", "sip");
+                addInputCell(tr, values[idx_sip], "cl", "sip", 15, 15);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_sip]) !== "") {
+                oldSipAddrValue = values[idx_sip];
+            }
+
+            //sip_mask
+                tr = document.createElement("tr");
+            if (oTIpFilter[values[idx_sip_filter]] == "Network") {
+                addLabelTextCell(tr, "SIP Mask", "param_label", "sip_mask");
+                addInputCell(tr, values[idx_sip_mask], "cl", "sip_mask", 15, 15);
+            }
+            frag.appendChild(tr);
+            if (String(values[idx_sip_mask]) !== "") {
+                oldSipMaskValue = values[idx_sip_mask];
+            }
+
+            //dip_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "DIP Filter", "param_label");
+            if (String(values[idx_dip_filter]) === "") {
+                values[idx_dip_filter] = 0;
+            }
+            td = addSelectCell(tr, oTIpFilter, oVNormal, values[idx_dip_filter], "cl", "dip_filter", "100%");
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            //dip, dip_mask
+            tr = document.createElement("tr");
+            if (oTIpFilter[values[idx_dip_filter]] != "Any") {
+                addLabelTextCell(tr, "DIP Address", "param_label", "dip");
+                addInputCell(tr, values[idx_dip], "cl", "dip", 15, 15);
+            }
+            frag.appendChild(tr);
+
+            //dip_mask
+            tr = document.createElement("tr");
+            if (oTIpFilter[values[idx_dip_filter]] == "Network") {
+                addLabelTextCell(tr, "DIP Mask", "param_label", "dip_mask");
+                addInputCell(tr, values[idx_dip_mask], "cl", "dip_mask", 15, 15);
+            } else {
+                addTextCell(tr, "", "cl", 2);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_dip]) !== "") {
+                oldDipAddrValue = values[idx_dip];
+            }
+
+            if (String(values[idx_dip_mask]) !== "") {
+                oldDipMaskValue = values[idx_dip_mask];
+            }
+
+            break;
+
+        case "aceData_Arp":
+            if (oTFrameType[values[idx_frame_type]] != "ARP") {
+                tableDisplay("arp_parameters", "none");
+                return;
+            } else {
+                tableDisplay("arp_parameters", "");
+            }
+
+            //arp_rarp (ip_flags0, ip_flags2)
+            tr = document.createElement("tr");
+            addTextCell(tr, "ARP/RARP", "param_label");
+            addSelectCell(tr, oTArpRarp, oVArpRarp, parseInt(values[idx_arp_flags0], 10), "cl", "arp_flags0", "100%");
+            frag.appendChild(tr);
+
+            //arp_request_reply (arp_flags1)
+            tr = document.createElement("tr");
+            addTextCell(tr, "Request/Reply", "param_label");
+            addSelectCell(tr, oTRequestReply, oVRequestReply, parseInt(values[idx_arp_flags1], 10), "cl", "arp_flags1", "100%");
+            frag.appendChild(tr);
+
+            //arp_sip_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "Sender IP Filter", "param_label");
+            if (String(values[idx_arp_sip_filter]) === "") {
+                values[idx_arp_sip_filter] = 0;
+            }
+            td = addSelectCell(tr, oTIpFilter, oVNormal, values[idx_arp_sip_filter], "cl", "arp_sip_filter", "100%");
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            //arp_sip
+            tr = document.createElement("tr");
+            if (oTIpFilter[values[idx_arp_sip_filter]] != "Any") {
+                addLabelTextCell(tr, "Sender IP Address", "param_label", "arp_sip");
+                addInputCell(tr, values[idx_arp_sip], "cl", "arp_sip", 15, 15);
+            }
+            frag.appendChild(tr);
+
+            //arp_sip_mask
+            tr = document.createElement("tr");
+            if (oTIpFilter[values[idx_arp_sip_filter]] == "Network") {
+                addLabelTextCell(tr, "Sender IP Mask", "param_label", "arp_sip_mask");
+                addInputCell(tr, values[idx_arp_sip_mask], "cl", "arp_sip_mask", 15, 15);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_arp_sip]) !== "") {
+                oldSipAddrValue = values[idx_arp_sip];
+            }
+
+            if (String(values[idx_arp_sip_mask]) !== "") {
+                oldSipMaskValue = values[idx_arp_sip_mask];
+            }
+
+            //arp_dip_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "Target IP Filter", "param_label");
+            if (String(values[idx_arp_dip_filter]) === "") {
+                values[idx_arp_dip_filter] = 0;
+            }
+            td = addSelectCell(tr, oTIpFilter, oVNormal, values[idx_arp_dip_filter], "cl", "arp_dip_filter", "100%");
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            //arp_dip
+            tr = document.createElement("tr");
+            if (oTIpFilter[values[idx_arp_dip_filter]] != "Any") {
+                addLabelTextCell(tr, "Target IP Address", "param_label", "arp_dip");
+                addInputCell(tr, values[idx_arp_dip], "cl", "arp_dip", 15, 15);
+            }
+            frag.appendChild(tr);
+
+            //arp_dip_mask
+            tr = document.createElement("tr");
+            if (oTIpFilter[values[idx_arp_dip_filter]] == "Network") {
+                addLabelTextCell(tr, "Target IP Mask", "param_label", "arp_dip_mask");
+                addInputCell(tr, values[idx_arp_dip_mask], "cl", "arp_dip_mask", 15, 15);
+            } else {
+                addTextCell(tr, "", "cl", 2);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_arp_dip]) !== "") {
+                oldArpDipAddrValue = values[idx_arp_dip];
+            }
+
+            if (String(values[idx_arp_dip_mask]) !== "") {
+                oldArpDipMaskValue = values[idx_arp_dip_mask];
+            }
+
+            break;
+
+        case "aceData_EthType":
+            if (oTFrameType[values[idx_frame_type]] != "Ethernet Type") {
+                tableDisplay("ether_type_parameters", "none");
+                return;
+            } else {
+                tableDisplay("ether_type_parameters", "");
+            }
+
+            //ether_type_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "EtherType Filter", "param_label");
+            if (String(values[idx_ether_type_filter]) === "") {
+                values[idx_ether_type_filter] = 0;
+            }
+            td = addSelectCell(tr, oTFilter, oVNormal, values[idx_ether_type_filter], "cl", "ether_type_filter", "100%");
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            //ether_type
+            tr = document.createElement("tr");
+            if (oTFilter[values[idx_ether_type_filter]] == "Specific") {
+                addLabelTextCell(tr, "EtherType Value", "param_label", "ether_type");
+                //addInputCell(tr, values[idx_ether_type], "cl", "ether_type", 4, 4);
+                td = CreateTd("cl");
+                hex_header = document.createTextNode("0x");
+                td.appendChild(hex_header);
+
+                input_value = document.createElement('input');
+                input_value.id = input_value.name = "ether_type";
+                input_value.setAttribute("size", 4);
+                input_value.setAttribute("maxLength", 4);
+                input_value.setAttribute("value", values[idx_ether_type]);
+                input_value.setAttribute("defaultValue", values[idx_ether_type]);
+                td.appendChild(input_value);
+                tr.appendChild(td);
+            } else {
+                addTextCell(tr, "", "cl", 2);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_ether_type]) !== "") {
+                oldEthTypeValue = values[idx_ether_type];
+            }
+
+            break;
+
+        case "aceData_Action":
+            //action
+            tr = document.createElement("tr");
+            addTextCell(tr, "Action", "param_label");
+            td = addSelectCell(tr, oTAction, oVNormal, values[idx_action], "cl", "action", "100%");
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            if (hasAclV2) {
+                // filter_port
+                tr = document.createElement("tr");
+                if (oTAction[values[idx_action]] == "Filter") {
+                    addTextCell(tr, "Filter Port", "param_label");
+                    chosen = values[idx_filer_port].split(":");
+                    addMultiSelectCell(tr, oTPort, oVNormal, chosen, "cl", "filter_port", 5, "100%");
+                }
+                frag.appendChild(tr);
+
+                if (String(values[idx_filer_port]) !== "") {
+                    oldFilterPortValue = values[idx_filer_port];
+                }
+            }
+
+            //rate_limiter
+            tr = document.createElement("tr");
+            addTextCell(tr, "Rate Limiter", "param_label");
+            addSelectCell(tr, oTRateLimiter, oVRateLimiter, values[idx_rate_limiter], "cl", "rate_limiter", "100%");
+            frag.appendChild(tr);
+
+            if (hasAclV2) {
+                if (hasAclEvcPolicer) {
+                    //evc_police
+                    tr = document.createElement("tr");
+                    addTextCell(tr, "EVC Policer", "param_label");
+                    if (String(values[idx_evc_police]) === "") {
+                        values[idx_evc_police] = 0;
+                    }
+                    td = addSelectCell(tr, oTEnable, oVNormal, values[idx_evc_police], "cl", "evc_police", "100%");
+                    td.onchange = changeFilter;
+                    frag.appendChild(tr);
+
+                    //evc_policer_id
+                    tr = document.createElement("tr");
+                    if (oTEnable[values[idx_evc_police]] == "Enabled") {
+                        addLabelTextCell(tr, "EVC Policer ID", "param_label", "evc_policer_id");
+                        addInputCell(tr, values[idx_evc_policer_id], "cl", "evc_policer_id", 9, 3);
+                    }
+                    frag.appendChild(tr);
+
+                    if (String(values[idx_evc_policer_id]) !== "") {
+                        oldEvcPolicerIdValue = values[idx_evc_policer_id];
+                    }
+                }
+
+                //port_copy
+                tr = document.createElement("tr");
+                if (configArchLuton28) {
+                    addTextCell(tr, "Port Copy", "param_label");
+                } else if (oTAction[values[idx_action]] == "Deny") {
+                    addTextCell(tr, "Port Redirect", "param_label");
+                }
+                chosen = values[idx_port_copy].split(":");
+                if (oTAction[values[idx_action]] == "Deny") {
+                    addMultiSelectCell(tr, oTPortCopy, oVNormal, chosen, "cl", "port_copy", 5, "100%");
+                }
+                frag.appendChild(tr);
+
+                if (String(values[idx_port_copy]) !== "") {
+                    oldPortCopyValue = values[idx_port_copy];
+                }
+
+                //mirror
+                tr = document.createElement("tr");
+                addTextCell(tr, "Mirror", "param_label");
+                addSelectCell(tr, oTEnable, oVNormal, values[idx_mirror], "cl", "mirror", "100%");
+                frag.appendChild(tr);
+            } else {
+                //port_copy
+                tr = document.createElement("tr");
+                if (configArchLuton28) {
+                    addTextCell(tr, "Port Copy", "param_label");
+                } else if (oTAction[values[idx_action]] == "Deny") {
+                    addTextCell(tr, "Port Redirect", "param_label");
+                }
+                if (configArchLuton28 || oTAction[values[idx_action]] == "Deny") {
+                    if (configPortType >= 3) {
+                        addSelectCell(tr, oTPortCopy, oVRouterPortPortCopy, values[idx_port_copy], "cl", "port_copy", "100%");
+                    } else {
+                        addSelectCell(tr, oTPortCopy, oVNormal, values[idx_port_copy], "cl", "port_copy", "100%");
+                    }
+                }
+                frag.appendChild(tr);
+
+                if (String(values[idx_port_copy]) !== "") {
+                    oldPortCopyValue = values[idx_port_copy];
+                }
+            }
+
+            //logging
+            if (hasAclLogging) {
+                tr = document.createElement("tr");
+                addTextCell(tr, "Logging", "param_label");
+                addSelectCell(tr, oTEnable, oVNormal, values[idx_logging], "cl", "logging", "100%");
+                frag.appendChild(tr);
+            }
+
+            //shutdown
+            if (hasAclShutdown) {
+                tr = document.createElement("tr");
+                addTextCell(tr, "Shutdown", "param_label");
+                addSelectCell(tr, oTEnable, oVNormal, values[idx_shutdown], "cl", "shutdown", "100%");
+                frag.appendChild(tr);
+            }
+
+            //counters
+            tr = document.createElement("tr");
+            addTextCell(tr, "Counter", "param_label");
+            addTextCell(tr, values[idx_counters], "cr");
+            frag.appendChild(tr);
+
+            break;
+
+        case "aceData_Vlan":
+            //tagged
+            if (hasAclV2) {
+                tr = document.createElement("tr");
+                addTextCell(tr, "802.1Q Tagged", "param_label");
+                addSelectCell(tr, oTTagged, oVNormal, values[idx_tagged], "cl", "tagged", "100%");
+                frag.appendChild(tr);
+            }
+
+            //vid_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "VLAN ID Filter", "param_label");
+            if (String(values[idx_vid_mask]) === "") {
+                values[idx_vid_mask] = 0;
+            }
+            td = addSelectCell(tr, oTFilter, oVNormal, values[idx_vid_mask], "cl", "vid_filter", "100%");
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            //vid
+            tr = document.createElement("tr");
+            if (oTFilter[values[idx_vid_mask]] == "Specific") {
+                addLabelTextCell(tr, "VLAN ID", "param_label", "vid");
+                addInputCell(tr, values[idx_vid], "cl", "vid", 15, 4);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_vid]) !== "") {
+                oldVidValue = values[idx_vid];
+            }
+
+            //tag_priority
+            tr = document.createElement("tr");
+            addTextCell(tr, "Tag Priority", "param_label");
+            addSelectCell(tr, oTTagPriority, oVTagPriority, values[idx_user_prio], "cl", "tag_priority", "100%");
+            frag.appendChild(tr);
+
+            break;
+
+        case "aceData_Icmp":
+        case "aceData_Icmpv6":
+            var ipv6AdvanceParameters = (ref == "aceData_Icmpv6");
+            if (oTFrameType[values[idx_frame_type]] == "IPv4") {
+                tableDisplay("icmp_parameters", "");
+                tableDisplay("icmpv6_parameters", "none");
+            } else if (ipv6AdvanceParameters && oTFrameType[values[idx_frame_type]] == "IPv6") {
+                tableDisplay("icmp_parameters", "none");
+                tableDisplay("icmpv6_parameters", "");
+            } else {
+                tableDisplay("icmp_parameters", "none");
+                tableDisplay("icmpv6_parameters", "none");
+                return;
+            }
+
+            var newIpHeader = oTProtocolFilter[values[idx_protocol_filter]] + (ipv6AdvanceParameters ? "v6 Parameters" : " Parameters");
+            if (oTProtocolFilter[values[idx_protocol_filter]] == "ICMP" || oTProtocolFilter[values[idx_protocol_filter]] == "UDP" || oTProtocolFilter[values[idx_protocol_filter]] == "TCP") {
+                if (ipv6AdvanceParameters) {
+                    UpdateId("icmpv6_parameters_header", newIpHeader);
+                } else {
+                    UpdateId("icmp_parameters_header", newIpHeader);
+                }
+            } else {
+                tableDisplay("icmpv6_parameters", "none");
+                tableDisplay("icmp_parameters", "none");
+            }
+
+            if (oTProtocolFilter[values[idx_protocol_filter]] == "ICMP") {
+                //icmp_type_filter
+                tr = document.createElement("tr");
+                addTextCell(tr, "ICMP Type Filter", "param_label");
+                if (String(values[idx_icmp_type_filter]) === "") {
+                    values[idx_icmp_type_filter] = 0;
+                }
+                td = addSelectCell(tr, oTFilter, oVNormal, values[idx_icmp_type_filter], "cl", "icmp_type_filter", "100%");
+                td.onchange = changeFilter;
+                frag.appendChild(tr);
+
+                //icmp_type
+                tr = document.createElement("tr");
+                if (oTFilter[values[idx_icmp_type_filter]] == "Specific") {
+                    addLabelTextCell(tr, "ICMP Type Value", "param_label", "icmp_type");
+                    addInputCell(tr, values[idx_icmp_type], "cl", "icmp_type", 8, 3);
+                }
+                frag.appendChild(tr);
+
+                if (String(values[idx_icmp_type]) !== "") {
+                    oldIcmpTypeValue = values[idx_icmp_type];
+                }
+
+                //icmp_code_filter
+                tr = document.createElement("tr");
+                addTextCell(tr, "ICMP Code Filter", "param_label");
+                if (String(values[idx_icmp_code_filter]) === "") {
+                    values[idx_icmp_code_filter] = 0;
+                }
+                td = addSelectCell(tr, oTFilter, oVNormal, values[idx_icmp_code_filter], "cl", "icmp_code_filter", "100%");
+                td.onchange = changeFilter;
+                frag.appendChild(tr);
+
+                //icmp_code
+                tr = document.createElement("tr");
+                if (oTFilter[values[idx_icmp_code_filter]] == "Specific") {
+                    addLabelTextCell(tr, "ICMP Code Value", "param_label", "icmp_code");
+                    td = addInputCell(tr, values[idx_icmp_code], "cl", "icmp_code", 8, 3);
+                } else {
+                    addTextCell(tr, "", "cl", 2);
+                }
+                frag.appendChild(tr);
+
+                if (String(values[idx_icmp_code]) !== "") {
+                    oldIcmpCodeValue = values[idx_icmp_code];
+                }
+
+                break;
+            }
+
+            if ((oTProtocolFilter[values[idx_protocol_filter]] != "UDP") && (oTProtocolFilter[values[idx_protocol_filter]] != "TCP")) {
+                return;
+            }
+
+            //sport_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "Source Port Filter", "param_label");
+            if (String(values[idx_sport_filter]) === "") {
+                values[idx_sport_filter] = 0;
+            }
+            td = addSelectCell(tr, oTPortFilter, oVPortFilter, values[idx_sport_filter], "cl", "sport_filter", "100%");
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            //sport_low, sport_high
+            tr = document.createElement("tr");
+            if (String(values[idx_sport_low]) === "") {
+                values[idx_sport_low] = 0;
+            }
+            if (String(values[idx_sport_high]) === "") {
+                values[idx_sport_high] = 65535;
+            }
+            if (oTPortFilter[values[idx_sport_filter]] == "Specific") {
+                addLabelTextCell(tr, "Source Port No.", "param_label", "sport_low");
+                addInputCell(tr, values[idx_sport_low], "cl", "sport_low", 8, 5);
+            } else if (oTPortFilter[values[idx_sport_filter]] == "Range") {
+                addLabelTextCell(tr, "Source Port Range", "param_label", "sport_low");
+                td = CreateTd("cl");
+                range_low = document.createElement('input');
+                range_low.id = range_low.name = "sport_low";
+                range_low.setAttribute("size", 5);
+                range_low.setAttribute("maxLength", 5);
+                range_low.setAttribute("value", values[idx_sport_low]);
+                range_low.setAttribute("defaultValue", values[idx_sport_low]);
+
+                dash_text = document.createTextNode("-");
+                td.appendChild(range_low);
+                td.appendChild(dash_text);
+
+                range_high = document.createElement('input');
+                range_high.id = range_high.name = "sport_high";
+                range_high.setAttribute("size", 5);
+                range_high.setAttribute("maxLength", 5);
+                range_high.setAttribute("value", values[idx_sport_high]);
+                range_high.setAttribute("defaultValue", values[idx_sport_high]);
+                td.appendChild(range_high);
+                tr.appendChild(td);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_sport_low]) !== "") {
+            oldSportLowValue = values[idx_sport_low];
+            }
+            if (String(values[idx_sport_high]) !== "") {
+                oldSportHighValue = values[idx_sport_high];
+            }
+
+            //dport_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "Dest. Port Filter", "param_label");
+            if (String(values[idx_dport_filter]) === "") {
+                values[idx_dport_filter] = 0;
+            }
+            td = addSelectCell(tr, oTPortFilter, oVPortFilter, values[idx_dport_filter], "cl", "dport_filter", "100%");
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            //dport_low, dport_high
+            tr = document.createElement("tr");
+            if (String(values[idx_dport_low]) === "") {
+                values[idx_dport_low] = 0;
+            }
+            if (String(values[idx_dport_high]) === "") {
+                values[idx_dport_high] = 65535;
+            }
+            if (oTPortFilter[values[idx_dport_filter]] == "Specific") {
+                addLabelTextCell(tr, "Dest. Port No.", "param_label", "dport_low");
+                addInputCell(tr, values[idx_dport_low], "cl", "dport_low", 8, 5);
+            } else if (oTPortFilter[values[idx_dport_filter]] == "Range") {
+                addLabelTextCell(tr, "Dest. Port Range", "param_label", "dport_low");
+                td = CreateTd("cl");
+                range_low = document.createElement('input');
+                range_low.id = range_low.name = "dport_low";
+                range_low.setAttribute("size", 5);
+                range_low.setAttribute("maxLength", 5);
+                range_low.setAttribute("value", values[idx_dport_low]);
+                range_low.setAttribute("defaultValue", values[idx_dport_low]);
+
+                dash_text = document.createTextNode("-");
+                td.appendChild(range_low);
+                td.appendChild(dash_text);
+
+                range_high = document.createElement('input');
+                range_high.id = range_high.name = "dport_high";
+                range_high.setAttribute("size", 5);
+                range_high.setAttribute("maxLength", 5);
+                range_high.setAttribute("value", values[idx_dport_high]);
+                range_high.setAttribute("defaultValue", values[idx_dport_high]);
+                td.appendChild(range_high);
+                tr.appendChild(td);
+            } else if (oTProtocolFilter[values[idx_protocol_filter]] == "UDP") {
+                addTextCell(tr, "", "cl", 2);
+            } else {
+                addTextCell(tr, "", "dummy", 2);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_dport_low]) !== "") {
+                oldDportLowValue = values[idx_dport_low];
+            }
+            if (String(values[idx_dport_high]) !== "") {
+                oldDportHighValue = values[idx_dport_high];
+            }
+
+            if (oTProtocolFilter[values[idx_protocol_filter]] == "TCP") {
+                //tcp_fin (tcp_flags0)
+                tr = document.createElement("tr");
+                if (String(values[idx_tcp_flags0]) === "") {
+                    values[idx_tcp_flags0] = 2;
+                }
+                addLabelTextCell(tr, "TCP FIN", "param_label", "tcp_flags0");
+                addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_tcp_flags0], 10), "cl", "tcp_flags0", "100%");
+                frag.appendChild(tr);
+
+                //tcp_syn (tcp_flags1)
+                tr = document.createElement("tr");
+                if (String(values[idx_tcp_flags1]) === "") {
+                    values[idx_tcp_flags1] = 2;
+                }
+                addLabelTextCell(tr, "TCP SYN", "param_label", "tcp_flags1");
+                addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_tcp_flags1], 10), "cl", "tcp_flags1", "100%");
+                frag.appendChild(tr);
+
+                //tcp_rst (tcp_flags2)
+                tr = document.createElement("tr");
+                if (String(values[idx_tcp_flags2]) === "") {
+                    values[idx_tcp_flags2] = 2;
+                }
+                addLabelTextCell(tr, "TCP RST", "param_label", "tcp_flags2");
+                addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_tcp_flags2], 10), "cl", "tcp_flags2", "100%");
+                frag.appendChild(tr);
+
+                //tcp_psh (tcp_flags3)
+                tr = document.createElement("tr");
+                if (String(values[idx_tcp_flags3]) === "") {
+                    values[idx_tcp_flags3] = 2;
+                }
+                addLabelTextCell(tr, "TCP PSH", "param_label", "tcp_flags3");
+                addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_tcp_flags3], 10), "cl", "tcp_flags3", "100%");
+                frag.appendChild(tr);
+
+                //tcp_ack (tcp_flags4)
+                tr = document.createElement("tr");
+                if (String(values[idx_tcp_flags4]) === "") {
+                    values[idx_tcp_flags4] = 2;
+                }
+                addLabelTextCell(tr, "TCP ACK", "param_label", "tcp_flags4");
+                addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_tcp_flags4], 10), "cl", "tcp_flags4", "100%");
+                frag.appendChild(tr);
+
+                //tcp_urg (tcp_flags5)
+                tr = document.createElement("tr");
+                if (String(values[idx_tcp_flags5]) === "") {
+                    values[idx_tcp_flags5] = 2;
+                }
+                addLabelTextCell(tr, "TCP URG", "param_label", "tcp_flags5");
+                addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_tcp_flags5], 10), "cl", "tcp_flags5", "100%");
+                frag.appendChild(tr);
+            }
+
+            break;
+
+        case "aceData_ArpFlags":
+            if (oTFrameType[values[idx_frame_type]] != "ARP") {
+                tableDisplay("arp_parameters", "none");
+                return;
+            } else {
+                tableDisplay("arp_parameters", "");
+            }
+
+            //arp_smac_match (arp_flags3)
+            tr = document.createElement("tr");
+            if (String(values[idx_arp_flags3]) === "") {
+                values[idx_arp_flags3] = 2;
+            }
+            addTextCell(tr, "ARP Sender MAC Match", "param_label");
+            addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_arp_flags3], 10), "cl", "arp_flags3");
+            frag.appendChild(tr);
+
+            //rarp_dmac_match (arp_flags4)
+            tr = document.createElement("tr");
+            if (String(values[idx_arp_flags4]) === "") {
+                values[idx_arp_flags4] = 2;
+            }
+            addTextCell(tr, "RARP Target MAC Match", "param_label");
+            addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_arp_flags4], 10), "cl", "arp_flags4");
+            frag.appendChild(tr);
+
+            //arp_ip_eth_len (arp_flags5)
+            tr = document.createElement("tr");
+            if (String(values[idx_arp_flags5]) === "") {
+                values[idx_arp_flags5] = 2;
+            }
+            addTextCell(tr, "IP/Ethernet Length", "param_label");
+            addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_arp_flags5], 10), "cl", "arp_flags5", "100%");
+            frag.appendChild(tr);
+
+            //arp_ip (arp_flags6)
+            tr = document.createElement("tr");
+            if (String(values[idx_arp_flags6]) === "") {
+                values[idx_arp_flags6] = 2;
+            }
+            addTextCell(tr, "IP", "param_label");
+            addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_arp_flags6], 10), "cl", "arp_flags6", "100%");
+            frag.appendChild(tr);
+
+            //arp_eth (arp_flags7)
+            tr = document.createElement("tr");
+            if (String(values[idx_arp_flags7]) === "") {
+                values[idx_arp_flags7] = 2;
+            }
+            addTextCell(tr, "Ethernet", "param_label");
+            addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_arp_flags7], 10), "cl", "arp_flags7", "100%");
+            frag.appendChild(tr);
+
+            break;
+
+        case "aceData_Ipv6":
+            var ipv6_protocol_filter_value = oTProtocolFilter[values[idx_next_header_filter]];
+            if (oTFrameType[values[idx_frame_type]] != "IPv6") {
+                tableDisplay("ipv6_parameters", "none");
+                return;
+            } else {
+                tableDisplay("ipv6_parameters", "");
+                if (ipv6_protocol_filter_value == "ICMP" || ipv6_protocol_filter_value == "UDP" || ipv6_protocol_filter_value == "TCP") {
+                    UpdateId("icmpv6_parameters_header", ipv6_protocol_filter_value + " Parameters");
+                } else {
+                    tableDisplay("icmpv6_parameters", "none");
+                }
+            }
+
+            //next_header_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "Next Header Filter", "param_label");
+            if (String(values[idx_next_header_filter]) === "") {
+                values[idx_next_header_filter] = 0;
+            }
+
+            td = addSelectCell(tr, oTProtocolFilter, oVNormal, values[idx_next_header_filter], "cl", "next_header_filter", "100%");
+            td.onchange = changeNextHeaderFilter;
+            frag.appendChild(tr);
+
+            //next_header
+            tr = document.createElement("tr");
+            if (oTProtocolFilter[values[idx_next_header_filter]] == "Other") {
+                addTextCell(tr, "Next Header Value", "param_label");
+                addInputCell(tr, values[idx_next_header], "cl", "next_header", 10, 3);
+            } else {
+                addTextCell(tr, "", "cl", 2);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_next_header]) !== "") {
+                oldNextHeaderValue = values[idx_next_header];
+            }
+
+            //sip_v6_filter
+            tr = document.createElement("tr");
+            addTextCell(tr, "SIP Filter", "param_label");
+            if (String(values[idx_sip_v6_filter]) === "") {
+                values[idx_sip_v6_filter] = 0;
+            }
+            td = addSelectCell(tr, oTFilter, oVNormal, values[idx_sip_v6_filter], "cl", "sip_v6_filter", "100%");
+            td.onchange = changeFilter;
+            frag.appendChild(tr);
+
+            //sip_v6
+            tr = document.createElement("tr");
+            if (oTFilter[values[idx_sip_v6_filter]] != "Any") {
+                addLabelTextCell(tr, "SIP Address (32 bits)", "param_label", "sip_v6");
+                addInputCell(tr, values[idx_sip_v6], "cl", "sip_v6", 40, 40);
+            } else {
+                addTextCell(tr, "", "cl", 2);
+            }
+            frag.appendChild(tr);
+
+            if (String(values[idx_sip_v6]) !== "") {
+                oldSipv6AddrValue = values[idx_sip_v6];
+            }
+
+            if (hasAclIpv6) {
+                //sip_v6_mask
+                tr = document.createElement("tr");
+                if (oTFilter[values[idx_sip_v6_filter]] != "Any") {
+                    addLabelTextCell(tr, "SIP Bitmask (32 bits)", "param_label", "sip_v6_mask");
+                    td = CreateTd("cl");
+                    hex_header = document.createTextNode("0x");
+                    td.appendChild(hex_header);
+                
+                    input_value = document.createElement('input');
+                    input_value.id = input_value.name = "sip_v6_mask";
+                    input_value.setAttribute("size", 38);
+                    input_value.setAttribute("maxlength", 8);
+                    input_value.setAttribute("value", values[idx_sip_v6_mask]);
+                    input_value.setAttribute("defaultValue", values[idx_sip_v6_mask]);
+                    td.appendChild(input_value);
+                    tr.appendChild(td);
+                } else {
+                    tr.style.display = "none";
+                    addTextCell(tr, "", "cl", 2);
+                }
+                frag.appendChild(tr);
+                
+                if (values[idx_sip_v6_mask]) {
+                    oldSipV6MaskValue = values[idx_sip_v6_mask];
+                }
+            }
+
+            //hop_limit
+            tr = document.createElement("tr");
+            addLabelTextCell(tr, "Hop Limit", "param_label", "hop_limit");
+            addSelectCell(tr, oTFlagsAct, oVFlagsAct, parseInt(values[idx_hop_limit], 10), "cl", "hop_limit", "100%");
+            frag.appendChild(tr);
+            break;
+
+        default:
+            return;
+    }
+}
+
+changeAceTable = function(values, ref)
+{
+    var tbody = document.getElementById(ref);
+    var frag = document.createDocumentFragment();
+    addRowAceConfigTbl(frag, values, ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+    tbody.style.display = "";
+};
+
+function processUpdateAceConfigTbl(req, ref)
+{
+    if (req.responseText) {
+        aceEditReq = req;
+
+        var configData = req.responseText.split(",");
+        switch_sel = configData[0].split("#");
+        singleAceConfigDate = configData[1];
+        var aceConfig = singleAceConfigDate.split("/");
+
+        for (var i=0; i<AceDataTable.length; i++) {
+            var frag = document.createDocumentFragment();
+            ref = AceDataTable[i];
+            addRowAceConfigTbl(frag, aceConfig, ref);
+            var tbody = document.getElementById(ref);
+            clearChildNodes(tbody);
+            if (!tbody.appendChild(frag)) { // Add Frag to table body
+                alert("This browser doesn't support dynamic tables.");
+            }
+        }
+    } else {
+        document.location.href = "acl.htm";
+    }
+}
+
+function aceReset() {
+    processUpdateAceConfigTbl(aceEditReq, null);
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    // SID changed - Go back to list!
+    document.location.href = "acl.htm";
+}
+
+function requestUpdate()
+{
+    //Format: [sid]#[sid]#...,[isid]/[ace_id]/[next_ace_id]/[action]/[filter_port_1]:[filter_port_2]:.../[lookup]/[ingress_port]/[policy_filter]/[policy]/[policy_bitmask]/[rate_limiter]/[evc_police]/[evc_policer_id]/[port_copy_1]:[port_copy_2]:.../[mirror]/[logging]/[shutdown]/[dmac_filter]/[dmac_mac]/[tagged]/[vid_mask]/[vid]/[user_prio]/[vlan_cfi]/[counters]/[frame_type]/[frame_type_filed]|...
+    //[frame_type_filed]
+    //- [frame_type] = Any
+    //- [frame_type] = Ethernet [smac_filter]/[smac]/[ether_type_filter]/[ether_type]
+    //- [frame_type] = ARP      [smac_filter]/[smac]/[arp_flags0]/[arp_flags2]/[arp_sip_filter]/[arp_sip]/[arp_sip_mask]/[arp_dip_filter]/[arp_dip]/[arp_dip_mask]/[arp_flags3]/[arp_flags4]/[arp_flags5]/[arp_flags6]/[arp_flags7]
+    //- [frame_type] = IPv4, [protocol] = Any/Other [protocol_filter]/[protocol]/[ip_flags0]/[ip_flags1]/[ip_flags2]/[sip_filter]/[sip]/[sip_mask]/[dip_filter]/[dip]/[dip_mask]
+    //- [frame_type] = IPv4, [protocol] = ICMP      [protocol_filter]/[protocol]/[ip_flags0]/[ip_flags1]/[ip_flags2]/[sip_filter]/[sip]/[sip_mask]/[dip_filter]/[dip]/[dip_mask]/[icmp_type_filter]/[icmp_type]/[icmp_code_filter]/[icmp_code]
+    //- [frame_type] = IPv4, [protocol] = UDP       [protocol_filter]/[protocol]/[ip_flags0]/[ip_flags1]/[ip_flags2]/[sip_filter]/[sip]/[sip_mask]/[dip_filter]/[dip]/[dip_mask]/[sport_filter]/[sport_low]/[sport_high]/[dport_filter]/[dport_low]/[dport_high]
+    //- [frame_type] = IPv4, [protocol] = TCP       [protocol_filter]/[protocol]/[ip_flags0]/[ip_flags1]/[ip_flags2]/[sip_filter]/[sip]/[sip_mask]/[dip_filter]/[dip]/[dip_mask]/[sport_filter]/[sport_low]/[sport_high]/[dport_filter]/[dport_low]/[dport_high]/[tcp_flags0]/[tcp_flags1]/[tcp_flags2]/[tcp_flags3]/[tcp_flags4]/[tcp_flags5]
+    //- [frame_type] = IPv6  [protocol] = Any/Other [next_header_filter]/[next_header]/[sip_v6_filter]/[sip_v6]/[sip_v6_mask]/[hop_limit]
+    //- [frame_type] = IPv6  [protocol] = ICMP      [next_header_filter]/[next_header]/[sip_v6_filter]/[sip_v6]/[sip_v6_mask]/[hop_limit]/[dummy_field_1]..[dummy_field_5]/[icmp_type_filter]/[icmp_type]/[icmp_code_filter]/[icmp_code]
+    //- [frame_type] = IPv6  [protocol] = UDP       [next_header_filter]/[next_header]/[sip_v6_filter]/[sip_v6]/[sip_v6_mask]/[hop_limit]/[dummy_field_1]..[dummy_field_5]/[sport_filter]/[sport_low]/[sport_high]/[dport_filter]/[dport_low]/[dport_high]
+    //- [frame_type] = IPv6  [protocol] = TCP       [next_header_filter]/[next_header]/[sip_v6_filter]/[sip_v6]/[sip_v6_mask]/[hop_limit]/[dummy_field_1]..[dummy_field_5]/[sport_filter]/[sport_low]/[sport_high]/[dport_filter]/[dport_low]/[dport_high]/[tcp_flags0]/[tcp_flags1]/[tcp_flags2]/[tcp_flags3]/[tcp_flags4]/[tcp_flags5]
+
+    //var req = "1/2/1/2/2:4/1/0/1/0/0/0/00-00-00-00-00-02/0/1/8/2/111/0|2/113/1/2/1/0/0/1/00-00-00-00-00-01/0/1/8/2/222/2/1/00-00-00-00-00-01/2/2/2/1.2.3.4/255.255.255.0/2/4.3.2.1/255.255.255.0/2/2/2/2/2|113/114/1/0/1/0/0/4/00-00-00-00-00-02/0/1/8/2/333/1/1/00-00-00-00-00-01/1/1234|114/0/0/1/2/0/0/0/00-00-00-00-00-02/0/1/8/2/444/3/2/2/2/2/2/0/1.2.3.4/255.255.255.0/0/4.3.2.1/255.255.255.0/1/111/65535/1/333/65535,1";
+    //processUpdate(req, 'aclData');
+
+    loadXMLDoc("/config/acl_edit?aceConfigFlag=" + pageAceConfigFlag + "&SelectAceId=" + pageSelectAceId, processUpdateAceConfigTbl, null);
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form name="aceConfigForm" method="POST" action="/config/acl_edit">
+
+<h1>ACE Configuration</h1>
+<table summary="ACE Configuration">
+<tr>
+
+<td valign="top" width="460">
+<table summary="ACE Configuration - Common Parameters" class="config">
+    <tbody id="aceData_RuleType">
+    </tbody>
+</table>
+</td>
+
+<td valign="top" width="460">
+<table summary="ACE Configuration - Action Parameters" class="config">
+    <tbody id="aceData_Action">
+    </tbody>
+</table>
+</td>
+
+</tr>
+
+<tr>
+
+<td valign="top" width="460">
+<div id="mac_parameters">
+<h1>&nbsp;</h1>
+<h1>MAC Parameters</h1>
+<table summary="ACE Configuration - MAC Parameters" class="config">
+    <tbody id="aceData_Mac">
+    </tbody>
+</table>
+</div>
+</td>
+
+<td valign="top" width="460">
+<h1>&nbsp;</h1>
+<h1>VLAN Parameters</h1>
+<table summary="ACE Configuration - VLAN Parameters" class="config">
+    <tbody id="aceData_Vlan">
+    </tbody>
+</table>
+</td>
+
+</tr>
+
+<tr>
+
+<td valign="top" width="460">
+<div id="ip_parameters">
+<h1>&nbsp;</h1>
+<h1>IP Parameters</h1>
+<table summary="ACE Configuration - IP Parameters" class="config">
+    <tbody id="aceData_Ip">
+    </tbody>
+</table>
+</div>
+</td>
+
+<td valign="top" width="460">
+<div id="icmp_parameters">
+<h1>&nbsp;</h1>
+<h1 id="icmp_parameters_header">ICMP Parameters</h1>
+<table summary="ACE Configuration - ICMP Parameters" class="config">
+    <tbody id="aceData_Icmp">
+    </tbody>
+</table>
+</div>
+</td>
+</tr>
+
+<tr id="arp_parameters">
+<td valign="top" width="460">
+<h1>&nbsp;</h1>
+<h1>ARP Parameters</h1>
+<table summary="ACL ARP Parameters Left" class="config">
+    <tbody id="aceData_Arp">
+    </tbody>
+</table>
+</td>
+
+<td valign="top" width="460">
+<h1>&nbsp;</h1>
+<h1>&nbsp;</h1>
+<table summary="ACE Configuration - ACL ARP Parameters Right" class="config">
+    <tbody id="aceData_ArpFlags">
+    </tbody>
+</table>
+</td>
+</tr>
+
+<tr id="ether_type_parameters">
+<td>
+<h1>&nbsp;</h1>
+<h1>Ethernet Type Parameters</h1>
+<table summary="ACE Configuration - Ethernet Type Parameters" class="config">
+    <tbody id="aceData_EthType">
+    </tbody>
+</table>
+</td>
+</tr>
+
+<tr>
+<td valign="top" width="460">
+<div id="ipv6_parameters">
+<h1>&nbsp;</h1>
+<h1>IPv6 Parameters</h1>
+<table summary="ACE Configuration - IP Parameters" class="config">
+    <tbody id="aceData_Ipv6">
+    </tbody>
+</table>
+</div>
+</td>
+
+<td valign="top" width="460">
+<div id="icmpv6_parameters">
+<h1>&nbsp;</h1>
+<h1 id="icmpv6_parameters_header">ICMPv6 Parameters</h1>
+<table summary="ACE Configuration - ICMPv6 Parameters" class="config">
+    <tbody id="aceData_Icmpv6">
+    </tbody>
+</table>
+</div>
+</td>
+</tr>
+
+</table>
+
+<table summary="ACE Configuration - ACE ID" id="AceIdTbl" style="display:none;">
+ <tr>
+  <td class="param_label"><label for="ace_id">ACE ID</label></td>
+  <td class="cl"><input type="text" id="ace_id" name="ace_id" size="3" maxlength="3"></td>
+ </tr>
+ <tr>
+  <td class="param_label"><label for="next_ace_id">Next ACE ID</label></td>
+  <td class="cl"><input type="text" id="next_ace_id" name="next_ace_id" size="3" maxlength="3"></td>
+ </tr>
+</table>
+
+<p id="buttons">
+<input type="button" value="Save" onclick="aceSubmit();">
+<input type="button" value="Reset" onclick="aceReset();">
+<input type="button" value="Cancel" onclick="aceCancel();">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

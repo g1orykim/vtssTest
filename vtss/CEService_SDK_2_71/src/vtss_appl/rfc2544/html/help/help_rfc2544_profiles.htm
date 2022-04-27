@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RFC2544 Profile Overview Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" src="/lib/mootools-more.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.profile_cnt').set('text', rfc2544_profile_cnt);
+     $$('span.report_cnt').set('text', rfc2544_report_cnt);
+   });
+ </script>
+</head>
+
+<body>
+
+<h1>RFC2544 Profile Overview Help</h1>
+
+<p>
+  <a href="glossary.htm#rfc2544">RFC2544</a> is a benchmark testing tool that allows for testing an ethernet service connection end-to-end w.r.t. various key parameters.<br/>
+  Each test configuration is called a 'profile', and each result of executing the profile is called a 'report'.
+  You can store up to <span class="profile_cnt">?</span> profiles and <span class="report_cnt">?</span> reports.
+  Execution of a profile is initiated through the &quot;Configuration&rarr;RFC2544&rarr;Reports&quot; page.<br/><br/>
+  Executing a profile causes the switch (near end) to generate and transmit frames at certain rates on the configured egress port.
+  The remote end is supposed to loop these frames while swapping source and destination MAC adresses.
+  The looped frames are then expected to arrive at the same port as they egressed at the near end. The switch that generated the frames
+  can therefore assess whether an ethernet service connection meets the SLA.<br/>
+  This switch supports the near-end functionality only (generation + check of frames). Remote end functionality (loop + MAC address swap) is not supported.
+</p>
+
+<p>
+  This page provides an overview of the defined profiles along with options for editing and deleting them and creating new.<br/>
+  If no profiles are currently defined, the table contains one line stating &quot;&lt;No profiles&gt;&quot;.
+  Otherwise there is a table row for each defined profile with these three elements:
+</p>
+
+<dl>
+  <dt>Delete</dt>
+  <dd>
+    Click the <input type="button" value=" Delete ">-button to delete the profile in question.
+  </dd>
+
+  <dt>Name</dt>
+  <dd>
+    A unique name identifying the profile. Click the name to edit the profile.
+  </dd>
+
+  <dt>Description</dt>
+  <dd>
+    The profile's description as entered in the profile editor, which is activated by clicing the name of the profile.
+  </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value="Add New Profile">: Create a new profile. This button is grayed out if the maximum number of profiles is already defined.</p>
+
+</body>
+</html>

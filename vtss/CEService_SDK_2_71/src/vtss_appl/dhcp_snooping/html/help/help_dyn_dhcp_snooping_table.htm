@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Dynamic DHCP snooping Table</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+<body>
+
+<h1>Dynamic DHCP snooping Table</h1>
+
+<p>
+  This page display the dynamic IP assigned information after DHCP Snooping mode is disabled.
+  All DHCP clients obtained the dynamic IP address from the DHCP server will be listed in this table except for local VLAN interface IP addresses.
+  Entries in the Dynamic DHCP snooping Table are shown on this page.
+</p>
+
+<h2> Navigating the DHCP snooping Table</h2>
+<p>
+  Each page shows up to 99 entries from the Dynamic DHCP snooping table, default being 20, selected through the
+  "entries per page" input field. When first visited, the web page will show the first 20 entries from
+  the beginning of the Dynamic DHCP snooping Table.<br/>
+  The "MAC address" and "VLAN" input fields allows the user to select the starting point in the Dynamic DHCP snooping Table.
+  Clicking the <input type="button" value="Refresh"/> button will update the displayed table starting from
+  that or the closest next Dynamic DHCP snooping Table match. In addition, the two input fields will -
+  upon a <input type="button" value="Refresh"/> button click - assume the value of the first displayed entry,
+  allowing for continuous refresh with the same start address.<br/>
+  The <input type="button" value=" >> "/> will use the last entry of the currently displayed table as a basis for
+  the next lookup. When the end is reached the text "No more entries" is shown in the
+  displayed table. Use the <input type="button" value=" |<<"/> button to start over.
+</p>
+
+<h2>DHCP snooping Table Columns</h2>
+<dl>
+  <dt>MAC Address</dt><dd>User MAC address of the entry.</dd>
+  <dt>VLAN ID</dt><dd>VLAN-ID in which the DHCP traffic is permitted.</dd>
+  <dt>Source Port</dt><dd>Switch Port Number for which the entries are displayed.</dd>
+  <dt>IP Address</dt><dd>User IP address of the entry.</dd>
+  <dt>IP Subnet Mask</dt><dd>User IP subnet mask of the entry.</dd>
+  <dt>DHCP Server Address</dt><dd>DHCP Server address of the entry.</dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+
+<p><input type="button" value="Refresh">: Refreshes the displayed table starting from the input fields.</p>
+<p><input type="button" value="Clear">: Flushes all dynamic entries.</p>
+<p><input type="button" value=" |<< ">: Updates the table starting from the first entry in the Dynamic DHCP snooping Table.</p>
+<p><input type="button" value=" >> ">: Updates the table, starting with the entry after the last entry currently displayed.</p>
+
+</body>
+</html>

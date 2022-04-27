@@ -1,0 +1,56 @@
+Overview
+========
+
+This document describes how to configure and compile the eCos RTOS for
+use with platforms supporting Vitesse Semiconductor Inc. VCore-II and
+VCore-III chipsets.
+
+It is expected that eCos has been installed as described in
+<http://ecos.sourceware.org/docs-latest/user-guide/user-guide-installation.html>. It
+is expected that Linux is used as build environment.
+
+Target Toolchains
+=================
+
+The VCore-II processor is based around a ARM926EJ-S CPU and uses the
+GNU arm-eabi tools as distributed from eCos (see below).
+
+The VCore-III processor is based around a MIPS32 CPU and uses the
+GNU mipsisa32-elf tools as distributed from eCos (see below).
+
+The toolchains can be downloaded from ftp://ecos.sourceware.org/pub/ecos/gnutools/i386linux/:
+
+ARM toolchain : <ftp://ecos.sourceware.org/pub/ecos/gnutools/i386linux/ecoscentric-gnutools-arm-eabi-20081213-sw.i386linux.tar.bz2>
+
+MIPS toolchain: <ftp://ecos.sourceware.org/pub/ecos/gnutools/i386linux/ecoscentric-gnutools-mipsisa32-elf-20081107-sw.i386linux.tar.bz2>
+
+The 
+
+Configuring
+===========
+
+To configure eCos, use the normal procedures from
+<http://ecos.sourceware.org/docs-latest/user-guide/config-tool-invoking.html>
+or similar.
+
+Select one of the supported targets from:
+
+ VCore-II:  packages/hal/arm/arm9/vcoreii/current/cdl/hal_arm_arm9_vcoreii.cdl
+
+ VCore-III: packages/hal/mips/vcoreiii/current/cdl/hal_mips_vcoreiii.cdl
+
+Additional configuration settings may be added from the
+packages/hal/.../current/misc directories listed above.
+
+Compiling
+=========
+
+After configuring eCos for the appropriate target, you need to create
+the build tree. This is done by executing "ecosconfig tree", and it
+should generate a top-level "make"-file, as well as a number of
+sub-directories where the compiled binaries will be stored.
+
+You can now run the "make" command to compile eCos. Once this has
+finished successfully, you can start developing your own applications
+as described in
+<http://ecos.sourceware.org/docs-latest/user-guide/building-and-running-sample-appliations.html>.

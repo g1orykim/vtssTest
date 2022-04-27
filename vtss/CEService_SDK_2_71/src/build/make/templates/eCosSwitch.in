@@ -1,0 +1,438 @@
+# -*- mode: makefile-gmake; -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+include $(BUILD)/make/templates/base.in
+
+##################################################################
+#
+# Customization Support
+# =====================
+#
+# $(Custom/SwitchName)  - GUI Product name
+#
+# $(Custom/SwitchDesc)  - GUI Product description
+#
+# $(Custom/SwitchSwId)  - Firmware type (7-bit number)
+#
+# $(Custom/Defines)     - Product specific defines (CFLAGS)
+#
+# $(Custom/eCosConfig)  - Adds specific eCos configuration files
+#
+# $(Custom/eCosRemovePackages) - Removes eCos packages (from eCos config)
+#
+# $(Custom/AddModules)  - Adds specific modules to build
+#
+# $(Custom/OmitModules) - Removes specific modules from build
+#
+# $(Custom/DefaultConfig) - Use specific default configuration text file
+#
+##################################################################
+
+##################################################################
+#
+# eCos Switch Build configuration
+#
+##################################################################
+
+# The exhaustive list of supported software configurations (product types)
+PNAME_BRINGUP           := Bringup
+PNAME_DEFAULT           := Default
+PNAME_WEBSTAX           := WebStaX
+PNAME_SMBSTAX           := SMBStaX
+PNAME_CESERVICES        := CEServices
+PNAME_CEMAX             := CEMaX
+
+# Ordinals for the above configurations (7 bits - bit 8 is stacking/nonstacking)
+SW_ID_BRINGUP           := 1
+SW_ID_DEFAULT           := 1
+SW_ID_WEBSTAX           := 2
+SW_ID_SMBSTAX           := 3
+SW_ID_CESERVICES        := 4
+SW_ID_CEMAX             := 5
+
+# Software Identification Number - an integer ordinal
+# @arg $1 - Product type (BRINGUP, WEBSTAX, SMBSTAX, CESERVICES, CEMAX)
+define eCosSwitch/SoftwareId
+$(if $(Custom/SwitchSwId),$(Custom/SwitchSwId),$(SW_ID_$1))
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is stackable type    (STACKABLE, STANDALONE)
+# Build configuration profiles
+define eCosSwitch/Modules/BRINGUP
+  $(call eCosSwitch/Modules/BRINGUP/$1,$2) \
+  board conf ecos firmware icfg icli ip2   \
+  main msg misc packet port phy sprout symreg  \
+  sysutil util vcli vtss_api
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is stackable type    (STACKABLE, STANDALONE)
+# Build configuration profiles
+define eCosSwitch/Modules/DEFAULT
+  $(call eCosSwitch/Modules/BRINGUP,$1,$2) \
+  $(call eCosSwitch/Modules/DEFAULT/$1,$2) \
+  firmware mirror packet symreg syslog sysutil libfetch
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is stackable type    (STACKABLE, STANDALONE)
+define eCosSwitch/Modules/CEMAX
+  $(call eCosSwitch/Modules/DEFAULT,$1,$2) \
+  $(call eCosSwitch/Modules/CEMAX/$1,$2)   \
+  acl build_ce ce_max cli_telnet ip2 qos   \
+  vlan web
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is stackable type    (STACKABLE, STANDALONE)
+define eCosSwitch/Modules/WEBSTAX
+  $(call eCosSwitch/Modules/DEFAULT,$1,$2)  \
+  $(call eCosSwitch/Modules/WEBSTAX/$1,$2)  \
+  access_mgmt acl aggr auth dot1x           \
+  eee  https ip2 ipmc lacp led_pow_reduc    \
+  lldp loop_detect loop_protect mac mstp    \
+  nas_mac_based poe port_power_savings  \
+  pvlan qos snmp sntp vlan web
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is stackable type    (STACKABLE, STANDALONE)
+define eCosSwitch/Modules/SMBSTAX
+  $(call eCosSwitch/Modules/WEBSTAX,$1,$2) \
+  $(call eCosSwitch/Modules/SMBSTAX/$1,$2) \
+  arp_inspection build_smb cdp cli_telnet  \
+  dhcp_relay dhcp_snooping dns dot1x_acct  \
+  daylight_saving ip_source_guard ipv6     \
+  l3rt lldp_med mvr nas_dot1x_multi        \
+  nas_dot1x_single nas_options ntp         \
+  priv_lvl psec_limit radius rmon sflow    \
+  smb_ipmc smb_snmp ssh tacplus upnp users \
+  vcl voice_vlan gvrp dhcp_server
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is stackable type    (STACKABLE, STANDALONE)
+define eCosSwitch/Modules/CESERVICES
+  $(call eCosSwitch/Modules/SMBSTAX,$1,$2)    \
+  $(call eCosSwitch/Modules/CESERVICES/$1,$2) \
+  build_ce eps erps eth_link_oam evc mep ptp  \
+  synce vlan_translation
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is stackable type    (STACKABLE, STANDALONE)
+define eCosSwitch/OmitModules/CEMAX
+  $(call eCosSwitch/OmitModules/DEFAULT/$1,$2) \
+  $(call eCosSwitch/OmitModules/CEMAX/$1,$2)   \
+  sntp
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is stackable type    (STACKABLE, STANDALONE)
+define eCosSwitch/OmitModules/WEBSTAX
+  $(call eCosSwitch/OmitModules/DEFAULT/$1,$2) \
+  $(call eCosSwitch/OmitModules/WEBSTAX/$1,$2)
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is stackable type    (STACKABLE, STANDALONE)
+define eCosSwitch/OmitModules/SMBSTAX
+  $(call eCosSwitch/OmitModules/DEFAULT/$1,$2) \
+  $(call eCosSwitch/OmitModules/SMBSTAX/$1,$2) \
+  sntp
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is stackable type    (STACKABLE, STANDALONE)
+define eCosSwitch/OmitModules/CESERVICES
+  $(call eCosSwitch/OmitModules/DEFAULT/$1,$2) \
+  $(call eCosSwitch/OmitModules/CESERVICES/$1,$2) \
+  build_smb sntp
+endef
+
+# @arg $1 is the list of modules
+# @returns $1 and any required helper modules
+define eCosSwitch/Modules/AddHelpers
+  $1 \
+  $(if $(filter icli vcli,$1),cli md5)                                      \
+  $(if $(filter dhcp_server dhcp_snooping dhcp_relay,$1),dhcp_helper)       \
+  $(if $(filter dot1x,$1),radius)                                           \
+  $(if $(filter dot1x mstp tacplus,$1),md5)                                 \
+  $(if $(filter firmware loop_protect ssh,$1),ssh_lib)                      \
+  $(if $(filter firmware,$1),libfetch)                                      \
+  $(if $(filter aggr dot1x lacp mstp lldp,$1),l2proto)                      \
+  $(if $(filter psec_limit voice_vlan dhcp_snooping nas_mac_based,$1),psec) \
+  $(if $(filter ipmc mvr,$1),ipmc_lib)                                      \
+  $(if $(filter mep ptp,$1),tod)                                            \
+  $(if $(filter mvrp,$1),mrp xxrp)                                          \
+  $(if $(filter gvrp,$1),garp xxrp)                                         \
+  $(if $(filter sflow,$1),timer)                                            \
+  $(if $(filter ip2,$1),ip2_misc dhcp_client l2proto vlan common_cxx)       \
+  $(if $(filter dhcp_client macsec json_rpc,$1),common_cxx)                 \
+  $(if $(filter macsec,$1),json_rpc)                                        \
+  $(if $(filter arch_jaguar_1,$1),$(if $(filter eee,$1),timer))             \
+  $(if $(filter arch_jaguar_1,$1),$(if $(filter ptp,$1),timer))
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is product type      (BRINGUP, WEBSTAX, SMBSTAX, CESERVICES, CEMAX)
+# @arg $3 is stackable type    (STACKABLE, STANDALONE)
+define eCosSwitch/Modules
+$(sort $(call eCosSwitch/Modules/AddHelpers, \
+  $(filter-out                               \
+    $(Custom/OmitModules)                    \
+    $(call eCosSwitch/OmitModules/$2,$1,$3), \
+    $(Custom/AddModules)                     \
+    $(call eCosSwitch/Modules/$2,$1,$3))))
+endef
+
+# Return list of all available modules
+define AllModules
+	$(sort $(patsubst module_%.in,%,$(notdir $(wildcard $(BUILD)/make/module_*.in))))
+endef
+
+# @arg $1 is modules enabled
+define eCosSwitch/DisabledModules
+ $(sort $(filter-out $1, $(call AllModules)))
+endef
+
+# @arg $1 is product type (BRINGUP, WEBSTAX, SMBSTAX, CESERVICES, CEMAX)
+# @arg $2 is architecture defines
+define eCosSwitch/Defines
+ -DVTSS_BUILD_CONFIG_$1 \
+ -DVTSS_SW_ID=$(call eCosSwitch/SoftwareId,$1) \
+ $2 $(Custom/Defines)
+endef
+
+define eCosSwitch/Build
+# Validate required variables
+$(call CheckSet,TARGET ECOS_HAL ECOS_CONF \
+       VTSS_PRODUCT_NAME VTSS_PRODUCT_NAME_GUI \
+       VTSS_PRODUCT_CHIP VTSS_PRODUCT_HW)
+
+PERSONALITY := $(VTSS_PRODUCT_NAME_GUI)
+
+# Application directory
+DIR_APPL := $(TOP)/vtss_appl
+
+# Start with default INCLUDES
+INCLUDES := -I$(TOP)/mgmt/include
+
+# Initial DEFINES list
+DEFINES = -DVTSS_OPSYS_ECOS=1 -D$(VTSS_PRODUCT_HW) \
+ -DVTSS_CHIP_$(VTSS_PRODUCT_CHIP) -DVTSS_PRODUCT_NAME="\"$(VTSS_PRODUCT_NAME_GUI)\"" \
+ -DVTSS_PRODUCT_DESC="\"$(VTSS_PRODUCT_DESC_GUI)\"" \
+ -DVTSS_TRACE -DVTSS_TRACE_LVL_MIN=0 \
+ $(ARCH_FEATURE_FLAGS) \
+ $(if $(filter debug,$(Custom/eCosConfig)),-DVTSS_SW_OPTION_DEBUG)
+endef
+
+# @arg $1 is architecture type (Jaguar1, Luton26, Serval)
+# @arg $2 is product type      (BRINGUP, WEBSTAX, SMBSTAX, CESERVICES, CEMAX)
+# @arg $3 is stackable type    (STACKABLE, STANDALONE)
+# @arg $4 is additional defines
+define eCosSwitch/Product
+ # Product Stackable - STACKABLE or STANDALONE
+ VTSS_PRODUCT_STACKABLE := $3
+ $(call CheckOneOf,$3,STACKABLE STANDALONE,Stack Type)
+ # Product Type
+ VTSS_PRODUCT_NAME := $2
+ # Product Name
+ $(if $(PNAME_$2),,$(error Unknown build type $2))
+ VTSS_PRODUCT_NAME_GUI := $(if $(Custom/SwitchName),$(Custom/SwitchName),$(PNAME_$2))
+ VTSS_PRODUCT_DESC_GUI := $(if $(Custom/SwitchDesc),$(Custom/SwitchDesc),GigaBit Ethernet Switch)
+ VTSS_SOFTWARE_ID      := $(call eCosSwitch/SoftwareId,$2)
+ # Modules - Product, architecture-wise and helpers
+ MODULES := $(call eCosSwitch/Modules,$1,$2,$3)
+ MODULES_DISABLED := $(call eCosSwitch/DisabledModules,$(call eCosSwitch/Modules,$1,$2,$3))
+ # Defines - Product and architecture-wise
+ ARCH_FEATURE_FLAGS := $(call eCosSwitch/Defines,$2,$4)
+endef
+
+##################################################################
+#
+# Luton26 Support
+# ===============
+#
+# Chipsets: SPARX_III_10 VSC7424
+#           SPARX_III_26 VSC7427
+#           CARACAL_1    VSC7428
+#           CARACAL_2    VSC7429
+#
+# Boards:   BOARD_LUTON26_REF
+#           BOARD_LUTON10_REF
+#
+##################################################################
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# Here we define things not included in non-Lu26 builds.
+define eCosSwitch/Modules/DEFAULT/Luton26
+  arch_luton26 thermal_protect
+endef
+
+# @arg $1 is product type (BRINGUP, WEBSTAX, SMBSTAX, CESERVICES)
+# @arg $2 is chip type    (SPARX_III_10, SPARX_III_26, CARACAL_1, CARACAL_2)
+# @arg $3 is board name   (BOARD_LUTON10_REF, BOARD_LUTON26_REF)
+# Additional modules must be added with Custom/AddModules
+# Additional defines must be added with Custom/Defines
+define eCosSwitch/Luton26
+	$(call CheckBoard,$3,BOARD_LUTON26_REF BOARD_LUTON10_REF)
+	$(call Setup/eCosHAL/VCoreIII,managed_RAM hal_luton26)
+	$(call Setup/Switch,$2,$3)
+	$(call eCosSwitch/Product,Luton26,$1,STANDALONE,-DVTSS_MEMORYMAPPEDIO_BASE=VTSS_TO_DEVCPU_ORG $(if $(filter BOARD_LUTON10_REF,$3),-DVTSS_OPT_PORT_COUNT=10))
+endef
+
+##################################################################
+#
+# Serval Support
+# ==============
+#
+# Chipsets: SERVAL VSC7418
+#
+# Boards:   BOARD_SERVAL_REF
+#
+##################################################################
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# Add modules one-by-one when bringing up a new target.
+define eCosSwitch/Modules/BRINGUP/Serval
+  arch_serval packet ip2 syslog sysutil firmware
+endef
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# Here we define things not included in non-Serval builds.
+define eCosSwitch/Modules/DEFAULT/Serval
+  thermal_protect
+endef
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# Modules not ready for Serval yet.
+define eCosSwitch/OmitModules/DEFAULT/Serval
+  poe
+endef
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# Currently eee is only supported on Serval.
+define eCosSwitch/Modules/WEBSTAX/Serval
+  eee
+endef
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# Currently perf_mon is only supported on Serval.
+define eCosSwitch/Modules/CESERVICES/Serval
+  perf_mon
+endef
+
+# @arg $1 is product type (BRINGUP, WEBSTAX, SMBSTAX, CESERVICES)
+# @arg $2 is chip type    (SERVAL)
+# @arg $3 is board name   (BOARD_SERVAL_REF)
+# Additional modules must be added with Custom/AddModules
+# Additional defines must be added with Custom/Defines
+define eCosSwitch/Serval
+	$(call CheckBoard,$3,BOARD_SERVAL_REF)
+	$(call Setup/eCosHAL/VCoreIIIServal,managed_RAM)
+	$(call Setup/Switch,$2,$3)
+	$(call eCosSwitch/Product,Serval,$1,STANDALONE,-DVTSS_MEMORYMAPPEDIO_BASE=VTSS_IO_ORIGIN1_OFFSET)
+endef
+
+##################################################################
+#
+# Jaguar1 Support
+# ===============
+#
+# Chipsets:  - VSC7460, VSC7462, VSC7364, VSC7366
+#
+##################################################################
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# Add modules one-by-one when bringing up a new target.
+define eCosSwitch/Modules/BRINGUP/Jaguar1
+  arch_jaguar_1 packet ip2 symreg syslog sysutil firmware web
+endef
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# Here we define things not included in non-JR builds.
+# The fan module cannot be added as a default module, because
+# Lu10 boards don't support them, and we have no way of discerning
+# between Lu10 and Lu26 in this file. So Lu26 config.mk files have
+# the fan module added specially.
+define eCosSwitch/Modules/DEFAULT/Jaguar1
+  arch_jaguar_1
+endef
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+define eCosSwitch/OmitModules/DEFAULT/Jaguar1
+endef
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# smon is only a JR property.
+define eCosSwitch/Modules/SMBSTAX/Jaguar1
+  smon
+endef
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# smon is only a JR property.
+define eCosSwitch/Modules/SMBSTAX/Serval
+  smon
+endef
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# sflow not supported on CE for JR (due to IFH clash with timestamping)
+# eee might work, but since FDMA-based AFI takes a lot
+# of CPU load, it probably doesn't.
+define eCosSwitch/OmitModules/CESERVICES/Jaguar1
+  eee sflow
+endef
+
+# @arg $1 is stackable type (STACKABLE, STANDALONE)
+# fan is not included in CEMaX.
+define eCosSwitch/OmitModules/CEMAX/Jaguar1
+  fan
+endef
+
+# @arg $1 is product type (BRINGUP, WEBSTAX, SMBSTAX, CESERVICES, CEMAX)
+# @arg $2 is personality  (STANDALONE, STACKABLE)
+# @arg $3 is chip type    (CE_MAX_12, CE_MAX_24, E_STAX_III_68, E_STAX_III_68_DUAL, JAGUAR_1, LYNX_1)
+# @arg $4 is number of ports (omit to use chip native port count)
+# Additional modules must be added with Custom/AddModules
+# Additional defines must be added with Custom/Defines
+define eCosSwitch/Jaguar1
+	$(call Setup/eCosHAL/VCoreIII,managed_RAM l3_mempool)
+	$(call Setup/Switch,$3,BOARD_JAGUAR1_REF)
+	$(call eCosSwitch/Product,Jaguar1,$1,$2,-DVTSS_MEMORYMAPPEDIO_BASE=VTSS_TO_DEVCPU_ORG $(if $4,-DVTSS_OPT_PORT_COUNT=$4,	$(if $(filter STACKABLE,$2),-DVTSS_OPT_PORT_COUNT=28)))
+endef
+
+# @arg $1 is product type (BRINGUP, WEBSTAX, SMBSTAX, CESERVICES, CEMAX)
+# @arg $2 is personality  (STANDALONE, STACKABLE)
+# @arg $3 is number of ports (omit to use chip native port count == 53)
+# Additional modules must be added with Custom/AddModules
+# Additional defines must be added with Custom/Defines
+define eCosSwitch/Jaguar1Dual
+	$(call Setup/eCosHAL/VCoreIII,managed_RAM l3_mempool hal_dual_jaguar1)
+	$(call Setup/Switch,E_STAX_III_68_DUAL,BOARD_JAGUAR1_REF)
+	$(call eCosSwitch/Product,Jaguar1,$1,$2,-DVTSS_MEMORYMAPPEDIO_BASE=VTSS_TO_DEVCPU_ORG $(if $3,-DVTSS_OPT_PORT_COUNT=$3,-DVTSS_OPT_PORT_COUNT=53))
+endef
+

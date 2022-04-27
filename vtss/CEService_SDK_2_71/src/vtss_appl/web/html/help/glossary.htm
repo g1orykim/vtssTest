@@ -1,0 +1,1262 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Glossary</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+    window.addEvent('domready', function() {
+      $$('span.configSidMax').set('text', configSidMax);
+    });
+ </script>
+</head>
+
+<body>
+<h1>Glossary</h1>
+
+<span class="indexbar">
+<a href="#a">A</a>
+B
+<a href="#c">C</a>
+<a href="#d">D</a>
+<a href="#e">E</a>
+<a href="#f">F</a>
+G
+<a href="#h">H</a>
+<a href="#i">I</a>
+J
+K
+<a href="#l">L</a>
+<a href="#m">M</a>
+<a href="#n">N</a>
+<a href="#o">O</a>
+<a href="#p">P</a>
+<a href="#q">Q</a>
+<a href="#r">R</a>
+<a href="#s">S</a>
+<a href="#t">T</a>
+<a href="#u">U</a>
+<a href="#v">V</a>
+<a href="#w">W</a>
+X
+Y
+Z
+</span>
+
+<div style="padding: 1ex 0 2ex 0;">
+<hr>
+</div>
+
+<a class="index" name="a">A</a>
+
+<dl>
+  <dt><a name="ace">ACE</a></dt>
+  <dd>
+    <a href="glossary.htm#ace" class="glossary">ACE</a> is an acronym for <u>A</u>ccess <u>C</u>ontrol <u>E</u>ntry.
+  It describes access permission associated with a particular ACE ID.
+  <p>There are three ACE frame types (<a href="glossary.htm#ethernet_type" class="glossary">Ethernet Type</a>, <a href="glossary.htm#arp" class="glossary">ARP</a>, and IPv4) 
+  and two ACE actions (permit and deny). The ACE also contains many 
+  detailed, different parameter options that are available for individual 
+  application.</p>
+  </dd>
+
+ <dt><a name="acl">ACL</a></dt>
+  <dd>
+    <a href="glossary.htm#acl" class="glossary">ACL</a> is an acronym for <u>A</u>ccess <u>C</u>ontrol <u>L</u>ist.
+  It is the list table of <a href="glossary.htm#ace" class="glossary">ACE</a>s, containing access control entries that
+  specify individual users or groups permitted or denied to specific
+  traffic objects, such as a process or a program.
+  <p>Each accessible traffic object contains an identifier to its ACL.
+  The privileges determine whether there are specific traffic object access rights.</p>
+  <p>ACL implementations can be quite complex, for example, when the ACEs are
+  prioritized for the various situation. In networking, the ACL refers
+  to a list of service ports or network services that are available on
+  a host or server, each with a list of hosts or servers permitted or
+  denied to use the service. ACL can generally be configured to control
+  inbound traffic, and in this context, they
+  are similar to firewalls.</p>
+  <p>There are 3 web-pages associated with the manual ACL configuration:</p>
+
+  <br><samp>ACL|Access Control List</samp>:
+  The web page shows the ACEs in a prioritized way, highest (top) to lowest (bottom).  Default the table is empty.  
+  An ingress frame will only get a hit on one ACE even though there are more matching ACEs.  
+  The first matching ACE will take action (permit/deny) on that frame and a counter associated with that ACE is incremented.
+  An ACE can be associated with a Policy, 1 ingress port, or any ingress port (the whole switch).  
+  If an ACE Policy is created then that Policy can be associated with a group of ports under the "Ports" web-page.
+  There are number of parameters that can be configured with an ACE.  Read the Web page help text to get further information for each of them.
+  The maximum number of ACEs is 64.
+
+  <br><samp>ACL|Ports</samp>:
+  The ACL Ports configuration is used to assign a Policy ID to an ingress port.  This is useful to group ports to obey the same traffic rules.  
+  Traffic Policy is created under the "Access Control List" - page.
+  You can you also set up specific traffic properties (Action / Rate Limiter / Port copy, etc) for each ingress port.  
+  They will though only apply if the frame gets past the ACE matching without getting matched.  
+  In that case a counter associated with that port is incremented.   See the Web page help text for each specific port property.
+
+  <br><samp>ACL|Rate Limiters</samp>:
+  Under this page you can configure the rate limiters.  There can be 15 different rate limiters, each ranging from 1-1024K packets per seconds.  
+  Under "Ports" and "Access Control List" web-pages you can assign a Rate Limiter ID to the ACE(s) or ingress port(s).
+  </dd>
+
+  <dt><a name="aes">AES</a></dt>
+  <dd>
+    <a href="glossary.htm#aes" class="glossary">AES</a> is an acronym for <u>A</u>dvanced <u>E</u>ncryption <u>S</u>tandard.
+    The encryption key protocol is applied in 802.1i standard to improve
+    WLAN security. It is an encryption standard by the U.S. government,
+    which will replace DES and 3DES. AES has a fixed block size of 128
+    bits and a key size of 128, 192, or 256 bits. 
+  </dd>
+
+
+  <dt><a name="ams">AMS</a></dt>
+  <dd>
+    <a href="glossary.htm#ams" class="glossary">AMS</a> is an acronym for <u>A</u>uto <u>M</u>edia <u>S</u>elect.
+    AMS is used for dual media ports (ports supporting both copper (cu) and fiber (SFP) cables. AMS automatically determines if a SFP or a CU cable is inserted and switches to the corresponding media. If both  SFP and cu cables are
+    inserted, the port will select the prefered media.  
+  </dd>
+
+
+  <dt><a name="APS">APS</a></dt>
+  <dd>
+    <a href="glossary.htm#APS" class="glossary">APS</a> is an acronym for <u>A</u>utomatic <u>P</u>rotection <u>S</u>witching.
+    This protocol is used to secure that switching is done bidirectional in the two ends of a protection group, as defined in G.8031. 
+  </dd>
+
+  <dt><a name="aggregation">Aggregation</a></dt>
+  <dd>
+  <p>
+    Using multiple ports in parallel to increase the link speed beyond the
+    limits of a port and to increase the redundancy for higher
+    availability.
+  </p>
+  <p>(Also <i>Port <a href="glossary.htm#aggregation" class="glossary">Aggregation</a>, Link Aggregation</i>).</p>
+  </dd>
+
+  <dt><a name="arp">ARP</a></dt>
+  <dd>
+    <a href="glossary.htm#arp" class="glossary">ARP</a> is an acronym for <u>A</u>ddress <u>R</u>esolution <u>P</u>rotocol.
+  It is a protocol that used to convert an <a href="glossary.htm#ip" class="glossary">IP</a> address into a physical 
+  address, such as an Ethernet address. ARP allows a host to communicate with other hosts when only the 
+  Internet address of its neighbors is known. Before using IP, the host 
+  sends a broadcast ARP request containing the Internet address of the 
+  desired destination system.
+  </dd>
+
+  <dt><a name="arp_inspection">ARP Inspection</a></dt>
+  <dd>
+  <a href="glossary.htm#arp_inspection" class="glossary">ARP Inspection</a> is a secure feature.
+  Several types of attacks can be launched against a host or devices connected to Layer 2
+  networks by "poisoning" the ARP caches. This feature is used to block such attacks. Only
+  valid ARP requests and responses can go through the switch device.
+  </dd>
+
+  <dt><a name="autoneg">Auto-Negotiation</a></dt>
+  <dd>
+  <p>
+<a href="glossary.htm#autoneg" class="glossary">Auto-negotiation</a> is the process where two different devices establish the mode of operation and the speed settings that can be shared by those devices for a link.
+  </p>  
+  </dd>
+</dl>
+
+<a class="index" name="c">C</a>
+
+<dl>
+  <dt><a name="CC">CC</a></dt>
+  <dd>
+    <a href="glossary.htm#CC" class="glossary">CC</a> is an acronym for <u>C</u>ontinuity <u>C</u>heck.
+    It is a <a href="glossary.htm#MEP" class="glossary">MEP</a> functionality that is able to detect loss of continuity in a network 
+    by transmitting <a href="glossary.htm#CCM" class="glossary">CCM</a> frames to a peer MEP.
+  </dd>
+
+  <dt><a name="CCM">CCM</a></dt>
+  <dd>
+    <a href="glossary.htm#CCM" class="glossary">CCM</a> is an acronym for <u>C</u>ontinuity <u>C</u>heck <u>M</u>essage.
+    It is a <a href="glossary.htm#OAM" class="glossary">OAM</a> frame transmitted from a MEP to it's peer MEP and used to implement 
+    <a href="glossary.htm#CC" class="glossary">CC</a> functionality.
+  </dd>
+
+  <dt><a name="CDP">CDP</a></dt>
+  <dd>
+    <a href="glossary.htm#CDP" class="glossary">CDP</a> is an acronym for <u>C</u>isco <u>D</u>iscovery <u>P</u>rotocol. 
+  </dd>
+</dl>
+
+<a class="index" name="d">D</a>
+
+<dl>
+  <dt><a name="DEI">DEI</a></dt>
+  <dd>
+  <a href="glossary.htm#DEI" class="glossary">DEI</a> is an acronym for <u>D</u>rop <u>E</u>ligible <u>I</u>ndicator. 
+  It is a 1-bit field in the VLAN tag.
+  </dd>
+
+  <dt><a name="des">DES</a></dt>
+  <dd>
+    <a href="glossary.htm#des" class="glossary">DES</a> is an acronym for <u>D</u>ata <u>E</u>ncryption <u>S</u>tandard.
+  It provides a complete description of a mathematical algorithm for encrypting (enciphering) and decrypting (deciphering) binary coded information.
+  <p>Encrypting data converts it to an unintelligible form called cipher. Decrypting cipher converts the data back to its original form called plaintext.
+  The algorithm described in this standard specifies both enciphering and deciphering operations which are based on a binary number called a key.</p>
+  </dd>
+
+  <dt><a name="dhcp">DHCP</a></dt>
+  <dd>
+    <a href="glossary.htm#dhcp" class="glossary">DHCP</a> is an acronym for <u>D</u>ynamic <u>H</u>ost <u>C</u>onfiguration <u>P</u>rotocol.
+  It is a protocol used for assigning dynamic <a href="glossary.htm#ip" class="glossary">IP</a> addresses to devices on a network. 
+  <p>DHCP used by networked computers (clients) to obtain IP addresses 
+  and other parameters such as the default gateway, subnet mask, and IP 
+  addresses of <a href="glossary.htm#dns" class="glossary">DNS</a> servers from a DHCP server.</p>
+  <p>The DHCP server ensures that all IP addresses are unique, for example, no 
+  IP address is assigned to a second client while the first client's 
+  assignment is valid (its lease has not expired). Therefore, IP address pool 
+  management is done by the server and not by a human network administrator.</p>
+  <p>Dynamic addressing simplifies network administration because the 
+  software keeps track of IP addresses rather than requiring an administrator 
+  to manage the task. This means that a new computer can be added to a 
+  network without the hassle of manually assigning it a unique IP address.</p>
+  </dd>
+
+  <dt><a name="dhcp_relay">DHCP Relay</a></dt>
+  <dd>
+  <a href="glossary.htm#dhcp_relay" class="glossary">DHCP Relay</a> is used to
+  forward and to transfer DHCP messages between the clients and the server when
+  they are not on the same subnet domain.
+  <p>The DHCP option 82 enables a DHCP relay agent to insert specific information
+  into a DHCP request packets when forwarding client DHCP packets to a DHCP server
+  and remove the specific information from a DHCP reply packets when forwarding
+  server DHCP packets to a DHCP client. The DHCP server can use this information to
+  implement IP address or other assignment policies. Specifically the option works
+  by setting two sub-options: Circuit ID (option 1) and Remote ID (option2). The
+  Circuit ID sub-option is supposed to include information specific to which circuit
+  the request came in on. The Remote ID sub-option was designed to carry information
+  relating to the remote host end of the circuit.</p>
+  <p>The definition of Circuit ID in the switch is 4 bytes in length and the format
+  is "vlan_id" "module_id" "port_no". The parameter of "vlan_id" is the first two
+  bytes represent the VLAN ID. The parameter of "module_id" is the third byte for the
+  module ID (in standalone switch it always equal 0, in stackable switch it means
+  switch ID). The parameter of "port_no" is the fourth byte and it means the port number.
+ <br>The Remote ID is 6 bytes in length, and the value is equal the DHCP relay agents MAC address.</p>
+  </dd>
+
+  <dt><a name="dhcp_server">DHCP Server</a></dt>
+  <dd>
+  <a href="glossary.htm#dhcp_server" class="glossary">DHCP Server</a> is used to
+  allocate network addresses and deliver configuration parameters to dynamically
+  configured hosts called DHCP client.
+  </dd>
+
+  <dt><a name="dhcp_snooping">DHCP Snooping</a></dt>
+  <dd>
+  <a href="glossary.htm#dhcp_snooping" class="glossary">DHCP Snooping</a> is used to
+  block intruder on the untrusted ports of the switch device when it tries to intervene by injecting
+  a bogus DHCP reply packet to a legitimate conversation between the DHCP client and server.
+  </dd>
+
+  <dt><a name="dns">DNS</a></dt>
+  <dd>
+    <a href="glossary.htm#dns" class="glossary">DNS</a> is an acronym for <u>D</u>omain <u>N</u>ame <u>S</u>ystem.
+  It stores and associates many types of information with domain names. 
+  Most importantly, DNS translates human-friendly domain names and computer 
+  hostnames into computer-friendly <a href="glossary.htm#ip" class="glossary">IP</a> addresses. For example, the domain 
+  name www.example.com might translate to 192.168.0.1. 
+  </dd>
+
+  <dt><a name="dos">DoS</a></dt>
+  <dd>
+    <a href="glossary.htm#dos" class="glossary">DoS</a> is an acronym for <u>D</u>enial of <u>S</u>ervice.
+  In a denial-of-service (DoS) attack, an attacker attempts to prevent 
+  legitimate users from accessing information or services. By targeting 
+  at network sites or network connection, an attacker may be able to 
+  prevent network users from accessing email, web sites, online accounts 
+  (banking, etc.), or other services that rely on the affected computer.
+  </dd>
+
+  <dt><a name="dotted_decimal">Dotted Decimal Notation</a></dt>
+  <dd>
+    <!-- Do not change x.y.z.w to xxx.xxx.xxx.xxx, since we use x.y.z.w in alert strings -->
+    <a href="glossary.htm#dotted_decimal" class="glossary">Dotted Decimal Notation</a> refers to a method
+    of writing IP addresses using decimal numbers and dots as separators between octets.<br/>
+    An IPv4 dotted decimal address has the form x.y.z.w, where x, y, z, and w are decimal numbers
+    between 0 and 255.
+  </dd>
+
+  <dt><a name="dpl">Drop Precedence Level</a></dt>
+  <dd>
+    Every incoming frame is classified to a <a href="glossary.htm#dpl" class="glossary">Drop Precedence Level</a> (DP level),
+    which is used throughout the device for providing congestion control guarantees to the frame
+    according to what was configured for that specific DP level.
+    A DP level of 0 (zero) corresponds to 'Committed' (Green) frames and a DP level of 1 <span class="has_arch_jaguar_1">or higher </span>
+    corresponds to 'Discard Eligible' (Yellow) frames.
+  </dd>
+
+  <dt><a name="dscp">DSCP</a></dt>
+  <dd>
+    <a href="glossary.htm#dscp" class="glossary">DSCP</a> is an acronym for <u>D</u>ifferentiated <u>S</u>ervices <u>C</u>ode <u>P</u>oint.
+  It is a field in the header of <a href="glossary.htm#ip" class="glossary">IP</a> packets for packet classification purposes.
+  </dd>
+</dl>
+
+<a class="index" name="e">E</a>
+<dl>
+  <dt><a name="ECE">ECE</a></dt>
+   <dd>
+    <a href="glossary.htm#ECE" class="glossary">ECE</a> is <a href="glossary.htm#EVC" class="glossary">EVC</a> Control Entries. These rules are ordered in a list to control the preferred classification.
+   </dd>
+
+  <dt><a name="EEE">EEE</a></dt>
+  <dd>
+   <a href="glossary.htm#EEE" class="glossary">EEE</a> is an abbreviation for Energy Efficient Ethernet defined in IEEE 802.3az.
+  </dd>
+
+  <dt><a name="EPS">EPS</a></dt>
+  <dd>
+   <a href="glossary.htm#EPS" class="glossary">EPS</a> is an abbreviation for Ethernet Protection Switching defined in ITU/T G.8031.
+  </dd>
+
+  <dt><a name="ethernet_type">Ethernet Type</a></dt>
+  <dd>
+    <a href="glossary.htm#ethernet_type" class="glossary">Ethernet Type</a>, or EtherType, is a field in the Ethernet MAC header,
+  defined by the Ethernet networking standard. It is used
+  to indicate which protocol is being transported in an Ethernet frame.
+  </dd>
+
+  <dt><a name="EVC">EVC</a></dt>
+   <dd>
+    <a href="glossary.htm#EVC" class="glossary">EVC</a> is an acronym for <u>E</u>thernet <u>V</u>irtual <u>C</u>onnections.
+    MEF standards describe services provided to customers at User Network Interfaces (UNIs). Inside provider networks, nodes are connected using Internal Network-to-Network Interfaces (I-NNIs). Connections between service providers are done using External Network-to-Network Interfaces (E-NNIs).
+    An Ethernet Virtual Connection is an association of two or more UNIs. 
+   </dd>
+</dl>
+
+<a class="index" name="f">F</a>
+
+<dl>
+  <dt><a name="ftp">FTP</a></dt>
+  <dd>
+    <a href="glossary.htm#ftp" class="glossary">FTP</a> is an acronym for <u>F</u>ile <u>T</u>ransfer <u>P</u>rotocol.
+  It is a transfer protocol that uses the Transmission Control Protocol (<a href="glossary.htm#tcp" class="glossary">TCP</a>) 
+  and provides file writing and reading. It also provides directory service 
+  and security features.
+  </dd>
+
+  <dt><a name="multicast_fastleave">Fast Leave</a></dt>
+  <dd>
+  Multicast snooping <a href="glossary.htm#igmp_fastleave" class="glossary">Fast Leave</a> processing allows the switch to remove an interface 
+  from the forwarding-table entry without first sending out group specific queries to the interface. The VLAN interface is pruned from the 
+  multicast tree for the multicast group specified in the original leave message. Fast-leave processing ensures optimal bandwidth management 
+  for all hosts on a switched network, even when multiple multicast groups are in use simultaneously. This processing applies to IGMP and MLD.
+  </dd>
+
+</dl>
+
+<a class="index" name="h">H</a>
+
+<dl>
+  <dt><a name="http">HTTP</a></dt>
+  <dd>
+    <a href="glossary.htm#http" class="glossary">HTTP</a> is an acronym for <u>H</u>ypertext <u>T</u>ransfer <u>P</u>rotocol.
+  It is a protocol that used to transfer or convey information on the 
+  World Wide Web (WWW). 
+  <p>HTTP defines how messages are formatted and transmitted, and what 
+  actions Web servers and browsers should take in response to various 
+  commands. For example, when you enter a URL in your browser, this 
+  actually sends an HTTP command to the Web server directing it to 
+  fetch and transmit the requested Web page. The other main standard 
+  that controls how the World Wide Web works is HTML, which covers how 
+  Web pages are formatted and displayed.</p>
+  <p>Any Web server machine contains, in addition to the Web page files 
+  it can serve, an HTTP daemon, a program that is designed to wait for 
+  HTTP requests and handle them when they arrive. The Web browser is an 
+  HTTP client, sending requests to server machines. An HTTP client 
+  initiates a request by establishing a Transmission Control Protocol (<a href="glossary.htm#tcp" class="glossary">TCP</a>) 
+  connection to a particular port on a remote host (port 80 by default). 
+  An HTTP server listening on that port waits for the client to send a 
+  request message.</p>
+  </dd>
+
+  <dt><a name="https">HTTPS</a></dt>
+  <dd>
+    <a href="glossary.htm#https" class="glossary">HTTPS</a> is an acronym for <u>H</u>ypertext <u>T</u>ransfer <u>P</u>rotocol over <u>S</u>ecure Socket Layer.
+  It is used to indicate a secure <a href="glossary.htm#http" class="glossary">HTTP</a> connection. 
+  <p>HTTPS provide authentication and encrypted communication and is 
+  widely used on the World Wide Web for security-sensitive communication 
+  such as payment transactions and corporate logons.</p>
+  <p>HTTPS is really just the use of Netscape's Secure Socket Layer 
+  (SSL) as a sublayer under its regular HTTP application layering. (HTTPS 
+  uses port 443 instead of HTTP port 80 in its interactions with the lower 
+  layer, <a href="glossary.htm#tcp" class="glossary">TCP</a>/<a href="glossary.htm#ip" class="glossary">IP</a>.) SSL uses a 40-bit key size for the RC4 stream encryption 
+  algorithm, which is considered an adequate degree of encryption for 
+  commercial exchange.</p>
+  </dd>
+</dl>
+
+<a class="index" name="i">I</a>
+
+<dl>
+  <dt><a name="icmp">ICMP</a></dt>
+  <dd>
+    <a href="glossary.htm#icmp" class="glossary">ICMP</a> is an acronym for <u>I</u>nternet <u>C</u>ontrol <u>M</u>essage <u>P</u>rotocol.
+  It is a protocol that generated the error response, diagnostic or 
+  routing purposes. ICMP messages generally contain information about 
+  routing difficulties or simple exchanges such as time-stamp or echo 
+  transactions. For example, the <a href="glossary.htm#ping" class="glossary">PING</a> command uses ICMP to test an 
+  Internet connection.
+  </dd>
+
+  <dt><a name="dot1x">IEEE 802.1X</a></dt>
+  <dd>
+    <a href="glossary.htm#dot1x" class="glossary">IEEE 802.1X</a> is an IEEE standard for port-based Network Access Control.
+    It provides authentication to devices attached to a LAN port, establishing a point-to-point connection or preventing access
+    from that port if authentication fails. With 802.1X, access to all switch ports can be centrally controlled from a server,
+    which means that authorized users can use the same credentials for authentication from any point within the network.
+  </dd>
+
+  <dt><a name="igmp">IGMP</a></dt>
+  <dd>
+    <a href="glossary.htm#igmp" class="glossary">IGMP</a> is an acronym for <u>I</u>nternet <u>G</u>roup <u>M</u>anagement <u>P</u>rotocol.
+  It is a communications protocol used to manage the membership of Internet Protocol multicast groups. IGMP is used by IP hosts and adjacent
+  multicast routers to establish multicast group memberships. It is an integral part of the IP multicast specification, like ICMP for unicast
+  connections. IGMP can be used for online video and gaming, and allows more efficient use of resources when supporting these uses.
+  </dd>
+
+  <dt><a name="igmp_querier">IGMP Querier</a></dt>
+  <dd>
+  A router sends IGMP Query messages onto a particular link. This router is called the Querier.
+  There will be only one IGMP Querier that wins <a href="glossary.htm#querier_election" class="glossary">Querier election</a> on a particular link.
+  </dd>
+
+  <dt><a name="imap">IMAP</a></dt>
+  <dd>
+    <a href="glossary.htm#imap" class="glossary">IMAP</a> is an acronym for <u>I</u>nternet <u>M</u>essage <u>A</u>ccess <u>P</u>rotocol.
+  It is a protocol for email clients to retrieve email messages from a 
+  mail server.
+  <p>IMAP is the protocol that IMAP clients use to communicate with the 
+  servers, and <a href="glossary.htm#smtp" class="glossary">SMTP</a> is the protocol used to transport mail to an IMAP server.</p>
+  <p>The current version of the Internet Message Access Protocol is IMAP4. 
+  It is similar to Post Office Protocol version 3 (<a href="glossary.htm#pop3" class="glossary">POP3</a>), but offers 
+  additional and more complex features. For example, the IMAP4 protocol 
+  leaves your email messages on the server rather than downloading them 
+  to your computer. If you wish to remove your messages from the server, 
+  you must use your mail client to generate local folders, copy messages 
+  to your local hard drive, and then delete and expunge the messages from 
+  the server.</p>
+  </dd>
+
+  <dt><a name="ip">IP</a></dt>
+  <dd>
+    <a href="glossary.htm#ip" class="glossary">IP</a> is an acronym for <u>I</u>nternet <u>P</u>rotocol.
+  It is a protocol used for communicating data across an internet network.
+  <p>IP is a "best effort" system, which means that no packet of 
+  information sent over is assured to reach its destination in the 
+  same condition it was sent. Each device connected to a 
+  Local Area Network (LAN) or Wide Area Network (WAN) is given an 
+  Internet Protocol address, and this IP address is used to identify the 
+  device uniquely among all other devices connected to the extended 
+  network.</p>
+  <p>The current version of the Internet protocol is IPv4, which has 
+  32-bits Internet Protocol addresses allowing for in excess of four 
+  billion unique addresses. This number is reduced drastically by the 
+  practice of webmasters taking addresses in large blocks, the bulk of 
+  which remain unused. There is a rather substantial movement to adopt 
+  a new version of the Internet Protocol, IPv6, which would have 128-bits 
+  Internet Protocol addresses. This number can be represented roughly by 
+  a three with thirty-nine zeroes after it. However, IPv4 is still the 
+  protocol of choice for most of the Internet.</p>
+  </dd>
+
+  <dt><a name="ipmc">IPMC</a></dt>
+  <dd>
+  <a href="glossary.htm#ipmc" class="glossary">IPMC</a> is an acronym for <u>IP</u> <u>M</u>ulti<u>C</u>ast.
+  <p>IPMC supports IPv4 and IPv6 multicasting.
+  IPMCv4 denotes multicast for IPv4.
+  IPMCv6 denotes multicast for IPv6.</p>
+  </dd>
+
+  <dt><a name="ipmc_profile">IPMC Profile</a></dt>
+  <dd>
+  <a href="glossary.htm#ipmc_profile" class="glossary">IPMC Profile</a> is an acronym for <u>IP</u> <u>M</u>ulti<u>C</u>ast Profile.
+  <p>IPMC Profile is used to deploy the access control on IP multicast streams.</p>
+  </dd>
+
+  <dt><a name="ip_source_guard">IP Source Guard</a></dt>
+  <dd>
+  <a href="glossary.htm#ip_source_guard" class="glossary">IP Source Guard</a> is a secure feature
+  used to restrict IP traffic on DHCP snooping untrusted ports by filtering traffic based on
+  the DHCP Snooping Table or manually configured IP Source Bindings. It helps prevent IP
+  spoofing attacks when a host tries to spoof and use the IP address of another host.
+  </dd>
+</dl>
+
+
+<a class="index" name="l">L</a>
+<dl>
+  <dt><a name="lacp">LACP</a></dt>
+  <dd>
+    LACP is an IEEE 802.3ad standard protocol.
+    The <u>L</u>ink <u>A</u>ggregation <u>C</u>ontrol <u>P</u>rotocol,
+    allows bundling several physical ports together to form a single logical port.
+  </dd>
+  <dt><a name="llc">LLC</a></dt>
+  <dd>
+    The IEEE 802.2 <u>L</u>ogical <u>L</u>ink <u>C</u>ontrol (LLC) protocol provides a link mechanism for upper layer protocols. It is the upper sub-layer of the Data Link Layer and provides multiplexing mechanisms that make it possible for several network protocols (IP, IPX) to coexist within a multipoint network. LLC header consists of 1 byte DSAP (Destination Service Access Point), 1 byte SSAP (Source Service Access Point), 1 or 2 bytes Control field followed by LLC information.
+  </dd>
+  <dt><a name="lldp">LLDP</a></dt>
+  <dd>
+    <p>LLDP is an IEEE 802.1ab standard protocol.</p>
+    
+    The <u>L</u>ink <u>L</u>ayer <u>D</u>iscovery <u>P</u>rotocol(LLDP) specified in this standard allows stations attached to an IEEE
+    802 LAN to advertise, to other stations attached to the same IEEE 802 LAN, the major capabilities
+    provided by the system incorporating that station, the management address or addresses of the entity or
+    entities that provide management of those capabilities, and the identification of the stations point of
+    attachment to the IEEE 802 LAN required by those management entity or entities.
+    The information distributed via this protocol is stored by its recipients in a standard Management
+    Information Base (MIB), making it possible for the information to be accessed by a Network Management
+    System (NMS) using a management protocol such as the Simple Network Management Protocol (SNMP).
+    
+
+  </dd>
+
+  <dt><a name="lldpmed">LLDP-MED</a></dt>
+  <dd>
+    LLDP-MED is an extension of IEEE 802.1ab and is defined by the
+  telecommunication industry association (TIA-1057).
+  </dd>
+
+  <dt><a name="llqi">LLQI</a></dt>
+  <dd>
+    LLQI (Last Listener Query Interval) is the maximun response time used to
+    calculate the Maximun Respse Code inserted into Specific Queries.  It is
+    used to detect the departure of the last listener for a multicast address
+    or source.  In IGMP, this term is called LMQI (Last Member Query Interval).
+  </dd>
+
+  <dt><a name="LOC">LOC</a></dt>
+   <dd>
+    <a href="glossary.htm#LOC" class="glossary">LOC</a> is an acronym for <u>L</u>oss <u>O</u>f <u>C</u>onnectivity and is detected by
+    a <a href="glossary.htm#MEP" class="glossary">MEP</a> and is indicating lost connectivity in the network. Can be used as a switch criteria by
+    <a href="glossary.htm#EPS" class="glossary">EPS</a>
+   </dd>
+</dl>
+
+
+<a class="index" name="m">M</a>
+
+<dl>
+  <dt><a name="MAC_table">MAC Table</a></dt>
+   <dd>
+   Switching of frames is based upon the DMAC address contained in the frame.
+   The switch builds up a table that maps MAC addresses to switch ports for knowing 
+   which ports the frames should go to ( based upon the DMAC address in the frame ).
+   This table contains both static and dynamic entries.
+   The static entries are configured by the network administrator if the administrator 
+   wants to do a fixed mapping between the DMAC address and switch ports.
+   
+   <p>The frames also contain a MAC address ( SMAC address ), which shows the MAC address 
+   of the equipment sending the frame. The SMAC address is used by the switch to 
+   automatically update the <a href="glossary.htm#MAC_table" class="glossary">MAC table</a> with these dynamic MAC addresses.
+   Dynamic entries are removed from the MAC table if no frame with the corresponding 
+   SMAC address have been seen after a configurable age time.</p>
+   </dd>
+
+  <dt><a name="MEP">MEP</a></dt>
+   <dd>
+    <a href="glossary.htm#MEP" class="glossary">MEP</a> is an acronym for <u>M</u>aintenance <u>E</u>ntity <u>E</u>ndpoint and is an endpoint in a
+    Maintenance Entity Group (ITU-T Y.1731).
+   </dd>
+
+  <dt><a name="md5">MD5</a></dt>
+  <dd>
+    <a href="glossary.htm#md5" class="glossary">MD5</a> is an acronym for <u>M</u>essage-<u>D</u>igest algorithm <u>5</u>.
+  MD5 is a message digest algorithm, used cryptographic hash function with a 128-bit hash value.
+  It was designed by Ron Rivest in 1991. MD5 is officially defined in RFC 1321 - The MD5 Message-Digest Algorithm.
+  </dd>
+
+  <dt><a name="mirroring">Mirroring</a></dt>
+   <dd>
+   For debugging network problems or monitoring network traffic, 
+   the switch system can be configured to mirror frames from multiple ports to a 
+   mirror port. (In this context, <a href="glossary.htm#mirroring" class="glossary">mirroring</a> a frame is the same as copying the frame.) 
+   
+   <p>Both incoming (source) and outgoing (destination) frames can be mirrored to 
+   the mirror port.</p>
+   </dd>
+
+  <dt><a name="mld">MLD</a></dt>
+   <dd>
+    MLD is an acronym for <u>M</u>ulticast <u>L</u>istener <u>D</u>iscovery for IPv6.
+    MLD is used by IPv6 routers to discover multicast listeners on a directly attached link, much as IGMP is used in IPv4.
+    The protocol is embedded in ICMPv6 instead of using a separate protocol.
+   </dd>
+
+  <dt><a name="mld_querier">MLD Querier</a></dt>
+  <dd>
+  A router sends MLD Query messages onto a particular link. This router is called the Querier.
+  There will be only one MLD Querier that wins <a href="glossary.htm#querier_election" class="glossary">Querier election</a> on a particular link.
+  </dd>
+
+  <dt><a name="mstp">MSTP</a></dt>
+  <dd>
+    In 2002, the IEEE introduced an evolution of
+    <a href="#rstp">RSTP</a>:
+    the <u>M</u>ultiple <u>S</u>panning <u>T</u>ree <u>P</u>rotocol.
+    The MSTP protocol provides for multiple spanning tree instances,
+    while ensuring RSTP and STP compatibility.
+    The standard was originally defined by IEEE 802.1s,
+    but was later incorporated in IEEE 802.1D-2005.
+  </dd>
+
+   <dt><a name="mvr">MVR</a></dt>
+    <dd>
+    Multicast VLAN Registration (MVR) is a protocol for Layer 2 (IP)-networks that enables multicast-traffic from a source VLAN to be shared with subscriber-VLANs.
+    <p>The main reason for using MVR is to save bandwidth by preventing duplicate multicast streams being sent in the core network, instead the stream(s) are received on the MVR-VLAN and forwarded to the VLANs where hosts have requested it/them(Wikipedia).</p>
+    </dd>
+</dl>
+
+<a class="index" name="n">N</a>
+
+<dl>
+  <dt><a name="nas">NAS</a></dt>
+  <dd>
+    NAS is an acronym for <u>N</u>etwork <u>A</u>ccess <u>S</u>erver.
+    The NAS is meant to act as a gateway to guard access to a protected source. A client connects to the NAS, and the NAS
+    connects to another resource asking whether the client's supplied credentials are valid. Based on the answer,
+    the NAS then allows or disallows access to the protected resource.
+    An example of a NAS implementation is <a href="glossary.htm#dot1x" class="glossary">IEEE 802.1X</a>.
+  </dd>
+
+  <dt><a name="netbios">NetBIOS</a></dt>
+  <dd>
+     <a href="glossary.htm#netbios" class="glossary">NetBIOS</a> is an acronym for <u>Net</u>work <u>B</u>asic <u>I</u>nput/<u>O</u>utput <u>S</u>ystem.
+  It is a program that allows applications on separate computers to 
+  communicate within a Local Area Network (LAN), and it is not supported 
+  on a Wide Area Network (WAN). 
+  <p>The NetBIOS giving each computer in the network both a NetBIOS name 
+  and an <a href="glossary.htm#ip" class="glossary">IP</a> address corresponding to a different host name, provides the 
+  session and transport services described in the 
+  Open Systems Interconnection (OSI) model.</p>
+  </dd>
+
+  <dt><a name="nfs">NFS</a></dt>
+  <dd>
+    <a href="glossary.htm#nfs" class="glossary">NFS</a> is an acronym for <u>N</u>etwork <u>F</u>ile <u>S</u>ystem.
+  It allows hosts to mount partitions on a remote system and use them as 
+  though they are local file systems. 
+  <p>NFS allows the system administrator to store resources in a central 
+  location on the network, providing authorized users continuous access 
+  to them, which means NFS supports sharing of files, printers, and other 
+  resources as persistent storage over a computer network.</p>
+  </dd>
+  
+  <dt><a name="ntp">NTP</a></dt>
+  <dd>
+   <a href="glossary.htm#ntp" class="glossary">NTP</a> is an acronym for <u>N</u>etwork <u>T</u>ime
+   <u>P</u>rotocol, a network protocol for synchronizing the clocks of
+   computer systems. NTP uses <a href="glossary.htm#udp" class="glossary">UDP</a> (datagrams) as transport layer.
+  </dd>
+</dl>
+
+<a class="index" name="o">O</a>
+
+<dl>
+  <dt><a name="OAM">OAM</a></dt>
+  <dd>
+    <a href="glossary.htm#OAM" class="glossary">OAM</a> is an acronym for <u>O</u>peration <u>A</u>dministration and <u>M</u>aintenance.
+    <p>It is a protocol described in ITU-T Y.1731 used to implement carrier ethernet functionality. 
+    <a href="glossary.htm#MEP" class="glossary">MEP</a> functionality like <a href="glossary.htm#CC" class="glossary">CC</a> and 
+    <a href="glossary.htm#RDI" class="glossary">RDI</a> is based on this</p>
+  </dd>
+
+  <dt><a name="opt_tlv">Optional TLVs.</a></dt>
+  <dd>
+    <p>A LLDP frame contains multiple <a href="glossary.htm#tlv" class="glossary">TLVs</a> </p>
+    For some <a href="glossary.htm#tlv" class="glossary">TLVs</a> it is configurable if the switch shall include the <a href="glossary.htm#tlv" class="glossary">TLV</a> in the LLDP frame. These <a href="glossary.htm#tlv" class="glossary">TLVs</a> are known as optional <a href="glossary.htm#tlv" class="glossary">TLVs</a>. If an optional <a href="glossary.htm#tlv" class="glossary">TLVs</a> is disabled the corresponding information is not included in the LLDP frame.
+  </dd>
+
+  <dt><a name="oui">OUI</a></dt>
+  <dd>
+  <a href="glossary.htm#oui" class="glossary">OUI</a> is the organizationally
+  unique identifier. An OUI address is a globally unique identifier assigned
+  to a vendor by IEEE. You can determine which vendor a device belongs to
+  according to the OUI address which forms the first 24 bits of a MAC address.
+  </dd>
+</dl>
+
+<a class="index" name="p">P</a>
+
+<dl>
+  <dt><a name="PCP">PCP</a></dt>
+  <dd>
+  <a href="glossary.htm#PCP" class="glossary">PCP</a> is an acronym for <u>P</u>riority <u>C</u>ode <u>P</u>oint. 
+  It is a 3-bit field storing the priority level for the 802.1Q frame.
+  It is also known as <a href="glossary.htm#user_priority" class="glossary">User Priority</a>.
+  </dd>
+
+  <dt><a name="PD">PD</a></dt>
+  <dd>
+  <a href="glossary.htm#PD" class="glossary">PD</a> is an acronym for <u>P</u>owered <u>D</u>evice. 
+    In a <a href="glossary.htm#PoE" class="glossary">PoE</a> system the
+  power is delivered from a PSE ( power sourcing equipment ) to a remote
+  device. The remote device is called a PD. 
+  </dd>
+
+  <dt><a name="PHY">PHY</a></dt>
+  <dd>
+    <tt><a href="glossary.htm#PHY" class="glossary">PHY</a></tt> is an abbreviation for Physical Interface Transceiver and is the device that 
+    implement the Ethernet physical layer (IEEE-802.3).
+  </dd>
+
+  <dt><a name="ping">PING</a></dt>
+  <dd>
+    <tt><a href="glossary.htm#ping" class="glossary">ping</a></tt> is a program that sends a series of packets over a network or 
+  the Internet to a specific computer in order to generate a response 
+  from that computer. The other computer responds with an acknowledgment 
+  that it received the packets. Ping was created to verify whether a 
+  specific computer on a network or the Internet exists and is connected.
+  <p><tt>ping</tt> uses Internet Control Message Protocol (<a href="glossary.htm#icmp" class="glossary">ICMP</a>) packets. The PING
+  Request is the packet from the origin computer, and the PING Reply is 
+  the packet response from the target.</p>
+  </dd>
+
+  <dt><a name="PoE">PoE</a></dt>
+  <dd>
+    <a href="glossary.htm#poe" class="glossary">PoE</a> is an acronym for <u>P</u>ower <u>O</u>ver <u>E</u>thernet. 
+    <p>Power Over Ethernet is used to transmit electrical power, to remote devices over standard Ethernet cable. It could for example be used for powering IP telephones, wireless LAN access points and other equipment, where it would be difficult or expensive to connect the equipment to main power supply.</p>
+  </dd>
+
+
+  <dt><a name="policer">Policer</a></dt>
+  <dd>
+    A <a href="glossary.htm#policer" class="glossary">policer</a> can limit the bandwidth of received frames. It is located in front of the ingress queue.
+  </dd>
+
+  <dt><a name="pop3">POP3</a></dt>
+  <dd>
+    <a href="glossary.htm#pop3" class="glossary">POP3</a> is an acronym for <u>P</u>ost <u>O</u>ffice <u>P</u>rotocol version 3.
+  It is a protocol for email clients to retrieve email messages from a 
+  mail server.
+  <p>POP3 is designed to delete mail on the server as soon as the user 
+  has downloaded it. However, some implementations allow users or an 
+  administrator to specify that mail be saved for some period of time. 
+  POP can be thought of as a "store-and-forward" service.</p>
+  <p>An alternative protocol is Internet Message Access Protocol (<a href="glossary.htm#imap" class="glossary">IMAP</a>). 
+  IMAP provides the user with more capabilities for retaining e-mail on the 
+  server and for organizing it in folders on the server. IMAP can be 
+  thought of as a remote file server.</p>
+  <p>POP and IMAP deal with the receiving of e-mail and are not to be 
+  confused with the Simple Mail Transfer Protocol (<a href="glossary.htm#smtp" class="glossary">SMTP</a>). You send e-mail with SMTP, and 
+  a mail handler receives it on your recipient's behalf. Then the mail 
+  is read using POP or IMAP. IMAP4 and POP3 are the two most prevalent 
+  Internet standard protocols for e-mail retrieval. Virtually all modern 
+  e-mail clients and servers support both.</p>
+  </dd>
+
+  <dt><a name="pppoe">PPPoE</a></dt>
+  <dd>
+    <a href="glossary.htm#pppoe" class="glossary">PPPoE</a> is an acronym for <u>P</u>oint-to-<u>P</u>oint <u>P</u>rotocol <u>o</u>ver <u>E</u>thernet.
+    <p>It is a network protocol for encapsulating Point-to-Point Protocol (PPP) frames inside Ethernet frames. It is used mainly with ADSL services where individual users connect to the ADSL transceiver (modem) over Ethernet and in plain Metro Ethernet networks (Wikipedia).</p>
+  </dd>
+
+  <dt><a name="private_vlan">Private VLAN</a></dt>
+  <dd>
+   In a <a href="glossary.htm#private_vlan" class="glossary">private VLAN</a>, PVLANs provide layer 2 isolation between ports within the same broadcast domain. Isolated ports configured as part of PVLAN cannot communicate with each other. Member ports of a PVLAN can communicate
+ with each other.
+  </dd>
+
+  <dt><a name="ptp">PTP</a></dt>
+  <dd>
+   <a href="glossary.htm#ptp" class="glossary">PTP</a> is an acronym for <u>P</u>recision <u>T</u>ime
+   <u>P</u>rotocol, a network protocol for synchronizing the clocks of
+   computer systems.
+  </dd>
+</dl>
+
+<a class="index" name="q">Q</a>
+
+<dl>
+  <dt><a name="qce">QCE</a></dt>
+  <dd>
+    <a href="glossary.htm#qce" class="glossary">QCE</a> is an acronym for <u>Q</u>oS <u>C</u>ontrol <u>E</u>ntry.
+  It describes <a href="glossary.htm#qos" class="glossary">QoS</a> class associated with a particular QCE ID. 
+  <p>There are six QCE frame types: <a href="glossary.htm#ethernet_type" class="glossary">Ethernet Type</a>, <a href="glossary.htm#vlan" class="glossary">VLAN</a>, <a href="glossary.htm#udp" class="glossary">UDP</a>/<a href="glossary.htm#tcp" class="glossary">TCP</a> Port, 
+  <a href="glossary.htm#dscp" class="glossary">DSCP</a>, <a href="glossary.htm#tos" class="glossary">TOS</a>, and <a href="glossary.htm#tag_priority" class="glossary">Tag Priority</a>. Frames can be classified by one of 4 
+  different QoS classes: "Low", "Normal", "Medium", and "High" for 
+  individual application.</p>
+  </dd>
+
+  <dt><a name="qcl">QCL</a></dt>
+  <dd>
+    <a href="glossary.htm#qcl" class="glossary">QCL</a> is an acronym for <u>Q</u>oS <u>C</u>ontrol <u>L</u>ist.
+  It is the list table of <a href="glossary.htm#qce" class="glossary">QCE</a>s, containing <a href="glossary.htm#qos" class="glossary">QoS</a> control entries that 
+  classify to a specific QoS class on specific traffic objects. 
+  <p>Each accessible traffic object contains an identifier to its QCL. The 
+  privileges determine specific traffic object to specific QoS class.</p>
+  </dd>
+
+  <dt><a name="QL">QL</a></dt>
+  <dd>
+    <a href="glossary.htm#QL" class="glossary">QL</a> In <a href="glossary.htm#SyncE" class="glossary">SyncE</a> this is the Quality Level 
+    of a given clock source. This is received on a port in a <a href="glossary.htm#SSM" class="glossary">SSM</a> indicating the quality 
+    of the clock received in the port.
+  </dd>
+
+  <dt><a name="qos">QoS</a></dt>
+  <dd>
+    <a href="glossary.htm#qos" class="glossary">QoS</a> is an acronym for <u>Q</u>uality <u>o</u>f <u>S</u>ervice.
+  It is a method to guarantee a bandwidth relationship between individual
+  applications or protocols.
+  <p>A communications network transports a multitude of applications and
+  data, including high-quality video and delay-sensitive data such as
+  real-time voice. Networks must provide secure, predictable, measurable,
+  and sometimes guaranteed services.</p>
+  <p>Achieving the required QoS becomes the secret to a successful end-to-end
+  business solution. Therefore, QoS is the set of techniques to manage network
+  resources.</p>
+  </dd>
+
+  <dt><a name="qos_class">QoS class</a></dt>
+  <dd>
+    Every incoming frame is classified to a <a href="glossary.htm#qos_class" class="glossary">QoS class</a>,
+    which is used throughout the device for providing queuing, scheduling and congestion control guarantees to the frame
+    according to what was configured for that specific QoS class.
+    There is a one to one mapping between QoS class, queue and priority. A QoS class of 0 (zero) has the lowest priority. 
+  </dd>
+
+  <dt><a name="querier_election">Querier Election</a></dt>
+  <dd>
+    Querier election is used to dedicate the Querier, the only one router sends Query messages, on a particular link.
+    Querier election rule defines that <a href="glossary.htm#igmp_querier" class="glossary">IGMP Querier</a> or <a href="glossary.htm#mld_querier" class="glossary">MLD Querier</a> with
+    the lowest IPv4/IPv6 address wins the election.
+  </dd>
+</dl>
+
+<a class="index" name="r">R</a>
+
+<dl>
+  <dt><a name="rarp">RARP</a></dt>
+  <dd>
+  <a href="glossary.htm#rarp" class="glossary">RARP</a> is an acronym for <u>R</u>everse <u>A</u>ddress <u>R</u>esolution <u>P</u>rotocol.
+  It is a protocol that is used to obtain an <a href="glossary.htm#ip" class="glossary">IP</a> address for a given hardware 
+  address, such as an Ethernet address. RARP is the complement of <a href="glossary.htm#arp" class="glossary">ARP</a>.
+  </dd>
+
+  <dt><a name="radius">RADIUS</a></dt>
+  <dd>
+  <a href="glossary.htm#radius" class="glossary">RADIUS</a> is an acronym for <u>R</u>emote <u>A</u>uthentication <u>D</u>ial
+  <u>I</u>n <u>U</u>ser <u>S</u>ervice.
+  It is a networking protocol that provides centralized access, authorization and accounting management for people or computers
+  to connect and use a network service.
+  </dd>
+
+  <dt><a name="RDI">RDI</a></dt>
+  <dd>
+  <a href="glossary.htm#RDI" class="glossary">RDI</a> is an acronym for <u>R</u>emote <u>D</u>efect <u>I</u>ndication.
+  It is a <a href="glossary.htm#OAM" class="glossary">OAM</a> functionallity that is used by a <a href="glossary.htm#MEP" class="glossary">MEP</a> 
+  to indicate defect detected to the remote peer MEP</dd>
+
+  <dt><a name="rfc2544">RFC2544</a></dt>
+  <dd>
+  <a href="http://www.ietf.org/rfc/rfc2544.txt" target="_blank">RFC2544</a> describes a number of tests that may be run
+  to assess the performance characteristics of a network interconnecting devices. In this context, it is
+  specialized towards determining whether a network section conforms to a service level agreement (SLA) and is
+  usually run during service activation.
+  </dd>
+
+  <dt><a name="router_port">Router Port</a></dt>
+  <dd>
+  A router port is a port on the Ethernet switch that leads switch towards the Layer 3 multicast device.
+  </dd>
+
+  <dt><a name="rstp">RSTP</a></dt>
+  <dd>
+    In 1998, the IEEE with document 802.1w introduced an evolution of
+    <a href="#stp">STP</a>:
+    the <u>R</u>apid <u>S</u>panning <u>T</u>ree <u>P</u>rotocol,
+    which provides for faster spanning tree convergence after a
+    topology change. Standard IEEE 802.1D-2004 now incorporates RSTP
+    and obsoletes STP, while at the same time being
+    backwards-compatible with STP.
+  </dd>
+
+</dl>
+
+<a class="index" name="s">S</a>
+
+<dl>
+  <dt><a name="samba">SAMBA</a></dt>
+  <dd>
+    <a href="glossary.htm#samba" class="glossary">Samba</a> is a program running under UNIX-like operating systems 
+  that provides seamless integration between UNIX and Microsoft Windows 
+  machines. Samba acts as file and print servers for Microsoft Windows, 
+  IBM OS/2, and other SMB client machines. Samba uses the Server Message 
+  Block (SMB) protocol and Common Internet File System (CIFS), which is 
+  the underlying protocol used in Microsoft Windows networking.
+
+  <p>Samba can be installed on a variety of operating system
+  platforms, including Linux, most common Unix platforms, OpenVMS, and
+  IBM OS/2.</p>
+
+  <p>Samba can also register itself with the master browser on the network 
+  so that it would appear in the listing of hosts in Microsoft Windows 
+  "Neighborhood Network".</p>
+  </dd>
+
+  <dt><a name="sflow">sFlow</a></dt>
+  <dd>
+    sFlow is an industry standard technology for monitoring switched networks through random sampling of
+    packets on switch ports and time-based sampling of port counters.
+    The sampled packets and counters (referred to as flow samples and counter samples, respectively) are sent as sFlow
+    <a href="glossary.htm#udp" class="glossary">UDP</a> datagrams to a central network traffic monitoring server.
+    This central server is called an sFlow receiver or sFlow collector.<br/>
+    Additional information can be found at <a href="http://sflow.org" target="_blank">http://sflow.org</a>.
+  </dd>
+
+  <dt><a name="sha">SHA</a></dt>
+  <dd>
+    <a href="glossary.htm#sha" class="glossary">SHA</a> is an acronym for <u>S</u>ecure <u>H</u>ash <u>A</u>lgorithm.
+  It designed by the National Security Agency (NSA) and published by the NIST as a U.S. Federal Information Processing Standard.
+  Hash algorithms compute a fixed-length digital representation (known as a message digest) of an input data sequence (the message) of any length.
+  </dd>
+
+  <dt><a name="shaper">Shaper</a></dt>
+  <dd>
+    A <a href="glossary.htm#shaper" class="glossary">shaper</a> can limit the bandwidth of transmitted frames. It is located after the ingress queues.
+  </dd>
+
+  <dt><a name="smtp">SMTP</a></dt>
+  <dd>
+    <a href="glossary.htm#smtp" class="glossary">SMTP</a> is an acronym for <u>S</u>imple <u>M</u>ail <u>T</u>ransfer <u>P</u>rotocol.
+  It is a text-based protocol that uses the Transmission Control Protocol (<a href="glossary.htm#tcp" class="glossary">TCP</a>) 
+  and provides a mail service modeled on the <a href="glossary.htm#ftp" class="glossary">FTP</a> file transfer service. 
+  SMTP transfers mail messages between systems and notifications regarding 
+  incoming mail.
+  </dd>
+  <dt><a name="snap">SNAP</a></dt>
+  <dd>
+    The <u>S</u>ub<u>N</u>etwork <u>A</u>ccess <u>P</u>rotocol (SNAP) is a mechanism for multiplexing, on networks using IEEE 802.2 LLC, more protocols than can be distinguished by the 8-bit 802.2 Service Access Point (SAP) fields. SNAP supports identifying protocols by Ethernet type field values; it also supports vendor-private protocol identifier.
+  </dd>
+  <dt><a name="snmp">SNMP</a></dt>
+  <dd>
+    <a href="glossary.htm#snmp" class="glossary">SNMP</a> is an acronym for <u>S</u>imple <u>N</u>etwork <u>M</u>anagement <u>P</u>rotocol. 
+  It is part of the Transmission Control Protocol/Internet Protocol 
+  (<a href="glossary.htm#tcp" class="glossary">TCP</a>/<a href="glossary.htm#ip" class="glossary">IP</a>) protocol for network management. SNMP allow diverse network 
+  objects to participate in a network management architecture. It 
+  enables network management systems to learn network problems by 
+  receiving traps or change notices from network devices implementing SNMP.
+  </dd>
+
+  <dt><a name="sntp">SNTP</a></dt>
+  <dd>
+   <a href="glossary.htm#sntp" class="glossary">SNTP</a> is an acronym for <u>S</u>imple <u>N</u>etwork <u>T</u>ime
+   <u>P</u>rotocol, a network protocol for synchronizing the clocks of
+   computer systems. SNTP uses <a href="glossary.htm#udp" class="glossary">UDP</a> (datagrams) as transport layer.
+  </dd>
+
+  <dt><a name="sprout">SPROUT</a></dt>
+  <dd>
+   <u>S</u>tack <u>P</u>rotocol using <u>ROU</u>ting <u>T</u>echnology.
+
+    An advanced protocol for almost instantaneous discovery of
+    topology changes within a stack as well as election of a master
+    switch. <a href="glossary.htm#sprout" class="glossary">SPROUT</a> also calculates parameters for setting up each
+    switch to perform shortest path forwarding within the stack.
+
+  </dd>
+
+  <dt><a name="ssid">SSID</a></dt>
+  <dd>
+    <u>S</u>ervice <u>S</u>et <u>I</u>dentifier is a name used to identify the particular 802.11 wireless LANs to which a user wants to attach. A client device will receive broadcast messages from all access points within range advertising their SSIDs, and can choose one to connect to based on pre-configuration, or by displaying a list of SSIDs in range and asking the user to select one (wikipedia).
+  </dd>
+
+  <dt><a name="ssh">SSH</a></dt>
+  <dd>
+   <a href="glossary.htm#ssh" class="glossary">SSH</a> is an acronym for <u>S</u>ecure <u>SH</u>ell.
+   It is a network protocol that allows data to be exchanged using a secure channel between two networked devices.
+   The encryption used by SSH provides confidentiality and integrity of data over an insecure network.
+   The goal of SSH was to replace the earlier rlogin, <a href="glossary.htm#telnet" class="glossary">TELNET</a> and rsh protocols, which did not provide strong authentication or guarantee confidentiality (Wikipedia).
+  </dd>
+
+  <dt><a name="SSM">SSM</a></dt>
+  <dd>
+   <a href="glossary.htm#SSM" class="glossary">SSM</a> In <a href="glossary.htm#SyncE" class="glossary">SyncE</a> this is an abbreviation for 
+   Synchronization Status Message and is containing a <a href="glossary.htm#QL" class="glossary">QL</a> indication.
+  </dd>
+
+  <dt><a name="stp">STP</a></dt>
+  <dd>
+    <u>S</u>panning <u>T</u>ree <u>P</u>rotocol is an OSI layer-2
+    protocol which ensures a loop free topology for any bridged
+    LAN. The original STP protocol is now obsolete
+    by <a href="#rstp">RSTP</a>.
+  </dd>
+
+  <dt><a name="switch_id">Switch ID</a></dt>
+  <dd>
+   <a href="glossary.htm#switch_id" class="glossary">Switch ID</a>s (1-<span class="configSidMax">?</span>) are used to uniquely identify the switches within
+   a stack.  The Switch ID of each switch is shown on the display on
+   the front of the switch and is used widely in the web pages as well
+   as in the CLI commands.
+  </dd>
+
+  <dt><a name="SyncE">SyncE</a></dt>
+  <dd>
+   <a href="glossary.htm#SyncE" class="glossary">SyncE</a> Is an abbreviation for Synchronous Ethernet. This functionality is used 
+   to make a network 'clock frequency' synchronized. Not to be confused with real time clock synchronized (IEEE 1588).
+  </dd>
+</dl>
+
+<a class="index" name="t">T</a>
+
+<dl>
+  <dt><a name="tacplus">TACACS+</a></dt>
+  <dd>
+    <a href="glossary.htm#tacplus" class="glossary">TACACS+</a> is an acronym for <u>T</u>erminal <u>A</u>cess <u>C</u>ontroller <u>A</u>ccess
+    <u>C</u>ontrol <u>S</u>ystem <u>P</u>lus.
+    It is a networking protocol which provides access control for routers, network access servers and other networked computing devices via one
+    or more centralized servers. TACACS+ provides separate authentication, authorization and accounting services.
+  </dd>
+
+  <dt><a name="tag_priority">Tag Priority</a></dt>
+  <dd>
+    <a href="glossary.htm#tag_priority" class="glossary">Tag Priority</a> is a 3-bit field storing the priority level for the 802.1Q frame.
+  </dd>
+
+  <dt><a name="tcp">TCP</a></dt>
+  <dd>
+    <a href="glossary.htm#tcp" class="glossary">TCP</a> is an acronym for <u>T</u>ransmission <u>C</u>ontrol <u>P</u>rotocol.
+  It is a communications protocol that uses the Internet Protocol (<a href="glossary.htm#ip" class="glossary">IP</a>) 
+  to exchange the messages between computers.
+  <p>The TCP protocol guarantees reliable and in-order delivery of data 
+  from sender to receiver and distinguishes data for multiple connections 
+  by concurrent applications (for example, Web server and e-mail server) running 
+  on the same host.</p>
+  <p>The applications on networked hosts can use TCP to create connections 
+  to one another. It is known as a connection-oriented protocol, which 
+  means that a connection is established and maintained until such time 
+  as the message or messages to be exchanged by the application programs 
+  at each end have been exchanged. TCP is responsible for ensuring that 
+  a message is divided into the packets that IP manages and for reassembling 
+  the packets back into the complete message at the other end.</p>
+  <p>Common network applications that use TCP include the World Wide Web (WWW), 
+  e-mail, and File Transfer Protocol (<a href="glossary.htm#ftp" class="glossary">FTP</a>).</p>
+  </dd>
+
+  <dt><a name="telnet">TELNET</a></dt>
+  <dd>
+    <a href="glossary.htm#telnet" class="glossary">TELNET</a> is an acronym for <u>TEL</u>etype <u>NET</u>work.
+  It is a terminal emulation protocol that uses the Transmission Control Protocol (<a href="glossary.htm#tcp" class="glossary">TCP</a>) 
+  and provides a virtual connection between TELNET server and TELNET client.
+  <p>TELNET enables the client to control the server and communicate with other 
+  servers on the network. To start a Telnet session, the client user must 
+  log in to a server by entering a valid username and password. Then, the  
+  client user can enter commands through the Telnet program just as if 
+  they were entering commands directly on the server console.</p>
+  </dd>
+
+  <dt><a name="tftp">TFTP</a></dt>
+  <dd>
+    <a href="glossary.htm#tftp" class="glossary">TFTP</a> is an acronym for <u>T</u>rivial <u>F</u>ile <u>T</u>ransfer <u>P</u>rotocol.
+  It is transfer protocol that uses the User Datagram Protocol (<a href="glossary.htm#udp" class="glossary">UDP</a>) 
+  and provides file writing and reading, but it does not provide 
+  directory service and security features.
+  </dd>
+
+  <dt><a name="tos">ToS</a></dt>
+  <dd>
+    <a href="glossary.htm#tos" class="glossary">ToS</a> is an acronym for <u>T</u>ype <u>o</u>f <u>S</u>ervice.
+  It is implemented as the IPv4 ToS priority control. It is fully decoded to determine 
+  the priority from the 6-bit ToS field in the <a href="glossary.htm#ip" class="glossary">IP</a> header. The most significant 6 bits 
+  of the ToS field are fully decoded into 64 possibilities, and the singular code that 
+  results is compared against the corresponding bit in the IPv4 ToS priority control bit (0~63).
+  </dd>
+
+  <dt><a name="tlv">TLV</a></dt>
+  <dd>
+    <a href="glossary.htm#tlv" class="glossary">TLV</a> is an acronym for <u>T</u>ype <u>L</u>ength <u>V</u>alue.
+    A LLDP frame can contain multiple pieces of information. 
+    Each of these pieces of information is known as TLV.
+  </dd>
+
+  <dt><a name="tkip">TKIP</a></dt>
+  <dd>
+    <a href="glossary.htm#tkip" class="glossary">TKIP</a> is an acronym for <u>T</u>emporal <u>K</u>ey <u>I</u>ntegrity <u>P</u>rotocol.
+    It used in WPA to replace WEP with a new encryption algorithm. TKIP
+    comprises the same encryption engine and RC4 algorithm defined for WEP.
+    The key used for encryption in TKIP is 128 bits and changes the key used
+    for each packet.
+  </dd>
+
+</dl>
+
+<a class="index" name="u">U</a>
+
+<dl>
+  <dt><a name="udp">UDP</a></dt>
+  <dd>
+    <a href="glossary.htm#udp" class="glossary">UDP</a> is an acronym for <u>U</u>ser <u>D</u>atagram <u>P</u>rotocol.
+  It is a communications protocol that uses the Internet Protocol (<a href="glossary.htm#ip" class="glossary">IP</a>) 
+  to exchange the messages between computers. 
+  <p>UDP is an alternative to the Transmission Control Protocol (<a href="glossary.htm#tcp" class="glossary">TCP</a>) 
+  that uses the Internet Protocol (IP). Unlike TCP, UDP does not provide 
+  the service of dividing a message into packet datagrams, and UDP doesn't 
+  provide reassembling and sequencing of the packets. This means that the 
+  application program that uses UDP must be able to make sure that the 
+  entire message has arrived and is in the right order. Network applications 
+  that want to save processing time because they have very small data 
+  units to exchange may prefer UDP to TCP.</p> 
+  <p>UDP provides two services not provided by the IP layer. It provides 
+  port numbers to help distinguish different user requests and, optionally, 
+  a checksum capability to verify that the data arrived intact.</p>
+  <p>Common network applications that use UDP include the 
+  Domain Name System (<a href="glossary.htm#dns" class="glossary">DNS</a>), streaming media applications such as IPTV, 
+  Voice over IP (VoIP), and Trivial File Transfer Protocol (<a href="glossary.htm#tftp" class="glossary">TFTP</a>).</p>
+  </dd>
+
+  <dt><a name="upnp">UPnP</a></dt>
+  <dd>
+  <a href="glossary.htm#upnp" class="glossary">UPnP</a> is an acronym for <u>U</u>niversal <u>P</u>lug and <u>P</u>lay.
+  The goals of UPnP are to allow devices to connect seamlessly and to simplify the implementation
+  of networks in the home (data sharing, communications, and entertainment) and in corporate environments
+  for simplified installation of computer components  
+  </dd>
+  
+  <dt><a name="user_priority">User Priority</a></dt>
+  <dd>
+  <a href="glossary.htm#user_priority" class="glossary">User Priority</a> is a 3-bit field storing the priority level for the 802.1Q frame.
+  It is also known as <a href="glossary.htm#PCP" class="glossary">PCP</a>.    
+  </dd>
+</dl>
+
+<a class="index" name="v">V</a>
+
+<dl>
+  <dt><a name="vlan">VLAN</a></dt>
+  <dd>
+   Virtual LAN. A method to restrict communication between switch ports. At layer 2, the network is partioned into multiple, distinct, mutually isolated broadcast domains. 
+  </dd>
+
+  <dt><a name="vlan_id">VLAN ID</a></dt>
+  <dd>
+    <a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a> is a 12-bit field specifying the <a href="glossary.htm#vlan" class="glossary">VLAN</a> to which the frame belongs.
+  </dd>
+
+  <dt><a name="voice_vlan">Voice VLAN</a></dt>
+  <dd>
+  <a href="glossary.htm#voice_vlan" class="glossary">Voice VLAN</a> is VLAN
+  configured specially for voice traffic. By adding the ports with voice devices
+  attached to voice VLAN, we can perform QoS-related configuration for voice data,
+  ensuring the transmission priority of voice traffic and voice quality.
+  </dd>
+</dl>
+
+<a class="index" name="w">W</a>
+
+<dl>
+  <dt><a name="wep">WEP</a></dt>
+  <dd>
+    <a href="glossary.htm#wep" class="glossary">WEP</a> is an acronym for <u>W</u>ired <u>E</u>quivalent <u>P</u>rivacy.
+    WEP is a deprecated algorithm to secure IEEE 802.11 wireless networks.
+    Wireless networks broadcast messages using radio, so are more susceptible
+    to eavesdropping than wired networks. When introduced in 1999, WEP was
+    intended to provide confidentiality comparable to that of a traditional
+    wired network (Wikipedia).    
+  </dd>
+
+  <dt><a name="wifi">WiFi</a></dt>
+  <dd>
+    <a href="glossary.htm#wifi" class="glossary">WiFi</a> is an acronym for <u>Wi</u>reless <u>Fi</u>delity.
+    It is meant to be used generically when referring of any type of 802.11
+    network, whether 802.11b, 802.11a, dual-band, etc. The term is promulgated
+    by the Wi-Fi Alliance.
+  </dd>
+
+  <dt><a name="wpa">WPA</a></dt>
+  <dd>
+    <a href="glossary.htm#wpa" class="glossary">WPA</a> is an acronym for <u>W</u>i-Fi <u>P</u>rotected <u>A</u>ccess.
+    It was created in response to several serious weaknesses researchers
+    had found in the previous system , Wired Equivalent Privacy (WEP).
+    WPA implements the majority of the IEEE 802.11i standard, and was
+    intended as an intermediate measure to take the place of WEP while
+    802.11i was prepared. WPA is specifically designed to also work with
+    pre-WPA wireless network interface cards (through firmware upgrades),
+    but not necessarily with first generation wireless access points.
+    WPA2 implements the full standard, but will not work with some older
+    network cards (Wikipedia).
+  </dd>
+
+  <dt><a name="wpa_psk">WPA-PSK</a></dt>
+  <dd>
+    <a href="glossary.htm#wpa_psk" class="glossary">WPA-PSK</a> is an acronym for <u>W</u>i-Fi <u>P</u>rotected <u>A</u>ccess - <u>P</u>re <u>S</u>hared <u>K</u>ey.
+    WPA was designed to enhance the security of wireless networks. There
+    are two flavors of WPA: enterprise and personal. Enterprise is meant
+    for use with an IEEE 802.1X authentication server, which distributes
+    different keys to each user. Personal WPA utilizes less scalable
+    'pre-shared key' (PSK) mode, where every allowed computer is given
+    the same passphrase. In PSK mode, security depends on the strength
+    and secrecy of the passphrase. The design of WPA is based on a Draft 3
+    of the IEEE 802.11i standard (Wikipedia)
+  </dd>
+
+  <dt><a name="wpa_radius">WPA-Radius</a></dt>
+  <dd>
+    <a href="glossary.htm#wpa_radius" class="glossary">WPA-Radius</a> is an acronym for <u>W</u>i-Fi <u>P</u>rotected <u>A</u>ccess - Radius (802.1X authentication server).
+    WPA was designed to enhance the security of wireless networks. There
+    are two flavors of WPA: enterprise and personal. Enterprise is meant
+    for use with an IEEE 802.1X authentication server, which distributes
+    different keys to each user. Personal WPA utilizes less scalable
+    'pre-shared key' (PSK) mode, where every allowed computer is given
+    the same passphrase. In PSK mode, security depends on the strength
+    and secrecy of the passphrase. The design of WPA is based on a Draft 3
+    of the IEEE 802.11i standard (Wikipedia)
+  </dd>
+
+  <dt><a name="wps">WPS</a></dt>
+  <dd>
+    <a href="glossary.htm#wpa_psk" class="glossary">WPS</a> is an acronym for <u>W</u>i-Fi <u>P</u>rotected <u>S</u>etup.
+    It is a standard for easy and secure establishment of a wireless home
+    network. The goal of the WPS protocol is to simplify the process of
+    connecting any home device to the wireless network (Wikipedia).
+  </dd>
+
+  <dt><a name="WRED">WRED</a></dt>
+  <dd>
+    <a href="glossary.htm#WRED" class="glossary">WRED</a> is an acronym for <u>W</u>eighted <u>R</u>andom <u>E</u>arly <u>D</u>etection.
+    It is an active queue management mechanism that provides preferential treatment of higher priority frames when traffic builds up within a queue.
+    A frame's <a href="glossary.htm#dpl" class="glossary">DP level</a> is used as input to WRED.
+    A higher DP level assigned to a frame results in a higher probability that the frame is dropped during times of congestion.
+  </dd>
+
+  <dt><a name="WTR">WTR</a></dt>
+  <dd>
+    <a href="glossary.htm#WTR" class="glossary">WTR</a> is an acronym for <u>W</u>ait <u>T</u>o <u>R</u>estore.
+    This is the time a fail on a resource has to be 'not active' before restoration back to this (previously failing) resource is done.
+  </dd>
+</dl>
+
+</body>
+</html>

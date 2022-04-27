@@ -1,0 +1,75 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Pointer to led_pow_reduc source code directory
+DIR_led_pow_reduc := $(DIR_APPL)/green_ethernet/led_pow_reduc
+
+# Built-in ICLI
+$(eval $(call add_icli,$(DIR_led_pow_reduc)/platform/led_pow_reduc.icli))
+
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_led_pow_reduc)/platform/html
+
+# LED_POW_REDUC module interface (= sources in platform)
+OBJECTS_led_pow_reduc := led_pow_reduc.o    \
+  $(if $(MODULE_VCLI), led_pow_reduc_cli.o) \
+  $(if $(MODULE_WEB), led_pow_reduc_web.o)  \
+  $(if $(MODULE_ICLI), led_pow_reduc_icli_functions.o) \
+  $(if $(MODULE_CONF_XML), led_pow_reduc_xml.o)
+
+# Compile/dependencies
+$(OBJECTS_led_pow_reduc): %.o: $(DIR_led_pow_reduc)/platform/%.c
+	$(call compile_c, $@, $<,)
+
+#$(LED_POW_REDUC_LIB): %.o: $(DIR_led_pow_reduc)/base/src/%.c
+#	$(call compile_c, $@, $<,-I$(DIR_led_pow_reduc)/base/src)
+
+# Include files
+INCLUDES += -I$(DIR_led_pow_reduc)/platform
+
+# Files to be linted
+LINT_FILES_led_pow_reduc += $(addprefix $(DIR_led_pow_reduc)/platform/,$(OBJECTS_led_pow_reduc:.o=.c))
+
+# Code style
+VTSS_CODE_STYLE_CHK_FILES_led_pow_reduc += $(DIR_led_pow_reduc)/platform/led_pow_reduc_cli.c
+VTSS_CODE_STYLE_CHK_FILES_led_pow_reduc += $(DIR_led_pow_reduc)/platform/led_pow_reduc_web.c
+VTSS_CODE_STYLE_CHK_FILES_led_pow_reduc += $(DIR_led_pow_reduc)/platform/led_pow_reduc_api.h  
+VTSS_CODE_STYLE_CHK_FILES_led_pow_reduc += $(DIR_led_pow_reduc)/platform/led_pow_reduc_custom_api.h  
+VTSS_CODE_STYLE_CHK_FILES_led_pow_reduc += $(DIR_led_pow_reduc)/platform/led_pow_reduc_xml.c
+VTSS_CODE_STYLE_CHK_FILES_led_pow_reduc += $(DIR_led_pow_reduc)/platform/led_pow_reduc.c  
+VTSS_CODE_STYLE_CHK_FILES_led_pow_reduc += $(DIR_led_pow_reduc)/platform/led_pow_reduc.h
+
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_led_pow_reduc += $(DIR_led_pow_reduc)/platform/led_pow_reduc_icli_functions.c 
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_led_pow_reduc += $(DIR_led_pow_reduc)/platform/led_pow_reduc_icli_functions.h 
+
+
+# Tidy files
+TIDY_FILES_led_pow_reduc += $(DIR_led_pow_reduc)/platform/html/*.htm $(DIR_led_pow_reduc)/platform/html/help/*.htm
+
+# JSLint files
+JSLINT_FILES_led_pow_reduc += $(TIDY_FILES_led_pow_reduc)
+

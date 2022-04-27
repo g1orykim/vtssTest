@@ -1,0 +1,450 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>MEP Fault Management</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_mep_pm_config.htm";
+var peer_name = new Array();
+var peer_add_cnt = 0;
+
+var selectedMEP = 1;
+var pageArgs = searchArgs(window.location.search);
+if (pageArgs['mep'])
+    selectedMEP = parseInt(pageArgs['mep']);
+
+var oTRate = new Array ("300 f/sec","100 f/sec","10 f/sec","1 f/sec","6 f/min","1 f/min","6 f/hour");
+var oVRate = new Array(1, 2, 3, 4, 5, 6, 7);
+var oTDomain = new Array ("Port","Esp","Evc","Mpls");
+var oVDomain = new Array(0, 1, 2, 3);
+var oTMode = new Array ("Mep","Mip");
+var oVMode = new Array(0, 1);
+var oTDirection = new Array ("Ingress","Egress");
+var oVDirection = new Array(0, 1);
+var oTLevel = new Array(0, 1, 2, 3, 4, 5, 6, 7);
+var oVLevel = new Array(0, 1, 2, 3, 4, 5, 6, 7);
+var oTCast = new Array ("Uni","Multi");
+var oVCast = new Array(0, 1);
+var oTType = new Array ("L-APS","R-APS");
+var oVType = new Array(1, 2);
+var oTEnded = new Array ("Single","Dual");
+var oVEnded = new Array(0, 1);
+var oTWay   = new Array ("Two-way","One-way");
+var oVWay   = new Array(0, 1);
+var oTTx   = new Array ("Standardize","Proprietary");
+var oVTx   = new Array(0, 1);
+var oTCalc = new Array ("Round trip","Flow");
+var oVCalc = new Array(0, 1);
+var nul_MAC = new Array("00-00-00-00-00-00");
+var oTUnit   = new Array ("us","ns");
+var oVUnit   = new Array(0, 1)
+var oTAct   = new Array ("Keep","Reset");
+var oVAct   = new Array(0, 1)
+
+
+function resetForm(form)
+{
+    form.reset();
+}
+
+function appendFrag(frag, ref, clear)
+{
+    var tbody = document.getElementById(ref);
+
+    if (clear)
+        clearChildNodes(tbody);
+
+    if (!tbody.appendChild(frag))  // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+}
+
+
+function addPerfMonDataSet(inst, frag, values)
+{
+    var tr;
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Enable", "hdrc");
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "config_even");
+    addCheckBoxCell(tr, parseInt(values[0]), "c", "pm_data");
+    frag.appendChild(tr);
+}
+
+function addFunction1(inst, frag, values)
+{
+    var tr;
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Enable", "hdrc");
+    addTextHeaderCell(tr, "Priority", "hdrc");
+    addTextHeaderCell(tr, "Frame rate", "hdrc");
+    addTextHeaderCell(tr, "Cast", "hdrc");
+    addTextHeaderCell(tr, "Ended", "hdrc");
+    addTextHeaderCell(tr, "FLR Interval", "hdrc");
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "config_even");
+    addCheckBoxCell(tr, parseInt(values[0]), "c", "lm");
+    input = addInputCell(tr, values[1], "c", "lm_prio", 1);
+    input.setAttribute("maxLength", 1);
+    input.setAttribute("size", 1);
+    addSelectCell(tr, oTRate, oVRate, parseInt(values[2]), "c", "lm_rate");
+    addSelectCell(tr, oTCast, oVCast, parseInt(values[3]), "c", "lm_cast");
+    addSelectCell(tr, oTEnded, oVEnded, parseInt(values[4]), "c", "lm_ended");
+    input = addInputCell(tr, values[5], "c", "lm_flr", 2);
+    input.setAttribute("maxLength", 2);
+    input.setAttribute("size", 1);
+    frag.appendChild(tr);
+}
+
+function addFunction2(inst, frag, values)
+{
+    var tr;
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Enable", "hdrc");
+    addTextHeaderCell(tr, "Priority", "hdrc");
+    addTextHeaderCell(tr, "Cast", "hdrc");
+    addTextHeaderCell(tr, "Peer MEP", "hdrc");
+    addTextHeaderCell(tr, "Way", "hdrc");
+    addTextHeaderCell(tr, "Tx Mode", "hdrc");
+    addTextHeaderCell(tr, "Calc", "hdrc");
+    addTextHeaderCell(tr, "Gap", "hdrc");
+    addTextHeaderCell(tr, "Count", "hdrc");
+    addTextHeaderCell(tr, "Unit", "hdrc");
+    addTextHeaderCell(tr, "D2forD1", "hdrc");
+    addTextHeaderCell(tr, "Counter Overflow Action", "hdrc");
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "config_even");
+    addCheckBoxCell(tr, parseInt(values[6]), "c", "dm");
+    input = addInputCell(tr, values[7], "c", "dm_prio", 1);
+    input.setAttribute("maxLength", 1);
+    input.setAttribute("size", 1);
+    addSelectCell(tr, oTCast, oVCast, parseInt(values[8]), "c", "dm_cast");
+    input = addInputCell(tr, values[9], "c", "dm_mep", 4);
+    input.setAttribute("maxLength", 4);
+    input.setAttribute("size", 4);
+    addSelectCell(tr, oTWay, oVWay, parseInt(values[10]), "c", "dm_way");
+    input = addSelectCell(tr, oTTx, oVTx, parseInt(values[11]), "c", "dm_txway");
+    input = addSelectCell(tr, oTCalc, oVCalc, parseInt(values[12]), "c", "dm_calcway");
+    input = addInputCell(tr, values[13], "c", "dm_gap", 1);
+    input.setAttribute("maxLength", 8);
+    input.setAttribute("size", 8);
+    input = addInputCell(tr, values[14], "c", "dm_count", 1);
+    input.setAttribute("maxLength", 8);
+    input.setAttribute("size", 8);
+    input = addSelectCell(tr, oTUnit, oVUnit, parseInt(values[15]), "c", "dm_tunit");
+    addCheckBoxCell(tr, parseInt(values[16]), "c", "dm_d2ford1");
+    input = addSelectCell(tr, oTAct, oVAct, parseInt(values[17]), "c", "dm_act");
+    frag.appendChild(tr);
+}
+
+function addPerfState(inst, frag, values)
+{
+    var tr = CreateStyledElement("tr", "config_even");
+
+    addTextCell(tr, String(parseInt(values[0])), "c");
+    addTextCell(tr, String(parseInt(values[1])), "c");
+    addTextCell(tr, String(parseInt(values[2])), "c");
+    addTextCell(tr, String(parseInt(values[3])), "c");
+    addTextCell(tr, String(parseInt(values[4])), "c");
+    addTextCell(tr, String(parseInt(values[5])), "c");
+    addCheckBoxCell(tr, 0, "c", "clear");
+    frag.appendChild(tr);
+}
+
+function addDelayMState(inst, frag, values)
+{
+    var tr = CreateStyledElement("tr", "config_odd");
+    addTextCell(tr, "One-way", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+    frag.appendChild(tr)
+ 
+    var i=0;
+    var tr = CreateStyledElement("tr", "config_even");
+    addTextCell(tr, "F-to-N", "c");   
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, "", "c");
+    frag.appendChild(tr);
+ 
+    var i=26;
+    var tr = CreateStyledElement("tr", "config_even");
+    addTextCell(tr, "N-to-F", "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, "", "c");
+    frag.appendChild(tr);
+
+    var i=13;
+    var tr = CreateStyledElement("tr", "config_odd");
+    addTextCell(tr, "Two-way", "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addTextCell(tr, String(parseInt(values[i++])), "c");
+    addCheckBoxCell(tr, 0, "c", "dm_clear");
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    if (redirectOnError(req))
+        return;
+
+    if (req.responseText)
+    {
+        var pval;
+        var mepConfig = req.responseText.split("|");
+        var inst = parseInt(mepConfig[0]);
+        UpdateIdValue("mep_id_hidden", inst);
+        var inst_id = document.getElementById("instance_id");
+        if(inst_id)
+            inst_id.innerHTML = String(inst);
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+
+        pval = mepConfig[4].split("/");
+        addPerfMonDataSet(inst, frag, pval);
+        appendFrag(frag, "mepPerfMonDataSet", 1);
+
+        pval = mepConfig[1].split("/");
+        addFunction1(inst, frag, pval);
+        appendFrag(frag, "mepFunction1", 1);
+
+        pval = mepConfig[2].split("/");
+        addPerfState(inst, frag, pval);
+        appendFrag(frag, "mepPerfData", 1);
+
+        pval = mepConfig[1].split("/");
+        addFunction2(inst, frag, pval);
+        appendFrag(frag, "mepFunction2", 1);
+
+        pval = mepConfig[3].split("/");
+        addDelayMState(inst, frag, pval);
+        appendFrag(frag, "mepDmData", 1);
+
+        var rc_index = 5;
+        if (mepConfig[rc_index])
+        {
+            alert(mepConfig[rc_index]);
+        }
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate()
+{
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc("/config/mepPmConfig?mep=" + selectedMEP, processUpdate);
+}
+
+
+// Check that all forms contains valid values
+function checkForm(form)
+{
+    var dmstat = document.getElementById('dm');
+    if (!dmstat.checked)
+        return true;
+
+    if(!isWithinRange('dm_gap', 10, 0xffff, "'Gap'"))
+            return false;
+
+    if(!isWithinRange('dm_count', 10, 2000, "'Count'"))
+            return false;
+
+    return true;
+}
+
+
+function backFunc() {
+    document.location.href="mep_config.htm?mep=" + selectedMEP;
+}
+
+ </script>
+</head>
+
+
+<body class="content" onload="requestUpdate();">
+
+<div class="refreshbar">
+<form action="#">
+ <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+ <img id="update" alt="" src="images/updating.gif">
+</form>
+</div>
+
+<form name="configForm" method="POST" action="/config/mepPmConfig" onsubmit="return checkForm(this);">
+
+
+<h1>Performance Monitor - <span id="display_sid"></span>  Instance <span id="instance_id"></span></h1>
+
+<h1>Performance Monitoring Data Set </h1>
+<table summary="Performance Data Set" class="config">
+  <tbody id="mepPerfMonDataSet">
+  </tbody>
+</table>
+
+<h1>Loss Measurement</h1>
+<table summary="Performance Monitor 1" class="config">
+  <tbody id="mepFunction1">
+  </tbody>
+</table>
+<h1>Loss Measurement State</h1>
+<table summary="Loss Measurement State" cellspacing="0" class="config">
+  <thead>
+    <tr class="config_header">
+      <th>Tx</th>
+      <th>Rx</th>
+      <th>Near End Loss Count</th>
+      <th>Far End Loss Count</th>
+      <th>Near End Loss Ratio</th>
+      <th>Far End Loss Ratio</th>
+      <th>Clear</th>
+    </tr>
+  </thead>
+  <tbody id="mepPerfData">
+  </tbody>
+</table>
+
+<h1>Delay Measurement</h1>
+<table summary="Functional Configuration 2" class="config">
+  <tbody id="mepFunction2">
+  </tbody>
+</table>
+<h1>Delay Measurement State</h1>
+<table summary="Delay Measurement State" cellspacing="0" class="config">
+  <thead>
+    <tr class="config_header">
+      <th>      </th>
+      <th>  Tx  </th>
+      <th>  Rx  </th>
+      <th>Rx Timeout</th>
+      <th>Rx Error</th>
+      <th>Av Delay Tot</th>
+      <th>Av Delay last N</th>
+      <th>Delay Min.</th>
+      <th>Delay Max.</th>
+      <th>Av Delay-Var Tot</th>
+      <th>Av Delay-Var last N</th>
+      <th>Delay-Var Min.</th>
+      <th>Delay-Var Max.</th>
+      <th>Overflow</th>
+      <th>Clear</th>
+    </tr>
+  </thead>
+  <tbody id="mepDmData">
+  </tbody>
+</table>
+
+<p>F-to-N :Far-end-to-near-end</p>
+<p>N-to-F :Near-end-to-far-end</p>
+
+<p>
+  <input type="button" id="Back" value="Back" onclick="backFunc()">&nbsp;&nbsp;&nbsp;&nbsp;
+</p>
+
+<p>
+<input type="hidden" id="mep_id_hidden" name="mep_id_hidden">
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm(this.form);">
+</p>
+
+</form>
+
+<!-- IE caching bug -->
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

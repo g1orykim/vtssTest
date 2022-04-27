@@ -1,0 +1,1231 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_IP_SOURCE_GUARD)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "ip_source_guard_api.h"
+#include "mgmt_api.h"
+#include "misc_api.h"
+#include "port_api.h"
+#include "topo_api.h"
+
+#define IP_SOURCE_GUARD_DYNAMIC_UNLIMITED       0XFFFF
+
+INCLUDE_END
+
+// ############################################################################
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+
+static void IP_SOURCE_GUARD_ICLI_global_mode_set(u32 session_id, BOOL mode)
+{
+    vtss_rc     rc = ICLI_RC_OK;
+    ulong       tmp_mode;
+    BOOL        original_mode;
+
+    //get global configuration
+    if ((rc = ip_source_guard_mgmt_conf_get_mode(&tmp_mode)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+        return;
+    }
+
+    //set global configuration
+    original_mode = tmp_mode ? TRUE : FALSE;
+
+    if (mode) {
+        tmp_mode = TRUE;
+        //ICLI_PRINTF("ip verify source enable\n");
+    } else {
+        tmp_mode = FALSE;
+        //ICLI_PRINTF("ip verify source disable\n");
+    }
+
+    if (mode != original_mode && (rc = ip_source_guard_mgmt_conf_set_mode(tmp_mode)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+        return;
+    }
+
+    return;
+}
+
+static void IP_SOURCE_GUARD_ICLI_port_mode_set(u32 session_id, icli_port_type_t port_type, icli_stack_port_range_t *port_list_p, BOOL mode)
+{
+    vtss_rc                             rc;
+    u32                                 range_idx, cnt_idx;
+    vtss_usid_t                         usid;
+    vtss_port_no_t                      uport;
+    ip_source_guard_port_mode_conf_t    port_conf, new_port_conf;
+
+    for (range_idx = 0; range_idx < port_list_p->cnt; range_idx++) {
+        usid = port_list_p->switch_range[range_idx].usid;
+        if ((rc = ip_source_guard_mgmt_conf_get_port_mode(topo_usid2isid(usid), &port_conf)) != VTSS_OK) {
+            ICLI_PRINTF("%s\n", error_txt(rc));
+            return;
+        }
+        new_port_conf = port_conf;
+
+        for (cnt_idx = 0; cnt_idx < port_list_p->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = port_list_p->switch_range[range_idx].begin_uport + cnt_idx;
+            new_port_conf.mode[uport2iport(uport)] = mode ? TRUE : FALSE;
+            T_D("Setting IP source guard port conf: range %u: usid=%d uport=%u port=%u\n", range_idx, usid, uport, port_list_p->switch_range[range_idx].begin_port + cnt_idx);
+        }
+
+        if (memcmp(&port_conf, &new_port_conf, sizeof(port_conf)) &&
+            (rc = ip_source_guard_mgmt_conf_set_port_mode(topo_usid2isid(usid), &new_port_conf)) != VTSS_OK) {
+            ICLI_PRINTF("%s\n", error_txt(rc));
+            return;
+        }
+    }
+}
+
+static void IP_SOURCE_GUARD_ICLI_port_mode_set_limit(u32 session_id, icli_port_type_t port_type, icli_stack_port_range_t *port_list_p, ulong num)
+{
+    vtss_rc                                     rc;
+    u32                                         range_idx, cnt_idx;
+    vtss_usid_t                                 usid;
+    vtss_port_no_t                              uport;
+    ip_source_guard_port_dynamic_entry_conf_t   port_conf, new_port_conf;
+
+    for (range_idx = 0; range_idx < port_list_p->cnt; range_idx++) {
+        usid = port_list_p->switch_range[range_idx].usid;
+        if ((rc = ip_source_guard_mgmt_conf_get_port_dynamic_entry_cnt(topo_usid2isid(usid), &port_conf)) != VTSS_OK) {
+            ICLI_PRINTF("%s\n", error_txt(rc));
+            return;
+        }
+        new_port_conf = port_conf;
+
+        for (cnt_idx = 0; cnt_idx < port_list_p->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = port_list_p->switch_range[range_idx].begin_uport + cnt_idx;
+            new_port_conf.entry_cnt[uport2iport(uport)] = num;
+            T_D("Setting IP source guard port limit conf: range %u: usid=%d uport=%u port=%u\n", range_idx, usid, uport, port_list_p->switch_range[range_idx].begin_port + cnt_idx);
+        }
+
+        if (memcmp(&port_conf, &new_port_conf, sizeof(port_conf)) &&
+            (rc = ip_source_guard_mgmt_conf_set_port_dynamic_entry_cnt(topo_usid2isid(usid), &new_port_conf)) != VTSS_OK) {
+            ICLI_PRINTF("%s\n", error_txt(rc));
+            return;
+        }
+    }
+}
+
+static void IP_SOURCE_GUARD_ICLI_single_entry_info_show(u32 session_id, BOOL *show_header_p, BOOL is_static, ip_source_guard_entry_t *entry_p, icli_switch_port_range_t *switch_range_p)
+{
+    char buf[80], buf1[80], *p;
+
+    if (*show_header_p) {
+        *show_header_p = FALSE;
+        p = &buf[0];
+        p += sprintf(p, "\nType     ");
+        p += sprintf(p, "Port                    ");
+        p += sprintf(p, "VLAN  ");
+        p += sprintf(p, "IP Address       ");
+#if defined(VTSS_FEATURE_ACL_V2)
+        p += sprintf(p, "MAC Address        ");
+#else
+        if (is_static) {
+            p += sprintf(p, "IP Mask          ");
+        } else {
+            p += sprintf(p, "MAC Address        ");
+        } 
+#endif /* VTSS_FEATURE_ACL_V2 */
+        icli_parm_header(session_id, buf);
+    }
+
+    ICLI_PRINTF("%-7s  %-22s  %4d  %-15s  ",
+                is_static ? "Static" : "Dynamic",
+                icli_port_info_txt(switch_range_p->usid, switch_range_p->begin_uport, buf),
+                entry_p->vid,
+                misc_ipv4_txt(entry_p->assigned_ip, buf1));
+#if defined(VTSS_FEATURE_ACL_V2)
+    ICLI_PRINTF("%-15s\n", misc_mac_txt(entry_p->assigned_mac, buf1));
+#else
+    if (is_static) {
+        ICLI_PRINTF("%-15s\n", misc_ipv4_txt(entry_p->ip_mask, buf1));
+    } else {
+        ICLI_PRINTF("%-15s\n", misc_mac_txt(entry_p->assigned_mac, buf1));
+    }
+#endif /* VTSS_FEATURE_ACL_V2 */
+}
+
+static void IP_SOURCE_GUARD_ICLI_entry_info_show(u32 session_id, BOOL *show_header_p, BOOL is_static, ip_source_guard_entry_t *entry_p, icli_switch_port_range_t *switch_range_p)
+{
+    if (is_static) {
+        if (ip_source_guard_mgmt_conf_get_first_static_entry(entry_p) == VTSS_OK) {
+            if (entry_p->isid == switch_range_p->isid &&
+                entry_p->port_no == switch_range_p->begin_iport) {
+                IP_SOURCE_GUARD_ICLI_single_entry_info_show(session_id, show_header_p, is_static, entry_p, switch_range_p);
+            }
+            while (ip_source_guard_mgmt_conf_get_next_static_entry(entry_p) == VTSS_OK) {
+                if (entry_p->isid == switch_range_p->isid &&
+                    entry_p->port_no == switch_range_p->begin_iport) {
+                    IP_SOURCE_GUARD_ICLI_single_entry_info_show(session_id, show_header_p, is_static, entry_p, switch_range_p);
+                }
+            }
+        }
+    } else if (ip_source_guard_mgmt_conf_get_first_dynamic_entry(entry_p) == VTSS_OK) {
+        if (entry_p->isid == switch_range_p->isid &&
+            entry_p->port_no == switch_range_p->begin_iport) {
+            IP_SOURCE_GUARD_ICLI_single_entry_info_show(session_id, show_header_p, is_static, entry_p, switch_range_p);
+        }
+        while (ip_source_guard_mgmt_conf_get_next_dynamic_entry(entry_p) == VTSS_OK) {
+            if (entry_p->isid == switch_range_p->isid &&
+                entry_p->port_no == switch_range_p->begin_iport) {
+                IP_SOURCE_GUARD_ICLI_single_entry_info_show(session_id, show_header_p, is_static, entry_p, switch_range_p);
+            }
+        }
+    }
+}
+
+FUNCTION_END
+
+// ############################################################################
+
+//
+// Export Segment
+//   This segment contains the API declarations of the global functions in
+//   Function Segment. This will be pasted exactly to the generated H file.
+//   So, others can include the H file to use the global functions.
+//
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_SHOW       = Show running system information
+HELP_CLEAR      = Clear
+HELP_IP         = Internet Protocol
+HELP_INTERFACE  = Interface
+HELP_PORT_TYPE  = Interface port type
+HELP_PORT_LIST  = Interface port list
+HELP_NO         = Negate a command or set its defaults
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip verify source
+
+FUNC_NAME = ip_verify_source_mode
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = verify_var
+CMD_VAR   =
+//CMD_VAR   = source_var
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = verify command
+HELP = verify source
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* enable global mode */
+    IP_SOURCE_GUARD_ICLI_global_mode_set(session_id, TRUE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    /* disable global mode */
+    IP_SOURCE_GUARD_ICLI_global_mode_set(session_id, FALSE);
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip verify source
+
+FUNC_NAME = ip_verify_source_port_mode
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+//MODE_VAR  = mode_port_type
+MODE_VAR  = mode_port_list
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+// CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = verify command
+HELP = verify source
+
+// VARIABLE_BEGIN
+// VARIABLE_END
+
+CODE_BEGIN
+    /* set port mode enable */
+    IP_SOURCE_GUARD_ICLI_port_mode_set(session_id, 0, mode_port_list, TRUE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_CODE_BEGIN
+    /* set port mode disable */
+    IP_SOURCE_GUARD_ICLI_port_mode_set(session_id, 0, mode_port_list, FALSE);
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip verify source limit <0-2>
+
+FUNC_NAME = ip_verify_source_port_mode_limit
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+//MODE_VAR  = mode_port_type
+MODE_VAR  = mode_port_list
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+// CMD_VAR   =
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = verify_var
+CMD_VAR   =
+//CMD_VAR   = source_var
+CMD_VAR   =
+//CMD_VAR   = limit_var
+CMD_VAR   =
+CMD_VAR   = cnt_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = verify command
+HELP = verify source
+HELP = limit command
+HELP = the number of limit
+
+// VARIABLE_BEGIN
+// VARIABLE_END
+
+CODE_BEGIN
+    /* set port mode limit */
+    IP_SOURCE_GUARD_ICLI_port_mode_set_limit(session_id, 0, mode_port_list, cnt_var);
+CODE_END
+
+// (Optional)
+// The no form of this command
+// NO_FORM_CODE_BEGIN
+// NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND   = no ip verify source limit
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+FUNC_NAME = no_ip_verify_source_port_mode_limit
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+//MODE_VAR  = mode_port_type
+MODE_VAR  = mode_port_list
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+// CMD_VAR   =
+//CMD_VAR   = no_var
+CMD_VAR   =
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = verify_var
+CMD_VAR   =
+//CMD_VAR   = source_var
+CMD_VAR   =
+//CMD_VAR   = limit_var
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_NO
+HELP = ##HELP_IP
+HELP = verify command
+HELP = verify source
+HELP = limit command
+
+// VARIABLE_BEGIN
+// VARIABLE_END
+
+CODE_BEGIN
+    /* set port mode limit as default */
+    IP_SOURCE_GUARD_ICLI_port_mode_set_limit(session_id, 0, mode_port_list, IP_SOURCE_GUARD_DYNAMIC_UNLIMITED);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip verify source translate
+
+FUNC_NAME = ip_verify_source_translate
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = verify_var
+CMD_VAR   =
+//CMD_VAR   = source_var
+CMD_VAR   =
+//CMD_VAR   = translate_var
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = verify command
+HELP = verify source
+HELP = ip verify source translate all entries
+
+VARIABLE_BEGIN
+    vtss_rc                         rc;
+VARIABLE_END
+
+CODE_BEGIN
+
+    /* translate dynamic entries into static entries */
+    if ((rc = ip_source_guard_mgmt_conf_translate_dynamic_into_static()) >= VTSS_OK) {
+        ICLI_PRINTF("IP Source Guard:\n\tTranslate %d dynamic entries into static entries.\n", rc);
+    } else {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+    }
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = show ip verify source [interface <port_type_list>]
+
+FUNC_NAME = ip_verify_source_show
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = show_var
+CMD_VAR   =
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = verify_var
+CMD_VAR   =
+//CMD_VAR   = source_var
+CMD_VAR   =
+CMD_VAR   = interface_var
+CMD_VAR   = in_port_type_list
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_SHOW
+HELP = ##HELP_IP
+HELP = verify command
+HELP = verify source
+HELP = ip verify source interface config
+HELP = Select a port list to configure
+
+VARIABLE_BEGIN
+    int                                         cnt_idx;
+    icli_switch_port_range_t                    switch_range;
+    u32                                         range_idx, mode;
+    ip_source_guard_port_mode_conf_t            port_mode_conf;
+    ip_source_guard_port_dynamic_entry_conf_t   port_dynamic_entry;
+    char                                        buf[80], *p;
+    BOOL                                        show_header = TRUE;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!interface_var) {
+
+        if (ip_source_guard_mgmt_conf_get_mode(&mode) != VTSS_OK) {
+            return FALSE;
+        }
+
+        ICLI_PRINTF("IP Source Guard Mode : %s\n", icli_bool_txt(mode));
+
+        memset(&switch_range, 0, sizeof(switch_range));
+        while (icli_switch_get_next(&switch_range)) {
+            if (ip_source_guard_mgmt_conf_get_port_mode(switch_range.isid, &port_mode_conf) != VTSS_OK  ||
+                ip_source_guard_mgmt_conf_get_port_dynamic_entry_cnt(switch_range.isid, &port_dynamic_entry) != VTSS_OK) {
+                continue;
+            }
+
+            show_header = TRUE;
+            while (icli_switch_port_get_next(&switch_range)) {
+                if (show_header) {
+                    show_header = FALSE;
+                    p = &buf[0];
+                    p += sprintf(p, "\nPort                      ");
+                    p += sprintf(p, "Port Mode    ");
+                    p += sprintf(p, "Dynamic Entry Limit    ");
+                    icli_parm_header(session_id, buf);
+                }
+                ICLI_PRINTF("%-22s    ", icli_port_info_txt(switch_range.usid, switch_range.begin_uport, buf));
+                ICLI_PRINTF("%-8s     ", icli_bool_txt(port_mode_conf.mode[switch_range.begin_iport]));
+                if (port_dynamic_entry.entry_cnt[switch_range.begin_iport] == IP_SOURCE_GUARD_DYNAMIC_UNLIMITED) {
+                    ICLI_PRINTF("unlimited");
+                } else {
+                    ICLI_PRINTF("%u    ", port_dynamic_entry.entry_cnt[switch_range.begin_iport]);
+                }
+                ICLI_PRINTF("\n");
+            }
+        }
+
+    } else if (interface_var) {
+        for (range_idx = 0; range_idx < in_port_type_list->cnt; range_idx++) {
+            if (ip_source_guard_mgmt_conf_get_port_mode(in_port_type_list->switch_range[range_idx].isid, &port_mode_conf) != VTSS_OK  ||
+                ip_source_guard_mgmt_conf_get_port_dynamic_entry_cnt(in_port_type_list->switch_range[range_idx].isid, &port_dynamic_entry) != VTSS_OK) {
+                continue;
+            }
+
+            show_header = TRUE;
+            for (cnt_idx = 0; cnt_idx < in_port_type_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                switch_range = in_port_type_list->switch_range[range_idx];
+                switch_range.begin_uport = in_port_type_list->switch_range[range_idx].begin_uport + cnt_idx;
+                switch_range.begin_iport = uport2iport(switch_range.begin_uport);
+                if (show_header) {
+                    show_header = FALSE;
+                    p = &buf[0];
+                    p += sprintf(p, "\nPort                      ");
+                    p += sprintf(p, "Port Mode    ");
+                    p += sprintf(p, "Dynamic Entry Limit    ");
+                    icli_parm_header(session_id, buf);
+                }
+                ICLI_PRINTF("%-22s    ", icli_port_info_txt(switch_range.usid, switch_range.begin_uport, buf));
+                ICLI_PRINTF("%-8s     ", icli_bool_txt(port_mode_conf.mode[switch_range.begin_iport]));
+                if (port_dynamic_entry.entry_cnt[switch_range.begin_iport] == IP_SOURCE_GUARD_DYNAMIC_UNLIMITED) {
+                    ICLI_PRINTF("unlimited");
+                } else {
+                    ICLI_PRINTF("%u    ", port_dynamic_entry.entry_cnt[switch_range.begin_iport]);
+                }
+                ICLI_PRINTF("\n");
+            }
+        }
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+// NO_FORM_VARIABLE_BEGIN
+// NO_FORM_VARIABLE_END
+
+// NO_FORM_CODE_BEGIN
+// NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = show ip source binding [ dhcp-snooping | static ] [interface <port_type_list>]
+
+FUNC_NAME = ip_verify_source_show_binding
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = show_var
+CMD_VAR   =
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = source_var
+CMD_VAR   =
+//CMD_VAR   = binding_var
+CMD_VAR   =
+CMD_VAR   = dhcp_var
+CMD_VAR   = static_var
+CMD_VAR   = interface_var
+CMD_VAR   = in_port_type_list
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_SHOW
+HELP = ##HELP_IP
+HELP = source command
+HELP = ip source binding
+HELP = learn from dhcp snooping
+HELP = setting from static entries
+HELP = ip source binding interface config
+HELP = Select a port list to configure
+
+VARIABLE_BEGIN
+    int                                         cnt_idx;
+    u32											range_idx;
+    icli_switch_port_range_t                    switch_range;
+    ip_source_guard_entry_t                     entry;
+    BOOL                                        show_header = TRUE;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!interface_var) {
+        memset(&switch_range, 0, sizeof(switch_range));
+    }
+
+    if (!dhcp_var && !static_var && !interface_var) {
+        while (icli_switch_get_next(&switch_range)) {
+            show_header = TRUE;
+            while (icli_switch_port_get_next(&switch_range)) {
+                // Get static entries
+                IP_SOURCE_GUARD_ICLI_entry_info_show(session_id, &show_header, TRUE, &entry, &switch_range);
+            }
+        }
+
+        memset(&switch_range, 0, sizeof(switch_range));
+        while (icli_switch_get_next(&switch_range)) {
+            show_header = TRUE;
+            while (icli_switch_port_get_next(&switch_range)) {
+                // Get dyanmic entries
+                IP_SOURCE_GUARD_ICLI_entry_info_show(session_id, &show_header, FALSE, &entry, &switch_range);
+            }
+        }
+    } else if (interface_var && dhcp_var) {
+        for (range_idx = 0; range_idx < in_port_type_list->cnt; range_idx++) {
+            for (cnt_idx = 0; cnt_idx < in_port_type_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                switch_range = in_port_type_list->switch_range[range_idx];
+                switch_range.begin_uport = in_port_type_list->switch_range[range_idx].begin_uport + cnt_idx;
+                switch_range.begin_iport = uport2iport(switch_range.begin_uport);
+
+                // Get dyanmic entries
+                IP_SOURCE_GUARD_ICLI_entry_info_show(session_id, &show_header, FALSE, &entry, &switch_range);
+            }
+        }
+
+    } else if (interface_var && static_var) {
+        for (range_idx = 0; range_idx < in_port_type_list->cnt; range_idx++) {
+            for (cnt_idx = 0; cnt_idx < in_port_type_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                switch_range = in_port_type_list->switch_range[range_idx];
+                switch_range.begin_uport = in_port_type_list->switch_range[range_idx].begin_uport + cnt_idx;
+                switch_range.begin_iport = uport2iport(switch_range.begin_uport);
+
+                // Get static entries
+                IP_SOURCE_GUARD_ICLI_entry_info_show(session_id, &show_header, TRUE, &entry, &switch_range);
+            }
+        }
+
+    } else if (interface_var) {
+        for (range_idx = 0; range_idx < in_port_type_list->cnt; range_idx++) {
+            for (cnt_idx = 0; cnt_idx < in_port_type_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                switch_range = in_port_type_list->switch_range[range_idx];
+                switch_range.begin_uport = in_port_type_list->switch_range[range_idx].begin_uport + cnt_idx;
+                switch_range.begin_iport = uport2iport(switch_range.begin_uport);
+                // Get static entries
+                IP_SOURCE_GUARD_ICLI_entry_info_show(session_id, &show_header, TRUE, &entry, &switch_range);
+            }
+
+
+            for (cnt_idx = 0; cnt_idx < in_port_type_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                switch_range = in_port_type_list->switch_range[range_idx];
+                switch_range.begin_uport = in_port_type_list->switch_range[range_idx].begin_uport + cnt_idx;
+                switch_range.begin_iport = uport2iport(switch_range.begin_uport);
+                // Get dyanmic entries
+                IP_SOURCE_GUARD_ICLI_entry_info_show(session_id, &show_header, FALSE, &entry, &switch_range);
+            }
+        }
+
+    } else if (dhcp_var) {
+        while (icli_switch_get_next(&switch_range)) {
+            show_header = TRUE;
+            while (icli_switch_port_get_next(&switch_range)) {
+                // Get dyanmic entries
+            IP_SOURCE_GUARD_ICLI_entry_info_show(session_id, &show_header, FALSE, &entry, &switch_range);
+            }
+        }
+
+    } else if (static_var) {
+        while (icli_switch_get_next(&switch_range)) {
+            show_header = TRUE;
+            while (icli_switch_port_get_next(&switch_range)) {
+                // Get static entries
+                IP_SOURCE_GUARD_ICLI_entry_info_show(session_id, &show_header, TRUE, &entry, &switch_range);
+            }
+        }
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+// NO_FORM_VARIABLE_BEGIN
+// NO_FORM_VARIABLE_END
+
+// NO_FORM_CODE_BEGIN
+// NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip source binding interface <port_type_id> <vlan_id> <ipv4_ucast> <mac_ucast>
+
+FUNC_NAME = ip_source_binding_entry
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   = defined(VTSS_FEATURE_ACL_V2)
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = source_var
+CMD_VAR   =
+//CMD_VAR   = binding_var
+CMD_VAR   =
+//CMD_VAR   = interface_var
+CMD_VAR   =
+CMD_VAR   = in_port_type_id
+CMD_VAR   = vlan_var
+CMD_VAR   = ipv4_var
+CMD_VAR   = mac_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = source command
+HELP = ip source binding
+HELP = ip source binding entry interface config
+HELP = Select a port id to configure
+HELP = Select a VLAN id to configure
+HELP = Select an IP Address to configure
+HELP = Select a MAC address to configure
+
+VARIABLE_BEGIN
+    int                                         i;
+    vtss_rc                                     rc;
+    ip_source_guard_entry_t                     entry;
+VARIABLE_END
+
+CODE_BEGIN
+
+    for (i = 0; i < 6; i++) {
+        entry.assigned_mac[i] = mac_var.addr[i];
+    }
+    entry.vid = vlan_var;
+    entry.assigned_ip = ipv4_var;
+    entry.isid = in_port_type_id.isid;
+    entry.port_no = in_port_type_id.begin_iport;
+    entry.type = IP_SOURCE_GUARD_STATIC_TYPE;
+    entry.valid = TRUE;
+
+    if ((rc = ip_source_guard_mgmt_conf_set_static_entry(&entry)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+    }
+
+    //ICLI_PRINTF("Port: %u, %d\n", in_port_type_id.isid, in_port_type_id.begin_iport);
+    //ICLI_PRINTF("VLAN: %u\n", vlan_var);
+    //ICLI_PRINTF("MAC: %d.%d.%d.%d.%d.%d\n", mac_var.addr[0], mac_var.addr[1], mac_var.addr[2], mac_var.addr[3], mac_var.addr[4], mac_var.addr[5]);
+    //ICLI_PRINTF("IP: %u\n", ipv4_var);
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+    int                                         i;
+    vtss_rc                                     rc;
+    ip_source_guard_entry_t                     entry;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+
+    for (i = 0; i < 6; i++) {
+        entry.assigned_mac[i] = mac_var.addr[i];
+    }
+    entry.vid = vlan_var;
+    entry.assigned_ip = ipv4_var;
+    entry.isid = in_port_type_id.isid;
+    entry.port_no = in_port_type_id.begin_iport;
+    entry.type = IP_SOURCE_GUARD_STATIC_TYPE;
+    entry.valid = TRUE;
+
+    if ((rc = ip_source_guard_mgmt_conf_del_static_entry(&entry)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+    }
+
+    //ICLI_PRINTF("Port: %u, %d\n", in_port_type_id.isid, in_port_type_id.begin_iport);
+    //ICLI_PRINTF("VLAN: %u\n", vlan_var);
+    //ICLI_PRINTF("MAC: %d.%d.%d.%d.%d.%d\n", mac_var.addr[0], mac_var.addr[1], mac_var.addr[2], mac_var.addr[3], mac_var.addr[4], mac_var.addr[5]);
+    //ICLI_PRINTF("IP: %u\n", ipv4_var);
+
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip source binding interface <port_type_id> <vlan_id> <ipv4_ucast> <ipv4_netmask>
+
+FUNC_NAME = ip_source_binding_entry
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   = defined(VTSS_FEATURE_ACL_V1)
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = source_var
+CMD_VAR   =
+//CMD_VAR   = binding_var
+CMD_VAR   =
+//CMD_VAR   = interface_var
+CMD_VAR   =
+CMD_VAR   = in_port_type_id
+CMD_VAR   = vlan_var
+CMD_VAR   = ipv4_var
+CMD_VAR   = mask_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = source command
+HELP = ip source binding
+HELP = ip source binding entry interface config
+HELP = Select a port id to configure
+HELP = Select a VLAN id to configure
+HELP = Select an IP Address to configure
+HELP = Select a subnet mask to configure
+
+VARIABLE_BEGIN
+    vtss_rc                                     rc;
+    ip_source_guard_entry_t                     entry;
+VARIABLE_END
+
+CODE_BEGIN
+
+    entry.ip_mask = mask_var;
+    entry.vid = vlan_var;
+    entry.assigned_ip = ipv4_var;
+    entry.isid = in_port_type_id.isid;
+    entry.port_no = in_port_type_id.begin_iport;
+    entry.type = IP_SOURCE_GUARD_STATIC_TYPE;
+    entry.valid = TRUE;
+
+    if ((rc = ip_source_guard_mgmt_conf_set_static_entry(&entry)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+    }
+
+    //ICLI_PRINTF("Port: %u, %d\n", in_port_type_id.isid, in_port_type_id.begin_iport);
+    //ICLI_PRINTF("VLAN: %u\n", vlan_var);
+    //ICLI_PRINTF("MAC: %u\n", mask_var);
+    //ICLI_PRINTF("IP: %u\n", ipv4_var);
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+    vtss_rc                                     rc;
+    ip_source_guard_entry_t                     entry;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+
+    entry.ip_mask = mask_var;
+    entry.vid = vlan_var;
+    entry.assigned_ip = ipv4_var;
+    entry.isid = in_port_type_id.isid;
+    entry.port_no = in_port_type_id.begin_iport;
+    entry.type = IP_SOURCE_GUARD_STATIC_TYPE;
+    entry.valid = TRUE;
+
+    if ((rc = ip_source_guard_mgmt_conf_del_static_entry(&entry)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+    }
+
+    //ICLI_PRINTF("Port: %u, %d\n", in_port_type_id.isid, in_port_type_id.begin_iport);
+    //ICLI_PRINTF("VLAN: %u\n", vlan_var);
+    //ICLI_PRINTF("MAC: %u\n", mask_var);
+    //ICLI_PRINTF("IP: %u\n", ipv4_var);
+
+NO_FORM_CODE_END
+CMD_END

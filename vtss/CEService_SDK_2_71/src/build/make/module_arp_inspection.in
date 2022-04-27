@@ -1,0 +1,61 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files Location
+DIR_arp_inspection := $(DIR_APPL)/arp_inspection
+
+# Module objects
+OBJECTS_arp_inspection := arp_inspection.o \
+$(if $(MODULE_VCLI),arp_inspection_cli.o) \
+$(if $(MODULE_WEB),arp_inspection_web.o) \
+$(if $(MODULE_CONF_XML),arp_inspection_xml.o) \
+$(if $(MODULE_ICFG),arp_inspection_icfg.o)
+
+# Built-in ICLI
+$(eval $(call add_icli,$(foreach m, arp_inspection,$(DIR_arp_inspection)/$(m).icli)))
+
+# Compiler rules
+$(OBJECTS_arp_inspection): %.o: $(DIR_arp_inspection)/%.c
+	$(call compile_c, $@, $<)
+
+# Include files
+INCLUDES += -I$(DIR_arp_inspection)
+
+# Web content generation
+WEB_CONTENT += $(DIR_arp_inspection)/html
+
+# Lint files
+LINT_FILES_arp_inspection += $(addprefix $(DIR_arp_inspection)/,$(OBJECTS_arp_inspection:.o=.c))
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_arp_inspection += $(DIR_arp_inspection)/*.c $(DIR_arp_inspection)/*.h
+
+# Tidy files
+TIDY_FILES_arp_inspection += $(DIR_arp_inspection)/html/*.htm $(DIR_arp_inspection)/html/help/*.htm
+
+# JSlint files
+JSLINT_FILES_arp_inspection += $(DIR_arp_inspection)/html/*.htm $(DIR_arp_inspection)/html/help/*.htm
+

@@ -1,0 +1,360 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Static ARP Inspection Table Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_arp_inspection_vlan.htm";
+
+var reqObject;
+var entryIdxArray = Array();
+var vidArray = Array();
+var originalEntriesNum = 0, newEntriesNum = 0;
+var maxEntriesNum = 64;
+var remainedEntriesNum = 64;
+
+var oTLog = Array("None", "Deny", "Permit", "All");
+var oVLog = Array(0, 1, 2, 3);
+
+var LastVlanVal = 0;
+
+function CreateTableHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Delete", "hdrc");
+    addTextHeaderCell(tr, "VLAN ID", "hdrc");
+    addTextHeaderCell(tr, "Log Type", "hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRow(index, frag, values)
+{
+    vidArray[originalEntriesNum] = values[0];
+    originalEntriesNum++;
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addCheckBoxCell(tr, 0, "c", "delete_" + values[0]);
+    addTextCell(tr, values[0], "cr");
+    addTextCell(tr, oTLog[values[1]], "cr");
+    frag.appendChild(tr);       // Add row to fragment
+
+    LastVlanVal = values[0];
+}
+
+function processUpdate(req, ref)
+{
+    //Format: <max_entries_num>,<vid>/<log_type>|...,<remained_entries>
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    originalEntriesNum = newEntriesNum = 0;
+    if (reqObject != req) {
+        reqObject = req;
+    }
+    if (req.responseText) {
+        var configData = req.responseText.split(",");
+        maxEntriesNum = configData[0];
+        var tableData = configData[1].split("|");
+        remainedEntriesNum = configData[2];
+
+        for(var i = 0, j = 0; i < tableData.length; i++) {
+            if(tableData[i]) {
+                addRow(j++, frag, tableData[i].split("/"));
+            }
+        }
+    }
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if(!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+/*
+    // Insert the Global config row.
+    var cBar = new MasterControlBar([{name: "delete_"},
+                                     {text: "*", className: "cr"},
+                                     {text: "*", className: "cr"}
+                                     ]);
+    cBar.construct('inputData', 'config_odd');
+*/
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "inputData");
+}
+
+/*
+function requestUpdate()
+{
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    //loadXMLDoc(SpomAddSidArg("/config/arp_inspection_vlan"), processUpdate, 'inputData');
+    loadXMLDoc("/config/arp_inspection_vlan", processUpdate, 'inputData');
+
+    //SpomUpdateDisplaySid("display_sid");
+    //SpomUpdateFormSid("submit_sid");
+}
+*/
+
+function requestUpdate(type)
+{
+    var fld;
+
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    if (type == "GetFirstEntry") {
+        StartVid_var = 1;
+        loadXMLDoc(SpomAddSidArg("/config/arp_inspection_vlan?DynStartVid=" + StartVid_var  + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value),
+           processUpdate, 'inputData');
+    } else if (type == "NextEntries") {
+        StartVid_var = parseInt(LastVlanVal, 10) + 1;
+        fld = document.getElementById("StartVid");
+        if((parseInt(StartVid_var, 10) >= configVlanIdMin) && (parseInt(StartVid_var, 10) <= configVlanIdMax)) {
+            fld.value = fld.defaultValue = parseInt(StartVid_var, 10);
+            loadXMLDoc(SpomAddSidArg("/config/arp_inspection_vlan?DynStartVid=" + StartVid_var  + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value),
+               processUpdate, 'inputData');
+        } else {
+            alert("The value of VLAN is restricted to 1 - 4095");
+        }
+    } else if (type == "Refresh") {
+        fld = document.getElementById("StartVid");
+        StartVid_var = fld.value;
+        loadXMLDoc(SpomAddSidArg("/config/arp_inspection_vlan?DynStartVid=" + StartVid_var  + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value), processUpdate, 'inputData');
+    } else {
+        StartVid_var = 1;
+        var num_entries = 20;
+        // This happens when the save button is pressed
+		loadXMLDoc(SpomAddSidArg("/config/arp_inspection_vlan?DynStartVid=" + StartVid_var  + "&DynNumberOfEntries=" + num_entries), processUpdate, 'inputData');
+    }
+
+    //SpomUpdateDisplaySid("display_sid");
+    //SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm(form)
+{
+    var fld1, fld2;
+    var i, j;
+
+    //check number of max entries
+    if(newEntriesNum) {
+        var deleteEntriesNum = 0;
+
+        //counter delete entries number
+        for(i = 0; i < originalEntriesNum; i++) {
+            fld1 = document.getElementById("delete_" + vidArray[i]);
+            if(fld1.checked) {
+                deleteEntriesNum++;
+            }
+        }
+
+        if((originalEntriesNum - deleteEntriesNum + newEntriesNum) > maxEntriesNum) {
+            alert("The maximum number of entries is " + maxEntriesNum);
+            return false;
+        }
+    }
+
+    //check new entries's
+    for(i = 0; i < newEntriesNum; i++) {
+        fld2 = document.getElementById("new_vid_"+ entryIdxArray[i]);
+
+        //vid
+        if (fld2) {
+            if(!isWithinRange("new_vid_"+ entryIdxArray[i], 1, 4095, "'VLAN ID'")) {
+                return false;
+            }
+        }
+
+        //check the entry exist in original entries
+        for(j = 0; j < originalEntriesNum; j++) {
+            if(fld2.value == vidArray[j]) {
+                alert("The same entry already exists.");
+                return false;
+            }
+        }
+
+        //check the entry exist in new entries
+        for(j = i + 1; j < newEntriesNum; j++) {
+            if(fld2.value == document.getElementById("new_vid_"+ entryIdxArray[j]).value) {
+                alert("The same entry already exists.");
+                return false;
+            }
+        }
+    }
+
+    return true; // Feed the chickens and go home
+}
+
+function addEntryIdx()
+{
+    var i, fld, validEntriesNum = 0;
+
+    //counter delete entries number
+    for (i = 0; i < originalEntriesNum; i++) {
+        fld = document.getElementById("delete_" + vidArray[i]);
+        if (fld.checked) {
+            validEntriesNum++;
+        }
+    }
+
+   for (i = 1; i <= remainedEntriesNum - validEntriesNum; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newEntriesNum++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById("inputData").removeChild(tr);
+}
+
+function AddNewRow()
+{
+    var edit_ctrl;
+    var entryIdx = addEntryIdx();
+    if (parseInt(entryIdx, 10) === 0) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalEntriesNum + entryIdx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+
+    edit_ctrl = addInputCell(tr, "", "cr", "new_vid_" + entryIdx, 4);
+    edit_ctrl.setAttribute("maxLength", 4);
+
+    addSelectCell(tr, oTLog, oVLog, 0, "cr", "new_log_" + entryIdx);
+
+    frag.appendChild(tr);       // Add row to fragment
+
+    var tbody = document.getElementById("inputData");
+    if(!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    //SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/arp_inspection_vlan" onsubmit="return checkForm(this);">
+
+<h1>VLAN Mode Configuration</h1>
+
+<div class="refreshbar">
+  <input type="button" value="Refresh" onclick="requestUpdate('Refresh'); this.blur();">
+  <input type="button" value=" |<< "   title="First page" onclick="requestUpdate('GetFirstEntry'); this.blur();">
+  <input type="button" value=" >> "    title="Next page" onclick="requestUpdate('NextEntries'); this.blur();">
+</div>
+
+<p class="config">
+  <span class="displaytext">Start from VLAN</span>
+  <input type="text" id="StartVid" name="StartVid" maxlength="4" value="1" size = "5">
+  <span class="displaytext"> with </span>
+  <input type="text" id="NumberOfEntries" name="NumberOfEntries" maxlength="4" value = "20" size = "4">
+  <span class="displaytext"> entries per page. </span>
+</p>
+
+<table id="vlanTable" summary="VLAN Mode Configuration" cellspacing="0" class="config">
+ <tbody id="inputData">
+ </tbody>
+</table>
+
+<p>
+<input type="button" id="addNewEntry" value="Add New Entry" onclick="AddNewRow();">
+</p>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,855 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =  defined(VTSS_SW_OPTION_ACCESS_MGMT)
+
+INCLUDE_BEGIN
+#include "icli_porting_help.h"
+#include "icli_porting_util.h"
+#include "access_mgmt_api.h"
+#include "misc_api.h"
+#include "vlan_api.h"
+
+/*lint --e{438, 550} */
+//(438) Last value assigned to variable 'xxx' not used - It is occured the runtime option.
+//(550) Symbol 'xxx' not accessed - It is occured the runtime option.
+INCLUDE_END
+
+FUNCTION_BEGIN
+#define ACCESS_MGMT_ICLI_BUF_SIZE    80
+
+// Protected by ICLI thread
+/*lint -esym(459,ACCESS_MGMT_ICLI_runtime_access_id_init) */
+/*lint -esym(459,ACCESS_MGMT_ICLI_runtime_access_id_txt) */
+static BOOL ACCESS_MGMT_ICLI_runtime_access_id(u32                session_id,
+                                              icli_runtime_ask_t ask,
+                                              icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_BYWORD:
+        icli_sprintf(runtime->byword, "<AccessId : %u-%u>", ACCESS_MGMT_ACCESS_ID_START, ACCESS_MGMT_MAX_ENTRIES);
+        return TRUE;
+    case ICLI_ASK_RANGE:
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt = 1;
+        runtime->range.u.sr.range[0].min = ACCESS_MGMT_ACCESS_ID_START;
+        runtime->range.u.sr.range[0].max = ACCESS_MGMT_MAX_ENTRIES;
+        return TRUE; 
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+// Protected by ICLI thread
+/*lint -esym(459,ACCESS_MGMT_ICLI_runtime_access_id_list_init) */
+/*lint -esym(459,ACCESS_MGMT_ICLI_runtime_access_id_list_txt) */
+static BOOL ACCESS_MGMT_ICLI_runtime_access_id_list(u32                session_id,
+                                                    icli_runtime_ask_t ask,
+                                                    icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_BYWORD:
+        icli_sprintf(runtime->byword, "<AccessIdList : %u~%u>", ACCESS_MGMT_ACCESS_ID_START, ACCESS_MGMT_MAX_ENTRIES);
+        return TRUE;
+    case ICLI_ASK_RANGE:
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt = 1;
+        runtime->range.u.sr.range[0].min = ACCESS_MGMT_ACCESS_ID_START;
+        runtime->range.u.sr.range[0].max = ACCESS_MGMT_MAX_ENTRIES;
+        return TRUE; 
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+// Protected by ICLI thread
+/*lint -esym(459, _init) */
+/*lint -esym(459,ACCESS_MGMT_ICLI_runtime_access_vid_txt) */
+static BOOL ACCESS_MGMT_ICLI_runtime_access_vid(u32                session_id,
+                                                icli_runtime_ask_t ask,
+                                                icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+        runtime->present = TRUE;
+        return TRUE;
+
+    case ICLI_ASK_BYWORD:
+        icli_sprintf(runtime->byword, "<AccessVid : %u-%u>", VLAN_ID_MIN, VLAN_ID_MAX);
+        return TRUE;
+    case ICLI_ASK_HELP:
+        break;
+    case ICLI_ASK_RANGE:
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt = 1;
+        runtime->range.u.sr.range[0].min = VLAN_ID_MIN;
+        runtime->range.u.sr.range[0].max = VLAN_ID_MAX;
+        return TRUE;
+
+    default :
+        break;
+    }
+
+    return FALSE;
+}
+
+static BOOL ACCESS_MGMT_ICLI_runtime_has_web(u32                session_id,
+                                             icli_runtime_ask_t ask,
+                                             icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_SW_OPTION_WEB) || defined(VTSS_SW_OPTION_HTTPS)
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif /* VTSS_SW_OPTION_WEB || VTSS_SW_OPTION_HTTPS */
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL ACCESS_MGMT_ICLI_runtime_has_telnet(u32                session_id,
+                                                icli_runtime_ask_t ask,
+                                                icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_SW_OPTION_TELNET) || defined(VTSS_SW_OPTION_SSH)
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif /* VTSS_SW_OPTION_CLI_TELNET || VTSS_SW_OPTION_SSH */
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL ACCESS_MGMT_ICLI_runtime_has_snmp(u32                session_id,
+                                              icli_runtime_ask_t ask,
+                                              icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_SW_OPTION_SNMP)
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif /* VTSS_SW_OPTION_SNMP */
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+static void ACCESS_MGMT_ICLI_entry_show(u32 session_id,
+                                        int access_id,
+                                        access_mgmt_entry_t *entry_p)
+{
+    char        ip_buf1[ACCESS_MGMT_ICLI_BUF_SIZE], ip_buf2[ACCESS_MGMT_ICLI_BUF_SIZE];
+
+    if (!entry_p->valid) {
+        return;
+    }
+
+    //access_id
+    ICLI_PRINTF("%-3d ", access_id);
+
+    //access_vid
+    ICLI_PRINTF("%-4d ", entry_p->vid);
+
+    //address
+#if defined(VTSS_SW_OPTION_IPV6)
+    ICLI_PRINTF("%-31s %-30s ",
+                entry_p->entry_type == ACCESS_MGMT_ENTRY_TYPE_IPV4 ? misc_ipv4_txt(entry_p->start_ip, ip_buf1) : misc_ipv6_txt(&entry_p->start_ipv6, ip_buf1),
+                entry_p->entry_type == ACCESS_MGMT_ENTRY_TYPE_IPV4 ? misc_ipv4_txt(entry_p->end_ip,   ip_buf2) : misc_ipv6_txt(&entry_p->end_ipv6,   ip_buf2));
+#else
+    ICLI_PRINTF("%-16s %-15s ",
+                misc_ipv4_txt(entry_p->start_ip, ip_buf1),
+                misc_ipv4_txt(entry_p->end_ip,   ip_buf2));
+#endif /* VTSS_SW_OPTION_IPV6 */
+
+    //service
+#if defined(VTSS_SW_OPTION_WEB) || defined(VTSS_SW_OPTION_HTTPS)
+    ICLI_PRINTF("%s ", entry_p->service_type & ACCESS_MGMT_SERVICES_TYPE_WEB ? "Y" : "N");
+#endif /* VTSS_SW_OPTION_WEB || VTSS_SW_OPTION_HTTPS */
+
+#if defined(VTSS_SW_OPTION_SNMP)
+    ICLI_PRINTF("%s ", entry_p->service_type & ACCESS_MGMT_SERVICES_TYPE_SNMP ? "Y" : "N");
+#endif /* VTSS_SW_OPTION_SNMP */
+
+#if defined(VTSS_SW_OPTION_CLI_TELNET) || defined(VTSS_SW_OPTION_SSH)
+    ICLI_PRINTF("%s ", entry_p->service_type & ACCESS_MGMT_SERVICES_TYPE_TELNET ? "Y" : "N");
+#endif /* VTSS_SW_OPTION_CLI_TELNET || VTSS_SW_OPTION_SSH */
+
+    ICLI_PRINTF("\n");
+}
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_ACCESS     = Access management
+HELP_MANAGEMENT = Access management configuration
+HELP_ACCESS_VID = The VLAN ID for the access management entry 
+HELP_ACCESS_ID = ID of access management entry
+HELP_TO        = End address of the range
+HELP_STATISTICS = Statistics data
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show access management [ statistics | <1~16> ]
+
+DOC_CMD_DESC    = Use the show access management user EXEC command without \
+                  keywords to display the access management configuration, \
+                  or use the statistics keyword to display statistics, \
+                  or use the <AccessId> keyword to display the specific access management entry.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Expressions are case sensitive. For example, if you enter | exclude output, the lines that contain output do not appear, but the lines that contain Output appear.
+DOC_CMD_EXAMPLE = This is an example of output from the show access management command:
+DOC_CMD_EXAMPLE = Switch# show access management
+DOC_CMD_EXAMPLE = Switch access management mode is disabled
+DOC_CMD_EXAMPLE = W: WEB/HTTPS
+DOC_CMD_EXAMPLE = S: SNMP
+DOC_CMD_EXAMPLE = T: TELNET/SSH
+DOC_CMD_EXAMPLE = Idx VID  Start IP Address End IP Address  W S T
+DOC_CMD_EXAMPLE = --- ---  ---------------- --------------- - - -
+DOC_CMD_EXAMPLE = 1   1    192.168.0.1      192.168.0.254   Y N N
+
+FUNC_NAME = icli_access_mgmt_show
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = ACCESS_MGMT_ICLI_runtime_access_id_list
+
+! 1: show
+! 2: access
+! 3: management
+! 4: statistics
+! 5: <access_id_list:1~16>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = b_stat
+CMD_VAR = access_id_list
+
+HELP    = ##ICLI_HELP_SHOW
+HELP    = ##HELP_ACCESS
+HELP    = ##HELP_MANAGEMENT
+HELP    = ##HELP_STATISTICS
+HELP    = ##HELP_ACCESS_ID
+
+BYWORD  = 
+BYWORD  =
+BYWORD  =
+BYWORD  =
+BYWORD  = <AccessIdList : 1~16>
+
+VARIABLE_BEGIN
+    access_mgmt_conf_t  conf;
+    u32                 range_idx;
+    int                 access_idx;
+    access_mgmt_stats_t stats;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( b_stat ) {
+        access_mgmt_stats_get(&stats);
+
+        ICLI_PRINTF("\nAccess Management Statistics:");
+        ICLI_PRINTF("\n-----------------------------");
+#if defined(VTSS_SW_OPTION_WEB)
+        ICLI_PRINTF("\nHTTP     Receive: %10u    Allow: %10u    Discard: %10u",     stats.http_receive_cnt,      stats.http_receive_cnt      - stats.http_discard_cnt,   stats.http_discard_cnt);
+#endif /* VTSS_SW_OPTION_WEB */
+#if defined(VTSS_SW_OPTION_HTTPS)
+        ICLI_PRINTF("\nHTTPS    Receive: %10u    Allow: %10u    Discard: %10u",     stats.https_receive_cnt,     stats.https_receive_cnt     - stats.https_discard_cnt,  stats.https_discard_cnt);
+#endif /* VTSS_SW_OPTION_HTTPS */
+#if defined(VTSS_SW_OPTION_SNMP)
+        ICLI_PRINTF("\nSNMP     Receive: %10u    Allow: %10u    Discard: %10u",     stats.snmp_receive_cnt,      stats.snmp_receive_cnt      - stats.snmp_discard_cnt,   stats.snmp_discard_cnt);
+#endif /* VTSS_SW_OPTION_SNMP */
+#if defined(VTSS_SW_OPTION_CLI_TELNET)
+        ICLI_PRINTF("\nTELNET   Receive: %10u    Allow: %10u    Discard: %10u",     stats.telnet_receive_cnt,    stats.telnet_receive_cnt    - stats.telnet_discard_cnt, stats.telnet_discard_cnt);
+#endif /* VTSS_SW_OPTION_CLI_TELNET */
+#if defined(VTSS_SW_OPTION_SSH)
+        ICLI_PRINTF("\nSSH      Receive: %10u    Allow: %10u    Discard: %10u\n",   stats.ssh_receive_cnt,       stats.ssh_receive_cnt       - stats.ssh_discard_cnt,    stats.ssh_discard_cnt);
+#endif /* VTSS_SW_OPTION_SSH */
+        return ICLI_RC_OK;
+    }
+
+    ICLI_RC_CHECK(access_mgmt_conf_get(&conf), "%% Failed to get access management configuration.\n");
+    ICLI_PRINTF("Switch access management mode is %s\n", icli_bool_txt(conf.mode));
+
+    //access management entry header
+    ICLI_PRINTF("\n");
+#if defined(VTSS_SW_OPTION_WEB) || defined(VTSS_SW_OPTION_HTTPS)
+    ICLI_PRINTF("W: WEB/HTTPS\n");
+#endif /* VTSS_SW_OPTION_WEB || VTSS_SW_OPTION_HTTPS */
+#if defined(VTSS_SW_OPTION_SNMP)
+    ICLI_PRINTF("S: SNMP\n");
+#endif /* VTSS_SW_OPTION_SNMP */
+#if defined(VTSS_SW_OPTION_CLI_TELNET) || defined(VTSS_SW_OPTION_SSH)
+    ICLI_PRINTF("T: TELNET/SSH\n\n");
+#endif /* VTSS_SW_OPTION_CLI_TELNET || VTSS_SW_OPTION_SSH */
+
+#if defined(VTSS_SW_OPTION_IPV6)
+    ICLI_PRINTF("Idx VID  Start IP Address                End IP Address                 ");
+#if defined(VTSS_SW_OPTION_WEB) || defined(VTSS_SW_OPTION_HTTPS)
+    ICLI_PRINTF("W ");
+#endif /* VTSS_SW_OPTION_WEB || VTSS_SW_OPTION_HTTPS */
+#if defined(VTSS_SW_OPTION_SNMP)
+    ICLI_PRINTF("S ");
+#endif /* VTSS_SW_OPTION_SNMP */
+#if defined(VTSS_SW_OPTION_CLI_TELNET) || defined(VTSS_SW_OPTION_SSH)
+    ICLI_PRINTF("T ");
+#endif /* VTSS_SW_OPTION_CLI_TELNET || VTSS_SW_OPTION_SSH */
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("--- ---  ------------------------------- ------------------------------ ");
+#if defined(VTSS_SW_OPTION_WEB) || defined(VTSS_SW_OPTION_HTTPS)
+    ICLI_PRINTF("- ");
+#endif /* VTSS_SW_OPTION_WEB || VTSS_SW_OPTION_HTTPS */
+#if defined(VTSS_SW_OPTION_SNMP)
+    ICLI_PRINTF("- ");
+#endif /* VTSS_SW_OPTION_SNMP */
+#if defined(VTSS_SW_OPTION_CLI_TELNET) || defined(VTSS_SW_OPTION_SSH)
+    ICLI_PRINTF("- ");
+#endif /* VTSS_SW_OPTION_CLI_TELNET || VTSS_SW_OPTION_SSH */
+    ICLI_PRINTF("\n");
+#else
+    ICLI_PRINTF("Idx VID  Start IP Address End IP Address  ");
+#if defined(VTSS_SW_OPTION_WEB) || defined(VTSS_SW_OPTION_HTTPS)
+    ICLI_PRINTF("W ");
+#endif /* VTSS_SW_OPTION_WEB || VTSS_SW_OPTION_HTTPS */
+#if defined(VTSS_SW_OPTION_SNMP)
+    ICLI_PRINTF("S ");
+#endif /* VTSS_SW_OPTION_SNMP */
+#if defined(VTSS_SW_OPTION_CLI_TELNET) || defined(VTSS_SW_OPTION_SSH)
+    ICLI_PRINTF("T ");
+#endif /* VTSS_SW_OPTION_CLI_TELNET || VTSS_SW_OPTION_SSH */
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("--- ---  ---------------- --------------- ");
+#if defined(VTSS_SW_OPTION_WEB) || defined(VTSS_SW_OPTION_HTTPS)
+    ICLI_PRINTF("- ");
+#endif /* VTSS_SW_OPTION_WEB || VTSS_SW_OPTION_HTTPS */
+#if defined(VTSS_SW_OPTION_SNMP)
+    ICLI_PRINTF("- ");
+#endif /* VTSS_SW_OPTION_SNMP */
+#if defined(VTSS_SW_OPTION_CLI_TELNET) || defined(VTSS_SW_OPTION_SSH)
+    ICLI_PRINTF("- ");
+#endif /* VTSS_SW_OPTION_CLI_TELNET || VTSS_SW_OPTION_SSH */
+    ICLI_PRINTF("\n");
+#endif /* VTSS_SW_OPTION_IPV6 */
+
+    if (access_id_list) {
+        for (range_idx = 0; range_idx < access_id_list->cnt; range_idx++) {
+            for (access_idx = (int) access_id_list->range[range_idx].min; access_idx <= (int) access_id_list->range[range_idx].max; access_idx++) {
+                ACCESS_MGMT_ICLI_entry_show(session_id, access_idx, &conf.entry[access_idx]);
+            }
+        }
+    } else { //show specific entry
+        for (access_idx = ACCESS_MGMT_ACCESS_ID_START; access_idx < ACCESS_MGMT_MAX_ENTRIES + ACCESS_MGMT_ACCESS_ID_START; access_idx++) {
+            ACCESS_MGMT_ICLI_entry_show(session_id, access_idx, &conf.entry[access_idx]);
+        }
+    }    
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear access management statistics
+
+DOC_CMD_DESC    = Use the clear access management statistics privileged EXEC \
+                  command to clear the statistics maintained by access management.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Clear all access management statistics.
+DOC_CMD_EXAMPLE = This example shows how to clear access management statistics:
+DOC_CMD_EXAMPLE = Switch# clear access management statistics
+DOC_CMD_EXAMPLE = You can verify that the information was deleted by entering the show access management statistics user EXEC command.
+
+FUNC_NAME = icli_access_mgmt_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: clear
+! 2: access
+! 3: management
+! 4: statistics
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_CLEAR
+HELP = ##HELP_ACCESS
+HELP = ##HELP_MANAGEMENT
+HELP = ##HELP_STATISTICS
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    access_mgmt_stats_clear();
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = access management
+
+DOC_CMD_DESC    = Use the access management global configuration command to \
+                  enable the access management. Use the no form of this \
+                  command to disable the access management.
+DOC_CMD_DEFAULT = The access management is disabled.
+DOC_CMD_USAGE   = Enable the access management.
+DOC_CMD_EXAMPLE = This example shows how to enable the access management:
+DOC_CMD_EXAMPLE = Switch(config)# access management
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show access management user EXEC command.
+
+NO_FORM_DOC_CMD_DESC    = Use the no access management global configuration command to \
+                          disable the access management.
+NO_FORM_DOC_CMD_DEFAULT = The access management is disabled.
+NO_FORM_DOC_CMD_USAGE   = Disable the access management.
+NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable the access management:
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# no access management
+NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show access management user EXEC command.
+
+FUNC_NAME = icli_access_mgmt_mode
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: access
+! 2: management
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##HELP_ACCESS
+HELP = ##HELP_MANAGEMENT
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    access_mgmt_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_RC_CHECK(access_mgmt_conf_get(&conf), "%% Failed to get access management configuration.\n");
+    conf.mode = TRUE;
+    ICLI_RC_CHECK(access_mgmt_conf_set(&conf), "%% Failed to set access management configuration.\n");
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+    access_mgmt_conf_t conf;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    ICLI_RC_CHECK(access_mgmt_conf_get(&conf), "%% Failed to get access management configuration.\n");
+    conf.mode = FALSE;
+    ICLI_RC_CHECK(access_mgmt_conf_set(&conf), "%% Failed to set access management configuration.\n");
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = access management <1-16> <1-4094> <ipv4_addr> [ to <ipv4_addr> ] { [ web ] [ snmp ] [ telnet ] | all }
+
+DOC_CMD_DESC    = Use the access management <AccessId> global configuration command \
+                  to set the access management entry for IPv4 address.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Set the specific access management entry for IPv4 address.
+DOC_CMD_EXAMPLE = This example shows how to set the access management ID 1:
+DOC_CMD_EXAMPLE = Switch(config)# access management 1 192.168.0.1 to 192.168.0.254 all
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show access management privileged EXEC command.
+
+FUNC_NAME = icli_access_mgmt_entry_add_ipv4
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = ACCESS_MGMT_ICLI_runtime_access_id
+RUNTIME = ACCESS_MGMT_ICLI_runtime_access_vid
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = ACCESS_MGMT_ICLI_runtime_has_web
+RUNTIME = ACCESS_MGMT_ICLI_runtime_has_snmp
+RUNTIME = ACCESS_MGMT_ICLI_runtime_has_telnet
+RUNTIME = 
+
+! 1: access
+! 2: management
+! 3: <access-id:1-16>
+! 4: <access_vid:1-4094>
+! 5: <addr_range_start:ipv4_addr>
+! 6: to
+! 7: <addr_range_end:ipv4_addr>
+! 8: web
+! 9: snmp
+! 10: telnet
+! 11: all
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = access_id
+CMD_VAR = access_vid
+CMD_VAR = start_addr
+CMD_VAR = b_to
+CMD_VAR = end_addr
+CMD_VAR = b_web
+CMD_VAR = b_snmp
+CMD_VAR = b_telnet
+CMD_VAR = has_all
+
+HELP = ##HELP_ACCESS
+HELP = ##HELP_MANAGEMENT
+HELP = ##HELP_ACCESS_ID
+HELP = ##HELP_ACCESS_VID
+HELP = Start IPv4 address
+HELP = ##HELP_TO
+HELP = End IPv4 address
+HELP = Web service
+HELP = SNMP service
+HELP = TELNET/SSH service
+HELP = All services
+
+BYWORD = 
+BYWORD = 
+BYWORD = <AccessId : 1-16>
+BYWORD = <AccessVid : 1-4094>
+BYWORD = <AddrRangeStart : ipv4_addr>
+BYWORD = <To : option>
+BYWORD = <AddrRangeEnd : ipv4_addr>
+BYWORD = <Web : option>
+BYWORD = <Snmp : option>
+BYWORD = <Telnet : option>
+BYWORD = <All : option>
+
+VARIABLE_BEGIN
+    access_mgmt_entry_t conf;
+    int                 duplicated_id;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf, 0x0, sizeof(conf));
+
+    //addresses
+    conf.valid      = 1;
+    conf.vid        = access_vid;
+    conf.entry_type = ACCESS_MGMT_ENTRY_TYPE_IPV4;
+    conf.start_ip   = (b_to && start_addr > end_addr) ? end_addr : start_addr;
+    conf.end_ip     = (b_to && start_addr < end_addr) ? end_addr : start_addr;
+
+    //valid parameter checking
+    if (!has_all && !b_web && !b_snmp && !b_telnet) {
+        ICLI_PRINTF("%% At least one service must be selected.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    //services
+    if (has_all || b_web) {
+        conf.service_type |= ACCESS_MGMT_SERVICES_TYPE_WEB;
+    }
+    if (has_all ||  b_snmp) {
+        conf.service_type |= ACCESS_MGMT_SERVICES_TYPE_SNMP;
+    }
+    if (has_all || b_telnet) {
+        conf.service_type |= ACCESS_MGMT_SERVICES_TYPE_TELNET;
+    }
+
+    //check if duplicated
+    duplicated_id = access_mgmt_entry_content_is_duplicated((int) access_id, &conf);
+    if (duplicated_id) {
+        ICLI_PRINTF("%% This access management content is duplicated with ID %d.\n", duplicated_id);
+        return ICLI_RC_ERROR;
+    }
+
+    //set access management entry
+    if (access_mgmt_entry_add((int)access_id, &conf) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to set access management ID %d.\n", access_id);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_IPV6)
+
+COMMAND = access management <1-16> <1-4094> <ipv6_addr> [ to <ipv6_addr> ] { [ web ] [ snmp ] [ telnet ] | all }
+
+DOC_CMD_DESC    = Use the access management <AccessId> global configuration command \
+                  to set the access management entry for IPv6 address.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Set the specific access management entry for IPv6 address.
+DOC_CMD_EXAMPLE = This example shows how to set the access management ID 1:
+DOC_CMD_EXAMPLE = Switch(config)# access management 1 fe80:1::ce5d:4eff:fe97:1 to fe80:1::ce5d:4eff:fe97:ffff all
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show access management privileged EXEC command.
+
+FUNC_NAME = icli_access_mgmt_entry_add_ipv6
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME =
+RUNTIME =
+RUNTIME = ACCESS_MGMT_ICLI_runtime_access_id
+RUNTIME = ACCESS_MGMT_ICLI_runtime_access_vid
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = ACCESS_MGMT_ICLI_runtime_has_web
+RUNTIME = ACCESS_MGMT_ICLI_runtime_has_snmp
+RUNTIME = ACCESS_MGMT_ICLI_runtime_has_telnet
+RUNTIME =
+
+! 1: access
+! 2: management
+! 3: <access_id:1-16>
+! 4: <access_vid:1-4094>
+! 5: <addr_range_start:ipv6_addr>
+! 6: to
+! 7: <addr_range_end:ipv6_addr>
+! 8: web
+! 9: snmp
+! 10: telnet
+! 11: all
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = access_id
+CMD_VAR = access_vid
+CMD_VAR = start_addr
+CMD_VAR = b_to
+CMD_VAR = end_addr
+CMD_VAR = b_web
+CMD_VAR = b_snmp
+CMD_VAR = b_telnet
+CMD_VAR = has_all
+
+HELP = ##HELP_ACCESS
+HELP = ##HELP_MANAGEMENT
+HELP = ##HELP_ACCESS_ID
+HELP = ##HELP_ACCESS_VID
+HELP = Start IPv6 address
+HELP = ##HELP_TO
+HELP = End IPv6 address
+HELP = Web service
+HELP = SNMP service
+HELP = TELNET/SSH service
+HELP = All services
+
+BYWORD = 
+BYWORD = 
+BYWORD = <AccessId : 1-16>
+BYWORD = <AccessVid : 1-4094>
+BYWORD = <AddrRangeStart : ipv6_addr>
+BYWORD = <To : option>
+BYWORD = <AddrRangeEnd : ipv6_addr>
+BYWORD = <Web : option>
+BYWORD = <Snmp : option>
+BYWORD = <Telnet : option>
+BYWORD = <All : option>
+
+VARIABLE_BEGIN
+    access_mgmt_entry_t conf;
+    int                 duplicated_id;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf, 0x0, sizeof(conf));
+
+    //addresses
+    conf.valid      = 1;
+    conf.vid        = access_vid;
+    conf.entry_type = ACCESS_MGMT_ENTRY_TYPE_IPV6;
+    conf.start_ipv6 = (b_to && (memcmp(&start_addr, &end_addr, sizeof(vtss_ipv6_t)) > 0)) ? end_addr : start_addr;
+    conf.end_ipv6   = (b_to && (memcmp(&end_addr, &start_addr, sizeof(vtss_ipv6_t)) > 0)) ? end_addr : start_addr;
+
+    //valid parameter checking    
+    if (!has_all && !b_web && !b_snmp && !b_telnet) {
+        ICLI_PRINTF("%% At least one service must be selected.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    //services
+    if (has_all || b_web) {
+        conf.service_type |= ACCESS_MGMT_SERVICES_TYPE_WEB;
+    }
+    if (has_all || b_snmp) {
+        conf.service_type |= ACCESS_MGMT_SERVICES_TYPE_SNMP;
+    }
+    if (has_all || b_telnet) {
+        conf.service_type |= ACCESS_MGMT_SERVICES_TYPE_TELNET;
+    }
+
+    //check if duplicated
+    duplicated_id = access_mgmt_entry_content_is_duplicated((int)access_id, &conf);
+    if (duplicated_id) {
+        ICLI_PRINTF("%% This access management content is duplicated with ID %d\n", duplicated_id);
+        return ICLI_RC_ERROR;
+    }
+
+    //set access management entry
+    if (access_mgmt_entry_add((int)access_id, &conf) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to set access management ID %d.\n", access_id);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no access management <1~16>
+
+DOC_CMD_DESC    = Use the no access management <AccessIdList> global configuration command \
+                  to delete the specific access management entry.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Delete the specific access management entry.
+DOC_CMD_EXAMPLE = This example shows how to delete the access management ID 1:
+DOC_CMD_EXAMPLE = Switch(config)# no access management 1
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show access management privileged EXEC command.
+
+FUNC_NAME = icli_access_mgmt_entry_del
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = ACCESS_MGMT_ICLI_runtime_access_id_list
+
+! 1: no
+! 2: access
+! 3: management
+! 4: <access_id_list:1~16>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = access_id_list
+
+HELP = ##ICLI_HELP_NO
+HELP = ##HELP_ACCESS
+HELP = ##HELP_MANAGEMENT
+HELP = ##HELP_ACCESS_ID
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <AccessIdList : 1~16>
+
+VARIABLE_BEGIN
+    u32 i;
+    u32 access_id;
+VARIABLE_END
+
+CODE_BEGIN
+    for ( i = 0; i < access_id_list->cnt; i++ ) {
+        for ( access_id = access_id_list->range[i].min; access_id <= access_id_list->range[i].max; access_id++ ) {
+            (void)access_mgmt_entry_del( (int)access_id );
+        }
+    }
+CODE_END
+
+CMD_END
+

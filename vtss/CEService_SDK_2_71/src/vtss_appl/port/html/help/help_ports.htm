@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Port Configuration Help</h1>
+
+<p>This page displays current port configurations. Ports can also be configured here.</p>
+
+<p class="SPOM_only">The port settings relate to the currently
+selected stack unit, as reflected by the page header.</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>
+ This is the logical port number for this row.
+ </dd>
+
+ <dt>Link</dt>
+ <dd>
+ The current link state is displayed graphically. Green indicates the link is up and red that it is down.
+ </dd>
+
+ <dt>Current Link Speed</dt>
+ <dd>
+ Provides the current link speed of the port.
+ </dd>
+
+ <dt>Configured Link Speed</dt>
+ <dd>
+ Selects any available link speed for the given switch port. Only speeds
+ supported by the specific port is shown.
+ Possible speeds are:
+ <br><samp>Disabled</samp> - Disables the switch port operation.
+ <br><samp>Auto</samp> - Port auto negotiating speed with the link partner
+ and selects the highest speed that is compatible with the link partner. 
+ <br><samp>10Mbps HDX</samp> - Forces the cu port in 10Mbps half duplex
+ mode.
+ <br><samp>10Mbps FDX</samp> - Forces the cu port in 10Mbps full duplex mode.
+ <br><samp>100Mbps HDX</samp> - Forces the cu port in 100Mbps half duplex
+ mode.
+ <br><samp>100Mbps FDX</samp> - Forces the cu port in 100Mbps full duplex mode.
+ <br><samp>1Gbps FDX</samp> - Forces the port in 1Gbps full duplex
+ <br><samp>2.5Gbps FDX</samp> - Forces the Serdes port in 2.5Gbps full duplex
+ mode.
+ </dd>
+
+ <dd class="PORT_FIBER_CTRL">
+  <br><samp>SFP_Auto_AMS</samp> - Automatically determines the speed of the SFP. Note: There is no standardized way to
+ do SFP auto detect, so here it is done by reading the SFP rom. Due to
+ the missing standardized way of doing SFP auto detect some SFPs might
+ not be detectable. The port is set in <a href="glossary.htm#ams" class="glossary">AMS</a> mode. Cu port
+ is set in <b>Auto</b> mode.
+  <br><samp>100-FX</samp> - SFP port in 100-FX speed. Cu port disabled.
+  <br><samp>100-FX_AMS</samp> - Port in <a href="glossary.htm#ams" class="glossary">AMS</a> mode.
+  SFP port in 100-FX speed. Cu port in <b>Auto</b> mode.
+  <br><samp>1000-X</samp> - SFP port in 1000-X speed. Cu port disabled.
+  <br><samp>1000-X_AMS</samp> - Port in <a href="glossary.htm#ams" class="glossary">AMS</a> mode.
+  SFP port in 1000-X speed. Cu port in <b>Auto</b> mode.
+
+ <dd class="PORT_1000X_AMS_COPPER_PREFERRED">
+   Ports in AMS mode with 1000-X speed has Cu port preferred.
+ </dd>
+
+ <dd class="PORT_100FX_AMS_COPPER_PREFERRED">
+   Ports in AMS mode with 100-FX speed has Cu port preferred.
+ </dd>
+
+ <dd class="PORT_1000X_AMS_FIBER_PREFERRED">
+   Ports in AMS mode with 1000-X speed has fiber port preferred.
+ </dd>
+
+ <dd class="PORT_100FX_AMS_FIBER_PREFERRED">
+   Ports in AMS mode with 100-FX speed has fiber port preferred.
+ </dd>
+
+
+ <dt class="PORT_FLOW_CTRL">Flow Control</dt>
+ <dd class="PORT_FLOW_CTRL">
+ When <samp>Auto Speed</samp> is selected on a port, this section
+indicates the flow control capability that is advertised to the link
+partner.  <br>When a fixed-speed setting is selected, that is what is
+used.  The Current Rx column indicates whether pause frames on the
+port are obeyed, and the Current Tx column indicates whether pause
+frames on the port are transmitted. The Rx and Tx settings are
+determined by the result of the last
+<a href="glossary.htm#autoneg" class="glossary">Auto-Negotiation</a>.<br>Check the configured column to use
+flow control. This setting is related to the setting for Configured
+Link Speed.
+ </dd>
+
+ <dt>Maximum Frame Size</dt>
+ <dd>
+ Enter the maximum frame size allowed for the switch port, including FCS.
+ </dd>
+
+ <dt class="PORT_EXC_CONT">Excessive Collision Mode</dt>
+ <dd class="PORT_EXC_CONT">
+  Configure port transmit collision behavior.
+  <br><samp>Discard</samp>: Discard frame after 16 collisions (default).
+  <br><samp>Restart</samp>: Restart backoff algorithm after 16 collisions.
+ </dd>
+
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page. Any changes made locally will be undone.</p>
+
+</body>
+</html>

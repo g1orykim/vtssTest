@@ -1,0 +1,307 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse sFlow software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>sFlow Statistics</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Refresh timer
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_sflow_status.htm";
+
+var PARM_IDX_RCVR_OWNER              = 0;
+var PARM_IDX_RCVR_TIMEOUT            = 1;
+var PARM_IDX_RCVR_HOSTNAME           = 2;
+var PARM_IDX_RCVR_OK_DATAGRAM_CNT    = 3;
+var PARM_IDX_RCVR_ERR_DATAGRAM_CNT   = 4;
+var PARM_IDX_RCVR_FLOW_SAMPLE_CNT    = 5;
+var PARM_IDX_RCVR_COUNTER_SAMPLE_CNT = 6;
+var PARM_RCVR_CNT                    = PARM_IDX_RCVR_COUNTER_SAMPLE_CNT + 1;
+
+var PARM_IDX_PORT_NUMBER             = 0;
+var PARM_IDX_PORT_RX_FLOW_SAMPLE_CNT = 1;
+var PARM_IDX_PORT_TX_FLOW_SAMPLE_CNT = 2;
+var PARM_IDX_PORT_COUNTER_SAMPLE_CNT = 3;
+var PARM_PORT_CNT                    = PARM_IDX_PORT_COUNTER_SAMPLE_CNT + 1;
+
+//------------------------------------------------------------------------------
+// create_tr()
+//------------------------------------------------------------------------------
+function create_tr(row)
+{
+  return CreateStyledElement("tr", (row % 2) ? "display_odd" : "display_even");
+}
+
+//------------------------------------------------------------------------------
+// add_receiver()
+//------------------------------------------------------------------------------
+function add_receiver(rcvr_values)
+{
+  var tr;
+  var frag = document.createDocumentFragment();
+  var row = 0;
+
+  // Owner
+  var owner_str = unescape(rcvr_values[PARM_IDX_RCVR_OWNER]);
+  if (owner_str.length === 0) {
+    owner_str = "<none>";
+  }
+  tr = create_tr(row++);
+  addTypedTextCell(tr, "td", "Owner", "param_label");
+  addTextCell(tr, owner_str, "cl");
+  frag.appendChild(tr);
+
+  // Hostname/IP Address.
+  tr = create_tr(row++);
+  var str = "IP Address";
+  if (configIPDNSSupport) {
+    str += "/Hostname";
+  }
+  addTypedTextCell(tr, "td", str, "param_label");
+  addTextCell(tr, unescape(rcvr_values[PARM_IDX_RCVR_HOSTNAME]), "cl");
+  frag.appendChild(tr);
+
+  // Timeout (seconds left)
+  tr = create_tr(row++);
+  addTypedTextCell(tr, "td", "Timeout", "param_label");
+  addTextCell(tr, rcvr_values[PARM_IDX_RCVR_TIMEOUT], "cl");
+  frag.appendChild(tr);
+
+  // OK Datagrams
+  tr = create_tr(row++);
+  addTypedTextCell(tr, "td", "Tx Successes", "param_label");
+  addTextCell(tr, rcvr_values[PARM_IDX_RCVR_OK_DATAGRAM_CNT], "cl");
+  frag.appendChild(tr);
+
+  // Tx Errors
+  tr = create_tr(row++);
+  addTypedTextCell(tr, "td", "Tx Errors", "param_label");
+  addTextCell(tr, rcvr_values[PARM_IDX_RCVR_ERR_DATAGRAM_CNT], "cl");
+  frag.appendChild(tr);
+
+  // Flow sample count
+  tr = create_tr(row++);
+  addTypedTextCell(tr, "td", "Flow Samples", "param_label");
+  addTextCell(tr, rcvr_values[PARM_IDX_RCVR_FLOW_SAMPLE_CNT], "cl");
+  frag.appendChild(tr);
+
+  // Counter sample count
+  tr = create_tr(row++);
+  addTypedTextCell(tr, "td", "Counter Samples", "param_label");
+  addTextCell(tr, rcvr_values[PARM_IDX_RCVR_COUNTER_SAMPLE_CNT], "cl");
+  frag.appendChild(tr);
+
+  var tbody = document.getElementById('rcvr_data');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag);
+}
+
+//------------------------------------------------------------------------------
+// add_port_row()
+//------------------------------------------------------------------------------
+function add_port_row(frag, values, idx)
+{
+  var tr = CreateStyledElement("tr", idx % 2 ? "display_odd" : "display_even");
+  var port = parseInt(values[PARM_IDX_PORT_NUMBER], 10);
+
+  // Port number
+  addTextCell(tr, port, "cr");
+
+  // Rx Flow sample count
+  addTextCell(tr, values[PARM_IDX_PORT_RX_FLOW_SAMPLE_CNT], "cr");
+  frag.appendChild(tr);
+
+  // Tx Flow sample count
+  addTextCell(tr, values[PARM_IDX_PORT_TX_FLOW_SAMPLE_CNT], "cr");
+  frag.appendChild(tr);
+
+  // Counter sample count
+  addTextCell(tr, values[PARM_IDX_PORT_COUNTER_SAMPLE_CNT], "cr");
+  frag.appendChild(tr);
+}
+
+//------------------------------------------------------------------------------
+// processUpdate()
+//------------------------------------------------------------------------------
+function processUpdate(req, ref)
+{
+  // Format: [RcvrStatus]#[PortStatuses]
+  //         [RcvrStatus]   = owner/timeout/hostname/ok_datagram_cnt/err_datagram_cnt/flow_sample_cnt/counter_sample_cnt
+  //         [PortStatuses] = [PortStatus1]#[PortStatus2]#...#[PortStatusN]
+  //         [PortStatus]   = port_number/rx_flow_sample_cnt/tx_flow_sample_cnt/counter_sample_cnt
+  var values = req.responseText.split("#");
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  var rcvr_values = values[0].split("/");
+  if (rcvr_values.length != PARM_RCVR_CNT) {
+    return;
+  }
+  add_receiver(rcvr_values);
+
+  var frag_port_body = document.createDocumentFragment();
+  for (var idx = 1; idx < values.length; idx++) {
+    var port_values = values[idx].split("/");
+    if (port_values.length != PARM_PORT_CNT) {
+      return;
+    }
+    add_port_row(frag_port_body, port_values, idx - 1);
+  }
+
+  var tbody = document.getElementById('port_data');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag_port_body);
+
+  // Update the timer
+  var autorefresh = document.getElementById('autorefresh');
+  if (autorefresh.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+  }
+}
+
+//------------------------------------------------------------------------------
+// requestUpdate()
+//------------------------------------------------------------------------------
+function requestUpdate(params)
+{
+  if (SpomNavigationLoading()) {
+    // Bail out. Navigation will trigger update
+    return;
+  }
+
+  var url = "/stat/sflow_status";
+  if (params) {
+    url += "?" + params;
+  }
+  document.getElementById("update").style.visibility = "visible";
+  loadXMLDoc(SpomAddSidArg(url), processUpdate, null);
+  SpomUpdateDisplaySid("display_sid");
+}
+
+//------------------------------------------------------------------------------
+// requestClearRcvr()
+//------------------------------------------------------------------------------
+function requestClearRcvr()
+{
+  requestUpdate("clear=1");
+}
+
+//------------------------------------------------------------------------------
+// requestClearPorts()
+//------------------------------------------------------------------------------
+function requestClearPorts()
+{
+  requestUpdate("port=0");
+}
+
+//------------------------------------------------------------------------------
+// chkRefresh()
+//------------------------------------------------------------------------------
+function chkRefresh(fld)
+{
+  if (!fld.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = null;
+  } else {
+    requestUpdate();
+  }
+}
+
+//------------------------------------------------------------------------------
+// SpomSidSelectorUpdate()
+// Fires when the switch-selector drop-down-box changes.
+//------------------------------------------------------------------------------
+function SpomSidSelectorUpdate(sid)
+{
+  SpomSetCurrentSid(sid); // Save current SID
+  requestUpdate();        // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>sFlow Statistics</h1>
+
+  <div class="refreshbar">
+    <form action="#">
+      <label for="autorefresh">Auto-refresh</label>
+      <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+      <input type="button" value="Refresh"                       onclick="requestUpdate();     this.blur();">
+      <input type="button" value="Clear Receiver"                onclick="requestClearRcvr();  this.blur();">
+      <input type="button" value="Clear Ports"                   onclick="requestClearPorts(); this.blur();">
+      <img id="update" alt="" src="images/updating.gif">
+    </form>
+  </div>
+
+<h2>Receiver Statistics</h2>
+<table summary="sFlow Receiver Statistics" class="display">
+  <tbody id="rcvr_data"></tbody>
+</table>
+
+<h2>Port Statistics <span id="display_sid"></span></h2>
+<table summary="sFlow Port Statistics" cellspacing="0" class="display">
+  <thead>
+    <tr>
+      <th>Port</th>
+      <th>Rx Flow Samples</th>
+      <th>Tx Flow Samples</th>
+      <th>Counter Samples</th>
+    </tr>
+  </thead>
+  <tbody id="port_data"></tbody>
+</table>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,148 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Firmware Selection</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_sw_select.htm";
+
+var imgTypes = Array("pri", "alt");
+var imgProps = Array("image", "version", "date");
+
+function EnableSubmit(enb)
+{
+    var elem = document.getElementById("altimage");
+    if(elem) {
+        elem.disabled = !enb;
+    }
+}
+
+function processUpdate(req, ref)
+{
+    var img = req.responseText.split("|");
+    for(var i = 0; i < img.length; i++) {
+        var props = img[i].split("/");
+        for(var j = 0; j < props.length; j++) {
+            var val = unescape(props[j]);
+            UpdateId(imgTypes[i] + '_' + imgProps[j], val);
+        }
+    }
+    if(img.length == 2) {
+        EnableSubmit(true);
+    }
+    else {
+        var table = document.getElementById("altinfo");
+        if(table) {
+            table.style.display = "none";
+        }
+    }
+}
+
+function requestUpdate()
+{
+    EnableSubmit(false);
+    loadXMLDoc("/config/sw_select", processUpdate, null);
+}
+
+function checkForm()
+{
+    return confirm("Are you sure you want to activate the alternate software image?");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Software Image Selection</h1>
+
+<form method="POST" action="/config/misc" onsubmit="return checkForm();">
+
+<table summary="Active Image Information" cellspacing="0" class="display">
+ <tr class="display_header">
+   <th colspan="2">Active Image</th>
+ </tr>
+ <tr class="display_odd">
+   <td class="displaytext">Image</td>
+   <td class="cl" id="pri_image"></td>
+ </tr>
+ <tr class="display_even">
+   <td class="displaytext">Version</td>
+   <td class="cl" id="pri_version"></td>
+ </tr>
+ <tr class="display_odd">
+   <td class="displaytext">Date</td>
+   <td class="cl" id="pri_date"></td>
+ </tr>
+</table>
+<br>
+
+<table summary="Alternate Image Information" id="altinfo" cellspacing="0" class="display">
+ <tr class="display_header">
+   <th colspan="2">Alternate Image</th>
+ </tr>
+ <tr class="display_odd">
+   <td class="displaytext">Image</td>
+   <td class="cl" id="alt_image"></td>
+ </tr>
+ <tr class="display_even">
+   <td class="displaytext">Version</td>
+   <td class="cl" id="alt_version"></td>
+ </tr>
+ <tr class="display_odd">
+   <td class="displaytext">Date</td>
+   <td class="cl" id="alt_date"></td>
+ </tr>
+</table>
+
+<p>
+<input type="submit" disabled value="Activate Alternate Image" id="altimage" name="altimage">
+<input type="button" value="Cancel" onclick="document.location.href='main.htm';">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

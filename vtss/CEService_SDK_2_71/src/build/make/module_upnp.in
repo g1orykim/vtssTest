@@ -1,0 +1,134 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2010 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files Location
+DIR_upnp := $(DIR_APPL)/upnp
+DIR_upnp_base := $(DIR_upnp)/base
+DIR_upnp_platform := $(DIR_upnp)/platform
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_APPL)/upnp/platform/html
+
+# Module base objects
+OBJECTS_libupnp_ssdp              := $(addprefix libupnp_, ssdp_device.o ssdp_server.o)
+#OBJECTS_libupnp_soap             := $(addprefix libupnp_, soap_device.o soap_common.o)
+#OBJECTS_libupnp_genlib_service   := $(addprefix libupnp_, service_table.o)
+OBJECTS_libupnp_genlib_util       := $(addprefix libupnp_, membuffer.o strintmap.o upnp_timeout.o util.o)
+OBJECTS_libupnp_genlib_client     := $(addprefix libupnp_, client_table.o)
+OBJECTS_libupnp_genlib_net        := $(addprefix libupnp_, sock.o)
+OBJECTS_libupnp_genlib_net_http   := $(addprefix libupnp_, httpparser.o httpreadwrite.o statcodes.o webserver.o parsetools.o)
+OBJECTS_libupnp_genlib_net_uri    := $(addprefix libupnp_, uri.o)
+OBJECTS_libupnp_genlib_miniserver := $(addprefix libupnp_, miniserver.o)
+OBJECTS_libupnp_common            := $(addprefix libupnp_, sample_util.o)
+OBJECTS_libupnp_device_vtss       := $(addprefix libupnp_, upnp_device_main.o vtss_upnp.o \
+  $(if $(MODULE_VCLI),vtss_upnp_cli.o) \
+  $(if $(MODULE_WEB),vtss_upnp_web.o) \
+  $(if $(MODULE_CONF_XML),vtss_upnp_xml.o) \
+  $(if $(MODULE_ICFG),upnp_icfg.o))
+
+OBJECTS_libupnp_ixml       := $(addprefix libupnp_, ixml.o ixmlparser.o ixmlmembuf.o node.o nodeList.o element.o attr.o document.o namedNodeMap.o)
+OBJECTS_libupnp_api        := $(addprefix libupnp_, upnpapi.o upnptools.o upnpdebug.o)
+OBJECTS_libupnp_threadutil := $(addprefix libupnp_, FreeList.o LinkedList.o ThreadPool.o TimerThread.o)
+OBJECTS_libupnp_gena       := $(addprefix libupnp_, gena_device.o gena_ctrlpt.o gena_callback2.o)
+#OBJECTS_libupnp_uuid      := $(addprefix libupnp_, md5.o sysdep.o uuid.o)
+
+OBJECTS_upnp := $(OBJECTS_libupnp_ssdp) $(OBJECTS_libupnp_soap) $(OBJECTS_libupnp_genlib_service)             \
+                $(OBJECTS_libupnp_genlib_util) $(OBJECTS_libupnp_genlib_client) $(OBJECTS_libupnp_genlib_net) \
+                $(OBJECTS_libupnp_genlib_net_uri)  $(OBJECTS_libupnp_genlib_net_http)                         \
+                $(OBJECTS_libupnp_common) $(OBJECTS_libupnp_device_vtss)                                      \
+                $(OBJECTS_libupnp_ixml) $(OBJECTS_libupnp_api) $(OBJECTS_libupnp_threadutil)                  \
+                $(OBJECTS_libupnp_genlib_miniserver) $(OBJECTS_libupnp_gena) $(OBJECTS_libupnp_uuid)
+
+# Compiler rules
+$(OBJECTS_libupnp_ssdp): libupnp_%.o: $(DIR_upnp_base)/upnp/src/ssdp/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_soap): libupnp_%.o: $(DIR_upnp_base)/upnp/src/soap/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_genlib_service): libupnp_%.o: $(DIR_upnp_base)/upnp/src/genlib/service_table/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_genlib_util): libupnp_%.o: $(DIR_upnp_base)/upnp/src/genlib/util/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_genlib_client): libupnp_%.o: $(DIR_upnp_base)/upnp/src/genlib/client_table/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_genlib_net): libupnp_%.o: $(DIR_upnp_base)/upnp/src/genlib/net/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_genlib_net_http): libupnp_%.o: $(DIR_upnp_base)/upnp/src/genlib/net/http/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_genlib_net_uri): libupnp_%.o: $(DIR_upnp_base)/upnp/src/genlib/net/uri/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_genlib_miniserver): libupnp_%.o: $(DIR_upnp_base)/upnp/src/genlib/miniserver/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_gena): libupnp_%.o: $(DIR_upnp_base)/upnp/src/gena/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_common): libupnp_%.o: $(DIR_upnp_base)/upnp/sample/common/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_device_vtss): libupnp_%.o: $(DIR_upnp_platform)/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_ixml): libupnp_%.o: $(DIR_upnp_base)/ixml/src/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_api): libupnp_%.o: $(DIR_upnp_base)/upnp/src/api/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_threadutil): libupnp_%.o: $(DIR_upnp_base)/threadutil/src/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+$(OBJECTS_libupnp_uuid): libupnp_%.o: $(DIR_upnp_base)/upnp/src/uuid/%.c
+	$(call compile_c, $@, $<, -DLIBUPNP_ECOS)
+
+# Built-in ICLI
+$(eval $(call add_icli,$(foreach m, upnp,$(DIR_upnp_platform)/$(m).icli)))
+
+# Include files
+INCLUDES += -I$(DIR_upnp_base)/ -I$(DIR_upnp_base)/upnp/inc/ -I$(DIR_upnp_base)/upnp/src/inc/ -I$(DIR_upnp_base)/ixml/inc/ \
+            -I$(DIR_upnp_base)/threadutil/inc/ -I$(DIR_upnp_base)/upnp/sample/common/ -I$(DIR_upnp_platform)/ \
+            -I$(DIR_upnp_base)/ixml/inc/ -I$(DIR_upnp_base)/ixml/src/inc/
+
+# Lint files
+LINT_FILES_upnp += $(DIR_upnp_platform)/vtss_upnp.c        \
+  $(if $(MODULE_VCLI),$(DIR_upnp_platform)/vtss_upnp_cli.c) \
+  $(if $(MODULE_WEB),$(DIR_upnp_platform)/vtss_upnp_web.c) \
+  $(if $(MODULE_CONF_XML),$(DIR_upnp_platform)/vtss_upnp_xml.c) \
+  $(if $(MODULE_ICFG),$(DIR_upnp_platform)/upnp_icfg.c)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_upnp += $(DIR_upnp_platform)/*.c $(DIR_upnp_platform)/*.h
+
+# Tidy files
+TIDY_FILES_upnp += $(DIR_upnp_platform)/html/*.htm $(DIR_upnp_platform)/html/help/*.htm
+
