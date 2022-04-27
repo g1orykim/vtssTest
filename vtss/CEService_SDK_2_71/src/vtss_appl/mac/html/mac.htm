@@ -1,0 +1,567 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+
+// Help page macic
+var help_page = "/help/help_mac_table.htm";
+
+//
+// Global variables
+//
+
+var reqObject;
+var macconfig = Array();
+var frag      = document.createDocumentFragment();
+var LearnString;
+var LearnChangeAllowedString;
+
+var NumberOfEntries = 0;
+var DelNewEntries = 0;
+var NumberOfNewEntries = 0;
+var AgeValue;
+var AgeBoxDisabledDefault;
+
+var portcount = configNormalPortMax - configPortMin + 1;
+var MacStaticMax = 64; /* need to hardcode on this 2_80 version */
+
+//
+// Misc Functions
+//
+
+function resetForm()
+{
+    processUpdate(reqObject, "MacData");
+}
+
+// Adds a hidden cell to a table
+function addHidden(TableeElement,CellName,Value) {
+  var theTable = document.getElementById(TableeElement);
+  var y = document.createElement('td');
+  field = addInputCell(y,CellName,"c",Value);
+  theTable.style.visibility = "hidden";
+  theTable.tHead.rows[0].appendChild(y);
+}
+
+
+// Delete the hidden table
+function DelHidden(TableeElement) {
+   var theTable = document.getElementById(TableeElement);
+   var allRows = theTable.rows;
+   NumberOfEntries = 0;
+   DelNewEntries = 0;
+   while (allRows[0].cells.length > 1) {
+       allRows[0].deleteCell(-1);
+   }
+}
+
+function portIsFilter(portNo)
+{
+    if(configPortType >= 3 && (configPortName(portNo, 0) == "WAN" || configPortName(portNo, 0) == "WAN2" || configPortName(portNo, 0) == "EPON") ||
+       isStackPort(portNo))
+        return true;        
+    return false;
+}
+
+function addEntryIdx()
+{
+    var fld, fld2;
+    for (var i = 1; i <= MacStaticMax; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        fld2 = document.getElementById("Delete_" + i);
+        if (!fld && !fld2) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+function addRow(index, values, NewEntry)
+{
+    // Assign values
+    var MAC  = toMacAddress(values[0]); // Allign format
+    var VID  = values[1];
+
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var entryIdx = addEntryIdx();
+
+    NumberOfEntries++ ; // Count the number of entries
+
+    if (NewEntry) {
+        var button = document.createElement('input');
+        button.onclick = function() {DelNewEntries++;NumberOfEntries--; clearChildNodes(tr); document.getElementById('MacData').deleteRow(tr.rowIndex);};
+        button.id = "delEntryIdx_" + entryIdx;
+        button.type = "button";
+        button.value = " Delete ";
+        var td = CreateTd("c");
+        addCell(tr, td, button);
+    } else {
+        addCheckBoxCell(tr,0,"c","Delete_" + NumberOfEntries);
+    }
+
+    if (NewEntry) {
+        NumberOfNewEntries++;
+        var edit_ctrl;
+        edit_ctrl = addInputCell(tr,VID,"c", "VID_" + entryIdx, 5);
+        edit_ctrl.setAttribute("maxLength", 4);
+        edit_ctrl = addInputCell(tr,MAC,"c mac","MAC_" + entryIdx, 18);
+        edit_ctrl.setAttribute("maxLength", 17);
+    } else {
+        addTextCell(tr,VID,"c");
+        addHidden("HiddenTable",VID,"VID_" + NumberOfEntries); // Store value hidden for being able to find the value in C
+        addTextCell(tr,MAC,"c mac");
+        addHidden("HiddenTable",MAC,"MAC_" + NumberOfEntries); // Store value hidden for being able to find the value in C
+    }
+
+    for (var i = configPortMin; i <= SpomCurrentPorts(); i++ ) {
+        if(portIsFilter(i))
+            continue;
+        if (NewEntry) {
+            formm = "Dest_" + entryIdx + "_" + i ;
+        } else {
+            formm = "Dest_" + NumberOfEntries + "_" + i ;
+        }
+        vall = parseInt(values[i - configPortMin + 2 ]);
+        addCheckBoxCell(tr,vall,"c",formm);
+    }
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+
+function UpdateTable (ref) {
+    if (macconfig.length - 1 > 1 ) {
+        for(var i = 1; i < macconfig.length-1 ; i++) {
+            var pval = macconfig[i].split("/");
+            addRow(i - 1, pval, 0);
+        }
+    }
+}
+
+function AddNewRow ()
+{
+    // First row is for new inputs - make a dummy.
+    var values = new Array();
+    values[0] = "00-00-00-00-00-00";
+    values[1] = 1;
+    for (var i = configPortMin; i <= SpomCurrentPorts(); i++ ) {
+        values[2+i-configPortMin] = 0;
+    }
+    if (NumberOfEntries >= MacStaticMax) {
+        alert("Max number of statically added MAC addresses is "+MacStaticMax);
+        return false;
+    }
+    addRow( 0, values, true);
+
+    var tbody = document.getElementById("MacData");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function CreateTableHeader ()
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "", "hdrc", 3);
+    addTextHeaderCell(tr, "Port Members", "hdrc", portcount);
+    frag.appendChild(tr);       // Add row to fragment
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"Delete","hdrc");
+    addTextHeaderCell(tr,"VLAN ID","hdrc");
+    addTextHeaderCell(tr,"MAC Address","hdrc");
+
+    for (var i = configPortMin; i <= SpomCurrentPorts(); i++ ) {
+        if(portIsFilter(i))
+            continue;
+        addTextHeaderCell(tr,configPortName(i, 0),"portno");
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+
+//
+// Create header for learning table
+//
+
+function GetLearningRadioButton (Type, Port) {
+    // Check which radio button that shall be set - Types are - "A" ( Automatic ), "S" ( Secure ) and "D" ( Disable )
+
+    if(LearnString.charAt(Port - configPortMin) == Type) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+function GetLearningChangeDisallowed(Port) {
+  // '0' means: Do not allow user to change the learning mode for @Port.
+  // Anything else means: OK for user to change it.
+  return (LearnChangeAllowedString.charAt(Port - configPortMin) == '0' ? 1 : 0);
+}
+
+function LearningCreateTableHeader ()
+{
+
+    var LearnBody = document.getElementById('LearnMac');
+    clearChildNodes(LearnBody);
+
+    // Create 1st row
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "", "hdrc", 1);
+    addTextHeaderCell(tr, "Port Members", "hdrc", portcount);
+    LearnBody.appendChild(tr);       // Add row to fragment
+
+    // Create 2nd row
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"","hdrc");
+
+    for (var i = configPortMin; i <= SpomCurrentPorts(); i++ ) {
+        if(portIsFilter(i))
+            continue;
+        addTextHeaderCell(tr,configPortName(i, 0),"portno");
+    }
+    LearnBody.appendChild(tr);       // Add row to fragment
+
+    tr = CreateStyledElement("tr", "config_odd" );
+    addTextCell(tr,"Auto","hdrc");
+    var fld;
+    for (var port = configPortMin; port <= SpomCurrentPorts(); port++ ) {
+        if(portIsFilter(port))
+            continue;
+        fld = addRadioCell(tr, GetLearningRadioButton("A", port), "c", "learn_port_" + port, "Learn_Auto_" + port);
+        fld.disabled = GetLearningChangeDisallowed(port);
+    }
+    LearnBody.appendChild(tr);       // Add row to fragment
+
+    tr = CreateStyledElement("tr", "config_even" );
+    addTextCell(tr,"Disable","hdrc");
+    for (var port = configPortMin; port <= SpomCurrentPorts(); port++ ) {
+        if(portIsFilter(port))
+            continue;
+        fld = addRadioCell(tr, GetLearningRadioButton("D", port), "c", "learn_port_" + port, "Learn_Disable_" + port);
+        fld.disabled = GetLearningChangeDisallowed(port);
+    }
+    LearnBody.appendChild(tr);       // Add row to fragment
+
+    tr = CreateStyledElement("tr", "config_odd" );
+    addTextCell(tr,"Secure","hdrc");
+    for (var port = configPortMin; port <= SpomCurrentPorts(); port++ ) {
+        if(portIsFilter(port))
+            continue;
+        fld = addRadioCell(tr, GetLearningRadioButton("S", port), "c", "learn_port_" + port, "Learn_Secure_" + port);
+        fld.disabled = GetLearningChangeDisallowed(port);
+    }
+    LearnBody.appendChild(tr);       // Add row to fragment
+}
+
+//
+// Update configuration
+//
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req))
+        return;
+
+    NumberOfEntries = 0;
+    DelNewEntries = 0;
+    NumberOfNewEntries = 0;
+    if (reqObject != req)
+        reqObject = req;
+    if(req.responseText) {
+        // <AgeValue>/<Age timer disable>/<learn string>/<Error message>.
+        macconfig = req.responseText.split("|");
+
+        // Get number of entries
+        var pval = macconfig[0].split("/");
+        AgeValue                 = pval[0];
+        LearnString              = pval[2];
+        LearnChangeAllowedString = pval[3];
+        var ErrMsg               = pval[4];
+
+        if(ErrMsg && ErrMsg != "-" ) {
+            alert(ErrMsg);
+        }
+
+        // Headers
+        CreateTableHeader();
+
+        DisableAgingClick(parseInt(pval[1]), 1);
+
+        // Create the table
+        UpdateTable(ref);
+
+        // Complete the table
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+
+        // update the learning table
+        LearningCreateTableHeader();
+    } else {
+        SpomHandleError();
+    }
+}
+
+function checkForm(form) {
+
+    if (document.getElementById("agebox").disabled  == false ) {
+        if(!isWithinRange("agebox", 10, 1000000, "'Aging Time'", " seconds")) {
+            return false;
+        }
+    }
+
+    var NumberOfDelEntries = 0;
+    for(var i = 1; i <= NumberOfEntries - NumberOfNewEntries; i++) {
+        if (document.getElementById("Delete_" + i).checked)
+            NumberOfDelEntries++;
+    }
+    if (NumberOfEntries - NumberOfDelEntries > 64) {
+        alert("The static MAC table can contain 64 entries.");
+        return false;
+    }
+    for(var i = 1; i <= NumberOfEntries+DelNewEntries; i++) {
+        // The user has added a new entry and then deleted it again - so go on to the next entry.
+        if (document.getElementById("VID_" + i) == null) {
+            continue;
+        }
+
+        if (!isWithinRange("VID_" + i, 1, 4095, "'VLAN ID'")) {
+            return false;
+        }
+
+        if (!IsMacAddress(document.getElementById("MAC_" + i).value)) {
+            alert("At least one MAC address is invalid. The format is 'xx-xx-xx-xx-xx-xx' or 'xx.xx.xx.xx.xx.xx' or 'xxxxxxxxxxxx' (x is a hexadecimal digit).");
+            return false;
+        }
+
+        CurrentMacAddress = toMacAddress(document.getElementById("MAC_" + i).value);
+        CurrentVid = document.getElementById("VID_" + i).value;
+
+        // Check for multiple same entries, if the delete checkbox is checked skip the check, since the entry is going to
+        // be deleted anyway.
+        for (var PrevoiusEntries = 1;PrevoiusEntries < i;PrevoiusEntries++) {
+            if (document.getElementById("MAC_" + PrevoiusEntries) == null) { continue;} // The entry has been deleted
+            PrevoiusMacAddress = toMacAddress(document.getElementById("MAC_" + PrevoiusEntries).value);
+            if (PrevoiusMacAddress == CurrentMacAddress &&
+                document.getElementById("VID_" + PrevoiusEntries).value == CurrentVid) {
+
+                if (PrevoiusEntries <= (NumberOfEntries - NumberOfNewEntries) &&
+                    document.getElementById("Delete_" + PrevoiusEntries).checked) {
+                    // This is a entry that is going to be deleted anyway
+                } else {
+                    alert ("Entry with VLAN ID: " + CurrentVid + " and MAC address: " +
+                    CurrentMacAddress + " is already in the MAC table.");
+                    return false;
+                }
+            }
+        }// end for loop
+    }
+    for(var i = 1; i <= NumberOfEntries+DelNewEntries; i++) {
+        if (i <= (NumberOfEntries - NumberOfNewEntries)) {
+            IsNewEntry = false;
+        } else {
+            IsNewEntry = true;
+        }
+
+        // The user has added a new entry and then deleted it again - so go on to the next entry.
+        if (document.getElementById("VID_" + i) == null) {
+            continue;
+        }
+
+        formm = "Dest_" + i + "_" + 1;
+
+        // Check for if at least one port is member of a static mac entry
+        NoneIsChecked    = true;
+        SomethingChanged = false;
+
+        for (var port = configPortMin; port <= SpomCurrentPorts(); port++ ) {
+            if(portIsFilter(port))
+                continue;
+
+            formm = "Dest_" + i + "_" + port;
+
+            // If it a entry already in the table we will only check if any of the checkboxes has changed value.
+            if (!IsNewEntry) {
+                if (document.getElementById(formm).checked != document.getElementById(formm).defaultChecked ) {
+                    SomethingChanged = true;
+                }
+            }
+
+            if (document.getElementById(formm).checked) {
+                // Ok - At least one port is added to this entry
+                NoneIsChecked = false;
+            }
+        }
+        // If no port is added to the entry then ask the user if this is correct
+        if (NoneIsChecked) {
+            // Only ask if it is correct if it is a new entry or if it is an entry already in the table only if it has changed.
+            if (IsNewEntry || SomethingChanged) {
+                answer = confirm("No port members selected for VLAN ID: " + CurrentVid +
+                                  " and MAC address: " + document.getElementById("MAC_" + i).value +
+                                  ". This will block the MAC address for all ports. Is this correct ?");
+                if (!answer){
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Everything is ok - Store setup
+    NumberOfEntries = 0; 
+    DelNewEntries = 0; 
+    return true;
+}
+
+function DisableAgingClick(Disable,UpdateDefault) {
+    document.getElementById("DisableAgeing").checked = Disable;
+    document.getElementById("agebox").value = AgeValue;
+
+
+    // Updating default values for being able to use the reset button
+    if (UpdateDefault) {
+        document.getElementById("agebox").defaultValue = AgeValue;
+        document.getElementById("DisableAgeing").defaultChecked = Disable;
+        AgeBoxDisabledDefault = Disable;
+    }
+
+    AgeBoxDisabled(Disable);
+}
+
+
+function AgeBoxDisabled (Disable) {
+    // Disables / enables agebox -- Special function needed for support reset button
+    document.getElementById("agebox").disabled  = Disable;
+}
+
+function requestUpdate(type) {
+    DelHidden("HiddenTable");
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+
+    loadXMLDoc(SpomAddSidArg("/config/static_mac_table"), processUpdate, 'MacData');
+
+    SpomUpdateDisplaySid("display_sid1");
+    SpomUpdateDisplaySid("display_sid2");
+    SpomUpdateFormSid("submit_sid");
+}
+
+// Update when SID is cahnged.
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate('save');">
+
+<h1>MAC Address Table Configuration</h1>
+
+<h2><span class="SPOM_only">Stack</span> Aging Configuration</h2>
+
+<form name="MacForm" method="POST" action="/config/static_mac_table" onsubmit="return checkForm(this);">
+
+<table id="macconfig" summary="Switch Mac Address Configuration" cellspacing="0" class="config">
+ <tbody>
+  <tr class="config">
+   <td class="param_label">Disable Automatic Aging</td>
+   <td><input type="checkbox" name="DisableAgeing" id="DisableAgeing" onclick="DisableAgingClick(this.checked,0)"></td>
+  </tr>
+  <tr class="config">
+   <td class="param_label">Aging Time</td>
+   <td><input id="agebox" name="agebox" maxlength="7" size="6"> seconds</td>
+  </tr>
+ </tbody>
+</table>
+
+
+<!-- Learning table -->
+<h2>MAC Table Learning <span id="display_sid1"></span></h2>
+
+<table id="LearningMacTable" summary="Mac Address Learning" cellspacing="0" class="config">
+ <tbody id="LearnMac">
+ </tbody>
+</table>
+
+
+<!-- Static MAC -->
+<h2>Static MAC Table Configuration <span id="display_sid2"></span></h2>
+
+<table id="StaticMacTable" summary="Mac Address Table" cellspacing="0" class="config">
+ <tbody id="MacData">
+ </tbody>
+</table>
+
+<p>
+<input TYPE=button ID="addNewEntry" value="Add New Static Entry" ONCLICK="AddNewRow()">
+</p>
+
+<table  style="visibility: hidden; display: none;"  id="HiddenTable"  summary="HiddenTable">
+ <thead>
+  <tr>
+   <th> &nbsp; </th>
+  </tr>
+ </thead>
+</table>
+
+<!-- Buttons -->
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset" ONCLICK="AgeBoxDisabled(AgeBoxDisabledDefault);resetForm();">
+</p>
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

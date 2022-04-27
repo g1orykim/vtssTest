@@ -1,0 +1,609 @@
+Configuration
+ System
+#if defined(VTSS_SW_OPTION_SYSLOG)
+  Information,sysinfo_config.htm
+#endif /* VTSS_SW_OPTION_SYSLOG */
+  IP,ip_config.htm
+#if defined(VTSS_SW_OPTION_NTP)
+  NTP,ntp.htm
+#endif
+#if defined(VTSS_SW_OPTION_SNTP)
+  SNTP,sntp.htm
+#endif
+#if defined(VTSS_SW_OPTION_DAYLIGHT_SAVING)
+  Time,daylight_saving_config.htm
+#endif
+#if defined(VTSS_SW_OPTION_SYSLOG)
+  Log,syslog_config.htm
+#endif /* VTSS_SW_OPTION_SYSLOG */
+  Alarm,rmon_alarm_config.htm
+#if defined(VTSS_SW_OPTION_SNMP)
+  SNMP
+   System,snmp.htm
+   Trap,trap.htm
+   Communities,snmpv3_communities.htm
+   Users,snmpv3_users.htm
+   Groups,snmpv3_groups.htm
+   Views,snmpv3_views.htm
+   Access,snmpv3_accesses.htm
+#if defined(VTSS_SW_OPTION_RMON)
+  RMON
+   Statistics,rmon_statistics_config.htm
+   History,rmon_history_config.htm
+   /* Alarm,rmon_alarm_config.htm */
+   Event,rmon_event_config.htm
+#endif /* VTSS_SW_OPTION_RMON */
+#endif /* VTSS_SW_OPTION_SNMP */
+#if defined(VTSS_SW_OPTION_LED_POW_REDUC) || defined(VTSS_SW_OPTION_FAN) || defined(VTSS_SW_OPTION_EEE)
+#endif
+ Green Ethernet
+#if defined(VTSS_SW_OPTION_FAN)
+  Fan,fan_config.htm
+#endif
+#if defined(VTSS_SW_OPTION_LED_POW_REDUC)
+  LED,led_pow_reduc_config.htm
+#endif
+  Port Power Savings,port_power_savings_config.htm
+/* Green Ethernet */
+/* Glory - modify */
+/*#if defined(VTSS_SW_OPTION_THERMAL_PROTECT)
+ Thermal Protection,thermal_protect_config.htm
+#endif*/
+ Ports,ports.htm
+#if defined(VTSS_SW_OPTION_DHCP_HELPER)
+ DHCP
+#if defined(VTSS_SW_OPTION_DHCP_SERVER)
+  Server
+   Mode,dhcp_server_mode.htm
+   Excluded IP,dhcp_server_excluded.htm
+   Pool,dhcp_server_pool.htm
+#endif /* VTSS_SW_OPTION_DHCP_SERVER */
+#if defined(VTSS_SW_OPTION_DHCP_SNOOPING)
+  Snooping,dhcp_snooping.htm
+#endif
+#if defined(VTSS_SW_OPTION_DHCP_RELAY)
+  Relay,dhcp_relay.htm
+#endif
+#endif /* VTSS_SW_OPTION_DHCP_HELPER */
+ Security
+  Switch
+#if defined(VTSS_SW_OPTION_USERS)
+   Users,users.htm
+#else
+   Password,passwd_config.htm
+#endif
+#if defined(VTSS_SW_OPTION_PRIV_LVL)
+   Privilege Levels,priv_lvl.htm
+#endif
+#if defined(VTSS_SW_OPTION_AUTH)
+   Auth Method,auth_method_config.htm
+#endif
+#if defined(VTSS_SW_OPTION_SSH)
+   SSH,ssh_config.htm
+#endif
+#if defined(VTSS_SW_OPTION_HTTPS)
+   HTTPS,https_config.htm
+#endif
+#if defined(VTSS_SW_OPTION_ACCESS_MGMT)
+   Access Management,access_mgmt.htm
+#endif
+/* Glory - moved
+#if defined(VTSS_SW_OPTION_SNMP)
+   SNMP
+    System,snmp.htm
+    Trap,trap.htm
+    Communities,snmpv3_communities.htm
+    Users,snmpv3_users.htm
+    Groups,snmpv3_groups.htm
+    Views,snmpv3_views.htm
+    Access,snmpv3_accesses.htm
+#if defined(VTSS_SW_OPTION_RMON)
+   RMON
+    Statistics,rmon_statistics_config.htm
+    History,rmon_history_config.htm
+    Alarm,rmon_alarm_config.htm
+    Event,rmon_event_config.htm
+#endif  VTSS_SW_OPTION_RMON 
+#endif  VTSS_SW_OPTION_SNMP 
+*/
+  Network
+#if defined(VTSS_SW_OPTION_PSEC_LIMIT)
+   Limit Control,psec_limit.htm
+#endif
+#if defined(VTSS_SW_OPTION_DOT1X)
+   NAS,nas.htm
+#endif
+#if defined(VTSS_SW_OPTION_ACL)
+   ACL
+    Ports,acl_ports.htm
+    Rate Limiters,acl_ratelimiter.htm
+    Access Control List,acl.htm
+#endif
+#if defined(VTSS_SW_OPTION_IP_SOURCE_GUARD)
+   IP Source Guard
+    Configuration,ip_source_guard.htm
+    Static Table,ip_source_guard_static_table.htm
+#endif
+#if defined(VTSS_SW_OPTION_ARP_INSPECTION)
+   ARP Inspection
+    Port Configuration,arp_inspection.htm
+    VLAN Configuration,arp_inspection_vlan.htm
+    Static Table,arp_inspection_static_table.htm
+    Dynamic Table,dynamic_arp_inspection.htm
+#endif
+#if defined(VTSS_SW_OPTION_AUTH)
+#if defined(VTSS_SW_OPTION_RADIUS) || defined(VTSS_SW_OPTION_TACPLUS)
+  AAA
+#endif /* defined(VTSS_SW_OPTION_RADIUS) || defined(VTSS_SW_OPTION_TACPLUS) */
+#if defined(VTSS_SW_OPTION_RADIUS)
+   RADIUS,auth_radius_config.htm
+#endif /* defined(VTSS_SW_OPTION_RADIUS) */
+#if defined(VTSS_SW_OPTION_TACPLUS)
+   TACACS+,auth_tacacs_config.htm
+#endif /* defined(VTSS_SW_OPTION_TACPLUS) */
+#endif /* defined(VTSS_SW_OPTION_AUTH) */
+#if defined(VTSS_SW_OPTION_AGGR) || defined(VTSS_SW_OPTION_LACP)
+ Aggregation
+#if defined(VTSS_SW_OPTION_AGGR)
+  Static,aggregation.htm
+#endif
+#if defined(VTSS_SW_OPTION_LACP)
+  LACP,lacp_port_config.htm
+#endif
+#endif /* defined(VTSS_SW_OPTION_AGGR) || defined(VTSS_SW_OPTION_LACP) */
+#if defined(VTSS_SW_OPTION_ETH_LINK_OAM)
+ Link OAM
+  Port Settings,eth_link_oam_port_config.htm
+  Event Settings,eth_link_oam_link_event_config.htm
+#endif
+#if defined(VTSS_SW_OPTION_LOOP_PROTECT)
+ Loop Protection,loop_config.htm
+#endif /* defined(VTSS_SW_OPTION_LOOP_PROTECT) */
+#if defined(VTSS_SW_OPTION_MSTP)
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+#define VTSS_MSTP_FULL 1
+#endif
+ Spanning Tree
+  Bridge Settings,mstp_sys_config.htm
+#if defined(VTSS_MSTP_FULL)
+  MSTI Mapping,mstp_msti_map_config.htm
+  MSTI Priorities,mstp_msti_config.htm
+  CIST Ports,mstp_port_config.htm
+  MSTI Ports,mstp_msti_port_config.htm
+#else
+  Bridge Ports,mstp_port_config.htm
+#endif // VTSS_MSTP_FULL
+#endif // MSTP
+#if ((defined(VTSS_SW_OPTION_SMB_IPMC) || defined(VTSS_SW_OPTION_MVR)) && defined(VTSS_SW_OPTION_IPMC_LIB))
+ IPMC Profile
+  Profile Table,ipmc_lib_profile_table.htm
+  Address Entry,ipmc_lib_entry_table.htm
+#endif /* (VTSS_SW_OPTION_SMB_IPMC || VTSS_SW_OPTION_MVR) && VTSS_SW_OPTION_IPMC_LIB */
+#if defined(VTSS_SW_OPTION_MVR)
+ MVR,mvr.htm
+#endif /* VTSS_SW_OPTION_MVR */
+#if defined(VTSS_SW_OPTION_IPMC)
+ IPMC
+  IGMP Snooping
+   Basic Configuration,ipmc_igmps.htm
+   VLAN Configuration,ipmc_igmps_vlan.htm
+#if defined(VTSS_SW_OPTION_SMB_IPMC)
+   Port Filtering Profile,ipmc_igmps_filtering.htm
+  MLD Snooping
+   Basic Configuration,ipmc_mldsnp.htm
+   VLAN Configuration,ipmc_mldsnp_vlan.htm
+   Port Filtering Profile,ipmc_mldsnp_filtering.htm
+#endif /* VTSS_SW_OPTION_SMB_IPMC */
+#endif /* VTSS_SW_OPTION_IPMC */
+#if defined(VTSS_SW_OPTION_LLDP)
+ LLDP
+  LLDP,lldp_config.htm
+#if defined(VTSS_SW_OPTION_LLDP_MED)
+  LLDP-MED,lldp_med_config.htm
+#endif
+#endif
+#if defined(VTSS_SW_OPTION_POE)
+ PoE,poe_config.htm
+#endif
+#if defined(VTSS_SW_OPTION_SYNCE)
+ SyncE,synce_config.htm
+#endif
+#if defined(VTSS_SW_OPTION_EPS)
+ EPS,eps.htm
+#endif
+#if defined(VTSS_SW_OPTION_MEP)
+ MEP,mep.htm
+#endif
+#if defined(VTSS_SW_OPTION_ERPS)
+ ERPS,erps.htm
+#endif
+#if defined(VTSS_SW_OPTION_MAC)
+ MAC Table,mac.htm
+#endif /* VTSS_SW_OPTION_MAC */
+#if defined(VTSS_SW_OPTION_VLAN_TRANSLATION)
+ VLAN Translation
+  Port to Group Mapping,VT_grp_2_port_mapping.htm
+  VID Translation Mapping,VT_mapping.htm
+#endif /* VTSS_SW_OPTION_VLAN_TRANSLATION */
+#if defined(VTSS_SW_OPTION_VLAN)
+ VLANs,vlan.htm
+#endif /* VTSS_SW_OPTION_VLAN */
+#if defined(VTSS_SW_OPTION_PVLAN)
+ Private VLANs
+#if !defined(VTSS_PERSONALITY_STACKABLE) && !defined(VTSS_CHIP_E_STAX_III_24_DUAL) && !defined(VTSS_CHIP_E_STAX_III_68_DUAL)
+  Membership,pvlan.htm
+#endif /* !defined(VTSS_PERSONALITY_STACKABLE) */
+  Port Isolation,port_isolation.htm
+#endif /* VTSS_SW_OPTION_PVLAN */
+#if defined(VTSS_SW_OPTION_VCL)
+ VCL
+  MAC-based VLAN,mac_based_vlan.htm
+  Protocol-based VLAN
+   Protocol to Group,vcl_protocol_grp_map.htm
+   Group to VLAN,vcl_grp_2_vlan_mapping.htm
+  IP Subnet-based VLAN,subnet_based_vlan.htm
+#endif /* VTSS_SW_OPTION_VCL */
+#if defined(VTSS_SW_OPTION_VOICE_VLAN)
+ Voice VLAN
+  Configuration,voice_vlan_config.htm
+  OUI,voice_vlan_oui.htm
+#endif /* VTSS_SW_OPTION_VOICE_VLAN */
+#if defined(VTSS_SW_OPTION_EVC)
+ Ethernet Services
+  Ports,evc_uni.htm
+#if defined(VTSS_SW_OPTION_ARCH_SERVAL)
+  L2CP,evc_l2cp.htm
+#endif /* VTSS_SW_OPTION_ARCH_SERVAL */
+  Bandwidth Profiles,evc_bw.htm
+  EVCs,evc.htm
+  ECEs,evc_ece.htm
+#endif /* VTSS_SW_OPTION_EVC */
+#if defined(VTSS_SW_OPTION_PERF_MON)
+ Performance Monitor
+  Configuration,perf_mon_conf.htm
+  Transfer Mode,perf_mon_transfer.htm
+#endif /* VTSS_SW_OPTION_PERF_MON */
+#if defined(VTSS_SW_OPTION_QOS)
+ QoS
+#if defined(VTSS_SW_OPTION_ARCH_LUTON28)
+  Ports,qos_class.htm
+#if defined(VTSS_SW_OPTION_BUILD_SMB)
+  DSCP Remarking,dscp_remarking.htm
+#endif /* VTSS_SW_OPTION_BUILD_SMB */
+  QoS Control List,qcl.htm
+  Rate Limiters,ratelimit.htm
+  Storm Control,stormctrl.htm
+  Wizard,qcl_wizard.htm
+#elif defined(VTSS_SW_OPTION_ARCH_JAGUAR_1)
+  Port Classification,qos_port_classification.htm
+#if defined(VTSS_SW_OPTION_JR_STORM_POLICERS)
+  Port Policing,qos_port_policers.htm
+#else
+  Port Policing,qos_port_policers_multi.htm
+#endif
+#if defined(VTSS_SW_OPTION_BUILD_CE)
+  Queue Policing,qos_queue_policers.htm
+#endif /* defined(VTSS_SW_OPTION_BUILD_CE) */
+  Port Scheduler,qos_port_schedulers.htm
+  Port Shaping,qos_port_shapers.htm
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+  Port Tag Remarking,qos_port_tag_remarking.htm
+  Port DSCP,qos_port_dscp_config.htm
+  DSCP-Based QoS,dscp_based_qos_ingr_classifi.htm
+  DSCP Translation,dscp_translation.htm
+  DSCP&nbsp;Classification,dscp_classification.htm
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+#if defined(VTSS_SW_OPTION_QOS_QCL_INCLUDE)
+#if VTSS_SW_OPTION_QOS_QCL_INCLUDE == 1
+  QoS Control List,qcl_v2.htm
+#endif
+#elif defined(VTSS_SW_OPTION_BUILD_CE)
+  QoS Control List,qcl_v2.htm
+#endif /* defined(VTSS_SW_OPTION_QOS_QCL_INCLUDE) */
+#if defined(VTSS_SW_OPTION_JR_STORM_POLICERS)
+  Storm Control,stormctrl_jr.htm
+#endif
+  WRED,qos_wred.htm
+#elif defined(VTSS_SW_OPTION_ARCH_LUTON26)
+  Port Classification,qos_port_classification.htm
+  Port Policing,qos_port_policers.htm
+#if defined(VTSS_SW_OPTION_BUILD_CE)
+  Queue Policing,qos_queue_policers.htm
+#endif /* defined(VTSS_SW_OPTION_BUILD_CE) */
+  Port Scheduler,qos_port_schedulers.htm
+  Port Shaping,qos_port_shapers.htm
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+  Port Tag Remarking,qos_port_tag_remarking.htm
+  Port DSCP,qos_port_dscp_config.htm
+  DSCP-Based QoS,dscp_based_qos_ingr_classifi.htm
+  DSCP Translation,dscp_translation.htm
+  DSCP&nbsp;Classification,dscp_classification.htm
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+#if !defined(VTSS_SW_OPTION_QOS_QCL_INCLUDE) || VTSS_SW_OPTION_QOS_QCL_INCLUDE == 1
+  QoS Control List,qcl_v2.htm
+#endif /* !defined(VTSS_SW_OPTION_QOS_QCL_INCLUDE) || VTSS_SW_OPTION_QOS_QCL_INCLUDE == 1 */
+  Storm Control,stormctrl.htm
+#elif defined(VTSS_SW_OPTION_ARCH_SERVAL)
+  Port Classification,qos_port_classification.htm
+  Port Policing,qos_port_policers.htm
+#if defined(VTSS_SW_OPTION_BUILD_CE)
+  Queue Policing,qos_queue_policers.htm
+#endif /* defined(VTSS_SW_OPTION_BUILD_CE) */
+  Port Scheduler,qos_port_schedulers.htm
+  Port Shaping,qos_port_shapers.htm
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+  Port Tag Remarking,qos_port_tag_remarking.htm
+  Port DSCP,qos_port_dscp_config.htm
+  DSCP-Based QoS,dscp_based_qos_ingr_classifi.htm
+  DSCP Translation,dscp_translation.htm
+  DSCP&nbsp;Classification,dscp_classification.htm
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+#if !defined(VTSS_SW_OPTION_QOS_QCL_INCLUDE) || VTSS_SW_OPTION_QOS_QCL_INCLUDE == 1
+  QoS Control List,qcl_v2.htm
+#endif /* !defined(VTSS_SW_OPTION_QOS_QCL_INCLUDE) || VTSS_SW_OPTION_QOS_QCL_INCLUDE == 1 */
+  Storm Control,stormctrl.htm
+  WRED,qos_wred_v2.htm
+#endif /* VTSS_SW_OPTION_ARCH_SERVAL */
+#endif /* VTSS_SW_OPTION_QOS */
+#if defined(VTSS_SW_OPTION_MIRROR)
+ Mirroring,mirror.htm
+#endif /* VTSS_SW_OPTION_MIRROR */
+#if defined(VTSS_SW_OPTION_UPNP)
+ UPnP,upnp.htm
+#endif /* VTSS_SW_OPTION_UPNP */
+#if defined(VTSS_SW_OPTION_PTP)
+ PTP,ptp_config.htm
+#endif /* VTSS_SW_OPTION_PTP */
+#if defined(VTSS_SW_OPTION_MRP)
+ MRP,mrp_config.htm
+#endif /* VTSS_SW_OPTION_MRP */
+#if defined(VTSS_SW_OPTION_MVRP)
+ MVRP,mvrp_config.htm
+#endif /* VTSS_SW_OPTION_MVRP */
+#if defined(VTSS_SW_OPTION_GVRP)
+ GVRP
+  Global config,gvrp_config.htm
+  Port config,gvrp_port.htm
+#endif /* VTSS_SW_OPTION_GVRP */
+#if defined(VTSS_PERSONALITY_STACKABLE)
+ Stack,stack_config.htm
+#endif /* VTSS_PERSONALITY_STACKABLE */
+#if defined(VTSS_SW_OPTION_SFLOW)
+ sFlow,sflow.htm
+#endif /* VTSS_SW_OPTION_SFLOW */
+#if defined(VTSS_SW_OPTION_RFC2544)
+ RFC2544
+  Profiles,rfc2544_profiles.htm
+  Reports,rfc2544_reports.htm
+#endif /* VTSS_SW_OPTION_RFC2544 */
+Monitor
+ System
+  Information,sys.htm
+  CPU Load,perf_cpuload.htm
+#if defined(VTSS_SW_OPTION_IP2)
+  IP Status,ip_status.htm
+#endif
+#if defined(VTSS_SW_OPTION_SYSLOG)
+  Log,syslog.htm
+  Detailed Log,syslog_detailed.htm
+#endif /* VTSS_SW_OPTION_SYSLOG */
+#if defined(VTSS_SW_OPTION_LED_POW_REDUC) || defined(VTSS_SW_OPTION_FAN) || defined(VTSS_SW_OPTION_EEE)
+ Green Ethernet
+  Port Power Savings,port_power_savings_status.htm
+#if defined(VTSS_SW_OPTION_FAN)
+  Fan,fan_status.htm
+#endif
+#endif
+#if defined(VTSS_SW_OPTION_THERMAL_PROTECT)
+ Thermal Protection,thermal_protect_status.htm
+#endif
+ Ports
+  State,main.htm
+  Traffic Overview,stat_ports.htm
+#if defined(VTSS_SW_OPTION_QOS)
+  QoS Statistics,qos_counter.htm
+#if defined(VTSS_SW_OPTION_ARCH_JAGUAR_1) || defined(VTSS_SW_OPTION_ARCH_LUTON26) || defined(VTSS_SW_OPTION_ARCH_SERVAL)
+#if defined(VTSS_SW_OPTION_QOS_QCL_INCLUDE)
+#if VTSS_SW_OPTION_QOS_QCL_INCLUDE == 1
+  QCL Status,qcl_v2_stat.htm
+#endif /* VTSS_SW_OPTION_QOS_QCL_INCLUDE == 1 */
+#elif defined(VTSS_SW_OPTION_ARCH_JAGUAR_1)
+#if defined(VTSS_SW_OPTION_BUILD_CE)
+  QCL Status,qcl_v2_stat.htm
+#endif /* defined(VTSS_SW_OPTION_BUILD_CE) */
+#else
+  QCL Status,qcl_v2_stat.htm
+#endif /* defined(VTSS_SW_OPTION_QOS_QCL_INCLUDE) */
+#endif /* defined(VTSS_SW_OPTION_ARCH_JAGUAR_1) || defined(VTSS_SW_OPTION_ARCH_LUTON26) || defined(VTSS_SW_OPTION_ARCH_SERVAL) */
+#endif /* defined(VTSS_SW_OPTION_QOS) */
+  Detailed Statistics,stat_detailed.htm
+#if defined(VTSS_SW_OPTION_ETH_LINK_OAM)
+ Link OAM
+  Statistics,eth_link_oam_stat_detailed.htm
+  Port Status,eth_link_oam_port_status.htm
+  Event Status,eth_link_oam_link_status.htm
+#endif
+#if defined(VTSS_SW_OPTION_DHCP_HELPER)
+ DHCP
+#if defined(VTSS_SW_OPTION_DHCP_SERVER)
+  Server
+   Statistics,dhcp_server_stat.htm
+   Binding,dhcp_server_stat_binding.htm
+   Declined IP,dhcp_server_stat_declined.htm
+#endif /* VTSS_SW_OPTION_DHCP_SERVER */
+#if defined(VTSS_SW_OPTION_DHCP_SNOOPING)
+  Snooping Table,dyna_dhcp_snooping.htm
+#endif
+#if defined(VTSS_SW_OPTION_DHCP_RELAY)
+  Relay Statistics,dhcp_relay_statistics.htm
+#endif /* VTSS_SW_OPTION_DHCP_RELAY */
+  Detailed Statistics,dhcp_helper_statistics.htm
+#endif /* VTSS_SW_OPTION_DHCP_HELPER */
+ Security
+#if defined(VTSS_SW_OPTION_ACCESS_MGMT)
+  Access Management Statistics,access_mgmt_statistics.htm
+#endif
+  Network
+#if defined(VTSS_SW_OPTION_PSEC)
+   Port Security
+    Switch,psec_status_switch.htm
+    Port,psec_status_port.htm
+#endif
+#if defined(VTSS_SW_OPTION_DOT1X)
+   NAS
+    Switch,nas_status_switch.htm
+    Port,nas_status_port.htm
+#endif
+#if defined(VTSS_SW_OPTION_ACL)
+   ACL Status,acl_status.htm
+#endif /* VTSS_SW_OPTION_ACL */
+#if defined(VTSS_SW_OPTION_ARP_INSPECTION)
+   ARP Inspection,dyna_arp_inspection.htm
+#endif /* VTSS_SW_OPTION_ARP_INSPECTION */
+#if defined(VTSS_SW_OPTION_IP_SOURCE_GUARD)
+   IP Source Guard,dyna_ip_source_guard.htm
+#endif /* VTSS_SW_OPTION_IP_SOURCE_GUARD */
+#if defined(VTSS_SW_OPTION_RADIUS)
+  AAA
+   RADIUS Overview,auth_status_radius_overview.htm
+   RADIUS Details,auth_status_radius_details.htm
+#endif /* VTSS_SW_OPTION_RADIUS */
+#if defined(VTSS_SW_OPTION_RMON)
+  Switch
+   RMON
+    Statistics,rmon_statistics_status.htm
+    History,rmon_history_status.htm
+    Alarm,rmon_alarm_status.htm
+    Event,rmon_event_status.htm
+#endif /* VTSS_SW_OPTION_RMON */
+#if defined(VTSS_SW_OPTION_LACP)
+ LACP
+  System Status,lacp_sys_status.htm
+  Port Status,lacp_port_status.htm
+  Port Statistics,lacp_statistics.htm
+#endif /* VTSS_SW_OPTION_LACP */
+#if defined(VTSS_SW_OPTION_LOOP_PROTECT)
+ Loop Protection,loop_status.htm
+#endif /* defined(VTSS_SW_OPTION_LOOP_PROTECT) */
+#if defined(VTSS_SW_OPTION_MSTP)
+ Spanning Tree
+#if defined(VTSS_MSTP_FULL)
+  Bridge Status,mstp_status_bridges.htm
+#else
+  Bridge Status,mstp_status_bridge.htm
+#endif
+  Port Status,mstp_status_ports.htm
+  Port Statistics,mstp_statistics.htm
+#endif  /* VTSS_SW_OPTION_MSTP */
+#if defined(VTSS_SW_OPTION_MVR)
+ MVR
+  Statistics,mvr_status.htm
+  MVR Channel Groups,mvr_groups_info.htm
+  MVR SFM Information,mvr_groups_sfm.htm
+#endif /* VTSS_SW_OPTION_MVR */
+#if defined(VTSS_SW_OPTION_IPMC)
+ IPMC
+  IGMP Snooping
+   Status,ipmc_igmps_status.htm
+   Groups Information,ipmc_igmps_groups_info.htm
+#if defined(VTSS_SW_OPTION_SMB_IPMC)
+   IPv4 SFM Information,ipmc_igmps_v3info.htm
+  MLD Snooping
+   Status,ipmc_mldsnp_status.htm
+   Groups Information,ipmc_mldsnp_groups_info.htm
+   IPv6 SFM Information,ipmc_mldsnp_v2info.htm
+#endif /* VTSS_SW_OPTION_SMB_IPMC */
+#endif /* VTSS_SW_OPTION_IPMC */
+
+#if defined(VTSS_SW_OPTION_LLDP)
+ LLDP
+  Neighbors,lldp_neighbors.htm
+#if defined(VTSS_SW_OPTION_LLDP_MED)
+  LLDP-MED Neighbors,lldp_neighbors_med.htm
+#endif /* VTSS_SW_OPTION_LLDP_MED */
+#if defined(VTSS_SW_OPTION_POE)
+  PoE,lldp_poe_neighbors.htm
+#endif /* VTSS_SW_OPTION_POE */
+#if defined(VTSS_SW_OPTION_EEE)
+  EEE,lldp_eee_neighbors.htm
+#endif
+  Port Statistics,lldp_statistic.htm
+#endif /* VTSS_SW_OPTION_LLDP */
+#if defined(VTSS_SW_OPTION_EVC)
+ Ethernet Services
+  EVC Statistics,evc_statistics.htm
+#if defined(VTSS_CHIP_JAGUAR_1) || defined(VTSS_SW_OPTION_ARCH_SERVAL)
+  ECE Statistics,evc_ece_statistics.htm
+#endif /* VTSS_CHIP_JAGUAR_1 || VTSS_SW_OPTION_ARCH_SERVAL */
+#endif /* VTSS_SW_OPTION_EVC */
+#if defined(VTSS_SW_OPTION_PERF_MON)
+ Performance Monitor
+  LM Statistics,perf_mon_lm_statistics.htm
+  DM Statistics,perf_mon_dm_statistics.htm
+  EVC Statistics,perf_mon_evc_statistics.htm
+  ECE Statistics,perf_mon_evc_ece_statistics.htm
+  Interval Information,perf_mon_interval_info.htm
+#endif /* VTSS_SW_OPTION_PERF_MON */
+#if defined(VTSS_SW_OPTION_PTP)
+ PTP,ptp.htm
+#endif /* VTSS_SW_OPTION_PTP */
+#if defined(VTSS_SW_OPTION_POE)
+ PoE,poe_status.htm
+#endif /* VTSS_SW_OPTION_POE */
+#if defined(VTSS_SW_OPTION_MAC)
+ MAC Table,dyna_mac.htm
+#endif /* VTSS_SW_OPTION_MAC */
+#if defined(VTSS_SW_OPTION_VLAN)
+ VLANs
+  Membership,vlan_membership_stat.htm
+  Ports,vlan_port_stat.htm
+#endif /* VTSS_SW_OPTION_VLAN */
+#if defined(VTSS_SW_OPTION_MRP)
+ MRP,mrp_statistics.htm
+#endif /* VTSS_SW_OPTION_MRP */
+#if defined(VTSS_SW_OPTION_MVRP)
+ MVRP,mvrp_statistics.htm
+#endif /* VTSS_SW_OPTION_MVRP */
+#if defined(VTSS_PERSONALITY_STACKABLE)
+ Stack,stackstate.htm
+#endif /* VTSS_PERSONALITY_STACKABLE */
+#if defined(VTSS_SW_OPTION_VCL)
+ VCL
+  MAC-based VLAN,mac_based_vlan_status.htm
+#endif /* VTSS_SW_OPTION_VCL */
+#if defined(VTSS_SW_OPTION_SFLOW)
+ sFlow,sflow_status.htm
+#endif /* VTSS_SW_OPTION_SFLOW */
+Diagnostics
+ Ping,ping.htm
+#if defined(VTSS_SW_OPTION_ETH_LINK_OAM)
+ Link OAM
+  MIB Retrieval,eth_link_oam_mib_support.htm
+#endif
+#if defined(VTSS_SW_OPTION_IPV6)
+ Ping6,ping_ipv6.htm
+#endif /* VTSS_SW_OPTION_IPV6 */
+ VeriPHY,veriphy.htm
+Maintenance
+ Restart Device,wreset.htm
+ Factory Defaults,factory.htm
+#if defined(VTSS_PERSONALITY_STACKABLE)
+ Firmware Upload,upload.htm
+#else
+ Firmware
+  Upload,upload.htm
+  Image Select,sw_select.htm
+#endif
+#if defined(VTSS_SW_OPTION_CONF_XML)
+ Configuration
+  Save,conf_save.htm
+  Upload,conf_upload.htm
+#endif /* VTSS_SW_OPTION_CONF_XML */
+#if defined(VTSS_SW_OPTION_ICFG)
+ Configuration
+  Save startup-config,icfg_conf_save.htm
+  Download,icfg_conf_download.htm
+  Upload,icfg_conf_upload.htm
+  Activate,icfg_conf_activate.htm
+  Delete,icfg_conf_delete.htm
+#endif /* VTSS_SW_OPTION_CONF_XML */

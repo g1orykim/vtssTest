@@ -1,0 +1,98 @@
+cdl_savefile_version 1;
+cdl_savefile_command cdl_savefile_version {};
+cdl_savefile_command cdl_savefile_command {};
+cdl_savefile_command cdl_configuration { description hardware template package };
+cdl_savefile_command cdl_package { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_component { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_option { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_interface { value_source user_value wizard_value inferred_value };
+
+cdl_configuration eCos {
+    description "" ;
+
+    # These fields should not be modified.
+    hardware    vcoreiii_mips32_24kec ;
+    template    redboot ;
+    package -hardware CYGPKG_HAL_MIPS current ;
+    package -hardware CYGPKG_HAL_MIPS_MIPS32 current ;
+    package -hardware CYGPKG_HAL_MIPS_VCOREIII current ;
+    package -hardware CYGPKG_DEVS_FLASH_SPI_M25PXX current ;
+    package -hardware CYGPKG_DEVS_SPI_MIPS_VCOREIII current ;
+    package -hardware CYGPKG_IO_SPI current ;
+    package -hardware CYGPKG_IO_FLASH current ;
+    package -template CYGPKG_HAL current ;
+    package -template CYGPKG_INFRA current ;
+    package -template CYGPKG_REDBOOT current ;
+    package -template CYGPKG_ISOINFRA current ;
+    package -template CYGPKG_LIBC_STRING current ;
+    package -template CYGPKG_CRC current ;
+    package CYGPKG_COMPRESS_ZLIB current ;
+    package CYGPKG_MEMALLOC current ;
+};
+
+cdl_component CYG_HAL_STARTUP {
+    user_value RAM
+};
+
+cdl_component CYGBLD_BUILD_REDBOOT {
+    user_value 1
+};
+
+cdl_component CYGOPT_REDBOOT_REDUNDANT_FIS {
+    user_value 1
+};
+
+# When using redundant fis, we cannot have
+# the configuration data (e.g. 'fis load managed; go')
+# combined with the fis directory.
+cdl_option CYGSEM_REDBOOT_FLASH_COMBINED_FIS_AND_CONFIG {
+    user_value 0
+};
+
+cdl_option CYGSEM_HAL_USE_ROM_MONITOR {
+    inferred_value 0 0
+};
+
+cdl_option CYGSEM_REDBOOT_RTC {
+    user_value 0
+};
+
+cdl_option CYGBLD_BUILD_REDBOOT_WITH_GUNZIP {
+    user_value 1
+};
+
+# Have 'fis load' support the -a switch.
+cdl_option CYGOPT_REDBOOT_ZLIB_FLASH_AUTO_DETECT {
+    user_value 1
+};
+
+cdl_option CYGSEM_IO_FLASH_VERIFY_PROGRAM {
+    user_value 1
+};
+
+# Avoid gzXXX functions as they are not needed. They're coming from
+# .../packages/services/compress/zlib/current/src/gzio.c
+cdl_option CYGFUN_COMPRESS_ZLIB_GZIO {
+    user_value 0
+};
+
+cdl_option CYGPKG_REDBOOT_ANY_CONSOLE {
+    user_value 0
+};
+
+cdl_component CYGPKG_REDBOOT_DISK {
+    user_value 0
+};
+
+cdl_option CYGNUM_REDBOOT_BOOT_SCRIPT_DEFAULT_TIMEOUT {
+    user_value 3
+};
+
+cdl_option CYGDAT_REDBOOT_CUSTOM_VERSION {
+    # Defines the string shown when RedBoot is booting
+    user_value 1 1_16-Vitesse-RAM
+};
+
+cdl_option CYGSEM_REDBOOT_PLF_STARTUP {
+    user_value 1
+};

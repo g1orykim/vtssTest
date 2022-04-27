@@ -1,0 +1,1085 @@
+Version : API_4_39b-Samsung
+Previous Version: API_4_39a-Samsung
+Date: 2013-11-19
+
+Description: Vitesse API
+
+New features:
+    -	JR QS structure updated with ports, giving the capabilities to configure each queue and port buffers differently.
+Fixed:
+    -
+
+Known issues:
+    -
+------------------------------------------------------------------------------------------------------------------------------------
+Version : API_4_39a-Samsung
+Previous Version: API_4_39
+Date: 2013-09-11
+
+Description:
+Vitesse API
+
+Included new functionality:
+  - QoS for Jaguar (configuration of watermarks)
+  - Extended ACL filtering for IPv6
+  - Added ACL policy for VCL
+------------------------------------------------------------------------------------------------------------------------------------
+Version : API_4_39
+Previous Version: API_4_33
+Date: 2013-08-30
+
+Description:
+Vitesse API
+
+Currently tested features:
+-	Added a nexw mode TEE_PMW to the API.
+
+Fixed:
+-	Fixed an issue related to Lane-B XFI registers not being set during initialization.
+-	Added a work around for packet drop issue seen in TGO2_Sub mode.
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+Version : API_4_33
+Previous Version: API_4_32
+Date: 2013-06-25
+
+Description: Release of API with daytona features and I.7 default latencies
+             for 1588
+
+Currently tested features:
+-       Support for GFP 'cmf accepted' and 'cdf frame mapped ethernet' events.
+-       X4 clock frequency on Line and client PLLs.
+-       Configuration of TX GFP CMF frame length.
+-       support for FEC_BER and Uncorrect Code Words Events for RS, I.4 and I.7 EFECs.
+-       Support for BMX-2 mode.
+-       Disable the channel by dynamic configuration. 
+-	API for OOF and OOM alarms.
+
+
+Fixed:
+-       Fixed issues related to configuration of I.7 EFEC.
+-       Configuration of default values during dynamic channel initialisation.
+-	Fixed issues related to DFE equalization and performance counters.
+
+
+Known issues:
+-	When 1588 is used with I.7 FEC enabled, the latency compensation used results in correct phase, but an error in meanpathdelay of 8600 ns. This error shall be compensated in the PTP software (when running BC, P2P TC or slave modes)/OAM software.
+---------------------------------------------------------------------------
+Version : 4.32
+Previous Version: API_4_31
+Date: 2013-06-21
+
+Description: Release of API with for some new features of daytona,phy1588 and 
+10G API
+
+New features:
+
+Fixed:
+    -
+
+Known issues:
+
+---------------------------------------------------------------------------
+Version : 4.31
+Previous Version: API_4_30
+Date: 2013-06-03
+
+Description: Release of API with I.7 FEC support for Daytona RevB
+
+New features:
+
+Fixed:
+    -
+
+Known issues:
+
+---------------------------------------------------------------------------
+Version : 4.30a
+Previous Version: API_4_24
+Date: 2013-05-02
+
+Description: Release of API corresponding to application release 3.30a_BETA
+
+New features:
+
+Fixed:
+    -
+
+Known issues:
+
+---------------------------------------------------------------------------
+Version : 4.30
+Previous Version: API_4_24
+Date: 2013-05-02
+
+Description: Release of API corresponding to application release 3.30
+
+New features:
+
+Fixed:
+    -
+
+Known issues:
+
+---------------------------------------------------------------------------
+Version : 4.24
+Previous Version: API_4_23
+Date: 2013-02-27
+
+Description: Release of API for supporting asymmetry delay compensation on
+ ingress and egress with different values
+
+New features:
+
+Fixed:
+    -
+
+Known issues:
+---------------------------------------------------------------------------
+Version : 4.23
+Previous Version: API_4_22
+Date: 2013-02-20
+
+Description: Special release of API for supporting Viper (not tested since chip is not available yet)
+
+New features:
+
+Fixed:
+    -
+
+Known issues:
+
+
+---------------------------------------------------------------------------
+Version : 4.22
+Previous Version: API_4_21
+Date: 2013-02-12
+
+Description: Release of API corresponding to application release 3.20_beta
+
+New features:
+
+Fixed:
+    - 
+
+Known issues:
+
+---------------------------------------------------------------------------
+
+Version : API_4_21
+Previous Version: API_4_20_pre_beta
+Date: 2013-02-04
+Description: Release of API for Daytona Lumbini II features
+
+New features Daytona:
+-   Added new API for Equalization configuration in XFI and UPI blocks.
+-   Parameter added to API initialization to include an option to run the
+    Line interface at 161.13MHz clock in PEE_P and PEE_MP modes.
+-   Provision provided to intialize only a single channel during API
+    initialization. Uninitialized channel will be put in reset.
+
+Fixed:
+
+Known issues:
+
+---------------------------------------------------------------------------
+Version : 4.21
+Previous Version: API_4_20_alpha1
+Date: 2012-12-20
+
+Description: Release showing the implemenation of MACSEC.
+
+New features:
+
+Fixed:
+    - 
+
+Known issues:
+
+
+
+---------------------------------------------------------------------------
+Version : API_4_20_alpha1
+Previous Version: 4.10_beta
+Date: 2012-Nov-19
+
+Description: This is a alpha release with specific support for
+VSC7418, L3 hardware routing on supported platforms and added frame IO
+features on Linux.
+
+New features:
+=============
+
+  1. Added support for VSC7418.
+
+  2. Added L3 hardware assisted IP routing support (VSC743x and
+     VSC7460).
+
+  3. On Linux, the user-mode frame injection/extraction (by NETLINK)
+     now supports using a packet filter or ACL to control frame
+     multiplexing. Refer to the netlink_filter.c application
+     example.
+
+---------------------------------------------------------------------------
+Version : 4.10_beta
+Previous Version: API4.10_Phy1588 
+Date: 2012-11-09
+
+Description: Release of API corresponding to application release 3.10_beta
+
+New features:
+
+Fixed:
+    - 
+
+Known issues:
+
+---------------------------------------------------------------------------
+Version : API4.10_Phy1588 
+Previous Version: API_4_04_tesla_rev_d_alfa
+Date: 2012-Nov-02
+
+Description: This is a system tested release for the Tesla Rev D support with fixes for  Packet corruption on ETH/PTP encapsulation and QSGMII mode issue. Note that when your Application uses RevD devices exclusively, then it no longer needs to be built with "New SPI Mode" enabled. To be precise, you can continue to use that Mode if you want to, but we'd recommend turning this off.
+
+New features:
+=============
+-
+
+Fixed:
+======
+                1. Packet corruption on ETH/PTP encapsulation when moved from ETH/IP/PTP Encapsulation
+                                No change required for application
+                2. Ping issue on 1G and 10G (QSGMII mode configuration issue fixed)
+                                No change required for application
+Known Issues:
+===========
+
+                1. Ping issue with Copper SFP on 10M and 100M speeds
+                2. CRC error on 10M and 100M speeds
+                3. Far-End Loopback Issue with 1GE-SX (Line Side Loopback)
+
+
+
+---------------------------------------------------------------------------
+Version : API_4_04_tesla_rev_d_alfa
+Previous Version: 4.03_alfa
+Date: 2012-09-25
+
+Description: 
+	     
+New features:
+    Support for VSC8512 and VSC8522 Rev. D
+    Support for VSC8574 Rev. D
+    Support for VCS8572 and VSC8552 RGMII
+    
+
+Notes:
+  For using the VSC8574/72/52 Rev D device with original hardware,
+  VTSS_PHY_TS_SPI_CLK_THRU_PPS0 macro needs to be disabled in the
+  vtss_options.h file.  
+  New SPI mode continues to work with Rev D. For using the new SPI mode (using PPS0 as SPI Clock)  VTSS_PHY_TS_SPI_CLK_THRU_PPS0 has to be defined. This is defined by default.
+
+Fixed:
+    - 
+
+Known issues:
+
+---------------------------------------------------------------------------
+
+
+Version : api_4_03-alpha
+Previous Version: API_4_03_pre_alpha
+Date: 2012-09-13
+
+Description: Release of API corresponding to application release 3.02-alfa
+
+New features:
+
+Fixed:
+    - 
+
+Known issues:
+
+---------------------------------------------------------------------------
+Version : API_4_03_pre_alpha
+Previous Version: API_4_02
+Date: 2012-06-13
+
+Description: Release of 4.01 API.
+
+New features:
+    Tesla - Tesla, notably including Mode A Transparent Clock Functionality
+Fixed:
+    - 
+
+Known issues:
+   Bugzilla#7466: 10gphy,MPR-1588,"Whenever 10g_event_poll API is invoked, the interrupt status from both channels must be cleared.
+   Bugzilla#7954: MPR-1588,CRC problem with 100FX
+   Bugzilla#8812: Module: Remove the hook-up to fast link down   detection.
+
+---------------------------------------------------------------------------
+Version : API_4_02
+Previous Version: API_4_01
+Date: 2012-05-25
+
+Description: Release of API corresponding to application release 3.02
+
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+
+---------------------------------------------------------------------------
+Version : API_4_01
+Previous Version: API_4_00
+Date: 2012-05-14
+
+Description: Release of API corresponding to application release 3.01
+
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+
+---------------------------------------------------------------------------
+
+
+Version : API_4_00
+Previous Version: API_3_90
+Date: 2012-MAR-5th
+
+Description: Release of API corresponding to application release 3.00
+
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+---------------------------------------------------------------------------
+Version : API_3_90e
+Previous Version: API_3_90d
+Date: 2012-08-30
+
+Description: Release of API corresponding to application release 2.80e
+
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+---------------------------------------------------------------------------
+Version : API_3_90d
+Previous Version: API_3_90c
+Date: 2012-07-11
+
+Description: Release of API corresponding to application release 2.80d
+
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+---------------------------------------------------------------------------
+Version : API_3_90c
+Previous Version: API_3_90b
+Date: 2012-05-31
+
+Description: Release of API corresponding to application release 2.80c
+
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+---------------------------------------------------------------------------
+Version : API_3_90b
+Previous Version: API_3_90a
+Date: 2012-05-31
+
+Description: Release of API corresponding to application release 2.80b
+
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+---------------------------------------------------------------------------
+
+Version : API_3_90a
+Previous Version: API_3_90
+Date: 2012-MAY-1st
+
+Description: Release of API corresponding to application release 2.80a
+
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+---------------------------------------------------------------------------
+Version : API_3_90
+Previous Version: API_3_81c
+Date: 2012-MAR-5th
+
+Description: Release of API corresponding to application release 2.80
+
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+---------------------------------------------------------------------------
+Version : API_3_81c
+Previous Version: API_3_81b
+Date: 2012-APR-17th
+ 
+Description:
+	
+New features:
+    - XAUI ports now supports 2.5Gb mode.
+Fixed:
+
+
+Known issues:
+    - 
+---------------------------------------------------------------------------
+Version : API_3_81b
+Previous Version: API_3_81a
+Date: 2012-MAR-14th
+ 
+Description:
+	
+New features:
+    - Assymmetric PVLAN and flood control
+Fixed:
+    - Bugzilla#7932 - NPI must control IFH parsing 
+
+
+Known issues:
+    - 
+---------------------------------------------------------------------------
+Version : API_3_81a
+Previous Version: API_3_81
+Date: 2012-MAR-5th
+
+Description: Release of API corresponding to application release 2.71a
+
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+---------------------------------------------------------------------------
+Version : API_3_81
+Previous Version: API_3_80a
+Date: 2012-JAN-9th
+
+Description: Release of API corresponding to application release 2.71
+
+New features:
+    -
+Fixed:
+    - 
+ 
+ Known issues:
+
+
+
+---------------------------------------------------------------------------
+
+
+Version : API_3_80a
+Previous Version: API_3_80
+Date: 2011-DEC-9th
+ 
+Description:
+	
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+    - 
+
+---------------------------------------------------------------------------
+Version : API_3_80
+Previous Version: API_3_70f
+Date: 2011-NOV-14th
+ 
+Description: Release of API corresponding to application release 2.70
+
+New features:
+    -
+Fixed:
+    - 
+
+Known issues:
+    - 
+
+
+Version : API_3_70f
+Previous Version: API_3_70e
+Date: 2011-OCT-12th
+
+Description: This release includes correct local latency values for 8487-15 and Tesla 
+
+New features:
+	-
+Fixed:
+     - Configuring mixed mode ports with 8487-15 was addressed
+	 - Latency value compensated for Tesla Cu 1000Base-T and 8487-15
+
+Known issues:
+	- Occasionally seeing one or two frame drops in WAN mode
+
+---------------------------------------------------------------------------
+Version : API_3_70e
+Previous Version: API_3_70c
+Date: 2011-OCT-06th
+
+Description: 
+
+New features:
+
+	-  
+
+Fixed:
+
+	1. Local latency values for Tesla updated with optimal values.
+	2. Re-instigated initializing the 1588 Analyzer registers for REV-B chip 
+
+Known issues:
+	1. Ocassioally seeing packet drops after giving a power cycle. 
+	2. Packet drops when attempting failover switching .
+	3. Getting CRC/Alignment errors while transferring frames in WAN mode
+	4. Ports link going down when we enable SyncE API in WAN mode 
+	5. Problems configuring mixed mode ports with 8487 
+	6. Switch from WAN -> LAN mode failes when doing without restore to default 
+	7. Changing between LAN and WAN mode with 8487 requires a power-cycle 
+
+    - New Ingress and Egress local latency values for Tesla verified on Copper PHY.
+
+---------------------------------------------------------------------------
+
+Version : API_3_70d
+Previous Version: API_3_70c
+Date: 2011-10-05
+ 
+Description: Linux Release
+
+New features:
+
+	- CCM Offloader: Implemented frame counting
+        - Added 1G support to 10G device for VSC74XX targets (JR1)
+
+Fixed:
+
+	1. skb_over_panic() in vtss_ethdrv driver when receiving 1514
+           byte frames not directed to IP stack.
+        2. Compile problems for some VSC74XX targets (JR1).
+
+---------------------------------------------------------------------------
+
+Version : API_3_70c
+Previous Version: API_3_60m
+Date: 2011-SEP-30th
+ 
+Description: 
+
+New features:
+
+	- New API vtss_phy_clock_conf_get() function has been implemented to the corresponding vtss_phy_clock_conf_set().
+
+Fixed:
+
+	1. Added Updated Microcode patch for Tesla RevA to handle SPI TS truncation.
+	2. Default latency values in Tesla has been incorporated.
+ 
+	
+Known issues:
+	1. Ocassioally seeing packet drops after giving a power cycle. 
+	2. Packet drops when attempting failover switching .
+	3. Getting CRC/Alignment errors while transferring frames in WAN mode
+	4. Ports link going down when we enable SyncE API in WAN mode 
+	5. Problems configuring mixed mode ports with 8487 
+	6. Switch from WAN -> LAN mode failes when doing without restore to default 
+	7. Changing between LAN and WAN mode with 8487 requires a power-cycle 
+	
+
+    - Extended WAN mode and SyncE Mixed mode testing is going on.
+
+
+---------------------------------------------------------------------------
+
+Version : API_3_70
+Previous Version: API_3_60i
+Date: 2011-09-26
+ 
+Description:
+
+    Release API_3_70
+
+Fixed:
+	-Bugzilla#5186 - conf showing disabled even the port status is UP
+	-Bugzilla#5465 - It is not possible to configure a Transparent Clock with the Tesla plug-in modules
+	-Bugzilla#5870 - Error msg in API 
+
+Known issues:
+
+---------------------------------------------------------------------------
+
+Version : API_3_60j
+Previous Version: API_3_60g
+Date: 2011-SEP-16th
+ 
+Description: Implemented new features WAN mode and SyncE. WAN mode is minimally tested, we are continuing the testing. 
+    
+New features:
+	1. WAN Mode support with the following features. 
+	
+		1.	Mode change between LAN and WAN.
+		2.	Trail Trace Identifier configuration for Section and Path.
+		3.	WIS status and error counters.
+		4.	Section, line and path defects indication
+		5.	Test mode configuration
+		6.	Consequent Action configuration(AIS-L, RDI-L and FAULT) and Event configuration.
+		7.	WIS block reset.
+		
+    2. SyncE support implemented. Following are the changes to API in brief:
+
+		vtss_phy_10g_synce_clkout_set is the new API added to enable or disable Clock out from PHY.
+		vtss_phy_10g_mode_set is enhanced to set the PHY in to SyncE modes. 
+		SyncE modes and different clock configurations are added to the structure vtss_phy_10g_mode_t.
+		synce_clkout is added to enable/disable clock out from PHY to structure vtss_phy_10g_port_state_t.
+
+		
+Fixed:
+    -
+Known issues:
+
+---------------------------------------------------------------------------
+
+Version : API_3_60i
+Previous Version: API_3_60h
+Date: 2011-08-31
+
+Description:
+
+    Release API_3_60i
+
+New features:
+    - Multi-channel CCM support
+
+Fixed:
+
+Known issues:
+
+---------------------------------------------------------------------------
+
+Version : API_3_60h
+Previous Version: API_3_60g
+Date: 2011-08-26
+ 
+Description:
+
+    Release API_3_60h
+
+New features:
+    - Added 48-port Jaguar1 support to linux (VSC7432. VSC7434),
+
+Fixed:
+
+Known issues:
+    - 48-port Jaguar1 target VSC7460 is non-functional.
+
+---------------------------------------------------------------------------
+
+Version : API_3_60g
+Previous Version: API_3_60f
+Date: 2011-08-18
+ 
+Description:
+    -
+
+New features:
+	
+
+Fixed:
+	-New functions provided in the API to configure GPIO pin, which will be used for 
+	 interrupt handling.
+
+Known issues:
+
+---------------------------------------------------------------------------
+
+Version : API_3_60f
+Previous Version: API_3_60e
+Date: 2011-08-15
+ 
+
+Description:
+    - Release API_3_60f
+
+New features:
+    - ACL API: Filtering on both port and policy now supported.
+    - ACL API: Mapping to EVC policers supported for Caracal.
+    - EVC API: EVC policers supported for Caracal.
+    - EVC API: Added support for unidirectional ECEs.
+    - MCE API: Added MEP control API for Caracal.
+    - Packet API: Added L2CP control per port for Caracal and SparX-III.
+    - Port API: Added host loopback option.
+Fixed:
+    -
+
+Known issues:
+---------------------------------------------------------------------------
+
+Version : API_3_60e
+Previous Version: API_3_60d
+Date: 2011-07-12
+ 
+
+Description:
+    - Release API_3_60e
+
+New features:
+    - Make the Control Word configurable parameter for MPLS PWE, before it was mandatory for PWE
+    - PBB was not working; Bugzilla#5181
+    - Enhancement in reading Timestamp FIFO, called 2RO (2 Read Optimization)
+
+Fixed:
+    -
+
+Known issues:
+---------------------------------------------------------------------------
+
+Version : API_3_60d
+Previous Version: API_3_60c
+Date: 2011-07-05
+ 
+
+Description:
+    - Release API_3_60d
+
+New features:
+    - Caracal: Support for EVCs (not fully tested).
+
+Fixed:
+    -
+
+Known issues:
+    -
+---------------------------------------------------------------------------
+
+Version : API_3_60c
+Previous Version: API_3_50
+Date: 2011-06-27
+ 
+
+Description:
+
+Release API_3_50a
+
+New features:
+    Support for Tesla PHY family.    
+
+Fixed:
+    Misc. 1588 PTP bugs.			
+
+Known issues:
+-
+---------------------------------------------------------------------------
+
+
+Version: API_3_51
+Previous Version: API_3_50a
+Date: 2011-05-09
+
+New Features:
+    - 48-ported Jaguar1 Support (previous release didn't include this even if it stated it in the release notes).
+
+Fixes:
+    -Bugzilla#3687: Now link interrupt on HDMI from the DEV block on Jaguar platform.
+    -Bugzilla#4034: Removed debug fields from L2 API.
+    -Bugzilla#4078: Interrupt support for 8484+87+88.
+    -Bugzilla#4096: Port LED control added.
+                    Setup default stack ports.
+    -Bugzilla#4109: Bug Fixes, array index mismatch.
+                    32 Bit mmd_read function is added.
+                    FIFO Bug Fix.
+                    OAM support.
+                    OAM support for ETH_ETH_OAM encapsulation.
+                    FIFO pos.
+                    Work Around for FIFO.
+                    Added some extra checks to the vtss_phy_ts_fifo_empty_priv function to make it more reliable.
+                    Corrected nanosec reading in the function: vtss_phy_ts_fifo_empty_private.
+                    Lint warnings.
+                    Added ACH.
+                    Added CLI to test API and few bug fixes for API.
+                    Change PTP action for Delay_req Pdelay_req for 2stepBC in engress and changed cmd for ts saved in FIFO.
+                    Few bug fixes: VLAN and eth2.
+                    Fixed a bug in PBB for tag1 and tag2 type.
+                    Merge PHY TS from trunk.
+                    Release API lock when calling out from vtss_phy_ts_fifo_empty_private.
+                    Replaced engine allocate and free by engine init and clear.
+                    Compilation Error.
+                    Fix for the Duplicate Timestamps & Missed Timestamps.
+                    Modifieg the read_functionality from read32 to read_inc.
+                    Added Cli Command for OAM action part.
+                    Removed goto and instead added do{}while(0).
+                    Tesla Register Access Support.
+                    Clear_init for PTP,OAM MPLS encapsulations.
+                    Added OAM functions for ITEF-MPLS_ACH_OAM Delay Measurement functionality.
+                    OAM Functions.
+    -Bugzilla#4157: Fixed DSCP translation in Jaguar1 and changed default trusted to FALSE.
+    -Bugzilla#4385: CE_MAX QoS changes.
+    -Bugzilla#4435: 12G interconnect links are working now (copied from Tip).
+    -Bugzilla#4453 and 4454: Loopbacks F and K fixed.
+    -Bugzilla#4573: Removed support for Jaguar emulation.
+    -Bugzilla#4591: SGPIO blink frequencies were off by a factor 4.
+                    SGPIO blink frequencies were off by a factor 4. Updated 1.0V XAUI settings, RXAUI still not working.
+    -Bugzilla#4592: SGPIO blink frequences were off by a factor 4.
+    -Bugzilla#4617: Not using vtss_state.h.
+    -Bugzilla#4618: Added  VTSS_CHIP_10G_PHY macros.
+                    Added VTSS_CHIP_CU_PHY  for doxygen.
+                    Added Doxygen header, but would rather prefer that this file is removed.
+                    Added Doxygen header.
+                    Added vtss_phy_ts_api.h. Removed VTSS_CHIP_CU_PHY define, since all header files are currently Doxygen generated anyway.
+                    Define VTSS_CHIP_CU_PHY for switch/MAC targets.
+                    Moved Doxygen file header.
+                    Using #ifdefs for VCAP types.
+                    VTSS_CHIP_CU_PHY is now defined for switch/MAC targets.
+    -Bugzilla#4627: Added api ail debug for port policers.
+                    Added initialization of port policers.
+                    Restructured policer configuration.
+    -Bugzilla#4630: Added cil port policer debug.
+    -Bugzilla#4657: <No description>
+    -Bugzilla#4692: Corrected ev_mask check in function jr_dev_all_event_enable.
+    -Bugzilla#4779: Removed CE-MAX-12 IP MGMT hack.
+    -Bugzilla#4796: Various VCAP maximum checks were incorrect.
+    -Bugzilla#4902: Deletion od ETH_ETH_OAM encapsulation.
+
+Known Issues:
+    -
+---------------------------------------------------------------------------
+
+Version : API_3_50a
+Previous Version: API_3_50
+Date: 2011-04-06
+ 
+
+Description:
+
+Release API_3_50a
+
+New features:
+    1588 ptp support
+    
+
+Fixed:
+                   
+
+Known issues:
+-
+---------------------------------------------------------------------------
+
+Version : API_3_50
+Previous Version: API_3_41
+
+Date: 2011-04-04
+ 
+Description:
+
+       Release API_3_50
+
+New features:
+       CCM Offloader
+       Dual JR-48-port support
+
+Fixed:
+       Bugzilla#4324 - Fixed some missing 'const' API parameter attributes
+       Bugzilla#4377 - Remove mirror port from all VLANs to avoid noise
+       Bugzilla#4427 - Added support for xtr_props.chip_no and chip_no_decoded, which was added when implementing JR-48 support
+       Bugzilla#4449 - Adding support for VLAN Translation
+
+
+Known issues:
+-
+---------------------------------------------------------------------------
+
+Version : API_3_41
+Previous Version: API_3_40
+Date: 2011-02-08
+ 
+
+Description:
+
+Release API_3_41
+New features:
+
+
+
+Fixed:
+       -            Bugzilla#4245 - JR: Rx timestamp is indeed valid even if the frame didn't hit a VCAP_IS2 rule. Created Doc-Bugzilla (#4244) to avoid future confusions about this
+       -            Bugzilla#4267 - Dual media sfp work around
+
+Known issues:
+-
+---------------------------------------------------------------------------
+Version : API_3_40
+Previous Version: API_3_30
+Date: 2011-02-08
+ 
+
+Description:
+
+Release API_3_40
+New features:
+
+
+
+Fixed:
+       -            Bugzilla#2610 - DEVCPU_QS:XTR:XTR_QU_SEL is no longer debugified, since it's required for strict priority configuration of CPU Rx Queues
+       -            Bugzilla#2991 - Jaguar1 register list update (from HAED)
+       -            Bugzilla#2991 - Luton26 register list update (from HEAD)
+       -            Bugzilla#3129 - Added definitions for new DSCP Remarking API
+       -            Bugzilla#3204 - Rx Drops should count every frame
+       -            Bugzilla#3464 - Added ECE policy number.
+       -            Bugzilla#3602 - Fixed Stack corruption during reset (firmware upgrade)
+       -            Bugzilla#3626 - Fixed cmef_disable handling - merge from HEAD
+       -            Bugzilla#3742 - Interrupt on 1G and 10G SFP
+       -            Bugzilla#3814 - PTP packet and timestamp optimization
+       -            Bugzilla#4000 - Switched the ev_mask and enable parameters in vtss_dev_all_event_enable() and vtss_ptp_event_enable()
+       -            Bugzilla#4048 - Adding Protocol-based VLAN changes
+       -            Bugzilla#4120 - Lu26 maxframesize changed to 9600 to be inline with Datasheet
+
+Known issues:
+-
+---------------------------------------------------------------------------
+
+Version : API_3_30
+Previous Version: API_3_21
+Date: 2010-12-01
+ 
+
+Description:
+	Release API_3_30
+
+New features:
+
+
+Fixed:
+       - Bugzilla#3129: Added definitions for new DSCP Remarking API
+       - Bugzilla#3464: Added ECE policy number.
+       - Bugzilla#3742: Interrupt on 1G and 10G SFP
+
+Known issues:
+-
+---------------------------------------------------------------------------
+
+Version : API_3_21
+Previous Version: API_3_20
+Date: 2010-10-07
+ 
+
+Description:
+	Maintenance release
+
+New features:
+
+
+Fixed:
+
+Known issues:
+-
+---------------------------------------------------------------------------
+
+
+Version : API_3_20
+Previous Version: API_3_10
+Date: 2010-09-01
+ 
+
+Description:
+
+Release API_3_20
+New features:
+    First version with VSC7460 (Jaguar-1) support
+    First version with VSC7462 (LynX-1) support
+    
+Fixed:
+
+Known issues:
+-
+---------------------------------------------------------------------------
+
+Version : API_3_10
+Previous Version: API_3_01
+Date: 2010-07-30
+
+Description:
+
+Release API_3_10
+New features:
+    First version with SparX-III-10/18/24/26 support
+    First version with Caracal1 and Caracal2 support
+
+Fixed:
+-
+
+Known issues:
+    It is not recommended to use this version with previous products.
+
+---------------------------------------------------------------------------
+
+Version : API_3_01
+Previous Version: API_3_01
+Date: 2010-03-24
+ 
+
+Description:
+
+Release API_3_01
+New features:
+    Added 10G PHY chip support: VSC848x
+    Added warm start
+    Ring protection
+    Trace hex-dump
+    Debug print
+
+Fixed:
+
+Known issues:
+-
+---------------------------------------------------------------------------
+
+Version : API_3_00
+Previous Version: No previous release
+Date: 2009-08-18
+ 
+
+Description:
+
+Release API_3_00 - First API release
+
+New features:
+
+Fixed:
+
+Known issues:
+-
+---------------------------------------------------------------------------

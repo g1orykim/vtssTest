@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>LLDP Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>LLDP Configuration Help</h1>
+
+<p>This page allows the user to inspect and configure the current <a href="glossary.htm#lldp" class="glossary">LLDP</a> port
+settings.</p>
+
+<h2>LLDP Parameters</h2>
+<dl>
+ <dt>Tx Interval</dt>
+ <dd>
+   The switch periodically transmits <a href="glossary.htm#lldp" class="glossary">LLDP</a> frames to its neighbors for having the network discovery information up-to-date. The interval between each <a href="glossary.htm#lldp" class="glossary">LLDP</a> frame is
+   determined by the <b>Tx Interval</b> value. Valid values are restricted to 5 - 32768 seconds.
+ </dd>
+
+ <dt>Tx Hold</dt>
+ <dd>
+   Each <a href="glossary.htm#lldp" class="glossary">LLDP</a> frame contains information about how long the information in the <a href="glossary.htm#lldp" class="glossary">LLDP</a> frame shall be considered valid. The <a href="glossary.htm#lldp" class="glossary">LLDP</a> information valid period is set to <b>Tx Hold</b> multiplied by <b>Tx Interval</b> seconds. Valid values are restricted to 2 - 10 times.
+ </dd>
+
+ <dt>Tx Delay</dt>
+ <dd>
+   If some configuration is changed (e.g. the IP address) a new <a href="glossary.htm#lldp" class="glossary">LLDP</a> frame is transmitted, but the time between the <a href="glossary.htm#lldp" class="glossary">LLDP</a> frames will always be at least the value of&nbsp;<b>Tx Delay</b> seconds.
+   <b>Tx Delay</b> cannot be larger than 1/4 of the <b>Tx Interval</b> value. Valid values are restricted to 1 - 8192 seconds.
+ </dd>
+
+<dt>Tx Reinit</dt>
+ <dd>
+When a port is disabled, <a href="glossary.htm#lldp" class="glossary">LLDP</a> is disabled or the switch is rebooted, an <a href="glossary.htm#lldp" class="glossary">LLDP</a> shutdown frame is transmitted to the neighboring units, signalling that the <a href="glossary.htm#lldp" class="glossary">LLDP</a> information isn't valid anymore. <b>Tx Reinit</b> controls the amount of seconds between the shutdown frame and a new <a href="glossary.htm#lldp" class="glossary">LLDP</a> initialization.
+Valid values are restricted to 1 - 10 seconds.
+ </dd>
+
+
+</dl>
+
+
+<h2>LLDP Port Configuration</h2>
+
+<p class="SPOM_only">The <a href="glossary.htm#lldp" class="glossary">LLDP</a> port settings relate to the currently
+selected stack unit, as reflected by the page header.</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>
+   The switch port number of the logical <a href="glossary.htm#lldp" class="glossary">LLDP</a> port.
+ </dd>
+
+ <dt>Mode</dt>
+ <dd>
+  Select <a href="glossary.htm#lldp" class="glossary">LLDP</a> mode.
+  <br><samp>Rx only</samp> The switch will not send out <a href="glossary.htm#lldp" class="glossary">LLDP</a> information, but <a href="glossary.htm#lldp" class="glossary">LLDP</a> information from neighbor units is analyzed.
+  <br><samp>Tx only</samp> The switch will drop <a href="glossary.htm#lldp" class="glossary">LLDP</a> information received from neighbors, but will send out <a href="glossary.htm#lldp" class="glossary">LLDP</a> information.
+  <br><samp>Disabled</samp> The switch will not send out <a href="glossary.htm#lldp" class="glossary">LLDP</a> information, and will drop <a href="glossary.htm#lldp" class="glossary">LLDP</a> information received from neighbors.
+  <br><samp>Enabled</samp> The switch will send out <a href="glossary.htm#lldp" class="glossary">LLDP</a> information, and will analyze <a href="glossary.htm#lldp" class="glossary">LLDP</a> information received from neighbors.
+ </dd>
+
+  <dt class="has_cdp">CDP Aware</dt>
+ <dd class="has_cdp"> 
+  Select <a href="glossary.htm#CDP" class="glossary">CDP</a> awareness.
+ </dd>
+ <dd class="has_cdp">
+  The <a href="glossary.htm#CDP" class="glossary">CDP</a>  operation is
+  restricted to decoding incoming <a href="glossary.htm#CDP"
+  class="glossary">CDP</a>  frames (The switch doesn't transmit <a
+  href="glossary.htm#CDP" class="glossary">CDP</a>  frames). <a
+  href="glossary.htm#CDP" class="glossary">CDP</a>  frames are only
+  decoded if <a href="glossary.htm#LLDP" class="glossary">LLDP</a> on
+  the port is enabled.
+</dd>
+ <dd class="has_cdp"> 
+Only <a href="glossary.htm#CDP" class="glossary">CDP</a>  TLVs that can
+be mapped to a corresponding field in the <a href="glossary.htm#LLDP"
+class="glossary">LLDP</a> neighbors' table are decoded. All other TLVs
+are discarded (Unrecognized CDP TLVs and discarded CDP frames are not shown in the LLDP statistics.). <a href="glossary.htm#CDP" class="glossary">CDP</a>
+TLVs are mapped onto <a href="glossary.htm#LLDP"
+class="glossary">LLDP</a> neighbors' table as shown below.</dd>
+  <dd class="has_cdp"> 
+<a href="glossary.htm#CDP" class="glossary">CDP</a>  TLV "Device ID" is
+mapped to the <a href="glossary.htm#LLDP" class="glossary">LLDP</a>
+"Chassis ID" field.
+ </dd>
+ <dd class="has_cdp"> 
+<a href="glossary.htm#CDP" class="glossary">CDP</a>  TLV "Address" is
+ mapped to the <a href="glossary.htm#LLDP" class="glossary">LLDP</a>
+ "Management Address" field. The <a href="glossary.htm#CDP"
+ class="glossary">CDP</a>  address TLV can contain multiple addresses,
+ but only the first address is shown in the <a href="glossary.htm#LLDP"
+ class="glossary">LLDP</a> neighbors table.
+ </dd> 
+ <dd class="has_cdp"> 
+ <a href="glossary.htm#CDP" class="glossary">CDP</a>  TLV "Port ID" is
+ mapped to the <a href="glossary.htm#LLDP" class="glossary">LLDP</a>
+ "Port ID" field.
+ </dd>
+ <dd class="has_cdp"> 
+<a href="glossary.htm#CDP" class="glossary">CDP</a>  TLV "Version and Platform" is mapped to the <a href="glossary.htm#LLDP" class="glossary">LLDP</a> "System Description" field.
+ </dd>
+ <dd class="has_cdp"> 
+Both the <a href="glossary.htm#CDP" class="glossary">CDP</a>  and <a
+href="glossary.htm#LLDP" class="glossary">LLDP</a> support "system
+capabilities", but the <a href="glossary.htm#CDP"
+class="glossary">CDP</a>  capabilities cover capabilities that are not
+part of the <a href="glossary.htm#LLDP" class="glossary">LLDP</a>. These
+capabilities are shown as "others" in the <a href="glossary.htm#LLDP"
+class="glossary">LLDP</a> neighbors' table.
+ </dd>
+ <dd class="has_cdp"> 
+If all ports have <a href="glossary.htm#CDP" class="glossary">CDP</a>
+ awareness disabled the switch forwards <a href="glossary.htm#CDP"
+ class="glossary">CDP</a>  frames received from neighbor devices. If at
+ least one port has <a href="glossary.htm#CDP" class="glossary">CDP</a>
+ awareness enabled all <a href="glossary.htm#CDP"
+ class="glossary">CDP</a>  frames are terminated by the switch. 
+ </dd>
+ <dd class="has_cdp"> 
+Note: When <a href="glossary.htm#CDP" class="glossary">CDP</a>
+ awareness on a port is disabled the <a href="glossary.htm#CDP"
+ class="glossary">CDP</a>  information isn't removed immediately, but
+ gets removed when the hold time is exceeded.  
+ </dd>
+
+
+
+ <dt>Port Descr</dt>
+ <dd>
+   <a href="glossary.htm#opt_tlv" class="glossary">Optional TLV</a>: When checked the "port description" is included in <a href="glossary.htm#lldp" class="glossary">LLDP</a> information transmitted.
+ </dd>
+
+ <dt>Sys Name</dt>
+ <dd>
+   <a href="glossary.htm#opt_tlv" class="glossary">Optional TLV</a>: When checked the "system name" is included in <a href="glossary.htm#lldp" class="glossary">LLDP</a> information transmitted.
+ </dd>
+
+ <dt>Sys Descr</dt>
+ <dd>
+   <a href="glossary.htm#opt_tlv" class="glossary">Optional TLV</a>: When checked the "system description" is included in <a href="glossary.htm#lldp" class="glossary">LLDP</a> information transmitted.
+ </dd>
+
+ <dt>Sys Capa</dt>
+ <dd>
+   <a href="glossary.htm#opt_tlv" class="glossary">Optional TLV</a>: When checked the "system capability" is included in <a href="glossary.htm#lldp" class="glossary">LLDP</a> information transmitted.
+ </dd>
+
+ <dt>Mgmt Addr</dt>
+ <dd>
+   <a href="glossary.htm#opt_tlv" class="glossary">Optional TLV</a>: When checked the "management address" is included in <a href="glossary.htm#lldp" class="glossary">LLDP</a> information transmitted.
+ </dd>
+
+
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>
+

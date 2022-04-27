@@ -1,0 +1,876 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "eps_icli_functions.h"
+#include "icli_porting_util.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show eps [ <range_list> ] [ detail ]
+
+DOC_CMD_DESC    = Show the state of a list of EPS instances.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = show_eps
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! show
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching
+BYWORD  = 
+
+! <range_list>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The range of EPS instances.
+BYWORD  = <Inst : range_list>
+
+! detail
+CMD_VAR = has_detail
+RUNTIME = 
+HELP    = Show detailed state including configuration information.
+BYWORD  = detail : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_show_eps(session_id, inst, has_detail);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear eps <uint> wtr
+
+DOC_CMD_DESC    = Clear the WTR timer.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = clear_eps
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! clear
+CMD_VAR = 
+RUNTIME = 
+HELP    = Clear WTR.
+BYWORD  = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The EPS instance number.
+BYWORD  = <Inst : uint>
+
+! wtr
+CMD_VAR = 
+RUNTIME = 
+HELP    = Clear active WTR. 
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_clear_eps(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = eps <uint> domain { port | evc } architecture { 1plus1 | 1for1 } work-flow { <uint> | <port_type_id> } protect-flow { <uint> | <port_type_id> }
+
+DOC_CMD_DESC    = Create a EPS instance in a specified domain with a specified architecture.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = eps
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The EPS instance number.
+BYWORD  = <Inst : uint>
+
+! domain
+CMD_VAR = 
+RUNTIME = 
+HELP    = The domain of the EPS.
+BYWORD  = 
+
+! port
+CMD_VAR = has_port
+RUNTIME = 
+HELP    = This EPS is protecting in the Port domain.
+BYWORD  = port : Option
+
+! evc
+CMD_VAR = has_evc
+RUNTIME = 
+HELP    = This EPS is protecting in the EVC domain.
+BYWORD  = evc : Option
+
+! architecture
+CMD_VAR = 
+RUNTIME = 
+HELP    = The EPS architecture.
+BYWORD  = 
+
+! 1plus1
+CMD_VAR = has_1p1
+RUNTIME = 
+HELP    = The architecture is 1 plus 1.
+BYWORD  = ar1p1 : Option
+
+! 1for1
+CMD_VAR = has_1f1
+RUNTIME = 
+HELP    = The architecture is 1 for 1.
+BYWORD  = ar1f1 : Option
+
+! work-flow
+CMD_VAR = 
+RUNTIME = 
+HELP    = The working flow instance that the EPS is related to.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = flow_w
+RUNTIME = 
+HELP    = The working flow instance number when not in the port domain.
+BYWORD  = <FlowW : uint>
+
+! <port_type_id>
+CMD_VAR = port_w
+RUNTIME = 
+HELP    = The working port when in the port domain.
+BYWORD  = <PortW : port_type_id>
+
+! protect-flow
+CMD_VAR = 
+RUNTIME = 
+HELP    = The protecting flow instance that the EPS is related to.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = flow_p
+RUNTIME = 
+HELP    = The protecting flow instance number when not in the port domain.
+BYWORD  = <FlowP : uint>
+
+! <port_type_id>
+CMD_VAR = port_p
+RUNTIME = 
+HELP    = The protecting port when in the port domain.
+BYWORD  = <PortP : port_type_id>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_eps(session_id, inst, has_port, has_evc, has_1p1, has_1f1, flow_w, port_w, flow_p, port_p);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no eps <uint>
+
+DOC_CMD_DESC    = Delete a EPS instance.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_eps
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Delete
+BYWORD  = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The EPS instance number.
+BYWORD  = <Inst : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_no_eps(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = eps <uint> mep-work <uint> mep-protect <uint> mep-aps <uint>
+
+DOC_CMD_DESC    = MEP relationship configuration.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = eps_mep
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The EPS instance number.
+BYWORD  = <Inst : uint>
+
+! mep-work
+CMD_VAR = 
+RUNTIME = 
+HELP    = Working MEP instance.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = mep_w
+RUNTIME = 
+HELP    = Working MEP instance number.
+BYWORD  = <MepW : uint>
+
+! mep-protect
+CMD_VAR = 
+RUNTIME = 
+HELP    = Protecting MEP instance.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = mep_p
+RUNTIME = 
+HELP    = Protecting MEP instance number.
+BYWORD  = <MepP : uint>
+
+! mep-aps
+CMD_VAR = 
+RUNTIME = 
+HELP    = APS MEP instance.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = mep_aps
+RUNTIME = 
+HELP    = APS MEP instance number.
+BYWORD  = <MepAps : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_eps_mep(session_id, inst, mep_w, mep_p, mep_aps);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = eps <uint> revertive { 10s | 30s | 5m | 6m | 7m | 8m | 9m | 10m | 11m | 12m }
+
+DOC_CMD_DESC    = Enable revertive EPS.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = eps_revertive
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The EPS instance number.
+BYWORD  = <Inst : uint>
+
+! revertive
+CMD_VAR = 
+RUNTIME = 
+HELP    = Revertive EPS.
+BYWORD  = 
+
+! 10s
+CMD_VAR = has_10s
+RUNTIME = 
+HELP    = WTR is 10 sec.
+BYWORD  = 10s : Option
+
+! 30s
+CMD_VAR = has_30s
+RUNTIME = 
+HELP    = WTR is 30 sec.
+BYWORD  = 30s : Option
+
+! 5m
+CMD_VAR = has_5m
+RUNTIME = 
+HELP    = WTR is 5 min.
+BYWORD  = 5m : Option
+
+! 6m
+CMD_VAR = has_6m
+RUNTIME = 
+HELP    = WTR is 6 min.
+BYWORD  = 1m : Option
+
+! 7m
+CMD_VAR = has_7m
+RUNTIME = 
+HELP    = WTR is 7 min.
+BYWORD  = 1m : Option
+
+! 8m
+CMD_VAR = has_8m
+RUNTIME = 
+HELP    = WTR is 8 min.
+BYWORD  = 1m : Option
+
+! 9m
+CMD_VAR = has_9m
+RUNTIME = 
+HELP    = WTR is 9 min.
+BYWORD  = 1m : Option
+
+! 10m
+CMD_VAR = has_10m
+RUNTIME = 
+HELP    = WTR is 10 min.
+BYWORD  = 1m : Option
+
+! 11m
+CMD_VAR = has_11m
+RUNTIME = 
+HELP    = WTR is 11 min.
+BYWORD  = 1m : Option
+
+! 12m
+CMD_VAR = has_12m
+RUNTIME = 
+HELP    = WTR is 12 min.
+BYWORD  = 12m : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_eps_revertive(session_id, inst, has_10s, has_30s, has_5m, has_6m, has_7m, has_8m, has_9m, has_10m, has_11m, has_12m);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no eps <uint> revertive
+
+DOC_CMD_DESC    = Disable revertive EPS.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_eps_revertive
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Disable revertive EPS.
+BYWORD  = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The EPS instance number.
+BYWORD  = <Inst : uint>
+
+! revertive
+CMD_VAR = 
+RUNTIME = 
+HELP    = Revertive EPS.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_no_eps_revertive(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = eps <uint> holdoff <uint>
+
+DOC_CMD_DESC    = Enable hold off timing.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = eps_holdoff
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The EPS instance number.
+BYWORD  = <Inst : uint>
+
+! holdoff
+CMD_VAR = 
+RUNTIME = 
+HELP    = Hold off timer.
+BYWORD  = 
+
+! <uint>
+CMD_VAR = hold
+RUNTIME = 
+HELP    = The hold off timer value in 100 ms. Max 10 sec.
+BYWORD  = <Hold : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_eps_holdoff(session_id, inst, hold);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no eps <uint> holdoff
+
+DOC_CMD_DESC    = Disable hold off timing.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_eps_holdoff
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Disable holdoff timing.
+BYWORD  = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The EPS instance number.
+BYWORD  = <Inst : uint>
+
+! holdoff
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_no_eps_holdoff(session_id, inst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = eps <uint> 1plus1 { bidirectional | { unidirectional [ aps ] } }
+
+DOC_CMD_DESC    = EPS 1+1 protection type configuration .
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = eps_1p1
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The EPS instance number.
+BYWORD  = <Inst : uint>
+
+! 1plus1
+CMD_VAR = 
+RUNTIME = 
+HELP    = EPS 1+1 architecture.
+BYWORD  = 
+
+! bidirectional
+CMD_VAR = has_bidirectional
+RUNTIME = 
+HELP    = EPS 1+1 bidirectional protection type.
+BYWORD  = bidirectional : Option
+
+! unidirectional
+CMD_VAR = has_unidirectional
+RUNTIME = 
+HELP    = EPS 1+1 unidirectional protection type.
+BYWORD  = unidirectional : Option
+
+! aps
+CMD_VAR = has_aps
+RUNTIME = 
+HELP    = EPS 1+1 unidirectional with APS protection type.
+BYWORD  = aps : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_eps_1p1(session_id, inst, has_bidirectional, has_unidirectional, has_aps);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = eps <uint> command { lockout | forced | manualp | manualw | exercise | freeze | lockoutlocal }
+
+DOC_CMD_DESC    = Apply a command on the EPS.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = eps_command
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The EPS instance number.
+BYWORD  = <Inst : uint>
+
+! command
+CMD_VAR = 
+RUNTIME = 
+HELP    = EPS command.
+BYWORD  = 
+
+! lockout
+CMD_VAR = has_lockout
+RUNTIME = 
+HELP    = Lockout of protection.
+BYWORD  = lockout : Option
+
+! forced
+CMD_VAR = has_forced
+RUNTIME = 
+HELP    = Force switch normal traffic to protection.
+BYWORD  = forced : Option
+
+! manualp
+CMD_VAR = has_manualp
+RUNTIME = 
+HELP    = Manual switch normal traffic to protection.
+BYWORD  = manualp : Option
+
+! manualw
+CMD_VAR = has_manualw
+RUNTIME = 
+HELP    = Manual switch normal traffic to working.
+BYWORD  = manualw : Option
+
+! exercise
+CMD_VAR = has_exercise
+RUNTIME = 
+HELP    = Exercise signal.
+BYWORD  = exercise : Option
+
+! freeze
+CMD_VAR = has_freeze
+RUNTIME = 
+HELP    = Local Freeze of EPS.
+BYWORD  = freeze : Option
+
+! lockoutlocal
+CMD_VAR = has_lockoutlocal
+RUNTIME = 
+HELP    = Local lockout of EPS.
+BYWORD  = lockoutlocal : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_eps_command(session_id, inst, has_lockout, has_forced, has_manualp, has_manualw, has_exercise, has_freeze, has_lockoutlocal);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no eps <uint> command
+
+DOC_CMD_DESC    = Clear any command on EPS
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = no_eps_command
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = Clear command.
+BYWORD  = 
+
+! eps
+CMD_VAR = 
+RUNTIME = 
+HELP    = Ethernet Protection Switching
+BYWORD  = 
+
+! <uint>
+CMD_VAR = inst
+RUNTIME = 
+HELP    = The EPS instance number.
+BYWORD  = <Inst : uint>
+
+! command
+CMD_VAR = 
+RUNTIME = 
+HELP    = Clear command on EPS.
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+eps_no_eps_command(session_id, inst);
+CODE_END
+
+CMD_END

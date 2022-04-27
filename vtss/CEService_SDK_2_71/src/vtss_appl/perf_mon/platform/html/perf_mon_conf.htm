@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>PM session and storage Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_perf_mon_conf.htm";
+
+var reqObject;
+var dynaPerfMonData = Array();
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+    if (values[0] == "NoEntries") {
+        addTextCell(tr, "No more entries", "c", 5);
+    } else {
+        addTextCell(tr, values[0], "cl");
+        addCheckBoxCell(tr, parseInt(values[1], 10), "c", "enable_session_" + index);
+        addCheckBoxCell(tr, parseInt(values[2], 10), "c", "enable_storage_" + index);
+
+        var edit_ctrl;
+        edit_ctrl = addInputCell(tr, values[3], "c", "enable_interval_" + index, 4);
+        edit_ctrl.setAttribute("maxLength", 2);
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function UpdateTable(ref, frag)
+{
+    for (var i = 0; i < dynaPerfMonData.length; i++) {
+        if (dynaPerfMonData[i]) {
+            var pval = dynaPerfMonData[i].split("/");
+            addRow(i, frag, pval);
+        }
+    }
+
+    // Set start vid to the last VID showned in the table
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function CreateTableHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "display_header");
+    addTextHeaderCell(tr,"Type","hdrc");
+    addTextHeaderCell(tr,"Enable Session","hdrc");
+    addTextHeaderCell(tr,"Enable Storage","hdrc");
+    addTextHeaderCell(tr,"Measurement Interval(mins)","hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    //Format: <LM>/<LM_enable_session>/<LM_enable_storage>/<LM_interval>|
+    //Format: <DM>/<DM_enable_session>/<DM_enable_storage>/<DM_interval>|
+    //Format: <EVC>/<EVC_enable_session>/<EVC_enable_storage>/<EVC_interval>|
+    //Format: <ECE>/<ECE_enable_session>/<ECE_enable_storage>/<ECE_interval>
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (reqObject != req) {
+        reqObject = req;
+    }
+
+    if (req.responseText) {
+        dynaPerfMonData = req.responseText.split("|");
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+
+        // Make table header
+        CreateTableHeader(frag);
+
+        // Create the table
+        UpdateTable(ref, frag);
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "inputData");
+}
+
+function checkForm()
+{
+    // Make sure that input box contains a correct value.
+    if (!isWithinRange("enable_interval_0", 1, 60, "'Measurement Interval'")) {
+        return false;
+    }
+
+    if (!isWithinRange("enable_interval_1", 1, 60, "'Measurement Interval'")) {
+        return false;
+    }
+
+    if (!isWithinRange("enable_interval_2", 1, 60, "'Measurement Interval'")) {
+        return false;
+    }
+
+    if (!isWithinRange("enable_interval_3", 1, 60, "'Measurement Interval'")) {
+        return false;
+    }
+
+    return true;                // Feed the chickens and go home
+}
+
+function requestUpdate()
+{
+    loadXMLDoc("/config/perf_mon_conf", processUpdate, 'inputData');
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>PM Session and Storage Configuration</h1>
+
+<form method="POST" action="/config/perf_mon_conf" onsubmit="return checkForm(this);">
+
+<table id="perfMonConfTable" summary="PM Session and Storage Configuration" cellspacing="0" class="display">
+  <tbody id="inputData"></tbody>
+</table>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

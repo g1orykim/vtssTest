@@ -1,0 +1,535 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>VLAN Membership Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_vcl_ip.htm";
+
+var timerID;
+var reqObject;
+var entryIdxArray = Array();
+var originalEntriesNum = 0, newEntriesNum = 0;
+var maxEntriesNum = configVCLIPIdMax - configVCLIPIdMin + 1;;
+
+function resetForm()
+{
+    processUpdate(reqObject, "vlanData");
+}
+
+function checkName(sText)
+{
+    var ValidChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    var ValidDigits = "0123456789";
+    var IsValid = 0;
+    var NumDigits = 0;
+    var Char;
+
+    for (i = 0; i < sText.length; i++) 
+    { 
+        Char = sText.charAt(i); 
+        if (ValidDigits.indexOf(Char) == -1 || Char == "") 
+        {
+            if (ValidChars.indexOf(Char) == -1 || Char == "")
+            {
+                return IsValid;
+            }
+        } else {
+            NumDigits = NumDigits + 1;
+        }
+    }
+    if (NumDigits != i) {
+        IsValid = 1;
+    }
+    return IsValid;
+}
+
+function CreateTableHeader(frag)
+{
+    var tr;
+    var portcount = SpomCurrentPorts();
+    for (var i = 0; i < SpomCurrentPorts(); i++) {
+        if (isStackPort(i + 1)) {
+            portcount--;
+        }
+    }
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "", "hdrc", 5);
+    addTextHeaderCell(tr, "Port Members", "hdrc", portcount);
+    frag.appendChild(tr);       // Add row to fragment
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"Delete","hdrc");
+    addTextHeaderCell(tr,"VCE ID","hdrc");
+    addTextHeaderCell(tr,"IP Address","hdrc");
+    addTextHeaderCell(tr,"Mask Length","hdrc");
+    addTextHeaderCell(tr,"VLAN ID","hdrc");
+    
+    for (var i = 0; i < SpomCurrentPorts(); i++ ) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        addTextHeaderCell(tr, configPortName((i + 1), 0), "portno");
+    }
+    
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRow(index, frag, values)
+{
+    var idx = (parseInt(index)+1);
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    originalEntriesNum++;
+    addCheckBoxCell(tr, 0, "cl", "delete_" + idx);
+    var form_var = document.getElementById("vcl_ip_conf_inst");
+    addLabelTextCell(tr, values[0], "cl","vce_id_"+ idx);
+    addHiddenParam(form_var, "hiddenvce_"+idx, values[0]);
+    addHiddenParam(form_var, "hiddenip_"+idx, values[1]);
+    addLabelTextCell(tr, values[1], "cl","ipAddr_"+ idx);
+    addLabelTextCell(tr, values[2], "cl","mask_len_"+ idx);
+    addHiddenParam(form_var, "hiddenmask_"+idx, values[2]);
+    var edit_ctrl = addInputCell(tr, values[3], "cr", "vid_" + idx);
+    edit_ctrl.setAttribute("maxLength", 4);
+    var portListAry = values[4].split(",");
+    var port = 0;
+    for (var i = 0; i < SpomCurrentPorts(); i++) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        port++;
+        addCheckBoxCell(tr, parseInt(portListAry[i]), "c", "mask_" + idx + "_" + port);
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format:
+    // <isid>/<ip_addr>/<mask_bits>/<vid>/<port list #i>,...,<port list #last>,;
+    //one sample entry
+    //2/10.10.10.1/24/90/1/1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,;
+    
+    var tbody = document.getElementById(ref);
+    var frag = document.createDocumentFragment();
+    clearChildNodes(tbody);
+    CreateTableHeader(frag);
+    if(redirectOnError(req))
+        return;
+
+    var portcount = SpomCurrentPorts();
+    for (var i = 0; i < SpomCurrentPorts(); i++) {
+        if (isStackPort(i + 1)) {
+            portcount--;
+        }
+    }
+    originalEntriesNum = 0;
+    newEntriesNum = 0;
+    var number_of_entries = 0;
+    if (reqObject != req)
+        reqObject = req;
+    if (req.responseText) {
+        var len = entryIdxArray.length;
+        if (len > 0) {
+            entryIdxArray.splice(0, len);
+        }
+        var vclConfigRecAry = req.responseText.split(";");
+        document.getElementById("totalOldEntries").value = vclConfigRecAry.length;
+        for (var i = 0; i < vclConfigRecAry.length; i++) {
+            if (vclConfigRecAry[i] != "") {
+                var rowAry = vclConfigRecAry[i].split("/");
+                addRow(i, frag, rowAry);
+                number_of_entries++;
+            }
+        }
+
+        if (!number_of_entries) {
+            // no entries found - Display that in the table
+            var tr = CreateStyledElement("tr","config_even");
+            addTextCell(tr, "Currently no entries present", "c", 5 + portcount);
+            frag.appendChild(tr);       // Add row to fragment    
+        }
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+    if (!number_of_entries) {
+        // no entries found - Display that in the table
+        var tr = CreateStyledElement("tr","config_even");
+        addTextCell(tr, "Currently no entries present", "c", 5 + portcount);
+        frag.appendChild(tr);       // Add row to fragment    
+    }
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+    }
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    updateFuncBar(1);
+}
+
+function chkRefresh(fld) {
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate(0);
+    }
+}
+
+function requestUpdate(type)
+{   
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+    updateFuncBar(0);
+    // This happens when the save button is pressed
+    loadXMLDoc(SpomAddSidArg("/config/vcl_ip_conf"),
+           processUpdate, 'vlanData');
+    //}
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+
+}
+
+function checkForm()
+{
+
+    // Check that there is at least one VLAN.
+    
+    var fld, fld1, fld2, fld3, fld4, fld5, k, temp, ii;
+    var deleteEntriesNum = 0;
+    var port_count;
+    
+    var front_port_cnt = SpomCurrentPorts();
+    for(var ii = 0; ii < SpomCurrentPorts(); ii++) {
+        if (isStackPort(ii + 1)) {
+            front_port_cnt--;
+        }
+    }
+    //Check for duplicate entries
+    for (var i = 0; i < newEntriesNum; i++) {
+        var fld_ip = document.getElementById("ipid_new_"+ entryIdxArray[i]);
+        var fld_mask = document.getElementById("mask_bits_new_"+ entryIdxArray[i]);
+        var fld_vid = document.getElementById("vid_new_"+ entryIdxArray[i]);
+        if (!fld_ip) {
+            break;
+        }
+        //Check in the new entries list to see if duplicate entry exists.
+        for (var j = i + 1; j < newEntriesNum; j++) {
+            fld1 = document.getElementById("ipid_new_"+ entryIdxArray[j]);
+            fld2 = document.getElementById("mask_bits_new_"+ entryIdxArray[j]);
+            fld3 = document.getElementById("vid_new_"+ entryIdxArray[j]);
+            if (!fld1) {
+                break;
+            }
+            if ((fld_ip.value === fld1.value) && (fld_mask.value == fld2.value) && (fld_vid.value == fld3.value) ) {
+                GiveAlert("Duplicate entries (same IP address, mask and VID) are not allowed");
+                return false;
+            }
+        }
+        //Check in the old entries list to see if duplicate entry exists.
+        for (var j = 1; j <= originalEntriesNum; j++) {
+            fld1 = document.getElementById("hiddenip_"+ j);
+            fld2 = document.getElementById("hiddenmask_"+ j);
+            fld3 = document.getElementById("vid_"+ j);
+            if (!fld1) {
+                break;
+            }
+            if ((fld_ip.value === fld1.value) && (fld_mask.value == fld2.value) && (fld_vid.value == fld3.value) ) {
+                GiveAlert("Duplicate entries (same IP address, mask and VID) are not allowed");
+                return false;
+            }
+        }
+    }
+    //check new entries's
+    for (var i = 0; i < newEntriesNum; i++) {
+        var vce_fld_temp = document.getElementById("vce_new_"+ entryIdxArray[i]);
+        if ((vce_fld_temp.value < 0) || (vce_fld_temp.value > maxEntriesNum)) {
+            GiveAlert("VCE ID is out of range");
+            return false;
+        }
+        /* VCE ID should be unique */
+        for (var j = i + 1; j < newEntriesNum; j++) {
+            var vce_fld = document.getElementById("vce_new_"+ entryIdxArray[j]);
+            if ((vce_fld_temp.value === vce_fld.value) && (vce_fld_temp.value != 0)) {
+                GiveAlert("VCE ID should be unique");
+                return false;
+            }
+        }
+        for (j = 1; j <= originalEntriesNum; j++) {
+            var vce_fld = document.getElementById("hiddenvce_"+ j);
+            if (vce_fld_temp.value === vce_fld.value) {
+                GiveAlert("VCE ID should be unique");
+                return false;
+            }
+        }
+        fld3 = document.getElementById("ipid_new_"+ entryIdxArray[i]);
+        if (fld3) {
+            if (fld3.value === "0.0.0.0") {
+                GiveAlert("IP address 0.0.0.0 is not allowed");
+                return false;
+            }
+            // Allow any IP address
+            if (!isIpStr("ipid_new_"+ entryIdxArray[i], false, "'IP Address'", 2)) {
+                return false;
+            }
+        }
+        fld5 = document.getElementById("mask_bits_new_"+ entryIdxArray[i]);
+        //Check whether the mask_bits added is an integer.
+        if (!isInt(fld5.value)) {
+            GiveAlert("Invalid Mask Bits " + fld5.value);
+            return false;
+        }
+        if(!isWithinRange("mask_bits_new_"+ entryIdxArray[i], 1, 32, "'Mask Bits'")) {
+            return false;
+        }
+        fld2 = document.getElementById("vid_new_"+ entryIdxArray[i]);
+        //Check whether the vid added is an integer.
+        if (!isInt(fld2.value)) {
+            GiveAlert("Invalid VLAN ID " + fld2.value);
+            return false;
+        }
+        //vid
+        if(!isWithinRange("vid_new_"+ entryIdxArray[i], 1, 4095, "'VLAN ID'")) {
+            return false;
+        }
+        port_count = 0;
+        for(var ii = 0; ii < SpomCurrentPorts(); ii++) {
+            if (isStackPort(ii + 1)) {
+                continue;
+            }
+            fld4 = document.getElementById("mask_new_"+ entryIdxArray[i] + "_" + (ii + 1));
+            if (!fld4.checked) {
+                port_count++;
+            } 
+        }
+        if (port_count == front_port_cnt) {
+            GiveAlert("At least one port must be selected to add an entry");
+            return false;
+        }
+    }
+    for (i = 0, temp = i + 1; i < originalEntriesNum; i++) {
+        port_count = 0;
+        for(var ii = 0; ii < SpomCurrentPorts(); ii++) {
+            if (isStackPort(ii + 1)) {
+                continue;
+            }
+            fld4 = document.getElementById("mask_"+ temp + "_" + (ii + 1));
+            if (!fld4.checked) {
+                port_count++;
+            } 
+        }
+        temp++;
+        if (port_count == front_port_cnt) {
+            GiveAlert("At least one port must be selected. To delete entry, check the delete checkbox.");
+            return false;
+        }
+    }
+    return true;
+}
+
+
+function addEntryIdx()
+{
+    var fld;
+
+    for (var i = 1; i <= maxEntriesNum; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newEntriesNum++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1]);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    if (newEntriesNum == 0) {
+        resetForm();
+    } else {
+        document.getElementById('vlanData').deleteRow(tr.rowIndex);
+    }
+}
+
+function AddnewRow()
+{
+    // create holder for accumulated tbody elements and text nodes
+    var tbody = document.getElementById("vlanData");
+    var frag = document.createDocumentFragment();
+    //var tr = document.createElement("tr");
+
+    var entryIdx = addEntryIdx();
+    if (entryIdx == 0) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return;
+    }
+    if ((originalEntriesNum + newEntriesNum) > maxEntriesNum) {
+        newEntriesNum--;
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return;
+    }
+    var tr = CreateStyledElement("tr", (originalEntriesNum + entryIdx) % 2 ? "config_even" : "config_odd");
+    if (!reqObject.responseText) {
+        if (newEntriesNum == 1) {
+            clearChildNodes(tbody);
+            CreateTableHeader(frag);
+        }
+    }
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete "; 
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+    var vceFld = addInputCell(tr, "0", "cl", "vce_new_" + entryIdx, 3);
+    vceFld.setAttribute("maxLength", 3);
+    var ipFld = addInputCell(tr, "0.0.0.0", "cl", "ipid_new_" + entryIdx, 15);
+    ipFld.setAttribute("maxLength", 15);
+    var maskFld = addInputCell(tr, "24", "cl", "mask_bits_new_" + entryIdx, 2);
+    maskFld.setAttribute("maxLength", 2);
+    var edit_ctrl = addInputCell(tr, entryIdx, "cr", "vid_new_" + entryIdx, 4);
+    edit_ctrl.setAttribute("maxLength", 4); // 'camelCase' required for maxLength for this to work with IE.
+    for(var i = 0; i < SpomCurrentPorts(); i++) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        addCheckBoxCell(tr, 0, "c", "mask_new_" + entryIdx + "_" + (i + 1));
+    }
+
+    frag.appendChild(tr);       // Add row to fragment
+
+    var tbody = document.getElementById("vlanData");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate('GetFirstEntry');            // Update page to reflect selector
+}
+
+function clickCtrlButton(type)
+{
+    //if (checkForm()) {
+        requestUpdate(type);
+        this.blur();
+    //}
+}
+function updateFuncBar(enable)
+{
+    if (enable) {
+        document.getElementById("refresh").style.visibility = "visible";
+        document.getElementById("update").style.visibility = "hidden";
+    } else {
+        document.getElementById("refresh").style.visibility = "hidden";
+        document.getElementById("update").style.visibility = "visible";
+    }
+}
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>IP Subnet-based VLAN Membership Configuration <span id="display_sid"></span></h1>
+
+<form id= "vcl_ip_conf_inst" method="POST" action="/config/vcl_ip_conf" onsubmit="return checkForm();">
+
+<div class="refreshbar">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" id="refresh" value="Refresh" onClick="requestUpdate(); this.blur(); " style="visibility:hidden">
+  <span id="update">&nbsp;Updating...</span>
+</div>
+<!--
+<p class="config">
+  <span class="displaytext">Start from VLAN</span>
+  <INPUT id="StartVid" name="StartVid" maxlength="4" value="1" size = "5">
+  <span class="displaytext"> with </span>
+  <INPUT id="NumberOfEntries" name="NumberOfEntries" maxlength="4" value = "20" size = "4">
+  <span class="displaytext"> entries per page. </span>
+</p>
+-->
+<table id="vlanConfig" summary="Switch VLAN Configuration" cellspacing="0" class="config">
+ <tbody id="vlanData">
+ </tbody>
+</table>
+
+<p>
+<input type="button" id="addNewEntry" value="Add New Entry" onclick="AddnewRow()">
+</p>
+
+<p>
+  <input type="hidden" id="totalOldEntries" name="totalOldEntries">
+  <input type="hidden" id="submit_sid" name="sid">
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

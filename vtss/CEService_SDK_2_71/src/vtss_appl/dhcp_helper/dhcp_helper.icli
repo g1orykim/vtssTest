@@ -1,0 +1,527 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_DHCP_HELPER)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "dhcp_helper_api.h"
+#include "msg_api.h"    //msg_switch_exists()
+#include "misc_api.h"   //uport2iport(), iport2uport()
+#include "topo_api.h"   //topo_usid2isid(), topo_isid2usid()
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+
+#define DHCP_HELPER_BUF_SIZE    80
+
+
+static BOOL DHCP_HELPER_ICLI_runtime_has_dhcp_server(u32                session_id,
+                                                     icli_runtime_ask_t ask,
+                                                     icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_SW_OPTION_DHCP_SERVER)
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif /* VTSS_SW_OPTION_DHCP_SERVER */
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL DHCP_HELPER_ICLI_runtime_has_dhcp_client(u32                session_id,
+                                                     icli_runtime_ask_t ask,
+                                                     icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_SW_OPTION_DHCP_CLIENT)
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif /* VTSS_SW_OPTION_DHCP_CLIENT */
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL DHCP_HELPER_ICLI_runtime_has_dhcp_snooping(u32                session_id,
+                                                       icli_runtime_ask_t ask,
+                                                       icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_SW_OPTION_DHCP_SNOOPING)
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif /* VTSS_SW_OPTION_DHCP_SNOOPING */
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL DHCP_HELPER_ICLI_runtime_has_dhcp_relay(u32                session_id,
+                                                    icli_runtime_ask_t ask,
+                                                    icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_SW_OPTION_DHCP_RELAY)
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif /* VTSS_SW_OPTION_DHCP_RELAY */
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+static void DHCP_HELPER_ICLI_port_stat_show(u32 session_id, dhcp_helper_user_t user, vtss_isid_t usid, vtss_port_no_t uport, dhcp_helper_stats_t *stats_p, BOOL first)
+{
+    icli_port_header(session_id, usid, uport, "Statistics", !first, FALSE);
+
+    icli_stats(session_id, "Rx Discover", "Tx Discover", stats_p->rx_stats.discover_rx, stats_p->tx_stats.discover_tx);
+    icli_stats(session_id, "Rx Offer", "Tx Offer", stats_p->rx_stats.offer_rx, stats_p->tx_stats.offer_tx);
+    icli_stats(session_id, "Rx Request", "Tx Request", stats_p->rx_stats.request_rx, stats_p->tx_stats.request_tx);
+    icli_stats(session_id, "Rx Decline", "Tx Decline", stats_p->rx_stats.decline_rx, stats_p->tx_stats.decline_tx);
+    icli_stats(session_id, "Rx ACK", "Tx ACK", stats_p->rx_stats.ack_rx, stats_p->tx_stats.ack_tx);
+    icli_stats(session_id, "Rx NAK", "Tx NAK", stats_p->rx_stats.nak_rx, stats_p->tx_stats.nak_tx);
+    icli_stats(session_id, "Rx Release", "Tx Release", stats_p->rx_stats.release_rx, stats_p->tx_stats.release_tx);
+    icli_stats(session_id, "Rx Inform", "Tx Inform", stats_p->rx_stats.inform_rx, stats_p->tx_stats.inform_tx);
+    icli_stats(session_id, "Rx Lease Query", "Tx Lease Query", stats_p->rx_stats.leasequery_rx, stats_p->tx_stats.leasequery_tx);
+    icli_stats(session_id, "Rx Lease Unassigned", "Tx Lease Unassigned", stats_p->rx_stats.leaseunassigned_rx, stats_p->tx_stats.leaseunassigned_tx);
+    icli_stats(session_id, "Rx Lease Unknown", "Tx Lease Unknown", stats_p->rx_stats.leaseunknown_rx, stats_p->tx_stats.leaseunknown_tx);
+    icli_stats(session_id, "Rx Lease Active", "Tx Lease Active", stats_p->rx_stats.leaseactive_rx, stats_p->tx_stats.leaseactive_tx);
+    icli_stats(session_id, "Rx Lease Active", "Tx Lease Active", stats_p->rx_stats.leaseactive_rx, stats_p->tx_stats.leaseactive_tx);
+    ICLI_PRINTF("Rx Discarded checksum error: %9u\n", stats_p->rx_stats.discard_chksum_err_rx);
+#if defined(VTSS_SW_OPTION_DHCP_SNOOPING)
+    if (user == DHCP_HELPER_USER_SNOOPING) {
+        ICLI_PRINTF("Rx Discarded from Untrusted: %9u\n", stats_p->rx_stats.discard_untrust_rx);
+    }
+#endif /* VTSS_SW_OPTION_DHCP_SNOOPING */
+}
+FUNCTION_END
+
+//
+// Export Segment
+//   This segment contains the API declarations of the global functions in
+//   Function Segment. This will be pasted exactly to the generated H file.
+//   So, others can include the H file to use the global functions.
+//
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_DETAIL         = Detailed statistics
+HELP_SERVER         = DHCP server
+HELP_CLIENT         = DHCP client
+HELP_SNOOPING       = DHCP snooping
+HELP_RELAY          = DHCP relay
+HELP_NORMAL_FORWARD = DHCP normal L2 or L3 forward
+HELP_COMIBNED      = Show all DHCP related statistics
+HELP_ALL            = Clear all DHCP related statistics
+
+CMD_BEGIN
+COMMAND         = show ip dhcp detailed statistics { server | client | snooping | relay | normal-forward | combined } [ interface <port_type_list> ]
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the show ip dhcp detailed statistics user EXEC command \
+                  to display statistics. Notice that the normal forward \
+                  per-port TX statistics isn't increased if the incoming DHCP \
+                  packet is done by L3 forwarding mechanism. \
+                  Notice that the normal forward per-port TX statistics isn't \
+                  increased if the incoming DHCP packet is done by L3 forwarding \
+                  mechanism.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Expressions are case sensitive. For example, if you enter | exclude output, the lines that contain output do not appear, but the lines that contain Output appear.
+DOC_CMD_EXAMPLE = This is an example of output from the show ip dhcp combined statistics command:
+DOC_CMD_EXAMPLE = Switch# show ip dhcp detailed statistics snoopint interface GigaEthernet 1/1
+DOC_CMD_EXAMPLE = GigaEthernet 1/1 Statistics:
+DOC_CMD_EXAMPLE = ----------------------------
+DOC_CMD_EXAMPLE = Rx Discover:                         0   Tx Discover:                         0
+DOC_CMD_EXAMPLE = Rx Offer:                            0   Tx Offer:                            0
+DOC_CMD_EXAMPLE = Rx Request:                          0   Tx Request:                          0
+DOC_CMD_EXAMPLE = Rx Decline:                          0   Tx Decline:                          0
+DOC_CMD_EXAMPLE = Rx ACK:                              0   Tx ACK:                              0
+DOC_CMD_EXAMPLE = Rx NAK:                              0   Tx NAK:                              0
+DOC_CMD_EXAMPLE = Rx Release:                          0   Tx Release:                          0
+DOC_CMD_EXAMPLE = Rx Inform:                           0   Tx Inform:                           0
+DOC_CMD_EXAMPLE = Rx Lease Query:                      0   Tx Lease Query:                      0
+DOC_CMD_EXAMPLE = Rx Lease Unassigned:                 0   Tx Lease Unassigned:                 0
+DOC_CMD_EXAMPLE = Rx Lease Unknown:                    0   Tx Lease Unknown:                    0
+DOC_CMD_EXAMPLE = Rx Lease Active:                     0   Tx Lease Active:                     0
+DOC_CMD_EXAMPLE = Rx Discarded checksum error:         0
+DOC_CMD_EXAMPLE = Rx Discarded from Untrusted:         0
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = dhcp_helper_show
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = DHCP_HELPER_ICLI_runtime_has_dhcp_server
+RUNTIME = DHCP_HELPER_ICLI_runtime_has_dhcp_client
+RUNTIME = DHCP_HELPER_ICLI_runtime_has_dhcp_snooping
+RUNTIME = DHCP_HELPER_ICLI_runtime_has_dhcp_relay
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+//NO_FORM_DOC_CMD_DESC    =
+//NO_FORM_DOC_CMD_DEFAULT =
+//NO_FORM_DOC_CMD_USAGE   =
+//NO_FORM_DOC_CMD_EXAMPLE =
+//NO_FORM_DOC_CMD_EXAMPLE =
+//NO_FORM_DOC_CMD_EXAMPLE =
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = in_server
+CMD_VAR   = in_client
+CMD_VAR   = in_snooping
+CMD_VAR   = in_relay
+CMD_VAR   = in_normal_forward
+CMD_VAR   = 
+CMD_VAR   = in_interface
+CMD_VAR   = in_port_list
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (icli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##HELP_SERVER
+HELP = ##ICLI_HELP_STATISTICS
+HELP = ##HELP_SERVER
+HELP = ##HELP_CLIENT
+HELP = ##HELP_SNOOPING
+HELP = ##HELP_RELAY
+HELP = ##HELP_NORMAL_FORWARD
+HELP = ##HELP_COMIBNED
+HELP = ##ICLI_HELP_INTERFACE
+HELP = ##ICLI_HELP_PORT_TYPE_LIST
+
+VARIABLE_BEGIN
+    icli_switch_port_range_t    switch_range;
+    u32                         range_idx, cnt_idx;
+    dhcp_helper_stats_t         stats;
+    vtss_usid_t                 usid;
+    vtss_port_no_t              uport;
+    BOOL                        first = TRUE;
+    dhcp_helper_user_t          user = DHCP_HELPER_USER_CNT;
+VARIABLE_END
+
+CODE_BEGIN
+    if (in_server) {
+#if defined(VTSS_SW_OPTION_DHCP_SERVER)
+        user = DHCP_HELPER_USER_SERVER;
+#endif /* VTSS_SW_OPTION_DHCP_SERVER */
+    } else if (in_client) {
+#if defined(VTSS_SW_OPTION_DHCP_CLIENT)
+        user = DHCP_HELPER_USER_CLIENT;
+#endif /* VTSS_SW_OPTION_DHCP_CLIENT */
+    } else if (in_snooping) {
+#if defined(VTSS_SW_OPTION_DHCP_SNOOPING)
+        user = DHCP_HELPER_USER_SNOOPING;
+#endif /* VTSS_SW_OPTION_DHCP_SNOOPING */
+    } else if (in_relay) {
+#if defined(VTSS_SW_OPTION_DHCP_RELAY)
+        user = DHCP_HELPER_USER_RELAY;
+#endif /* VTSS_SW_OPTION_DHCP_RELAY */
+    } else if (in_normal_forward) {
+        user = DHCP_HELPER_USER_HELPER;
+    }
+
+    if (in_interface == FALSE) { //show all port statistics
+        memset(&switch_range, 0, sizeof(switch_range));
+        while (icli_switch_get_next(&switch_range)) {
+            if (!msg_switch_exists(switch_range.isid)) {
+                continue;
+            }
+            while (icli_switch_port_get_next(&switch_range)) {
+                ICLI_RC_CHECK(dhcp_helper_stats_get(user, switch_range.isid, switch_range.begin_iport, &stats), "%% Failed to get DHCP port statistics.\n");
+                DHCP_HELPER_ICLI_port_stat_show(session_id, user, switch_range.usid, switch_range.begin_uport, &stats, first);
+                if (first) {
+                    first = FALSE;
+                }
+            }
+        }
+    } else { //show specific port statistics
+        //Omit non-existing switches from the port range database and display the alert message on ICLI session
+        (void)icli_cmd_port_range_exist(session_id, in_port_list, TRUE, TRUE);
+
+        for (range_idx = 0; range_idx < in_port_list->cnt; range_idx++) {
+            usid = in_port_list->switch_range[range_idx].usid;
+            for (cnt_idx = 0; cnt_idx < in_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                uport = in_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+                ICLI_RC_CHECK(dhcp_helper_stats_get(user, topo_usid2isid(usid), uport2iport(uport), &stats), "%% Failed to get DHCP port statistics.\n");
+                DHCP_HELPER_ICLI_port_stat_show(session_id, user, usid, uport, &stats, first);
+                if (first) {
+                    first = FALSE;
+                }
+            }
+        }
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+// NO_FORM_CODE_BEGIN
+// NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = clear ip dhcp detailed statistics { server | client | snooping | relay | helper | all } [ interface <port_type_list> ]
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the clear ip dhcp detailed statistics privileged EXEC \
+                  command to clear the statistics, or particularly the \
+                  IP DHCP statistics for the interface. \
+                  Notice that except for clear statistics on all interfaces, \
+                  clear the statistics on specific port may not take effect \
+                  on global statistics since it gathers the different layer \
+                  overview.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use this command without interface keywords to clearstatistics on all interfaces.
+DOC_CMD_EXAMPLE = This example shows how to clear all ip dhcp statistics:
+DOC_CMD_EXAMPLE = Switch# clear ip dhcp detailed statistics all
+DOC_CMD_EXAMPLE = You can verify that the information was deleted by entering the show ip dhcp detailed statistics user EXEC command.
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = dhcp_helper_clear_stat
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = DHCP_HELPER_ICLI_runtime_has_dhcp_server
+RUNTIME = DHCP_HELPER_ICLI_runtime_has_dhcp_client
+RUNTIME = DHCP_HELPER_ICLI_runtime_has_dhcp_snooping
+RUNTIME = DHCP_HELPER_ICLI_runtime_has_dhcp_relay
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+//NO_FORM_DOC_CMD_DESC    =
+//NO_FORM_DOC_CMD_DEFAULT =
+//NO_FORM_DOC_CMD_USAGE   =
+//NO_FORM_DOC_CMD_EXAMPLE =
+//NO_FORM_DOC_CMD_EXAMPLE =
+//NO_FORM_DOC_CMD_EXAMPLE =
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = in_server
+CMD_VAR   = in_client
+CMD_VAR   = in_snooping
+CMD_VAR   = in_relay
+CMD_VAR   = in_normal_forward
+CMD_VAR   = 
+CMD_VAR   = in_interface
+CMD_VAR   = in_port_list
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (icli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##ICLI_HELP_CLEAR
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##HELP_DETAIL
+HELP = ##ICLI_HELP_STATISTICS
+HELP = ##HELP_SERVER
+HELP = ##HELP_CLIENT
+HELP = ##HELP_SNOOPING
+HELP = ##HELP_RELAY
+HELP = ##HELP_NORMAL_FORWARD
+HELP = ##HELP_ALL
+HELP = ##ICLI_HELP_INTERFACE
+HELP = ##ICLI_HELP_PORT_TYPE_LIST
+
+VARIABLE_BEGIN
+    u32                         range_idx, cnt_idx;
+    vtss_usid_t                 usid;
+    vtss_port_no_t              uport;
+    dhcp_helper_user_t          user = DHCP_HELPER_USER_CNT;
+VARIABLE_END
+
+CODE_BEGIN
+    if (in_server) {
+#if defined(VTSS_SW_OPTION_DHCP_SERVER)
+        user = DHCP_HELPER_USER_SERVER;
+#endif /* VTSS_SW_OPTION_DHCP_SERVER */
+    } else if (in_client) {
+#if defined(VTSS_SW_OPTION_DHCP_CLIENT)
+        user = DHCP_HELPER_USER_CLIENT;
+#endif /* VTSS_SW_OPTION_DHCP_CLIENT */
+    } else if (in_snooping) {
+#if defined(VTSS_SW_OPTION_DHCP_SNOOPING)
+        user = DHCP_HELPER_USER_SNOOPING;
+#endif /* VTSS_SW_OPTION_DHCP_SNOOPING */
+    } else if (in_relay) {
+#if defined(VTSS_SW_OPTION_DHCP_RELAY)
+        user = DHCP_HELPER_USER_RELAY;
+#endif /* VTSS_SW_OPTION_DHCP_RELAY */
+    } else if (in_normal_forward) {
+        user = DHCP_HELPER_USER_HELPER;
+    }
+
+    if (in_interface == FALSE) { //clear all port statistics
+        (void) dhcp_helper_stats_clear_by_user(user);
+    } else { //clear specific port statistics
+        //Omit non-existing switches from the port range database and display the alert message on ICLI session
+        (void)icli_cmd_port_range_exist(session_id, in_port_list, TRUE, TRUE);
+
+        for (range_idx = 0; range_idx < in_port_list->cnt; range_idx++) {
+            usid = in_port_list->switch_range[range_idx].usid;
+            for (cnt_idx = 0; cnt_idx < in_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                uport = in_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+                (void) dhcp_helper_stats_clear(user, topo_usid2isid(usid), uport2iport(uport));
+            }
+        }
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+// NO_FORM_CODE_BEGIN
+// NO_FORM_CODE_END
+CMD_END
+

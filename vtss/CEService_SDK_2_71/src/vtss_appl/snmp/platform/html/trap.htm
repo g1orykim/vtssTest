@@ -1,0 +1,218 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Trap Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/deviceid.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_trap.htm";
+
+var reqObject;
+var entryIdxArray = Array();
+var vidArray = Array();
+var originalEntriesNum = 0, newEntriesNum = 0;
+var maxEntriesNum = 4;
+var remainedEntriesNum = 4;
+
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = Array(0, 1);
+
+function CreateTableHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Delete", "hdrc");
+    addTextHeaderCell(tr, "Name", "hdrc");
+    addTextHeaderCell(tr, "Enable", "hdrc");
+    addTextHeaderCell(tr, "Version", "hdrc");
+    addTextHeaderCell(tr, "Destination Address", "hdrc");
+    addTextHeaderCell(tr, "Destination Port", "hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRow(index, frag, values)
+{
+    var trap_name = unescape(values[0]);
+    var dest = calculateDeviceID(trap_name);
+    vidArray[originalEntriesNum] = trap_name;
+    originalEntriesNum++;
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var td = CreateStyledElement("td", "cr");
+    addCheckBoxCell(tr, 0, "c", "delete_" + dest);
+//    addTextCell(tr, trap_name, "cr");
+    txt = document.createTextNode(trap_name);
+    var link = document.createElement("a");
+    link.href = "trap_detailed.htm?conf_name=" + dest;
+    link.appendChild(txt); // Add Text
+    td.appendChild(link); // Add link to cell
+    tr.appendChild(td);         // Add cell to row
+
+    addTextCell(tr, oTMode[values[1]], "cr");
+    var ver_str;
+    if (parseInt(values[2], 10) === 0) {
+        ver_str="SNMPv1";
+    } else if (values[2] == 1) {
+        ver_str="SNMPv2c";
+    } else if (values[2] == 3) {
+        ver_str="SNMPv3";
+    }
+    addTextCell(tr, ver_str, "cr");
+    addTextCell(tr, values[3], "cr");
+    addTextCell(tr, values[4], "cr");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    //Format: <global_mode>,<max_entries_num>,<name>/<enable>/<version>/<dip>/<dport>|...,<remained_entries>
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    originalEntriesNum = newEntriesNum = 0;
+    if (reqObject != req) {
+        reqObject = req;
+    }
+    if (req.responseText) {
+        var configData = req.responseText.split(",");
+
+		// <global_mode>
+        UpdateIdSelect("trap_mode", oTMode, oVMode, parseInt(configData[0], 10));
+
+		// <max_entries_num>
+        maxEntriesNum = configData[1];
+
+		// <name>/<enable>/<version>/<dip>/<dport>
+        var tableData = configData[2].split("|");
+
+		// <remained_entries>
+        remainedEntriesNum = configData[3];
+
+        for(var i = 0, j = 0; i < tableData.length; i++) {
+            if(tableData[i]) {
+                addRow(j++, frag, tableData[i].split("/"));
+            }
+        }
+    }
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if(!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "inputData");
+}
+
+function requestUpdate()
+{
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    loadXMLDoc("/config/trap", processUpdate, 'inputData');
+
+    //SpomUpdateDisplaySid("display_sid");
+    //SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm(form)
+{
+    return true; // Feed the chickens and go home
+}
+
+function AddNewRow()
+{
+    if (parseInt(remainedEntriesNum, 10) === 0) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return;
+    }
+
+	document.location.href = "trap_detailed.htm";
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/trap" onsubmit="return checkForm(this);">
+
+<h1>Trap Configuration</h1>
+
+<h2>Global Settings</h2>
+
+<table summary="Configuration" cellspacing="0" class="config">
+ <tr class="config">
+  <td class="param_label">Mode</td>
+  <td class="cl"><select id="trap_mode" name="trap_mode"><option value=0>Disabled</option><option value=1>Enabled</option></select></td>
+ </tr>
+</table>
+
+<h2>Trap Destination Configurations</h2>
+
+<table id="trapTable" summary="Trap Configuration" cellspacing="0" class="config">
+ <tbody id="inputData">
+ </tbody>
+</table>
+
+<p>
+<input type="button" id="addNewEntry" value="Add New Entry" onclick="AddNewRow();">
+</p>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

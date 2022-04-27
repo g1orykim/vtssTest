@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>MVR Configurations Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>MVR  Configurations</h1>
+
+<p>This page provides <a href="glossary.htm#mvr" class="glossary">MVR</a> related configurations.</p>
+
+<p class="SPOM_only">Most of the settings are global, whereas the Immediate Leave and MVR Port-Role configuration is related to the current selecting stack unit, as reflected by the page header.</p>
+<p>The MVR feature enables multicast traffic forwarding on the Multicast <a href="glossary.htm#vlan" class="glossary">VLAN</a>s.<br/>
+In a multicast television application, a PC or a network television or a set-top box can receive the multicast stream.
+Multiple set-top boxes or PCs can be connected to one subscriber port, which is a switch port configured as an MVR receiver port.
+When a subscriber selects a channel, the set-top box or PC sends an <a href="glossary.htm#igmp" class="glossary">IGMP</a>/<a href="glossary.htm#mld" class="glossary">MLD</a> report message to Switch A to join the appropriate multicast group address.
+Uplink ports that send and receive multicast data to and from the multicast VLAN are called MVR source ports.<br/>
+It is allowed to create at maximum 4 MVR VLANs with corresponding channel profile for each Multicast VLAN.<br/>
+The channel profile is defined by the <a href="glossary.htm#ipmc_profile" class="glossary">IPMC Profile</a> which provides the filtering conditions.
+</p>
+<dl>
+ <dt>MVR Mode</dt>
+ <dd>
+ Enable/Disable the Global MVR.<br/>
+ The Unregistered Flooding control depends on the current configuration
+ in IGMP/MLD Snooping.<br/>
+ It is suggested to enable Unregistered Flooding control when the MVR group table is full.
+ </dd>
+
+ <dt>Delete</dt>
+ <dd>
+ Check to delete the entry. The designated entry will be deleted during the next save.
+ </dd>
+
+ <dt>MVR VID</dt>
+ <dd>
+ Specify the Multicast <a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a>.<br/>
+ <b>Be Caution</b>: MVR source ports are not recommended to be overlapped with management VLAN ports.
+ </dd>
+
+ <dt>MVR Name</dt>
+ <dd>
+ MVR Name is an optional attribute to indicate the name of the specific MVR VLAN.
+ Maximum length of the MVR VLAN Name string is 16.
+ MVR VLAN Name can only contain alphabets or numbers.
+ When the optional MVR VLAN name is given, it should contain at least one alphabet.
+ MVR VLAN name can be edited for the existing MVR VLAN entries or it can be added to the new entries. 
+ </dd>
+
+ <dt>IGMP Address</dt>
+ <dd>
+ Define the IPv4 address as source address used in IP header for <a href="glossary.htm#igmp" class="glossary">IGMP</a> control frames.<br/>
+ The default IGMP address is not set (0.0.0.0).<br/>
+ When the IGMP address is not set, system uses IPv4 management address of the IP interface associated with this VLAN.<br/>
+ When the IPv4 management address is not set, system uses the first available IPv4 management address.<br/>
+ Otherwise, system uses a pre-defined value.  By default, this value will be 192.0.2.1.
+ </dd>
+
+ <dt>Mode</dt>
+ <dd>
+ Specify the MVR mode of operation.  In Dynamic mode, MVR allows dynamic MVR membership reports on source ports.
+ In Compatible mode, MVR membership reports are forbidden on source ports.  The default is Dynamic mode.
+ </dd>
+
+ <dt>Tagging</dt>
+ <dd>
+ Specify whether the traversed IGMP/MLD control frames will be sent as Untagged or Tagged with MVR VID.
+ The default is Tagged.
+ </dd>
+
+ <dt>Priority</dt>
+ <dd>
+ Specify how the traversed IGMP/MLD control frames will be sent in prioritized manner.
+ The default Priority is 0.
+ </dd>
+
+ <dt><a href="glossary.htm#llqi" class="glossary">LLQI</a></dt>
+ <dd>
+ Define the maximum time to wait for IGMP/MLD report memberships on a receiver port before removing the port from multicast group membership.
+ The value is in units of tenths of a seconds.  The range is from 0 to 31744.
+ The default LLQI is 5 tenths or one-half second.
+ </dd>
+
+ <dt>Interface Channel Profile</dt>
+ <dd>
+ When the MVR VLAN is created, select the <a href="glossary.htm#ipmc_profile" class="glossary">IPMC Profile</a> as the channel filtering condition for the specific MVR VLAN.
+ Summary about the Interface Channel Profiling (of the MVR VLAN) will be shown by clicking the view button.
+ Profile selected for designated interface channel is not allowed to have overlapped permit group address.
+ </dd>
+
+<dt>Profile Management Button</dt>
+<dd>
+You can inspect the rules of the designated profile by using the following button:
+<br><img src="../images/eye.png" alt="Navigate">: List the rules associated with the designated profile.
+</dd>
+
+ <dt>Port</dt>
+ <dd>
+ The logical port for the settings.
+ </dd>
+
+ <dt>Port Role</dt>
+ <dd>
+ Configure an MVR port of the designated MVR VLAN as one of the following roles.<br/>
+ <b>Inactive</b>: The designated port does not participate MVR operations.<br/>
+ <b>Source</b>: Configure uplink ports that receive and send multicast data as source ports.  Subscribers cannot be directly connected to source ports.<br/>
+ <b>Receiver</b>: Configure a port as a receiver port if it is a subscriber port and should only receive multicast data.  It does not receive data unless it becomes a member of the multicast group by issuing IGMP/MLD messages.<br/>
+ <b>Be Caution</b>: MVR source ports are not recommended to be overlapped with management VLAN ports.<br/>
+ Select the port role by clicking the Role symbol to switch the setting.<br/>
+ I indicates Inactive; S indicates Source; R indicates Receiver<br/>
+ The default Role is Inactive.<br/>
+ </dd>
+
+ <dt>Immediate Leave</dt>
+ <dd>
+ Enable the <a href="glossary.htm#multicast_fastleave" class="glossary">fast leave</a> on the port.
+ </dd>
+
+</dl>
+
+<h2>Buttons</h2>
+
+<p><input type="button" value=" Add New MVR VLAN ">: Click to add new MVR VLAN.  Specify the VID and configure the new entry. Click "Save".</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

@@ -1,0 +1,539 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Egress Port Scheduler and Shaper Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/qos_util.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_qos_port_scheduler_edit.htm";
+
+// Absolute position definitions
+var queueParamWeightLeft   = 270;  // Left position of Weight
+var queueParamPercentLeft  = 320;  // Left position of percent
+var queueParamTop          =  84;  // Top  position of first param
+var queueParamOffset       =  50;  // Top offset between params
+var queueParamHeaderLeft   = 250;  // Left position of header
+var queueParamHeaderTop    =   0;  // Top position of header
+
+var queueShaperEnabledLeft =  30;  // Left position of Enable
+var queueShaperRateLeft    =  50;  // Left position of Rate
+var queueShaperUnitLeft    = 110;  // Left position of Unit
+var queueShaperExcessLeft  = 170;  // Left position of Excess
+var queueShaperTop         =  84;  // Top position of first queue shaper
+var queueShaperOffset      =  50;  // Top offset between queue shapers
+var queueShaperHeaderLeft  =   0;  // Left position of header
+var queueShaperHeaderTop   =   0;  // Top position of header
+
+var portShaperEnabledLeft  = 450;  // Left position of Enable
+var portShaperRateLeft     = 470;  // Left position of Rate
+var portShaperUnitLeft     = 530;  // Left position of Unit
+var portShaperTop          = 259;  // Top position of port shaper
+var portShaperHeaderLeft   = 430;  // Left position of header
+var portShaperHeaderTop    =   0;  // Top position of header
+
+// Global configuration
+var queueWeightData;
+var queueWeightCnt;
+
+var queueShaperData;
+var queueShaperCnt;
+
+var portShaperDate;
+
+var selectedPort = configPortMin; // The default selected port
+var pageArgs = searchArgs(window.location.search);
+if (pageArgs.port) {
+    selectedPort = parseInt(pageArgs.port, 10);
+}
+
+var imageFile = ["/images/qos_scheduler_s.png", "/images/qos_scheduler_w.png"];
+
+var oTRateUnit = ["kbps", "Mbps"];
+var oVRateUnit = [0, 1];
+
+function api2DisplayRate(rate)
+{
+    return (rate < 10000) ? rate : Math.floor(rate/1000);
+}
+
+function api2DisplayUnit(rate)
+{
+    return (rate < 10000) ? 0 : 1;
+}
+
+function shaperEnableDisable()
+{
+    document.getElementById(this.id.replace("enable", "display_rate")).disabled = !this.checked;
+    document.getElementById(this.id.replace("enable", "display_unit")).disabled = !this.checked;
+    var elem = document.getElementById(this.id.replace("enable", "excess"));
+    if (elem) { // This element is only present for queue shapers and not for the port shaper
+        elem.disabled = !this.checked;
+    }
+}
+
+function updatePct()
+{
+    var i;
+    var weight = [];
+    var pct    = [];
+
+    for (i = 0; i < queueWeightCnt; i++) {
+        weight[i] = parseInt(document.getElementById("weight_" + i).value, 10);
+    }
+
+    if (qos_weight2pct(weight, 5, pct)) {
+        for (i = 0; i < queueWeightCnt; i++) {
+            if (pct < 10) {
+                UpdateId("pct_" + i, "&nbsp;" + pct[i] + "%");
+            } else {
+                UpdateId("pct_" + i, pct[i] + "%");
+            }
+        }
+    } else {
+        for (i = 0; i < queueWeightCnt; i++) {
+            UpdateId("pct_" + i, "");
+        }
+    }
+}
+
+function setAbsolutePosition(elem, top, left)
+{
+    elem.style.position = "absolute";
+    elem.style.zIndex = 2;
+    elem.style.top = top + "px";
+    elem.style.left = left + "px";
+}
+
+function addAbsoluteTextCell(frag, value, name, top, left)
+{
+    var elem = document.createElement("div");
+    elem.id = elem.name = name;
+    if (value) {
+        elem.appendChild(document.createTextNode(value));
+    }
+    setAbsolutePosition(elem, top, left);
+    frag.appendChild(elem);
+    return elem;
+}
+
+function addAbsoluteInputCell(frag, value, name, size, maxSize, top, left)
+{
+    var elem = document.createElement("input");
+    elem.id = elem.name = name;
+    elem.style.width = size + "em";
+    elem.setAttribute("maxLength", maxSize);
+    elem.setAttribute("value", value);
+    elem.setAttribute("defaultValue", value);
+    elem.defaultValue = value; // Needed for MSIE 8
+    setAbsolutePosition(elem, top, left);
+    frag.appendChild(elem);
+    return elem;
+}
+
+function addAbsoluteCheckBoxCell(frag, value, name, top, left)
+{
+    var elem = document.createElement("input");
+    elem.type = "checkbox";
+    elem.id = elem.name = name;
+    if (value) {
+        elem.setAttribute("checked", true); // FF
+        elem.setAttribute("defaultChecked", true); // MSIE+W3C
+    }
+    setAbsolutePosition(elem, top, left);
+    frag.appendChild(elem);
+    return elem;
+}
+
+function addAbsoluteSelectCell(frag, oT, oV, value, name, top, left)
+{
+    var elem = document.createElement("select");
+    elem.id = elem.name = name;
+    for (var x = 0; x < oT.length; x++) {
+        var optionItem = document.createElement('option');
+        optionItem.value = oV[x];
+        if(value == optionItem.value) {
+            optionItem.setAttribute("selected", true);
+            optionItem.setAttribute("defaultSelected", true);
+            optionItem.defaultSelected = true; // Needed for MSIE 8
+        }
+        optionItem.appendChild(document.createTextNode(oT[x]));
+        elem.appendChild(optionItem);
+    }
+    setAbsolutePosition(elem, top, left);
+    frag.appendChild(elem);
+    return elem;
+}
+
+function addAbsoluteHeader(frag, title, value, top, left)
+{
+    var thead = document.createElement("thead");
+    var tr = document.createElement("tr");
+    addTextHeaderCell(tr, title, "cl", value.length);
+    thead.appendChild(tr);
+    tr = document.createElement("tr");
+    for (var i = 0; i < value.length; i++) {
+        addTextHeaderCell(tr, value[i], "cl");
+    }
+    thead.appendChild(tr);
+    var table = CreateStyledElement("table", "config");
+    table.appendChild(thead);
+    setAbsolutePosition(table, top, left);
+    frag.appendChild(table);
+}
+
+function updateImage()
+{
+    var i;
+    var elem;
+    var offset;
+    var sel = document.getElementById("dwrr_enable");
+    var dwrr_enabled = parseInt(sel.options[sel.selectedIndex].value, 10);
+
+    var img = document.createElement("img");
+    // IE has a problem when the size is changed for an image, and the filename is the same,
+    // because the size is cached in an internal cache, which is not cleared when the user deletes the normal cache.
+    // Using the following combination of img.setAttribute("src", null) followed by img.setAttribute("src", <filename>) 
+    // solves the problem.
+    img.setAttribute("src", null); // IE internal cache bug.
+    img.setAttribute("src", imageFile[(dwrr_enabled) ? 1 : 0]);
+    img.border = 0;
+        
+    var container = document.createElement("div");        
+    container.id = "container";
+    container.style.position = "relative";
+    container.appendChild(img);
+
+    var frag = document.createDocumentFragment();
+
+    if (dwrr_enabled) {
+        for (i = 0; i < queueWeightCnt; i++) {
+            offset = queueParamOffset * i;
+            elem = addAbsoluteInputCell(frag, parseInt(queueWeightData[i], 10), "weight_" + i, 2, 3,
+                                            queueParamTop - 5 + offset, queueParamWeightLeft);
+            elem.onkeyup = updatePct;
+            addAbsoluteTextCell(frag, null, "pct_" + i,
+                                queueParamTop - 2 + offset, queueParamPercentLeft);
+        }
+        addAbsoluteHeader(frag, "Queue Scheduler", ["Weight", "Percent"], queueParamHeaderTop, queueParamHeaderLeft);
+    }
+
+    var form = document.getElementById("qos_port_scheduler_edit");
+    var shaper;
+    for (i = 0; i < queueShaperCnt; i++) {
+        offset = queueShaperOffset * i;
+        shaper = queueShaperData[i].split("|");
+        elem = addAbsoluteCheckBoxCell(frag, parseInt(shaper[0], 10), "q_shaper_enable_" + i,
+                                       queueShaperTop + offset, queueShaperEnabledLeft);
+        elem.onclick = shaperEnableDisable;
+        // q_shaper_rate_x is the actual rate value that is transmitted between the webserver and the browser.
+        // It is not shown in the user interface.
+        addHiddenParam(form, "q_shaper_rate_" + i, parseInt(shaper[1], 10));
+        // The purpose of q_shaper_display_rate_x and q_shaper_display_unit_x is to make the user interface a little more friendly.
+        // When the form is submitted, q_shaper_rate_x is recalculated from these two parameters.
+        elem = addAbsoluteInputCell(frag, api2DisplayRate(parseInt(shaper[1], 10)), "q_shaper_display_rate_" + i, 3.8, 7,
+                                    queueShaperTop - 5 + offset, queueShaperRateLeft);
+        if (!parseInt(shaper[0], 10)) {
+            elem.disabled = true;
+        }
+        elem = addAbsoluteSelectCell(frag, oTRateUnit, oVRateUnit, api2DisplayUnit(parseInt(shaper[1], 10)),  "q_shaper_display_unit_" + i,
+                                     queueShaperTop - 4 + offset, queueShaperUnitLeft);
+        if (!parseInt(shaper[0], 10)) {
+            elem.disabled = true;
+        }
+        elem = addAbsoluteCheckBoxCell(frag, parseInt(shaper[2], 10), "q_shaper_excess_" + i,
+                                       queueShaperTop + offset, queueShaperExcessLeft);
+        if (!parseInt(shaper[0], 10)) {
+            elem.disabled = true;
+        }
+    }
+    addAbsoluteHeader(frag, "Queue Shaper", ["Enable", "Rate", "Unit", "Excess"], queueShaperHeaderTop, queueShaperHeaderLeft);
+
+    shaper = portShaperData.split("|");
+    elem = addAbsoluteCheckBoxCell(frag, parseInt(shaper[0], 10), "p_shaper_enable",
+                                   portShaperTop, portShaperEnabledLeft);
+    elem.onclick = shaperEnableDisable;
+    // p_shaper_rate_x is the actual rate value that is transmitted between the webserver and the browser.
+    // It is not shown in the user interface.
+    addHiddenParam(form, "p_shaper_rate", parseInt(shaper[1], 10));
+    // The purpose of p_shaper_display_rate_x and p_shaper_display_unit_x is to make the user interface a little more friendly.
+    // When the form is submitted, p_shaper_rate_x is recalculated from these two parameters.
+    elem = addAbsoluteInputCell(frag, api2DisplayRate(parseInt(shaper[1], 10)), "p_shaper_display_rate", 3.8, 7,
+                                portShaperTop - 5, portShaperRateLeft);
+    if (!parseInt(shaper[0], 10)) {
+        elem.disabled = true;
+    }
+    elem = addAbsoluteSelectCell(frag, oTRateUnit, oVRateUnit, api2DisplayUnit(parseInt(shaper[1], 10)),  "p_shaper_display_unit",
+                                 portShaperTop - 4, portShaperUnitLeft);
+    if (!parseInt(shaper[0], 10)) {
+        elem.disabled = true;
+    }
+    addAbsoluteHeader(frag, "Port Shaper", ["Enable", "Rate", "Unit"], portShaperHeaderTop, portShaperHeaderLeft);
+
+    container.appendChild(frag);
+
+    var drawing_area = document.getElementById('drawing_area');
+    clearChildNodes(drawing_area);
+    drawing_area.appendChild(container);
+
+    if (dwrr_enabled) {
+        updatePct();
+    }
+}
+
+/* Format:
+ * <port_no>#<scheduler_mode>#<queue_weights>#<queue_shapers>#<port_shaper>
+ *
+ * port_no            :== 1..max
+ * scheduler_mode     :== 0..1           // 0: Strict Priority, 1: Weighted
+ * queue_weights      :== <queue_1_weight>/<queue_2_weight>/...<queue_n_weight>  // n is 6.
+ *   queue_x_weight   :== 1..100         // Just a number. If you set all 6 weights to 100, each queue will have a weigth of 100/6 = 16.7 ~ 17%
+ * queue_shapers      :== <queue_shaper_1>/<queue_shaper_2>/...<queue_shaper_n>  // n is 8.
+ *   queue_shaper_x   :== <enable|rate|excess>
+ *     enable         :== 0..1           // 0: Shaper is disabled, 1: Shaper is disabled
+ *     rate           :== 0..0xffffffff  // Actual bit rate in kbps
+ *     excess         :== 0..1           // 0: Excess bandwidth disabled, 1: Excess bandwidth enabled
+ * port_shaper        :== <enable|rate>
+ *   enable           :== 0..1           // 0: Shaper is disabled, 1: Shaper is disabled
+ *   rate             :== 0..0xffffffff  // Actual bit rate in kbps
+ */
+
+function processUpdate(req, ref)
+{
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        var cfg = req.responseText.split("#");
+        var port_no = parseInt(cfg[0], 10);
+
+        UpdateIdSetSelect("dwrr_enable", parseInt(cfg[1], 10));
+
+        // Save configuration in global data for later use
+        queueWeightData = cfg[2].split("/");
+        queueWeightCnt = queueWeightData.length;
+
+        queueShaperData = cfg[3].split("/");
+        queueShaperCnt = queueShaperData.length;
+
+        portShaperData = cfg[4];
+
+        updateImage();
+
+        UpdateIdValue('submit_port', port_no);
+        UpdateId("display_port", configPortName(port_no, 1));
+
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate() {
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/qos_port_scheduler_edit?port=" + selectedPort), processUpdate);
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm()
+{
+    var i;
+    var sel = document.getElementById("dwrr_enable");
+    var dwrr_enabled = parseInt(sel.options[sel.selectedIndex].value, 10);
+
+    if (dwrr_enabled) {
+        for (i = 0; i < queueWeightCnt; i++) {
+            if (!isWithinRange("weight_" + i, 1, 100, "'Weight'")) {
+                return false;
+            }
+                
+        }
+    }
+
+    for (i = 0; i < queueShaperCnt; i++) {
+        if (document.getElementById("q_shaper_enable_" + i).checked) {
+            switch (document.getElementById("q_shaper_display_unit_" + i).value) {
+            case "0": // kbps
+                if (!isWithinRange("q_shaper_display_rate_" + i, configQosBitRateMin, 1000000, "'Queue Shaper Rate'",
+                                   " when the Unit is specified in 'kbps'.\nSelect the 'Mbps' unit for a coarser granularity for rates that need to be greater than 1 Gbps (1000000 kbps).")) {
+                    return false;
+                }
+                document.getElementById("q_shaper_rate_" + i).value = document.getElementById("q_shaper_display_rate_" + i).value;
+                break;
+            case "1": // Mbps
+                if (!isWithinRange("q_shaper_display_rate_" + i, 1, configQosBitRateMax / 1000, "'Queue Shaper Rate'",
+                                   " Mbps.\nSelect the 'kbps' unit for a finer granularity.")) {
+                    return false;
+                }
+                document.getElementById("q_shaper_rate_" + i).value = document.getElementById("q_shaper_display_rate_" + i).value * 1000;
+                break;
+            default:
+                // Shall never hapen
+                return GiveAlert("The value is not valid", document.getElementById("q_shaper_display_unit_" + i));
+            }
+        }
+    }
+
+    if (document.getElementById("p_shaper_enable").checked) {
+        switch (document.getElementById("p_shaper_display_unit").value) {
+        case "0": // kbps
+            if (!isWithinRange("p_shaper_display_rate", configQosBitRateMin, 1000000, "'Port Shaper Rate'", " kbps. Select the 'Mbps' unit for a coarser granularity.")) {
+                return false;
+            }
+            document.getElementById("p_shaper_rate").value = document.getElementById("p_shaper_display_rate").value;
+            break;
+        case "1": // Mbps
+            if (!isWithinRange("p_shaper_display_rate", 1, configQosBitRateMax / 1000, "'Port Shaper Rate'", " Mbps. Select the 'kbps' unit for a finer granularity.")) {
+                return false;
+            }
+            document.getElementById("p_shaper_rate").value = document.getElementById("p_shaper_display_rate").value * 1000;
+            break;
+        default:
+            // Shall never hapen
+            return GiveAlert("The value is not valid", document.getElementById("p_shaper_display_unit"));
+        }
+    }
+
+    return true;
+}
+
+function resetForm(form)
+{
+    form.reset();
+    updateImage();
+}
+
+function schedulerModeChange(sel)
+{
+    updateImage();
+}
+
+function PortSelect(sel)
+{
+    selectedPort = sel.options[sel.selectedIndex].value; 
+    requestUpdate();
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+    requestUpdate();            // Update page to reflect selector
+}
+
+function docLoad()
+{
+    var slashIx;
+    var referrer;
+
+    if (document.referrer && (document.referrer.search(document.location.pathname) === -1)) { // Save the referrer for later use if it is not ourselves
+        slashIx = document.referrer.lastIndexOf('/');
+        if (slashIx === -1) {
+            referrer = document.referrer; // Use whole string
+        } else {
+            referrer = document.referrer.substring(slashIx + 1); // Use substring after last '/'
+        }
+        parent.setPageData("qos", "referrer", referrer);
+    }
+    selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+    requestUpdate();
+}
+
+function goBack()
+{
+    document.location.href = parent.getPageData("qos", "referrer");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="docLoad();">
+
+<div class="refreshbar">
+ <form action="#">
+  <select id="portselect" onchange="PortSelect(this);">
+    <option value="1">Port 1</option>
+    <option value="99">Port 99</option>
+   </select>
+ </form>
+</div>
+
+<form id="qos_port_scheduler_edit" method="POST" onsubmit="return checkForm();" action="/config/qos_port_scheduler_edit">
+
+<h1>QoS Egress Port Scheduler and Shapers <span id="display_sid"></span><span>&nbsp;</span><span id="display_port"></span></h1>
+
+<table summary="Scheduler Mode Configuration" class="config">
+  <tbody>
+   <tr class="config">
+    <td class="param_label"><label for="dwrr_enable">Scheduler Mode</label></td>
+    <td>
+     <select onchange="schedulerModeChange(this);" name="dwrr_enable" id="dwrr_enable">
+      <option value="0">Strict Priority</option>
+      <option value="1">Weighted</option>
+     </select>
+    </td>
+   </tr>
+  </tbody>
+</table>
+<br>
+<br>
+
+<div id="drawing_area"></div>
+
+<p>
+ <input type="hidden" id="submit_sid" name="sid">    
+ <input type="hidden" id="submit_port" name="port">
+ <input type="submit" value="Save">
+ <input type="button" value="Reset" onclick="resetForm(this.form);">
+ <input type="button" value="Cancel" onclick="goBack();">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

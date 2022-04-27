@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_stat_ports.htm";
+
+function addRow(index, frag, values) {
+    var tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+    for(var i = 0; i < values.length; i++) {
+        var td = CreateStyledElement("td", "cr");
+        var portno = parseInt(values[0]);
+        if(i == 0) {
+            var txt = document.createTextNode(configPortName(portno, 0));
+            var link = document.createElement("a");
+            link.href = "stat_detailed.htm?port=" + portno;
+            link.appendChild(txt); // Add Text
+            td.appendChild(link); // Add link to cell
+	    tr.appendChild(td);         // Add cell to row
+        } else {
+            if(configPortType >= 3 && configPortName(portno, 0) == "WAN") { 
+                if(i == 6 || i == 9) { //6:Errors Transmit 9:Filtered Received
+                    addTextCell(tr, "n/a", "cr");
+                    continue;
+                }
+            }
+            var txt = document.createTextNode(values[i]);
+            td.appendChild(txt); // Add text to cell
+	    tr.appendChild(td);         // Add cell to row
+        }
+
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format: 1/0/2/0/128/0/0/0/0/1|2/175/19/23597/234/3518/0/0/0/0|...
+    if(req.responseText)  {
+        var values = req.responseText.split("|");
+        var frag = document.createDocumentFragment();
+        for(var i = 0; i < values.length; i++) {
+            if (values[i]) {
+                var pval = values[i].split("/");
+                addRow(i, frag, pval);
+            }
+        }
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+        var autorefresh = document.getElementById('autorefresh');
+	if(autorefresh.checked) {
+            if(timerID)
+                clearTimeout(timerID);
+            timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+        }
+    } else {
+        SpomHandleError();
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate() {
+    document.getElementById("update").style.visibility = "visible";
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+    loadXMLDoc(SpomAddSidArg("/stat/ports"), processUpdate, 'portData');
+    SpomUpdateDisplaySid("sid_display");
+}
+
+function requestClear() {
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/stat/ports?clear=1"), processUpdate, 'portData');
+}
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = null;
+    } else
+        requestUpdate();
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Port Statistics Overview <span id="sid_display"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+  <input type="button" value="Clear"   onClick="requestClear();  this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<table id="portStats" summary="Switch Port Statistics" class="display">
+ <thead>
+  <tr class="display_header">
+   <th rowspan="2">Port</th>
+   <th colspan="2">Packets</th>
+   <th colspan="2">Bytes</th>
+   <th colspan="2">Errors</th>
+   <th colspan="2">Drops</th>
+   <th colspan="1">Filtered</th>
+  </tr>
+  <tr class="display_header">
+   <th>Received</th>
+   <th>Transmitted</th>
+   <th>Received</th>
+   <th>Transmitted</th>
+   <th>Received</th>
+   <th>Transmitted</th>
+   <th>Received</th>
+   <th>Transmitted</th>
+   <th>Received</th>
+  </tr>
+ </thead>
+ <tbody id="portData">
+ </tbody>
+</table>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

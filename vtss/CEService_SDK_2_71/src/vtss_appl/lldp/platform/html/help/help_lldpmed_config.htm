@@ -1,0 +1,419 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>LLDP Media Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>LLDP Media Configuration Help</h1>
+<dl>
+  <dd>
+    <p>
+      This page allows you to configure the <a href="glossary.htm#lldpmed" class="glossary">LLDP-MED</a>. This function applies to VoIP devices which support LLDP-MED. <br/>
+    </p>
+  </dd>
+</dl>
+ <h2>Fast start repeat count</h2>
+<dl>
+<dt>Fast start repeat count</dt>
+ <dd>
+ <p>Rapid startup and Emergency Call Service Location Identification Discovery of endpoints is a critically
+ important aspect of VoIP systems in general. In addition, it is best to advertise only those pieces of
+information which are specifically relevant to particular endpoint types (for example only advertise the
+voice network policy to permitted voice-capable devices), both in order to conserve the limited LLDPU
+space and to reduce security and system integrity issues that can come with inappropriate knowledge
+of the network policy.</p>
+
+<p>With this in mind LLDP-MED defines an LLDP-MED Fast Start interaction
+between the protocol and the application layers on top of the protocol,
+in order to achieve these related properties. Initially, a Network
+Connectivity Device will only transmit LLDP TLVs in an LLDPDU. Only
+after an LLDP-MED Endpoint Device is detected, will an LLDP-MED capable
+Network Connectivity Device start to advertise LLDP-MED TLVs in outgoing
+LLDPDUs on the associated port. The LLDP-MED application will
+temporarily speed up the transmission of the LLDPDU to start within a
+second, when a new LLDP-MED neighbor has been detected in order share
+LLDP-MED information as fast as possible to new neighbors.</p>
+
+<p>Because there is a risk of an LLDP frame being lost during
+transmission between neighbors, it is recommended  to repeat the fast
+start transmission multiple times to increase the possibility of
+the neighbors receiving the LLDP frame. With <b>Fast start repeat count</b>
+it is possible to specify the number of times the fast start
+transmission would be repeated. The recommended value is 4 times, given that
+4 LLDP frames with a 1 second interval will be transmitted, when an LLDP
+frame with new information is received. </p>
+
+<p>It should be noted that LLDP-MED and the LLDP-MED Fast Start mechanism is only intended to run on links between LLDP-MED Network Connectivity Devices and Endpoint Devices, and as such does not apply to links between LAN infrastructure elements, including Network Connectivity Devices, or other types of links.</p>
+
+</dd>
+</dl>
+ <h2>Coordinates Location</h2>
+<dl>
+<dt>Latitude</dt>
+<dd>
+<p><b>Latitude</b> SHOULD be normalized to within 0-90 degrees with a
+maximum of 4 digits.</p>
+<p>It is possible to specify the direction to either <b>North</b> of the equator or <b>South</b> of the equator.</p>
+</dd>
+<dt>Longitude</dt>
+<dd>
+<p><b>Longitude</b> SHOULD be normalized to within 0-180 degrees with a
+maximum of 4 digits.</p>
+<p>It is possible to specify the direction to either <b>East</b> of the prime meridian or <b>West</b> of the prime meridian.</p>
+</dd>
+
+<dt>Altitude</dt>
+<dd>
+<p><b>Altitude</b> SHOULD be normalized to within -32767 to 32767 with
+a maximum of 4 digits.</p>
+<p>It is possible to select between two altitude types (floors or
+meters).</p>
+<p><b>Meters</b>: Representing meters of Altitude defined by the vertical datum specified.</p>
+<p><b>Floors</b>: Representing altitude in a form more relevant in buildings which have different floor-to-floor dimensions. An altitude = 0.0 is meaningful even outside a building, and represents ground level at the given latitude and longitude.  Inside a building, 0.0 represents   the floor level associated with ground level at the main entrance.</p>
+</dd>
+
+<dt>Map Datum</dt>
+<dd>
+<p>The <b>Map Datum</b> is used for the coordinates given in these options:</p>
+<p><b>WGS84</b>:  (Geographical 3D) - World Geodesic System 1984, CRS Code
+4327, Prime Meridian Name: Greenwich.</p>
+<p><b>NAD83/NAVD88</b>: North American Datum 1983, CRS Code 4269, Prime
+Meridian Name: Greenwich; The associated vertical datum is the North
+American Vertical Datum of 1988 (NAVD88). This datum pair is to be used
+when referencing locations on land, not near tidal water (which would use Datum = NAD83/MLLW).</p>
+<p><b>NAD83/MLLW</b>:  North American Datum 1983, CRS Code 4269, Prime Meridian
+Name: Greenwich; The associated vertical datum is Mean
+Lower Low Water (MLLW). This datum pair is to be used when referencing
+locations on water/sea/ocean.</p> 
+</dd>
+</dl>
+
+<h2>Civic Address Location</h2>
+<dl>
+ <dd>
+   <p>IETF Geopriv Civic Address based Location Configuration Information
+     (Civic Address LCI).</p>
+ </dd>
+ <dt>Country code</dt>
+ <dd> 
+   <p>The two-letter ISO 3166 country code in capital ASCII
+     letters - Example: DK, DE or US.</p>
+ </dd> 
+
+ <dt>State</dt>
+ <dd> 
+   <p>National subdivisions (state, canton, region, province,
+     prefecture).</p>
+ </dd> 
+
+<dt>County</dt>
+<dd> 
+<p>County, parish, gun (Japan), district.</p>
+</dd> 
+
+<dt>City</dt>
+<dd> 
+<p>City, township, shi (Japan) - Example: Copenhagen. </p>
+</dd> 
+
+<dt>City district</dt>
+<dd> 
+<p>City division, borough, city district, ward, chou (Japan).</p>
+</dd> 
+
+<dt>Block (Neighborhood)</dt>
+<dd> 
+<p>Neighborhood, block.</p>
+</dd> 
+
+<dt>Street</dt>
+<dd> 
+<p>Street - Example: Poppelvej.</p>
+</dd> 
+
+<dt>Leading street direction</dt>
+<dd> 
+<p>Leading street direction - Example: N.</p>
+</dd> 
+
+<dt>Trailing street suffix</dt>
+<dd> 
+<p>Trailing street suffix - Example: SW.</p>
+</dd> 
+
+<dt>Street suffix</dt>
+<dd> 
+<p>Street suffix - Example: Ave, Platz.</p>
+</dd> 
+
+<dt>House no.</dt>
+<dd> 
+<p>House number - Example: 21.</p>
+</dd> 
+
+<dt>House no. suffix</dt>
+<dd> 
+<p>House number suffix - Example: A, 1/2.</p>
+</dd> 
+
+<dt>Landmark</dt>
+<dd> 
+<p>Landmark or vanity address - Example: Columbia University.</p>
+</dd> 
+
+<dt>Additional location info</dt>	
+<dd> 
+<p>Additional location info - Example: South Wing.</p>
+</dd> 
+
+<dt>Name </dt>	
+<dd> 
+<p>Name (residence and office occupant) - Example: Flemming Jahn.</p>
+</dd> 
+
+<dt>Zip code</dt>
+<dd> 
+<p>Postal/zip code - Example: 2791.</p>
+</dd> 
+
+<dt>Building</dt>
+<dd> 
+<p>Building (structure) - Example: Low Library. </p>
+</dd> 
+
+<dt>Apartment </dt>	
+<dd> 
+<p>Unit (Apartment, suite) - Example: Apt 42.</p>
+</dd> 
+
+<dt>Floor</dt>
+<dd> 
+<p>Floor - Example: 4.</p>
+</dd> 
+
+<dt>Room no.</dt>
+<dd> 
+<p>Room number - Example: 450F.</p>
+</dd> 
+
+<dt>Place type </dt>	
+<dd> 
+<p>Place type - Example: Office.</p>
+</dd> 
+
+<dt>Postal community name</dt>
+<dd> 
+<p>Postal community name - Example: Leonia.</p>
+</dd> 
+
+
+<dt>P.O. Box</dt>
+<dd> 
+<p>Post office box (P.O. BOX) - Example: 12345.</p>
+</dd> 
+
+<dt>Additional code</dt>
+<dd> 
+<p>Additional code - Example: 1320300003. </p>
+</dd> 
+</dl>
+
+<h2>Emergency Call Service</h2>
+<dl>
+ <dd>
+   <p>Emergency Call Service (e.g. E911 and others), such as defined by TIA
+     or NENA.</p>
+ </dd>
+ <dt>Emergency Call Service</dt>
+
+ <dd>
+   <p><b>Emergency Call Service </b> ELIN identifier data format is defined to carry the ELIN identifier as used during emergency
+     call setup to a traditional CAMA or ISDN trunk-based PSAP. This format
+     consists of a numerical digit string, corresponding to the ELIN to be
+     used for emergency calling.</p>
+ </dd>
+</dl>
+
+<h2>Policies</h2>
+<dl>
+ <dd>
+<p>Network Policy Discovery enables the efficient discovery and diagnosis of mismatch issues with the
+VLAN configuration, along with the associated Layer 2 and Layer 3 attributes, which apply for a set of
+specific protocol applications on that port. Improper network policy configurations are a very
+significant issue in VoIP environments that frequently result in voice quality degradation or loss of
+service.</p>
+<p><b>Policies</b> are only intended for use with applications that have
+  specific 'real-time' network policy
+requirements, such as interactive voice and/or video services. </p>
+<p>The network policy attributes advertised are:</p>
+<p>1. Layer 2 VLAN ID (IEEE 802.1Q-2003)</p>
+<p>2. Layer 2 priority value (IEEE 802.1D-2004)</p>
+<p>3. Layer 3 Diffserv code point (DSCP) value (IETF RFC 2474)</p>
+<p>This network policy is potentially advertised and associated with multiple sets of application types
+supported on a given port. The application types specifically addressed are:</p>
+<p>1. Voice</p>
+<p>2. Guest Voice</p>
+<p>3. Softphone Voice</p>
+<p>4. Video Conferencing</p>
+<p>5. Streaming Video</p>
+<p>6. Control / Signalling (conditionally support a separate network
+policy for the media types above)</p>
+<p>A large network may support multiple VoIP policies across the entire organization, and different
+policies per application type. LLDP-MED allows multiple policies to be advertised per port, each
+corresponding to a different application type. Different ports on the same Network Connectivity
+Device may advertise different sets of policies, based on the authenticated user identity or port
+configuration.</p>
+<p>It should be noted that LLDP-MED is not intended to run on links other than between Network
+Connectivity Devices and Endpoints, and therefore does not need to advertise the multitude of
+network policies that frequently run on an aggregated link interior to
+the LAN.</p>
+ </dd>
+ <dt>Delete</dt>
+
+<dd>
+<p>Check to delete the policy. It will be deleted during the next save.</p>
+</dd>
+
+<dt>Policy ID</dt>
+<dd>
+<p>ID for the policy. This is auto generated and shall be used when
+selecting the policies that shall be mapped to the specific ports.</p>
+</dd>
+
+<dt>Application Type</dt>
+<dd>
+<p>Intended use of the application types:</p>
+
+<p>1. <b>Voice</b> - for use by dedicated IP Telephony handsets and other
+similar appliances supporting interactive voice services. These devices are typically deployed on a separate VLAN for ease
+of deployment and enhanced security by isolation from data
+applications.</p>
+
+<p>2. <b>Voice Signalling</b> (conditional) - for use in network topologies that require a
+different policy for the voice signalling than for the voice media. This application type should not be advertised if
+all the same network policies apply as those advertised in the <b>Voice</b>
+application policy.</p>
+
+<p>3. <b>Guest Voice</b> - support a separate 'limited feature-set' voice service for guest users and
+visitors with their own IP Telephony handsets and other similar appliances supporting
+interactive voice services.</p>
+
+<p>4. <b>Guest Voice Signalling</b> (conditional) - for use in network topologies that require a different
+policy for the guest voice signalling than for the guest voice media. This application type
+should not be advertised if all the same network policies apply as those advertised in the
+<b>Guest Voice</b> application policy.</p>
+
+<p>5. <b>Softphone Voice</b> - for use by softphone applications on typical data centric devices, such as
+PCs or laptops. This class of endpoints frequently does not support multiple VLANs, if at all,
+and are typically configured to use an 'untagged' VLAN or a single 'tagged' data specific
+VLAN. When a network policy is defined for use with an 'untagged' VLAN (see Tagged flag below), then the L2 priority field is ignored and only the DSCP value has relevance.</p>
+
+<p>6. <b>Video Conferencing</b> - for use by dedicated Video Conferencing equipment and other similar
+appliances supporting real-time interactive video/audio services.</p>
+
+<p>7. <b>Streaming</b> Video - for use by broadcast or multicast based video content distribution and other
+similar applications supporting streaming video services that require specific network policy
+treatment. Video applications relying on TCP with buffering would not be an intended use of
+this application type.</p>
+
+<p>8. <b>Video Signalling</b> (conditional) - for use in network topologies that require a separate policy for
+the video signalling than for the video media. This application type should not be advertised if
+all the same network policies apply as those advertised in the <b>Video
+Conferencing</b> application policy.</p>
+</dd>
+
+<dt>Tag</dt>
+<dd>
+<p><b>Tag</b> indicating whether the specified application type is using a 'tagged'
+or an 'untagged' VLAN.</p>
+<p><b>Untagged</b> indicates that the device is using an untagged frame format and as such does not include
+a tag header as defined by IEEE 802.1Q-2003. In this case, both the VLAN ID and the Layer 2
+priority fields are ignored and only the DSCP value has relevance. </p>
+<p><b>Tagged</b> indicates that the device is using the IEEE 802.1Q tagged frame format, and that both the
+VLAN ID and the Layer 2 priority values are being used, as well as the DSCP value. The tagged
+format includes an additional field, known as the tag header. The tagged frame format also includes
+priority tagged frames as defined by IEEE 802.1Q-2003.</p>
+</dd>
+
+<dt>VLAN ID</dt>
+<dd>
+<p>VLAN identifier (VID) for the port as defined in IEEE 802.1Q-2003.</p>
+</dd>
+
+<dt>L2 Priority</dt>
+<dd>
+<p><b>L2 Priority</b> is the  Layer 2 priority to be used for the
+specified application type. <b>L2 Priority</b> may specify one of eight priority levels (0 through 7), as defined by IEEE 802.1D-2004. A value of
+0 represents use of the default priority as defined in IEEE
+802.1D-2004.</p>
+</dd>
+
+<dt>DSCP</dt>
+<dd>
+<p><b>DSCP</b> value to be used to provide Diffserv node behaviour for the specified
+application type as defined in IETF RFC 2474. <b>DSCP</b>  may contain one of 64 code point
+values (0 through 63). A value of 0 represents use of the default DSCP value as defined in RFC
+2475.</p>
+</dd>
+
+<dt>Adding a new policy</dt>
+<dd>Click <input type=button value="Add New Policy"> to add a new
+policy. Specify the <b>Application type</b>, <b>Tag</b>, <b>VLAN
+ID</b>, <b>L2 Priority</b> and <b>DSCP</b> for the new policy. Click
+"Save". 
+<p> The number of policies supported is 32</p>
+</dd>    
+</dl>
+
+<h2>Port Policies Configuration</h2>
+<dl>
+<dd>    
+<p>Every port may advertise a unique set of network policies or
+different attributes for the same network policies, based on the
+authenticated user identity or port configuration.</p>
+</dd>    
+<dt>Port</dt>
+<dd><p>The port number to which the configuration applies.</p></dd>
+
+<dt>Policy Id</dt>
+<dd><p> The set of policies that shall apply to a given port. The set
+of policies is selected by check marking the checkboxes
+that corresponds to the policies.</p>
+</dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>
+

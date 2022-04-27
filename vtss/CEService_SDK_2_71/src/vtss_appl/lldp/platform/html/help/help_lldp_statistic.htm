@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>LLDP Statistics Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+    window.addEvent('domready', function() {
+      $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+  });
+ </script>
+</head>
+
+<body>
+<h1>LLDP Statistics Help</h1>
+
+
+<p>This page provides an overview of all <a href="glossary.htm#lldp" class="glossary">LLDP</a> traffic.
+  </p><br/>
+  Two types of counters are shown. <b>Global counters</b> are counters that refer to the whole
+<span class="SPOM_only">stack,</span>
+<span class="Standalone_only">switch,</span>
+  while <b>local counters</b> refer to per port counters for the currently selected switch.
+
+<br/>
+<h2>Global Counters</h2>
+<dl>
+ <dt>Neighbor entries were last changed </dt>
+ <dd>
+   Shows the time when the last entry was last deleted or added. It also shows the time elapsed since the last change was detected.
+ </dd>
+ <dt>Total Neighbors Entries Added</dt>
+ <dd>
+   Shows the number of new entries added since switch reboot.
+ </dd>
+ <dt>Total Neighbors Entries Deleted</dt>
+ <dd>
+   Shows the number of new entries deleted since switch reboot.
+ </dd>
+ <dt>Total Neighbors Entries Dropped</dt>
+ <dd>
+   Shows the number of <a href="glossary.htm#lldp" class="glossary">LLDP</a> frames dropped due to the entry table being full.
+ </dd>
+ <dt>Total Neighbors Entries Aged Out</dt>
+ <dd>
+   Shows the number of entries deleted due to Time-To-Live expiring.
+ </dd>
+</dl>
+
+<h2>Local Counters</h2>
+   The displayed table contains a row for each port. The columns hold the following information:
+<dl>
+ <dt>Local Port</dt>
+ <dd>
+    The port on which <a href="glossary.htm#lldp" class="glossary">LLDP</a> frames are received or transmitted.
+ </dd>
+
+ <dt>Tx Frames</dt>
+ <dd>
+    The number of <a href="glossary.htm#lldp" class="glossary">LLDP</a> frames transmitted on the port.
+ </dd>
+
+ <dt>Rx Frames</dt>
+ <dd>
+    The number of <a href="glossary.htm#lldp" class="glossary">LLDP</a> frames received on the port.
+ </dd>
+
+ <dt>Rx Errors</dt>
+ <dd>
+   The number of received <a href="glossary.htm#lldp" class="glossary">LLDP</a> frames containing some kind of error. 
+ </dd>
+
+ <dt>Frames Discarded</dt>
+ <dd>
+   If a <a href="glossary.htm#lldp" class="glossary">LLDP</a> frame is received on a port, and the switch's internal table has run full, the <a href="glossary.htm#lldp" class="glossary">LLDP</a> frame is counted and discarded.
+   This situation is known as "Too Many Neighbors" in the <a href="glossary.htm#lldp" class="glossary">LLDP</a> standard.
+   <a href="glossary.htm#lldp" class="glossary">LLDP</a> frames require a new entry in the table when the Chassis ID or Remote Port ID is not already contained within the table.
+   Entries are removed from the table when a given port's link is down, an <a href="glossary.htm#lldp" class="glossary">LLDP</a> shutdown frame is received, or when the entry ages out.
+ </dd>
+
+ <dt>TLVs Discarded</dt>
+ <dd>
+    Each <a href="glossary.htm#lldp" class="glossary">LLDP</a> frame can contain multiple pieces of information, known as TLVs (TLV is short for "Type Length Value"). If a TLV is malformed, it is counted and discarded.
+  </dd>
+
+ <dt>TLVs Unrecognized</dt>
+ <dd>
+    The number of well-formed TLVs, but with an unknown type value.
+ </dd>
+
+ <dt>Org. Discarded</dt>
+ <dd>
+    If <a href="glossary.htm#lldp" class="glossary">LLDP</a> frame is received with an organizationally TLV, but the TLV is not supported the TLV is discarded and counted.
+ </dd>
+
+ <dt>Age-Outs</dt>
+ <dd>
+    Each <a href="glossary.htm#lldp" class="glossary">LLDP</a> frame contains information about how long time the <a href="glossary.htm#lldp" class="glossary">LLDP</a> information is valid (age-out time). If no new <a href="glossary.htm#lldp" class="glossary">LLDP</a> frame is received within the age out time, the <a href="glossary.htm#lldp" class="glossary">LLDP</a> information is removed, and the <b>Age-Out</b> counter is incremented. 
+ </dd>
+
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page.</p>
+<p><input type="button" value=" Clear ">: Clears the <b>local counters</b>. All counters (including <b>global counters</b>) are cleared upon reboot.</p>
+</body>
+</html>
+

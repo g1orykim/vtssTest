@@ -1,0 +1,2264 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_AUTH)
+
+INCLUDE_BEGIN
+#include "vtss_auth_api.h"
+#include "misc_api.h"
+#ifdef VTSS_SW_OPTION_RADIUS
+#include "vtss_radius_api.h"
+#endif
+#include <netinet/in.h>
+#include "icli_porting_util.h"
+/*lint --e{438, 550} */
+
+INCLUDE_END
+
+FUNCTION_BEGIN
+
+#undef IC_RC
+#define IC_RC(expr) do {                              \
+    vtss_rc _rc_ = (expr);                            \
+    if (_rc_ != VTSS_OK) {                            \
+        ICLI_PRINTF("Error: %s!\n", error_txt(_rc_)); \
+        return _rc_;                                  \
+    }                                                 \
+} while (0)
+
+#define P2COL(col1, col2, c1, c2) icli_stats(session_id, col1, col2, c1, c2)
+
+static BOOL VTSS_AUTH_ICLI_console_present(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#ifdef VTSS_AUTH_ENABLE_CONSOLE
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif
+        return TRUE;
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL VTSS_AUTH_ICLI_telnet_present(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#ifdef VTSS_SW_OPTION_CLI_TELNET
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif
+        return TRUE;
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL VTSS_AUTH_ICLI_ssh_present(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#ifdef VTSS_SW_OPTION_SSH
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif
+        return TRUE;
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL VTSS_AUTH_ICLI_http_present(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#ifdef VTSS_SW_OPTION_WEB
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif
+        return TRUE;
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL VTSS_AUTH_ICLI_radius_present(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#ifdef VTSS_SW_OPTION_RADIUS
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif
+        return TRUE;
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL VTSS_AUTH_ICLI_tacacs_present(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#ifdef VTSS_SW_OPTION_TACPLUS
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif
+        return TRUE;
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+#ifdef VTSS_SW_OPTION_RADIUS
+static void VTSS_AUTH_ICLI_radius_statistics_entry(vtss_auth_proto_t proto, const void *const contxt, const vtss_auth_host_conf_t *const conf, int number)
+{
+    vtss_radius_auth_client_server_mib_s mib_auth;
+    vtss_radius_acct_client_server_mib_s mib_acct;
+    vtss_rc                              rc;
+    char                                 buf[128];
+    u32 session_id = *(u32 *)contxt;
+
+    if (proto != VTSS_AUTH_PROTO_RADIUS) {
+        ICLI_PRINTF("Error: Statistics not supported for %s\n", vtss_auth_proto_names[proto]);
+        return;
+    }
+
+    if ((rc = vtss_radius_auth_client_mib_get(number, &mib_auth)) != VTSS_OK) {
+        ICLI_PRINTF("Error: %s\n", error_txt(rc));
+        return;
+    }
+
+    ICLI_PRINTF("\n%s Server #%d (%s:%d) Authentication Statistics:\n",
+               vtss_auth_proto_names[proto],
+               number + 1,
+               misc_ipv4_txt(mib_auth.radiusAuthServerInetAddress, buf),
+               mib_auth.radiusAuthClientServerInetPortNumber);
+
+    P2COL("Rx Access Accepts",           "Tx Access Requests",        mib_auth.radiusAuthClientExtAccessAccepts,            mib_auth.radiusAuthClientExtAccessRequests);
+    P2COL("Rx Access Rejects",           "Tx Access Retransmissions", mib_auth.radiusAuthClientExtAccessRejects,            mib_auth.radiusAuthClientExtAccessRetransmissions);
+    P2COL("Rx Access Challenges",        "Tx Pending Requests",       mib_auth.radiusAuthClientExtAccessChallenges,         mib_auth.radiusAuthClientExtPendingRequests);
+    P2COL("Rx Malformed Acc. Responses", "Tx Timeouts",               mib_auth.radiusAuthClientExtMalformedAccessResponses, mib_auth.radiusAuthClientExtTimeouts);
+    P2COL("Rx Bad Authenticators",       NULL,                        mib_auth.radiusAuthClientExtBadAuthenticators,        0);
+    P2COL("Rx Unknown Types",            NULL,                        mib_auth.radiusAuthClientExtUnknownTypes,             0);
+    P2COL("Rx Packets Dropped",          NULL,                        mib_auth.radiusAuthClientExtPacketsDropped,           0);
+    ICLI_PRINTF("%-27s %10s", "State:",
+               mib_auth.state == VTSS_RADIUS_SERVER_STATE_DISABLED  ? "Disabled"  :
+               mib_auth.state == VTSS_RADIUS_SERVER_STATE_NOT_READY ? "Not Ready" :
+               mib_auth.state == VTSS_RADIUS_SERVER_STATE_READY     ? "Ready"     :
+               "Dead");
+
+    if (mib_auth.state == VTSS_RADIUS_SERVER_STATE_DEAD) {
+        ICLI_PRINTF(" (%u seconds left)", mib_auth.dead_time_left_secs);
+    }
+    ICLI_PRINTF("\n%-27s %10u ms\n", "Round-Trip Time:", mib_auth.radiusAuthClientExtRoundTripTime * ECOS_MSECS_PER_HWTICK);
+
+    if ((rc = vtss_radius_acct_client_mib_get(number, &mib_acct)) != VTSS_OK) {
+        ICLI_PRINTF("Error: %s\n", error_txt(rc));
+        return;
+    }
+
+    ICLI_PRINTF("\n%s Server #%d (%s:%d) Accounting Statistics:\n",
+               vtss_auth_proto_names[proto],
+               number + 1,
+               misc_ipv4_txt(mib_acct.radiusAccServerInetAddress, buf),
+               mib_acct.radiusAccClientServerInetPortNumber);
+
+    P2COL("Rx Responses",           "Tx Requests",         mib_acct.radiusAccClientExtResponses,          mib_acct.radiusAccClientExtRequests);
+    P2COL("Rx Malformed Responses", "Tx Retransmissions",  mib_acct.radiusAccClientExtMalformedResponses, mib_acct.radiusAccClientExtRetransmissions);
+    P2COL("Rx Bad Authenticators",  "Tx Pending Requests", mib_acct.radiusAccClientExtBadAuthenticators,  mib_acct.radiusAccClientExtPendingRequests);
+    P2COL("Rx Unknown Types",       "Tx Timeouts",         mib_acct.radiusAccClientExtUnknownTypes,       mib_acct.radiusAccClientExtTimeouts);
+    P2COL("Rx Packets Dropped",     NULL,                  mib_acct.radiusAccClientExtPacketsDropped,     0);
+    ICLI_PRINTF("%-27s %10s", "State:",
+               mib_acct.state == VTSS_RADIUS_SERVER_STATE_DISABLED  ? "Disabled"  :
+               mib_acct.state == VTSS_RADIUS_SERVER_STATE_NOT_READY ? "Not Ready" :
+               mib_acct.state == VTSS_RADIUS_SERVER_STATE_READY     ? "Ready"     :
+               "Dead");
+    if (mib_acct.state == VTSS_RADIUS_SERVER_STATE_DEAD) {
+        ICLI_PRINTF(" (%u seconds left)", mib_acct.dead_time_left_secs);
+    }
+    ICLI_PRINTF("\n%-27s %10u ms\n", "Round-Trip Time:", mib_acct.radiusAccClientExtRoundTripTime * ECOS_MSECS_PER_HWTICK);
+}
+
+static vtss_rc VTSS_AUTH_ICLI_radius_show(u32 session_id)
+{
+    vtss_auth_radius_conf_t conf;
+    char                    buf[INET6_ADDRSTRLEN];
+
+    IC_RC(vtss_auth_mgmt_radius_conf_get(&conf));
+    ICLI_PRINTF("Global %s Server Attribute 4  : %s\n", vtss_auth_proto_names[VTSS_AUTH_PROTO_RADIUS], conf.nas_ip_address_enable ? misc_ipv4_txt(conf.nas_ip_address, buf) : "");
+#ifdef VTSS_SW_OPTION_IPV6
+    ICLI_PRINTF("Global %s Server Attribute 95 : %s\n", vtss_auth_proto_names[VTSS_AUTH_PROTO_RADIUS], conf.nas_ipv6_address_enable ? misc_ipv6_txt(&conf.nas_ipv6_address, buf) : "");
+#endif /* VTSS_SW_OPTION_IPV6 */
+    ICLI_PRINTF("Global %s Server Attribute 32 : %s\n", vtss_auth_proto_names[VTSS_AUTH_PROTO_RADIUS], conf.nas_identifier);
+    return VTSS_OK;
+}
+#endif /* VTSS_SW_OPTION_RADIUS */
+
+#if defined(VTSS_SW_OPTION_RADIUS) || defined(VTSS_SW_OPTION_TACPLUS)
+static vtss_rc VTSS_AUTH_ICLI_global_host_show(u32 session_id, vtss_auth_proto_t proto)
+{
+    vtss_auth_global_host_conf_t conf;
+
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(proto, &conf));
+    ICLI_PRINTF("Global %s Server Timeout      : %u seconds\n", vtss_auth_proto_names[proto], conf.timeout);
+    if (proto == VTSS_AUTH_PROTO_RADIUS) {
+        ICLI_PRINTF("Global %s Server Retransmit   : %u times\n", vtss_auth_proto_names[proto], conf.retransmit);
+    }
+    ICLI_PRINTF("Global %s Server Deadtime     : %u minutes\n", vtss_auth_proto_names[proto], conf.deadtime);
+    ICLI_PRINTF("Global %s Server Key          : %s\n", vtss_auth_proto_names[proto], conf.key);
+    return VTSS_OK;
+}
+
+static void VTSS_AUTH_ICLI_host_show_entry(vtss_auth_proto_t proto, const void *const contxt, const vtss_auth_host_conf_t *const conf, int number)
+{
+    u32 session_id = *(u32 *)contxt;
+
+    ICLI_PRINTF("%s Server #%d:\n", vtss_auth_proto_names[proto], number + 1);
+    ICLI_PRINTF("  Host name  : %s\n", conf->host);
+    if (proto == VTSS_AUTH_PROTO_RADIUS) {
+        ICLI_PRINTF("  Auth port  : %u\n", conf->auth_port);
+        ICLI_PRINTF("  Acct port  : %u\n", conf->acct_port);
+    } else {
+        ICLI_PRINTF("  Port       : %u\n", conf->auth_port);
+    }
+    if (conf->timeout) {
+        ICLI_PRINTF("  Timeout    : %u seconds\n", conf->timeout);
+    } else {
+        ICLI_PRINTF("  Timeout    :\n");
+    }
+    if (proto == VTSS_AUTH_PROTO_RADIUS) {
+        if (conf->retransmit) {
+            ICLI_PRINTF("  Retransmit : %u times\n", conf->retransmit);
+        } else {
+            ICLI_PRINTF("  Retransmit :\n");
+        }
+    }
+    ICLI_PRINTF("  Key        : %s\n", conf->key);
+}
+
+static vtss_rc VTSS_AUTH_ICLI_host_show(u32 session_id, vtss_auth_proto_t proto)
+{
+    int     cnt;
+
+    IC_RC(vtss_auth_mgmt_host_iterate(proto, &session_id, VTSS_AUTH_ICLI_host_show_entry, &cnt));
+    if (!cnt) {
+        ICLI_PRINTF("No hosts configured!\n");
+    }
+    return VTSS_OK;
+}
+#endif /* defined(VTSS_SW_OPTION_RADIUS) || defined(VTSS_SW_OPTION_TACPLUS) */
+
+
+#if defined(VTSS_AUTH_ENABLE_CONSOLE) || defined(VTSS_SW_OPTION_CLI_TELNET) || defined(VTSS_SW_OPTION_SSH) || defined(VTSS_SW_OPTION_WEB)
+static vtss_rc VTSS_AUTH_ICLI_agent_show(u32 session_id, vtss_auth_agent_t agent)
+{
+    vtss_auth_agent_conf_t conf;
+    vtss_auth_method_t     method;
+    int                    i;
+
+    IC_RC(vtss_auth_mgmt_agent_conf_get(agent, &conf));
+    ICLI_PRINTF("%-7s : ", vtss_auth_agent_names[agent]);
+    for (i = 0; i < VTSS_AUTH_METHOD_LAST; i++) {
+        method = conf.method[i];
+        if ((i == 0) || (method != VTSS_AUTH_METHOD_NONE)) {
+            ICLI_PRINTF("%s ", vtss_auth_method_names[method]);
+            if (method == VTSS_AUTH_METHOD_NONE) {
+                break;
+            }
+        }
+    }
+    ICLI_PRINTF("\n");
+    return VTSS_OK;
+}
+#endif /* defined(VTSS_AUTH_ENABLE_CONSOLE) || defined(VTSS_SW_OPTION_CLI_TELNET) || defined(VTSS_SW_OPTION_SSH) || defined(VTSS_SW_OPTION_WEB) */
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_AUTH_ENABLE_CONSOLE) || defined(VTSS_SW_OPTION_CLI_TELNET) || defined(VTSS_SW_OPTION_SSH) || defined(VTSS_SW_OPTION_WEB)
+
+COMMAND = aaa authentication login { console | telnet | ssh | http } { [ local | radius | tacacs ] ... }
+
+DOC_CMD_DESC    = Use the aaa authentication login command to configure the authentication methods.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = VTSS_AUTH_ICLI_console_present
+RUNTIME = VTSS_AUTH_ICLI_telnet_present
+RUNTIME = VTSS_AUTH_ICLI_ssh_present
+RUNTIME = VTSS_AUTH_ICLI_http_present
+RUNTIME = 
+RUNTIME = VTSS_AUTH_ICLI_radius_present
+RUNTIME = VTSS_AUTH_ICLI_tacacs_present
+
+! 1: aaa
+! 2: authentication
+! 3: login
+! 4: console
+! 5: telnet
+! 6: ssh
+! 7: http
+! 8: local
+! 9: radius
+! 10: tacacs
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_console
+CMD_VAR = has_telnet
+CMD_VAR = has_ssh
+CMD_VAR = has_http
+CMD_VAR = has_local
+CMD_VAR = has_radius
+CMD_VAR = has_tacacs
+
+HELP = Authentication, Authorization and Accounting
+HELP = Authentication
+HELP = Login
+HELP = Configure Console
+HELP = Configure Telnet
+HELP = Configure SSH
+HELP = Configure HTTP
+HELP = Use local database for authentication
+HELP = Use RADIUS for authentication
+HELP = Use TACACS+ for authentication
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Console : option>
+BYWORD = <Telnet : option>
+BYWORD = <Ssh : option>
+BYWORD = <Http : option>
+BYWORD = <Local : option>
+BYWORD = <Radius : option>
+BYWORD = <Tacacs : option>
+
+VARIABLE_BEGIN
+    vtss_auth_agent_conf_t ac = {{VTSS_AUTH_METHOD_NONE}};
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_local) {
+        ac.method[0] = VTSS_AUTH_METHOD_LOCAL;
+    } else if (has_radius) {
+        ac.method[0] = VTSS_AUTH_METHOD_RADIUS;
+    } else if (has_tacacs) {
+        ac.method[0] = VTSS_AUTH_METHOD_TACACS;
+    }
+
+    if (has_local_1) {
+        ac.method[1] = VTSS_AUTH_METHOD_LOCAL;
+    } else if (has_radius_1) {
+        ac.method[1] = VTSS_AUTH_METHOD_RADIUS;
+    } else if (has_tacacs_1) {
+        ac.method[1] = VTSS_AUTH_METHOD_TACACS;
+    }
+
+    if (has_local_2) {
+        ac.method[2] = VTSS_AUTH_METHOD_LOCAL;
+    } else if (has_radius_2) {
+        ac.method[2] = VTSS_AUTH_METHOD_RADIUS;
+    } else if (has_tacacs_2) {
+        ac.method[2] = VTSS_AUTH_METHOD_TACACS;
+    }
+
+    if (has_console) {
+        IC_RC(vtss_auth_mgmt_agent_conf_set(VTSS_AUTH_AGENT_CONSOLE, &ac));
+    } else if (has_telnet) {
+        IC_RC(vtss_auth_mgmt_agent_conf_set(VTSS_AUTH_AGENT_TELNET, &ac));
+    } else if (has_ssh) {
+        IC_RC(vtss_auth_mgmt_agent_conf_set(VTSS_AUTH_AGENT_SSH, &ac));
+    } else if (has_http) {
+        IC_RC(vtss_auth_mgmt_agent_conf_set(VTSS_AUTH_AGENT_HTTP, &ac));
+    }  
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_AUTH_ENABLE_CONSOLE) || defined(VTSS_SW_OPTION_CLI_TELNET) || defined(VTSS_SW_OPTION_SSH) || defined(VTSS_SW_OPTION_WEB)
+
+COMMAND = no aaa authentication login { console | telnet | ssh | http }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = VTSS_AUTH_ICLI_console_present
+RUNTIME = VTSS_AUTH_ICLI_telnet_present
+RUNTIME = VTSS_AUTH_ICLI_ssh_present
+RUNTIME = VTSS_AUTH_ICLI_http_present
+
+! 1: no
+! 2: aaa
+! 3: authentication
+! 4: login
+! 5: console
+! 6: telnet
+! 7: ssh
+! 8: http
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_console
+CMD_VAR = has_telnet
+CMD_VAR = has_ssh
+CMD_VAR = has_http
+
+HELP = 
+HELP = Authentication, Authorization and Accounting
+HELP = Authentication
+HELP = Login
+HELP = Disable Console
+HELP = Disable Telnet
+HELP = Disable SSH
+HELP = Disable HTTP
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Console : option>
+BYWORD = <Telnet : option>
+BYWORD = <Ssh : option>
+BYWORD = <Http : option>
+
+VARIABLE_BEGIN
+    vtss_auth_agent_conf_t ac = {{VTSS_AUTH_METHOD_NONE}};
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_console) {
+        IC_RC(vtss_auth_mgmt_agent_conf_set(VTSS_AUTH_AGENT_CONSOLE, &ac));
+    } else if (has_telnet) {
+        IC_RC(vtss_auth_mgmt_agent_conf_set(VTSS_AUTH_AGENT_TELNET, &ac));
+    } else if (has_ssh) {
+        IC_RC(vtss_auth_mgmt_agent_conf_set(VTSS_AUTH_AGENT_SSH, &ac));
+    } else if (has_http) {
+        IC_RC(vtss_auth_mgmt_agent_conf_set(VTSS_AUTH_AGENT_HTTP, &ac));
+    }  
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = radius-server timeout <1-1000>
+
+DOC_CMD_DESC    = Use the radius-server timeout command to configure the global RADIUS timeout value.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: radius-server
+! 2: timeout
+! 3: <seconds:1-1000>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = seconds
+
+HELP = Configure RADIUS
+HELP = Time to wait for a RADIUS server to reply
+HELP = Wait time in seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Seconds : 1-1000>
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_RADIUS, &conf));
+    conf.timeout = seconds;
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_RADIUS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = no radius-server timeout
+
+DOC_CMD_DESC    = Use the no radius-server timeout command to reset the global RADIUS timeout value to default.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: radius-server
+! 3: timeout
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Configure RADIUS
+HELP = Time to wait for a RADIUS server to reply
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_RADIUS, &conf));
+    conf.timeout = VTSS_AUTH_TIMEOUT_DEFAULT;
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_RADIUS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = radius-server retransmit <1-1000>
+
+DOC_CMD_DESC    = Use the radius-server retransmit command to configure the global RADIUS retransmit value.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: radius-server
+! 2: retransmit
+! 3: <retries:1-1000>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = retries
+
+HELP = Configure RADIUS
+HELP = Specify the number of retries to active server
+HELP = Number of retries for a transaction
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Retries : 1-1000>
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_RADIUS, &conf));
+    conf.retransmit = retries;
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_RADIUS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = no radius-server retransmit
+
+DOC_CMD_DESC    = Use the no radius-server retransmit command to reset the global RADIUS retransmit value to default.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: radius-server
+! 3: retransmit
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Configure RADIUS
+HELP = Specify the number of retries to active server
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_RADIUS, &conf));
+    conf.retransmit = VTSS_AUTH_RETRANSMIT_DEFAULT;
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_RADIUS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = radius-server deadtime <1-1440>
+
+DOC_CMD_DESC    = Use the radius-server deadtime command to configure the global RADIUS deadtime value.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: radius-server
+! 2: deadtime
+! 3: <minutes:1-1440>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = minutes
+
+HELP = Configure RADIUS
+HELP = Time to stop using a RADIUS server that doesn't respond
+HELP = Time in minutes
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Minutes : 1-1440>
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_RADIUS, &conf));
+    conf.deadtime = minutes;
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_RADIUS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = no radius-server deadtime
+
+DOC_CMD_DESC    = Use the no radius-server deadtime command to reset the global RADIUS deadtime value to default.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: radius-server
+! 3: deadtime
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Configure RADIUS
+HELP = Time to stop using a RADIUS server that doesn't respond
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_RADIUS, &conf));
+    conf.deadtime = VTSS_AUTH_DEADTIME_DEFAULT;
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_RADIUS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = radius-server key <line1-63>
+
+DOC_CMD_DESC    = Use the radius-server key command to configure the global RADIUS key.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: radius-server
+! 2: key
+! 3: <key:line1-63>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = key
+
+HELP = Configure RADIUS
+HELP = Set RADIUS encryption key
+HELP = The shared key
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Key : line1-63>
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    if (key) {
+        IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_RADIUS, &conf));
+        strncpy(conf.key, key, sizeof(conf.key));
+        IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_RADIUS, &conf));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = no radius-server key
+
+DOC_CMD_DESC    = Use the no radius-server key command to remove the global RADIUS key.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: radius-server
+! 3: key
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Configure RADIUS
+HELP = Set RADIUS encryption key
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_RADIUS, &conf));
+    memset(conf.key, 0, sizeof(conf.key));
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_RADIUS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = radius-server attribute 4 <ipv4_ucast>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: radius-server
+! 2: attribute
+! 3: 4
+! 4: <ipv4:ipv4_ucast>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_const_4
+CMD_VAR = ipv4
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <VConst4 : Constant (4)>
+BYWORD = <Ipv4 : ipv4_ucast>
+
+VARIABLE_BEGIN
+    vtss_auth_radius_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_radius_conf_get(&conf));
+    conf.nas_ip_address = ipv4;
+    conf.nas_ip_address_enable = TRUE;
+    IC_RC(vtss_auth_mgmt_radius_conf_set(&conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = no radius-server attribute 4
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: radius-server
+! 3: attribute
+! 4: 4
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_const_4
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <VConst4 : Constant (4)>
+
+VARIABLE_BEGIN
+    vtss_auth_radius_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_radius_conf_get(&conf));
+    conf.nas_ip_address_enable = FALSE;
+    IC_RC(vtss_auth_mgmt_radius_conf_set(&conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS) && defined(VTSS_SW_OPTION_IPV6)
+
+COMMAND = radius-server attribute 95 <ipv6_ucast>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: radius-server
+! 2: attribute
+! 3: 95
+! 4: <ipv6:ipv6_ucast>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_const_95
+CMD_VAR = ipv6
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <VConst95 : Constant (95)>
+BYWORD = <Ipv6 : ipv6_ucast>
+
+VARIABLE_BEGIN
+    vtss_auth_radius_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_radius_conf_get(&conf));
+    conf.nas_ipv6_address = ipv6;
+    conf.nas_ipv6_address_enable = TRUE;
+    IC_RC(vtss_auth_mgmt_radius_conf_set(&conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS) && defined(VTSS_SW_OPTION_IPV6)
+
+COMMAND = no radius-server attribute 95
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: radius-server
+! 3: attribute
+! 4: 95
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_const_95
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <VConst95 : Constant (95)>
+
+VARIABLE_BEGIN
+    vtss_auth_radius_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_radius_conf_get(&conf));
+    conf.nas_ipv6_address_enable = FALSE;
+    IC_RC(vtss_auth_mgmt_radius_conf_set(&conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = radius-server attribute 32 <line1-253>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: radius-server
+! 2: attribute
+! 3: 32
+! 4: <id:line1-255>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_const_32
+CMD_VAR = id
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <VConst32 : Constant (32)>
+BYWORD = <Id : line1-253>
+
+VARIABLE_BEGIN
+    vtss_auth_radius_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    if (id) {
+        IC_RC(vtss_auth_mgmt_radius_conf_get(&conf));
+        strncpy(conf.nas_identifier, id, sizeof(conf.nas_identifier));
+        IC_RC(vtss_auth_mgmt_radius_conf_set(&conf));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = no radius-server attribute 32
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: radius-server
+! 3: attribute
+! 4: 32
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_const_32
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <VConst32 : Constant (32)>
+
+VARIABLE_BEGIN
+    vtss_auth_radius_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_radius_conf_get(&conf));
+    memset(conf.nas_identifier, 0, sizeof(conf.nas_identifier));
+    IC_RC(vtss_auth_mgmt_radius_conf_set(&conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = radius-server host <word1-255> [ auth-port <0-65535> ] [ acct-port <0-65535> ] [ timeout <1-1000> ] [ retransmit <1-1000> ] [ key <line1-63> ]
+
+DOC_CMD_DESC    = Use the radius-server host command to add a new RADIUS host.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! radius-server
+CMD_VAR = 
+RUNTIME = 
+HELP    = Configure RADIUS
+BYWORD  = 
+
+! host
+CMD_VAR = 
+RUNTIME = 
+HELP    = Specify a RADIUS server
+BYWORD  = 
+
+! <word1-255>
+CMD_VAR = host_name
+RUNTIME = 
+HELP    = Hostname or IP address
+BYWORD  = <HostName : word1-255>
+
+! auth-port
+CMD_VAR = has_auth_port
+RUNTIME = 
+HELP    = UDP port for RADIUS authentication server
+BYWORD  = auth-port : Option
+
+! <0-65535>
+CMD_VAR = auth_port
+RUNTIME = 
+HELP    = UDP port number
+BYWORD  = <AuthPort : 0-65535>
+
+! acct-port
+CMD_VAR = has_acct_port
+RUNTIME = 
+HELP    = UDP port for RADIUS accounting server
+BYWORD  = acct-port : Option
+
+! <0-65535>
+CMD_VAR = acct_port
+RUNTIME = 
+HELP    = UDP port number
+BYWORD  = <AcctPort : 0-65535>
+
+! timeout
+CMD_VAR = has_timeout
+RUNTIME = 
+HELP    = Time to wait for this RADIUS server to reply (overrides default)
+BYWORD  = timeout : Option
+
+! <1-1000>
+CMD_VAR = seconds
+RUNTIME = 
+HELP    = Wait time in seconds
+BYWORD  = <Seconds : 1-1000>
+
+! retransmit
+CMD_VAR = has_retransmit
+RUNTIME = 
+HELP    = Specify the number of retries to active server (overrides default)
+BYWORD  = retransmit : Option
+
+! <1-1000>
+CMD_VAR = retries
+RUNTIME = 
+HELP    = Number of retries for a transaction
+BYWORD  = <Retries : 1-1000>
+
+! key
+CMD_VAR = has_key
+RUNTIME = 
+HELP    = Server specific key (overrides default)
+BYWORD  = key : Option
+
+! <line1-63>
+CMD_VAR = key
+RUNTIME = 
+HELP    = The shared key
+BYWORD  = <Key : line1-63>
+
+VARIABLE_BEGIN
+    vtss_auth_host_conf_t hc = {{0}, VTSS_AUTH_RADIUS_AUTH_PORT_DEFAULT, VTSS_AUTH_RADIUS_ACCT_PORT_DEFAULT, 0, 0, {0}};
+VARIABLE_END
+
+CODE_BEGIN
+    if (misc_str_is_hostname(host_name) != VTSS_OK) {
+#ifdef VTSS_SW_OPTION_IPV6
+        if (misc_str_is_ipv6(host_name) != VTSS_OK) {
+            ICLI_PRINTF("%%RADIUS: invalid hostname or ip address\n");
+            return ICLI_RC_ERROR;
+        }
+#else
+        ICLI_PRINTF("%%RADIUS: invalid hostname or ip address\n");
+        return ICLI_RC_ERROR;
+#endif
+    }
+    if (host_name) {
+        strncpy(hc.host, host_name, sizeof(hc.host));
+    }
+    if (has_auth_port) {
+        hc.auth_port = auth_port;
+    }
+    if (has_acct_port) {
+        hc.acct_port = acct_port;
+    }
+    if (has_timeout) {
+        hc.timeout = seconds;
+    }
+    if (has_retransmit) {
+        hc.retransmit = retries;
+    }
+    if (has_key && key) {
+        strncpy(hc.key, key, sizeof(hc.key));
+    }
+    IC_RC(vtss_auth_mgmt_host_add(VTSS_AUTH_PROTO_RADIUS, &hc));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = no radius-server host <word1-255> [ auth-port <0-65535> ] [ acct-port <0-65535> ]
+
+DOC_CMD_DESC    = Use the no radius-server host command to delete an existing RADIUS host.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! radius-server
+CMD_VAR = 
+RUNTIME = 
+HELP    = Configure RADIUS
+BYWORD  = 
+
+! host
+CMD_VAR = 
+RUNTIME = 
+HELP    = Specify a RADIUS server
+BYWORD  = 
+
+! <word1-255>
+CMD_VAR = host_name
+RUNTIME = 
+HELP    = Hostname or IP address
+BYWORD  = <HostName : word1-255>
+
+! auth-port
+CMD_VAR = has_auth_port
+RUNTIME = 
+HELP    = UDP port for RADIUS authentication server
+BYWORD  = auth-port : Option
+
+! <0-65535>
+CMD_VAR = auth_port
+RUNTIME = 
+HELP    = UDP port number
+BYWORD  = <AuthPort : 0-65535>
+
+! acct-port
+CMD_VAR = has_acct_port
+RUNTIME = 
+HELP    = UDP port for RADIUS accounting server
+BYWORD  = acct-port : Option
+
+! <0-65535>
+CMD_VAR = acct_port
+RUNTIME = 
+HELP    = UDP port number
+BYWORD  = <AcctPort : 0-65535>
+
+VARIABLE_BEGIN
+    vtss_auth_host_conf_t hc = {{0}, VTSS_AUTH_RADIUS_AUTH_PORT_DEFAULT, VTSS_AUTH_RADIUS_ACCT_PORT_DEFAULT, 0, 0, {0}};
+VARIABLE_END
+
+CODE_BEGIN
+    if (host_name) {
+        strncpy(hc.host, host_name, sizeof(hc.host));
+    }
+    if (has_auth_port) {
+        hc.auth_port = auth_port;
+    }
+    if (has_acct_port) {
+        hc.acct_port = acct_port;
+    }
+    IC_RC(vtss_auth_mgmt_host_del(VTSS_AUTH_PROTO_RADIUS, &hc));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_TACPLUS)
+
+COMMAND = tacacs-server timeout <1-1000>
+
+DOC_CMD_DESC    = Use the tacacs-server timeout command to configure the global TACACS+ timeout value.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: tacacs-server
+! 2: timeout
+! 3: <seconds:1-1000>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = seconds
+
+HELP = Configure TACACS+
+HELP = Time to wait for a TACACS+ server to reply
+HELP = Wait time in seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Seconds : 1-1000>
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_TACACS, &conf));
+    conf.timeout = seconds;
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_TACACS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_TACPLUS)
+
+COMMAND = no tacacs-server timeout
+
+DOC_CMD_DESC    = Use the no tacacs-server timeout command to reset the global TACACS+ timeout value to default.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: tacacs-server
+! 3: timeout
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Configure TACACS+
+HELP = Time to wait for a TACACS+ server to reply
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_TACACS, &conf));
+    conf.timeout = VTSS_AUTH_TIMEOUT_DEFAULT;
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_TACACS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_TACPLUS)
+
+COMMAND = tacacs-server deadtime <1-1440>
+
+DOC_CMD_DESC    = Use the tacacs-server deadtime command to configure the global TACACS+ deadtime value.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: tacacs-server
+! 2: deadtime
+! 3: <minutes:1-1440>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = minutes
+
+HELP = Configure TACACS+
+HELP = Time to stop using a TACACS+ server that doesn't respond
+HELP = Time in minutes
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Minutes : 1-1440>
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_TACACS, &conf));
+    conf.deadtime = minutes;
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_TACACS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_TACPLUS)
+
+COMMAND = no tacacs-server deadtime
+
+DOC_CMD_DESC    = Use the no tacacs-server deadtime command to reset the global TACACS+ deadtime value to default.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: tacacs-server
+! 3: deadtime
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Configure TACACS+
+HELP = Time to stop using a TACACS+ server that doesn't respond
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_TACACS, &conf));
+    conf.deadtime = VTSS_AUTH_DEADTIME_DEFAULT;
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_TACACS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_TACPLUS)
+
+COMMAND = tacacs-server key <line1-63>
+
+DOC_CMD_DESC    = Use the tacacs-server key command to configure the global TACACS+ key.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: tacacs-server
+! 2: key
+! 3: <key:line1-63>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = key
+
+HELP = Configure TACACS+
+HELP = Set TACACS+ encryption key
+HELP = The shared key
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Key : line1-63>
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    if (key) {
+        IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_TACACS, &conf));
+        strncpy(conf.key, key, sizeof(conf.key));
+        IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_TACACS, &conf));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_TACPLUS)
+
+COMMAND = no tacacs-server key
+
+DOC_CMD_DESC    = Use the no tacacs-server key command to remove the global TACACS+ key.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: tacacs-server
+! 3: key
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Configure TACACS+
+HELP = Set TACACS+ encryption key
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_auth_global_host_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(vtss_auth_mgmt_global_host_conf_get(VTSS_AUTH_PROTO_TACACS, &conf));
+    memset(conf.key, 0, sizeof(conf.key));
+    IC_RC(vtss_auth_mgmt_global_host_conf_set(VTSS_AUTH_PROTO_TACACS, &conf));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_TACPLUS)
+
+COMMAND = tacacs-server host <word1-255> [ port <0-65535> ] [ timeout <1-1000> ] [ key <line1-63> ]
+
+DOC_CMD_DESC    = Use the tacacs-server host command to add a new TACACS+ host.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! tacacs-server
+CMD_VAR = 
+RUNTIME = 
+HELP    = Configure TACACS+
+BYWORD  = 
+
+! host
+CMD_VAR = 
+RUNTIME = 
+HELP    = Specify a TACACS+ server
+BYWORD  = 
+
+! <word1-255>
+CMD_VAR = host_name
+RUNTIME = 
+HELP    = Hostname or IP address
+BYWORD  = <HostName : word1-255>
+
+! port
+CMD_VAR = has_port
+RUNTIME = 
+HELP    = TCP port for TACACS+ server
+BYWORD  = port : Option
+
+! <0-65535>
+CMD_VAR = port
+RUNTIME = 
+HELP    = TCP port number
+BYWORD  = <Port : 0-65535>
+
+! timeout
+CMD_VAR = has_timeout
+RUNTIME = 
+HELP    = Time to wait for this TACACS+ server to reply (overrides default)
+BYWORD  = timeout : Option
+
+! <1-1000>
+CMD_VAR = seconds
+RUNTIME = 
+HELP    = Wait time in seconds
+BYWORD  = <Seconds : 1-1000>
+
+! key
+CMD_VAR = has_key
+RUNTIME = 
+HELP    = Server specific key (overrides default)
+BYWORD  = key : Option
+
+! <line1-63>
+CMD_VAR = key
+RUNTIME = 
+HELP    = The shared key
+BYWORD  = <Key : line1-63>
+
+VARIABLE_BEGIN
+    vtss_auth_host_conf_t hc = {{0}, VTSS_AUTH_TACACS_PORT_DEFAULT, 0, 0, 0, {0}};
+VARIABLE_END
+
+CODE_BEGIN
+    if (misc_str_is_hostname(host_name) != VTSS_OK) {
+#ifdef VTSS_SW_OPTION_IPV6
+        if (misc_str_is_ipv6(host_name) != VTSS_OK) {
+            ICLI_PRINTF("%%RADIUS: invalid hostname or ip address\n");
+            return ICLI_RC_ERROR;
+        }
+#else
+        ICLI_PRINTF("%%RADIUS: invalid hostname or ip address\n");
+        return ICLI_RC_ERROR;
+#endif
+    }
+    if (host_name) {
+        strncpy(hc.host, host_name, sizeof(hc.host));
+    }
+    if (has_port) {
+        hc.auth_port = port;
+    }
+    if (has_timeout) {
+        hc.timeout = seconds;
+    }
+    if (has_key && key) {
+        strncpy(hc.key, key, sizeof(hc.key));
+    }
+    IC_RC(vtss_auth_mgmt_host_add(VTSS_AUTH_PROTO_TACACS, &hc));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_TACPLUS)
+
+COMMAND = no tacacs-server host <word1-255> [ port <0-65535> ]
+
+DOC_CMD_DESC    = Use the no tacacs-server host command to delete an existing TACACS+ host.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! tacacs-server
+CMD_VAR = 
+RUNTIME = 
+HELP    = Configure TACACS+
+BYWORD  = 
+
+! host
+CMD_VAR = 
+RUNTIME = 
+HELP    = Specify a TACACS+ server
+BYWORD  = 
+
+! <word1-255>
+CMD_VAR = host_name
+RUNTIME = 
+HELP    = Hostname or IP address
+BYWORD  = <HostName : word1-255>
+
+! port
+CMD_VAR = has_port
+RUNTIME = 
+HELP    = TCP port for TACACS+ server
+BYWORD  = port : Option
+
+! <0-65535>
+CMD_VAR = port
+RUNTIME = 
+HELP    = TCP port number
+BYWORD  = <Port : 0-65535>
+
+VARIABLE_BEGIN
+    vtss_auth_host_conf_t hc = {{0}, VTSS_AUTH_TACACS_PORT_DEFAULT, 0, 0, 0, {0}};
+VARIABLE_END
+
+CODE_BEGIN
+    if (host_name) {
+        strncpy(hc.host, host_name, sizeof(hc.host));
+    }
+    if (has_port) {
+        hc.auth_port = port;
+    }
+    IC_RC(vtss_auth_mgmt_host_del(VTSS_AUTH_PROTO_TACACS, &hc));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_AUTH_ENABLE_CONSOLE) || defined(VTSS_SW_OPTION_CLI_TELNET) || defined(VTSS_SW_OPTION_SSH) || defined(VTSS_SW_OPTION_WEB)
+
+COMMAND = show aaa
+
+DOC_CMD_DESC    = Use the show aaa command to view the currently active authentication login methods.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: aaa
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Login methods
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+#ifdef VTSS_AUTH_ENABLE_CONSOLE
+    IC_RC(VTSS_AUTH_ICLI_agent_show(session_id, VTSS_AUTH_AGENT_CONSOLE));
+#endif
+#ifdef VTSS_SW_OPTION_CLI_TELNET
+    IC_RC(VTSS_AUTH_ICLI_agent_show(session_id, VTSS_AUTH_AGENT_TELNET));
+#endif
+#ifdef VTSS_SW_OPTION_SSH
+    IC_RC(VTSS_AUTH_ICLI_agent_show(session_id, VTSS_AUTH_AGENT_SSH));
+#endif
+#ifdef VTSS_SW_OPTION_WEB
+    IC_RC(VTSS_AUTH_ICLI_agent_show(session_id, VTSS_AUTH_AGENT_HTTP));
+#endif
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_RADIUS)
+
+COMMAND = show radius-server [ statistics ]
+
+DOC_CMD_DESC    = Use the show radius-server command to view the current RADIUS configuration and statistics.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: radius-server
+! 3: statistics
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_statistics
+
+HELP = 
+HELP = RADIUS configuration
+HELP = RADIUS statistics
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Statistics : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(VTSS_AUTH_ICLI_global_host_show(session_id, VTSS_AUTH_PROTO_RADIUS));
+    IC_RC(VTSS_AUTH_ICLI_radius_show(session_id));
+    IC_RC(VTSS_AUTH_ICLI_host_show(session_id, VTSS_AUTH_PROTO_RADIUS));
+    if (has_statistics) {
+        IC_RC(vtss_auth_mgmt_host_iterate(VTSS_AUTH_PROTO_RADIUS, &session_id, VTSS_AUTH_ICLI_radius_statistics_entry, NULL));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_TACPLUS)
+
+COMMAND = show tacacs-server
+
+DOC_CMD_DESC    = Use the show tacacs-server command to view the current TACACS+ configuration.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: tacacs-server
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = TACACS+ configuration
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(VTSS_AUTH_ICLI_global_host_show(session_id, VTSS_AUTH_PROTO_TACACS));
+    IC_RC(VTSS_AUTH_ICLI_host_show(session_id, VTSS_AUTH_PROTO_TACACS));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug auth { console | telnet | ssh | http } <word31> [ <word31> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! auth
+CMD_VAR = 
+RUNTIME = 
+HELP    = Test user login
+BYWORD  = 
+
+! console
+CMD_VAR = has_console
+RUNTIME = 
+HELP    = Test console login
+BYWORD  = console : Option
+
+! telnet
+CMD_VAR = has_telnet
+RUNTIME = 
+HELP    = Test telnet login
+BYWORD  = telnet : Option
+
+! ssh
+CMD_VAR = has_ssh
+RUNTIME = 
+HELP    = Test ssh login
+BYWORD  = ssh : Option
+
+! http
+CMD_VAR = has_http
+RUNTIME = 
+HELP    = Test http login
+BYWORD  = http : Option
+
+! <word31>
+CMD_VAR = user_name
+RUNTIME = 
+HELP    = Username
+BYWORD  = <UserName : word31>
+
+! <word31>
+CMD_VAR = password
+RUNTIME = 
+HELP    = Password
+BYWORD  = <Password : word31>
+
+VARIABLE_BEGIN
+    vtss_auth_agent_t agent = VTSS_AUTH_AGENT_CONSOLE;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_console) {
+        agent = VTSS_AUTH_AGENT_CONSOLE;
+    } else if (has_telnet) {
+        agent = VTSS_AUTH_AGENT_TELNET;
+    } else if (has_ssh) {
+        agent = VTSS_AUTH_AGENT_SSH;
+    } else if (has_http) {
+        agent = VTSS_AUTH_AGENT_HTTP;
+    }
+    vtss_auth_dbg(icli_session_self_printf, agent, user_name, password ? password : "");
+CODE_END
+
+CMD_END
+

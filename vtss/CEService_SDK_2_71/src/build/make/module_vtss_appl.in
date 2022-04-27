@@ -1,0 +1,60 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_vtss_appl := $(TOP)/vtss_api/appl
+
+OBJECTS_vtss_appl := vtss_appl.o vtss_version.o vtss_appl_cli.o
+
+OBJECTS_vtss_appl += vtss_appl_board_b2.o vtss_appl_board_daytona.o
+OBJECTS_vtss_appl += vtss_appl_board_l26_eval.o vtss_appl_board_jr1_eval.o
+OBJECTS_vtss_appl += vtss_appl_board_serval_eval.o vtss_appl_board_serval_ref.o
+
+.PHONY: always
+
+# Module target list
+TARGETS_vtss_appl := $(OBJECTS) vtss_appl.elf vtss_appl.bin
+
+vtss_appl.elf vtss_appl.bin vtss_version.o: always
+
+# Specific rules - main target
+vtss_appl.elf: $(OBJECTS) $(LIB_FILES)
+	$(call what,Linking $@)
+	$(Q)$(XLD) $(LDFLAGS) $(OBJECTS) -o $@
+
+$(OBJECTS_vtss_appl): %.o: $(DIR_vtss_appl)/%.c
+	$(call compile_c, $@, $<)
+
+CTIME := $(shell perl -w ../make/compile_time.pl)
+ifndef RELEASE_VERSION
+RELEASE_VERSION := dev-build by $(USER)@$(HOSTNAME) $(CTIME)
+endif
+
+# Don't use FDMA
+DEFINES += -DSW_RELEASE="$(RELEASE_VERSION)" -DCOMPILE_TIME="$(CTIME)" -DVTSS_OPT_FDMA=0
+
+# Include files
+INCLUDES += -I$(DIR_vtss_appl)
+

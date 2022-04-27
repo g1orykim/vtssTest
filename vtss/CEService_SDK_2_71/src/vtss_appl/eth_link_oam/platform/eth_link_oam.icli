@@ -1,0 +1,1769 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+INCLUDE_BEGIN
+#include "eth_link_oam_api.h"
+#include "msg_api.h"
+#include "netdb.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+#define PRINTF                           (void)icli_session_self_printf
+#define ICLI_FRAME_ERROR                 1
+#define ICLI_SYMBOL_PERIOD               2
+#define ICLI_FRAME_SECONDS_SUMMARY       3
+#define TEST_RC(cmd)                     if ((cmd) != VTSS_RC_OK) { \ 
+                                             return; \
+                                         }
+#define SET_LINK_MONITOR_PARAM(cmd,str)  if ( (cmd) != VTSS_RC_OK ) { \
+                                             ICLI_PRINTF("%% Failed to set %s for %s %u/%u\n", str, \
+                                                icli_port_type_get_name ( plist->switch_range[i].port_type ), \
+                                                plist->switch_range[i].switch_id, port); \
+                                         }        
+
+static void icli_link_oam_print_error (
+    i8         *port_type,
+    u32        sid,
+    u32        port,
+    vtss_rc    rc
+)
+{
+    switch ( rc ) {
+
+        case ETH_LINK_OAM_RC_INVALID_PARAMETER:
+            PRINTF("%% Invalid parameter error returned from LOAM for %s %u/%u\n",
+                port_type, sid, port);
+            break;
+        case ETH_LINK_OAM_RC_NOT_ENABLED:
+            PRINTF("%% Link OAM is not enabled on the for %s %u/%u\n", port_type, sid, port);
+            break;
+        case ETH_LINK_OAM_RC_ALREADY_CONFIGURED:
+            /*
+            Automation script which apply default configuration does not want this error string
+            PRINTF("%% Requested configuration is already configured for %s %u/%u\n",
+                port_type, sid, port);
+            */
+            break;
+        case ETH_LINK_OAM_RC_NOT_SUPPORTED:
+            PRINTF("%% Requested configuration is not supported with the current OAM mode for %s %u/%u\n",
+                port_type, sid, port);
+            break;
+        case ETH_LINK_OAM_RC_INVALID_STATE:
+            PRINTF("%% Requested configuration is not supported with the current OAM state for %s %u/%u\n",
+                port_type, sid, port);
+            break;
+        case ETH_LINK_OAM_RC_TIMED_OUT:
+            PRINTF("%% Requested operation gets timed out for %s %u/%u\n", port_type, sid, port);
+            break;
+        default:
+            PRINTF("%% Error returned from OAM for %s %u/%u\n", port_type, sid, port);
+            break;
+    }
+    return;
+}
+
+static void icli_link_oam_control_enable (
+    u32                        session_id,
+    icli_stack_port_range_t    *plist,
+    BOOL                       b_enable
+)
+{
+    u32                         i;
+    u32                         j;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    vtss_rc                     rc;
+    u32                         port;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+    for ( i = 0; i < plist->cnt; i++ ) {
+        isid = plist->switch_range[i].isid;
+
+        for ( j = 0; j < plist->switch_range[i].port_cnt; j++ ) {
+            iport = plist->switch_range[i].begin_iport + j;
+            port  = plist->switch_range[i].begin_port + j;
+
+            rc = eth_link_oam_mgmt_port_control_conf_set ( isid, iport, b_enable );
+
+            if ( rc != VTSS_RC_OK ) {
+                icli_link_oam_print_error ( icli_port_type_get_name ( plist->switch_range[i].port_type ),
+                    plist->switch_range[i].switch_id, port, rc );
+            }
+        }
+    }
+}
+static void icli_link_oam_mode_set (
+    u32                        session_id,
+    icli_stack_port_range_t    *plist,
+    BOOL                       has_active
+)
+{
+    u32                         i;
+    u32                         j;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    vtss_rc                     rc;
+    vtss_eth_link_oam_mode_t    mode;
+    u32                         port;
+
+    mode = VTSS_ETH_LINK_OAM_MODE_PASSIVE;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+
+    if( has_active ) {  
+        mode = VTSS_ETH_LINK_OAM_MODE_ACTIVE;
+    }
+
+    for ( i = 0; i < plist->cnt; i++ ) {
+        isid = plist->switch_range[i].isid;
+
+        for ( j = 0; j < plist->switch_range[i].port_cnt; j++ ) {
+            iport = plist->switch_range[i].begin_iport + j;
+            port  = plist->switch_range[i].begin_port + j;
+
+            rc = eth_link_oam_mgmt_port_mode_conf_set ( isid, iport, mode );
+
+            if ( rc != VTSS_RC_OK ) {
+                icli_link_oam_print_error ( icli_port_type_get_name ( plist->switch_range[i].port_type ),
+                    plist->switch_range[i].switch_id, port, rc );
+            }
+        }
+    }
+}
+static void icli_link_oam_mib_retrival_enable (
+    u32                         session_id,
+    icli_stack_port_range_t     *plist,
+    BOOL                        b_enable
+)
+{
+    u32                         i;
+    u32                         j;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    vtss_rc                     rc;
+    u32                         port;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+    for ( i = 0; i < plist->cnt; i++ ) {
+        isid = plist->switch_range[i].isid;
+
+        for ( j = 0; j < plist->switch_range[i].port_cnt; j++ ) {
+            iport = plist->switch_range[i].begin_iport + j;
+            port  = plist->switch_range[i].begin_port + j;
+
+            rc = eth_link_oam_mgmt_port_mib_retrival_conf_set ( isid, iport, b_enable );
+
+            if ( rc != VTSS_RC_OK ) {
+                icli_link_oam_print_error ( icli_port_type_get_name ( plist->switch_range[i].port_type ),
+                    plist->switch_range[i].switch_id, port, rc );
+            }
+        }
+    }
+}
+
+static void icli_link_oam_variable_retrival_info_set (
+    u32                        session_id,
+    icli_stack_port_range_t    *plist,
+    u8                         variable_choice
+)
+{
+#if 0
+    u32                         i;
+    u32                         j;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    vtss_rc                     rc;
+    u32                         port;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+    for ( i = 0; i < plist->cnt; i++ ) {
+        isid = plist->switch_range[i].isid;
+
+        for ( j = 0; j < plist->switch_range[i].port_cnt; j++ ) {
+            iport = plist->switch_range[i].begin_iport + j;
+            port  = plist->switch_range[i].begin_port + j;
+
+            rc = eth_link_oam_mgmt_port_mib_retrival_conf_set ( isid, iport, variable_choice );
+
+            if ( rc != VTSS_RC_OK ) {
+                icli_link_oam_print_error ( icli_port_type_get_name ( plist->switch_range[i].port_type ),
+                    plist->switch_range[i].switch_id, port, rc );
+            }
+        }
+    }
+#else
+    ICLI_PRINTF("%% This feature is not supported yet.\n");
+    return;
+#endif
+}
+static void icli_link_oam_remote_loopback_enable (
+    u32                        session_id,
+    icli_stack_port_range_t    *plist,
+    BOOL                       b_enable
+)
+{
+    u32                         i;
+    u32                         j;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    vtss_rc                     rc;
+    u32                         port;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+    for ( i = 0; i < plist->cnt; i++ ) {
+        isid = plist->switch_range[i].isid;
+
+        for ( j = 0; j < plist->switch_range[i].port_cnt; j++ ) {
+            iport = plist->switch_range[i].begin_iport + j;
+            port  = plist->switch_range[i].begin_port + j;
+
+            rc = eth_link_oam_mgmt_port_remote_loopback_conf_set ( isid, iport, b_enable );
+            if ( rc == ETH_LINK_OAM_RC_NOT_SUPPORTED ) {
+                ICLI_PRINTF("%% Fail to set remote loopback configuration for %s %u/%u\n",
+                    icli_port_type_get_name ( plist->switch_range[i].port_type ),
+                    plist->switch_range[i].switch_id, port);
+                ICLI_PRINTF("%% The configuration is invalid as remote loopback is on.\n");
+            }
+        }
+    }
+}
+static void icli_link_oam_link_monitor_enable (
+    u32                        session_id,
+    icli_stack_port_range_t    *plist,
+    BOOL                       b_enable
+)
+{
+    u32                         i;
+    u32                         j;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    vtss_rc                     rc;
+    u32                         port;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+
+    for ( i = 0; i < plist->cnt; i++ ) {
+        isid = plist->switch_range[i].isid;
+
+        for ( j = 0; j < plist->switch_range[i].port_cnt; j++ ) {
+            iport = plist->switch_range[i].begin_iport + j;
+            port  = plist->switch_range[i].begin_port + j;
+
+            rc = eth_link_oam_mgmt_port_link_monitoring_conf_set ( isid, iport, b_enable );
+            if ( rc != VTSS_RC_OK ) {
+                icli_link_oam_print_error ( icli_port_type_get_name ( plist->switch_range[i].port_type ),
+                    plist->switch_range[i].switch_id, port, rc );
+            }
+        }
+    }
+}
+static void icli_link_oam_link_monitoring_param_set (
+    u32                        session_id,
+    icli_stack_port_range_t    *plist,
+    u8                         monitoring_type,
+    BOOL                       has_window,
+    BOOL                       has_threshold,
+    u16                        error_window,
+    u32                        error_threshold
+)
+{
+    u32                         i;
+    u32                         j;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    u32                         port;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+
+    for ( i = 0; i < plist->cnt; i++ ) {
+        isid = plist->switch_range[i].isid;
+
+        for ( j = 0; j < plist->switch_range[i].port_cnt; j++ ) {
+            iport = plist->switch_range[i].begin_iport + j;
+            port  = plist->switch_range[i].begin_port + j;
+
+            if ( ICLI_FRAME_ERROR == monitoring_type ) {
+                if ( has_window ) {
+                    SET_LINK_MONITOR_PARAM (eth_link_oam_mgmt_port_link_error_frame_window_set ( 
+                        isid, iport, error_window ), "frame error window");
+                } 
+                if ( has_threshold ) {
+                    SET_LINK_MONITOR_PARAM (eth_link_oam_mgmt_port_link_error_frame_threshold_set ( 
+                        isid, iport, error_threshold ), "frame error threshold");
+                }
+            } else if ( ICLI_SYMBOL_PERIOD == monitoring_type ) {
+                if ( has_window ) {
+                    SET_LINK_MONITOR_PARAM (eth_link_oam_mgmt_port_link_symbol_period_error_window_set (
+                        isid, iport, error_window ), "symbol period error window");
+                } 
+                if ( has_threshold ) {
+                    SET_LINK_MONITOR_PARAM (eth_link_oam_mgmt_port_link_symbol_period_error_threshold_set (
+                        isid, iport, error_threshold ), "symbol period error threshold");
+                }
+            } else if ( ICLI_FRAME_SECONDS_SUMMARY == monitoring_type ) {
+                if ( has_window ) {
+                    SET_LINK_MONITOR_PARAM (eth_link_oam_mgmt_port_link_error_frame_secs_summary_window_set (
+                        isid, iport, error_window ) ,"second summary window");
+                } 
+                if ( has_threshold ) {
+                    SET_LINK_MONITOR_PARAM (eth_link_oam_mgmt_port_link_error_frame_secs_summary_threshold_set (
+                        isid, iport, error_threshold ), "second summary threshold");
+                }
+            }
+        }
+    }
+}
+static void icli_remote_loopback_trigger (
+    u32                        session_id,
+    icli_stack_port_range_t    *plist,
+    BOOL                       action                         
+)
+{
+    u32                         i;
+    u32                         j;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    u32                         port;
+    vtss_rc                     rc;
+
+    if ( ! msg_switch_is_master() ) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return;
+    }
+
+    for ( i = 0; i < plist->cnt; i++ ) {
+        isid = plist->switch_range[i].isid;
+
+        for ( j = 0; j < plist->switch_range[i].port_cnt; j++ ) {
+            iport = plist->switch_range[i].begin_iport + j;
+            port  = plist->switch_range[i].begin_port + j;
+
+            rc = eth_link_oam_mgmt_port_remote_loopback_oper_conf_set ( isid, iport, action );
+            if ( rc == ETH_LINK_OAM_RC_INVALID_STATE ) {
+                ICLI_PRINTF("%% Requested operation is already in progress for %s %u/%u\n",
+                    icli_port_type_get_name ( plist->switch_range[i].port_type ),
+                    plist->switch_range[i].switch_id, port);
+            } else if ( rc != VTSS_RC_OK ) {
+                icli_link_oam_print_error ( icli_port_type_get_name ( plist->switch_range[i].port_type ),
+                    plist->switch_range[i].switch_id, port, rc );
+            }
+        }
+    }
+}
+
+static void icli_link_oam_statistic_clear (
+    u32                         session_id,
+    icli_switch_port_range_t    *spr
+)
+{
+    u32                         i;
+    vtss_port_no_t              iport;
+    vtss_rc                     rc;
+    u32                         port;
+
+    for ( i = 0; i < spr->port_cnt; i++ ) {
+        iport = spr->begin_iport + i;
+        port  = spr->begin_port + i;
+
+        rc = eth_link_oam_clear_statistics ( iport );
+        if ( rc != VTSS_RC_OK ) {
+            icli_link_oam_print_error ( icli_port_type_get_name ( spr->port_type ),
+                spr->switch_id, port, rc );
+        }
+    }
+}
+
+static void icli_link_oam_client_display_info (
+    vtss_eth_link_oam_info_tlv_t    local_info,
+    vtss_eth_link_oam_info_tlv_t    remote_info, 
+    BOOL                            remote_active
+)
+{
+    u16               temp, remote_temp;
+    i8                buf[80] = {0}, remote_buf[80] = { 0 };
+
+    /*Print Local configuration mode*/
+    PRINTF("Mode:                                ");
+    if ( IS_CONF_ACTIVE(local_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_MODE) ) {
+        PRINTF("%-24s", "active");
+    } else {
+        PRINTF("%-24s", "passive");
+    }
+    /*Remote configuration mode info*/
+    if ( remote_active ) {
+        if ( IS_CONF_ACTIVE(remote_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_MODE) ) {
+            PRINTF("%8s", "active\n");
+        } else {
+            PRINTF("%8s", "passive\n");
+        }
+    } else {
+        PRINTF("%8s", "-------\n");
+    }
+    /* Local */
+    PRINTF("Unidirectional operation support:    ");
+    if ( IS_CONF_ACTIVE(local_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_UNI_DIRECTIONAL_SUPPORT) ) {
+        PRINTF("%-24s", "enabled");
+    } else {
+        PRINTF("%-24s", "disabled");
+    }
+    /* Remote */
+    if ( remote_active ) {
+        if ( IS_CONF_ACTIVE(remote_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_UNI_DIRECTIONAL_SUPPORT) ) {
+            PRINTF("%8s", "enabled\n");
+        } else if ( remote_active ) {
+            PRINTF("%8s", "disabled\n");
+        }
+    } else {
+        PRINTF("%8s", "-------\n");
+    }
+    /*Local */
+    PRINTF("Remote loopback support:             ");
+    if ( IS_CONF_ACTIVE(local_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_REMOTE_LOOP_BACK_CONTROL_SUPPORT) ) {
+        PRINTF("%-24s", "enabled");
+    } else {
+        PRINTF("%-24s", "disabled");
+    }
+    /*Remote*/
+    if ( remote_active ) {
+        if ( IS_CONF_ACTIVE(remote_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_REMOTE_LOOP_BACK_CONTROL_SUPPORT) ) {
+            PRINTF("%8s", "enabled\n");
+        } else {
+            PRINTF("%8s", "disabled\n");
+        }
+    } else {
+        PRINTF("%8s", "-------\n");
+    }
+
+    /*Local */
+    PRINTF("Link monitoring support:             ");
+    if ( IS_CONF_ACTIVE(local_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_LINK_EVENTS_SUPPORT) ) {
+        PRINTF("%-24s", "enabled");
+    } else {
+        PRINTF("%-24s", "disabled");
+    }
+    /*Remote*/
+    if ( remote_active ) {
+        if ( IS_CONF_ACTIVE(remote_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_LINK_EVENTS_SUPPORT) ) {
+            PRINTF("%8s", "enabled\n");
+        } else {
+            PRINTF("%8s", "disabled\n");
+        }
+    } else {
+        PRINTF("%8s", "-------\n");
+    }
+    /*Local*/
+    PRINTF("MIB retrieval support:               ");
+    if ( IS_CONF_ACTIVE(local_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_VARIABLE_RETRIVEL_SUPPORT) ) {
+        PRINTF("%-24s", "enabled");
+    } else {
+        PRINTF("%-24s", "disabled");
+    }
+    /*Remote*/
+    if ( remote_active ) {
+        if ( IS_CONF_ACTIVE(remote_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_VARIABLE_RETRIVEL_SUPPORT) ) {
+            PRINTF("%8s", "enabled\n");
+        } else {
+            PRINTF("%8s", "disabled\n");
+        }
+    } else {
+        PRINTF("%8s", "-------\n");
+    }
+
+    memcpy(&temp, local_info.oampdu_conf, sizeof(temp));
+    temp = NET2HOSTS(temp);
+    memcpy(&remote_temp, remote_info.oampdu_conf, sizeof(remote_temp));
+    remote_temp = NET2HOSTS(remote_temp);
+    if ( remote_active ) {
+        PRINTF("MTU Size:                            %-4d%24d\n", temp, remote_temp);
+        PRINTF("Multiplexer state:                   %-14s%21s\n", mux_state_to_str((local_info.state & 4) >> 2), 
+            mux_state_to_str((remote_info.state & 4) >> 2));
+        PRINTF("Parser state:                        %-14s%21s\n", parser_state_to_str(local_info.state & 3), 
+            parser_state_to_str(remote_info.state & 3));
+        sprintf(buf, "%02x:%02x:%02x", local_info.oui[0], local_info.oui[1], local_info.oui[2]);
+        sprintf(remote_buf, "%02x:%02x:%02x", (i8)remote_info.oui[0], remote_info.oui[1], remote_info.oui[2]);
+        PRINTF("OUI:                                 %-10s%22s\n", buf, remote_buf);
+    } else {
+        PRINTF("MTU Size:                            %-4d%27s\n", temp, "-------");
+        PRINTF("Multiplexer state:                   %-14s%17s\n", mux_state_to_str((local_info.state & 4) >> 2), "-------");
+        PRINTF("Parser state:                        %-14s%17s\n", parser_state_to_str(local_info.state & 3), "-------");
+        sprintf(buf, "%02x-%02x-%02x", local_info.oui[0], local_info.oui[1], local_info.oui[2]);
+        PRINTF("OUI:                                 %-10s%21s\n", buf, "-------");
+    }
+    memcpy(&temp, local_info.revision, sizeof(temp));
+    temp = NET2HOSTS(temp);
+    PRINTF("PDU revision:                           %-4d", temp);
+    /*Remote*/
+    if ( remote_active ) {
+        if ( IS_CONF_ACTIVE(remote_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_VARIABLE_RETRIVEL_SUPPORT) ) {
+            memcpy(&remote_temp, remote_info.revision, sizeof(remote_temp));
+            remote_temp = NET2HOSTS(remote_temp);
+            PRINTF("%21d\n", remote_temp);
+        }
+    } else {
+        PRINTF("%24s\n", "-------");
+    }
+    return;
+}
+
+static void icli_link_oam_stats_show (
+    vtss_isid_t       isid,
+    vtss_port_no_t    iport
+)
+{
+    i8                                            buf[80], *p;
+    vtss_eth_link_oam_pdu_stats_t                 port_stats;    
+    vtss_eth_link_oam_critical_event_pdu_stats_t  port_ce_stats;
+
+    p = &buf[0];
+    p += sprintf(p, "PDU stats  ");
+    PRINTF("%s\n",buf);
+    PRINTF("-----------\n");
+
+    if ( eth_link_oam_control_layer_port_pdu_stats_get ( isid, iport, &port_stats ) == VTSS_RC_OK ) {
+        PRINTF("Information PDU TX:                        %u\n", port_stats.information_tx);
+        PRINTF("Information PDU RX:                        %u\n", port_stats.information_rx);
+        PRINTF("Variable request PDU RX:                   %u\n", port_stats.variable_request_rx);
+        PRINTF("Variable request PDU TX:                   %u\n", port_stats.variable_request_tx);
+        PRINTF("Variable response PDU RX:                  %u\n", port_stats.variable_response_rx);
+        PRINTF("Variable response PDU TX:                  %u\n", port_stats.variable_response_tx);
+        PRINTF("Loopback PDU RX:                           %u\n", port_stats.loopback_control_rx);
+        PRINTF("Loopback PDU TX:                           %u\n", port_stats.loopback_control_tx);
+        PRINTF("Link Unique event notification PDU TX:     %u\n",
+                port_stats.unique_event_notification_tx);
+        PRINTF("Link Unique event notification PDU RX:     %u\n",
+                port_stats.unique_event_notification_rx);
+        PRINTF("Link Duplicate event notification PDU TX:  %u\n",
+                port_stats.duplicate_event_notification_tx);
+        PRINTF("Link Duplicate event notification PDU RX:  %u\n",
+                port_stats.duplicate_event_notification_rx);
+        PRINTF("Org Specific PDU RX:                       %u\n", port_stats.org_specific_rx);
+        PRINTF("Org Specific PDU TX:                       %u\n", port_stats.org_specific_tx);
+        PRINTF("Unsupported PDU RX:                        %u\n", port_stats.unsupported_codes_rx);
+        PRINTF("Unsupported PDU TX:                        %u\n", port_stats.unsupported_codes_tx);
+    }
+    if ( eth_link_oam_control_layer_port_critical_event_pdu_stats_get ( isid,
+                iport, &port_ce_stats ) == VTSS_RC_OK ) {
+        PRINTF("Link Fault PDU TX:                         %u\n", port_ce_stats.link_fault_tx);
+        PRINTF("Link Fault PDU RX:                         %u\n", port_ce_stats.link_fault_rx);
+        PRINTF("Dying gasp PDU TX:                         %u\n", port_ce_stats.dying_gasp_tx);
+        PRINTF("Dying gasp PDU RX:                         %u\n", port_ce_stats.dying_gasp_rx);
+        PRINTF("Critical event PDU TX:                     %u\n", port_ce_stats.critical_event_tx);
+        PRINTF("Critical event PDU RX:                     %u\n", port_ce_stats.critical_event_rx);
+    }
+}
+
+static void icli_link_oam_status_show (
+    vtss_isid_t       isid,
+    vtss_port_no_t    iport
+)
+{
+    i8                                     buf[80], *p;
+    u8                                     oper_status;
+    u16                                    temp;
+    BOOL                                   remote_active = FALSE;
+    vtss_eth_link_oam_discovery_state_t    state;
+    vtss_eth_link_oam_pdu_control_t        tx_control;
+    u8                                     remote_mac_addr[VTSS_COMMON_MACADDR_SIZE];
+    vtss_rc                                rc_local;
+    vtss_rc                                rc_remote;
+    vtss_eth_link_oam_info_tlv_t           local_info;
+    vtss_eth_link_oam_info_tlv_t           remote_info;
+
+    rc_local  = eth_link_oam_client_port_local_info_get ( isid, iport, &local_info );
+    rc_remote = eth_link_oam_client_port_remote_info_get (isid, iport, &remote_info );
+    if ( ( rc_local  != VTSS_RC_OK ) ||
+            ( ( rc_remote != VTSS_RC_OK ) &&
+              ( rc_remote != ETH_LINK_OAM_RC_NOT_ENABLED )
+            ) ) {
+        return;
+    }
+    if ( eth_link_oam_control_layer_port_pdu_control_status_get ( isid, iport,
+                &tx_control ) == VTSS_RC_OK ) {
+        PRINTF("PDU permission:                        %s\n", pdu_tx_control_to_str(tx_control));
+    }
+    if ( eth_link_oam_control_layer_port_discovery_state_get ( isid, iport, &state ) == VTSS_RC_OK ) {
+        PRINTF("Discovery state:                       %s\n", discovery_state_to_str(state));
+    }
+    memset(buf, '\0', sizeof(buf));
+    if ( eth_link_oam_client_port_remote_mac_addr_info_get ( isid, iport, remote_mac_addr ) == VTSS_RC_OK ) {
+        p = &buf[0];
+        for (temp = 0; temp < VTSS_COMMON_MACADDR_SIZE; temp++) {
+            if ((temp + 1) == VTSS_COMMON_MACADDR_SIZE) {
+                sprintf(p, "%02x", remote_mac_addr[temp]);
+            } else {
+                sprintf(p, "%02x:", remote_mac_addr[temp]);
+            }
+            p = p + 3;
+        }
+    } else {
+        sprintf(buf, "%s", "-");
+    }
+    PRINTF("Remote MAC Address:                    %s\n\n", buf);
+    memset(buf, '\0', sizeof(buf));
+
+    p = &buf[0];
+    p += sprintf(p, "                                     Local client          Remote Client");
+    PRINTF("%s\n",buf);
+    PRINTF("                                     -------------         --------------\n\n");
+
+    if ( rc_local == VTSS_RC_OK ) {
+        oper_status = VTSS_ETH_LINK_OAM_NULL;
+        if ( rc_remote == VTSS_RC_OK ) {
+            remote_active = TRUE;
+            PRINTF("\nOperational status: \n");
+            if ( eth_link_oam_client_port_control_conf_get ( isid, iport, &oper_status ) == VTSS_RC_OK ) {
+                if ( oper_status ) {
+                    PRINTF("port status:                         operational             operational\n");
+                } else {
+                    PRINTF("port status:                         non operational         operational\n");
+                }
+            }
+
+        } else {
+            remote_active = FALSE;
+            if ( oper_status ) {
+                PRINTF("port status:                            operational             -------\n");
+            } else {
+                PRINTF("port status:                         non operational         -------\n");
+            }
+        }
+        icli_link_oam_client_display_info ( local_info, remote_info, remote_active );
+    }
+}
+
+static void icli_link_oam_link_monitor_status_show (
+    vtss_isid_t       isid,
+    vtss_port_no_t    iport
+)
+{
+    vtss_eth_link_oam_error_frame_event_tlv_t   error_frame_tlv;
+    vtss_eth_link_oam_error_frame_event_tlv_t   remote_error_frame_tlv;
+    u16                                         temp16;
+    u32                                         temp32;
+    u64                                         temp64;
+
+    vtss_eth_link_oam_error_frame_period_event_tlv_t  error_frame_period_tlv;
+    vtss_eth_link_oam_error_frame_period_event_tlv_t  remote_error_frame_period_tlv;
+
+    vtss_eth_link_oam_error_symbol_period_event_tlv_t  error_symbol_period_tlv;
+    vtss_eth_link_oam_error_symbol_period_event_tlv_t  remote_error_symbol_period_tlv;
+    vtss_eth_link_oam_error_frame_secs_summary_event_tlv_t error_frame_secs_summary_tlv;
+    vtss_eth_link_oam_error_frame_secs_summary_event_tlv_t remote_frame_secs_summary_tlv;
+
+    temp16 = 0;
+
+    TEST_RC (eth_link_oam_client_port_remote_seq_num_get ( isid, iport, &temp16 ));
+
+    PRINTF("Sequence number :                               %-2u\n", temp16);
+    temp16 = 0;
+
+    TEST_RC (eth_link_oam_client_port_symbol_period_error_info_get ( isid, iport,
+                &error_symbol_period_tlv,
+                &remote_error_symbol_period_tlv ));
+
+    /*
+        memcpy(&temp16,remote_error_symbol_period_tlv.sequence_number,
+        VTSS_ETH_LINK_OAM_ERROR_SYMBOL_PERIOD_EVENT_SEQUENCE_NUMBER_LEN);
+        temp16 = NET2HOSTS(temp16);
+        PRINTF("Symbol period error event sequece number:       %u\n",temp16);
+    */
+
+    memcpy(&temp16, remote_error_symbol_period_tlv.event_time_stamp,
+        VTSS_ETH_LINK_OAM_ERROR_SYMBOL_PERIOD_EVENT_TIME_STAMP_LEN);
+    temp16 = NET2HOSTS(temp16);
+    PRINTF("Symbol period error event Timestamp:            %u\n", temp16);
+
+    memcpy(&temp64, remote_error_symbol_period_tlv.error_symbol_window,
+        VTSS_ETH_LINK_OAM_ERROR_SYMBOL_PERIOD_EVENT_WINDOW_LEN);
+    temp64 = vtss_eth_link_oam_swap64(temp64);
+    PRINTF("Symbol period error event window:               %llu\n", temp64);
+
+    memcpy(&temp64, remote_error_symbol_period_tlv.error_symbol_threshold,
+            VTSS_ETH_LINK_OAM_ERROR_SYMBOL_PERIOD_EVENT_THRESHOLD_LEN);
+    temp64 = vtss_eth_link_oam_swap64(temp64);
+    PRINTF("Symbol period error event threshold:            %llu\n", temp64);
+
+    memcpy(&temp64, remote_error_symbol_period_tlv.error_symbols,
+            VTSS_ETH_LINK_OAM_ERROR_SYMBOL_PERIOD_EVENT_ERROR_SYMBOLS_LEN);
+    temp64 = vtss_eth_link_oam_swap64(temp64);
+    PRINTF("Symbol period errors:                           %llu\n", temp64);
+
+    memcpy(&temp64, remote_error_symbol_period_tlv.error_running_total,
+            VTSS_ETH_LINK_OAM_ERROR_SYMBOL_PERIOD_EVENT_TOTAL_ERROR_SYMBOLS_LEN);
+    temp64 = vtss_eth_link_oam_swap64(temp64);
+    PRINTF("Total symbol period errors:                     %llu\n", temp64);
+
+    memcpy(&temp32, remote_error_symbol_period_tlv.event_running_total,
+            VTSS_ETH_LINK_OAM_ERROR_SYMBOL_PERIOD_EVENT_TOTAL_ERROR_EVENTS_LEN);
+    temp32 = NET2HOSTL(temp32);
+    PRINTF("Total symbol period error events:               %u\n\n", temp32);
+
+    TEST_RC (eth_link_oam_client_port_frame_error_info_get ( isid, iport,
+                &error_frame_tlv,
+                &remote_error_frame_tlv ));
+    /*
+        memcpy(&temp16,remote_error_frame_tlv.sequence_number,
+        VTSS_ETH_LINK_OAM_ERROR_FRAME_EVENT_SEQUENCE_NUMBER_LEN);
+        temp16 = NET2HOSTS(temp16);
+        PRINTF("Frame error event sequece number:               %u\n",temp16);
+    */
+
+    memcpy(&temp16, remote_error_frame_tlv.event_time_stamp,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_EVENT_TIME_STAMP_LEN);
+    temp16 = NET2HOSTS(temp16);
+    PRINTF("Frame error event Timestamp:                    %u\n", temp16);
+
+    memcpy(&temp16, remote_error_frame_tlv.error_frame_window,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_EVENT_WINDOW_LEN);
+    temp16 = NET2HOSTS(temp16);
+    PRINTF("Frame error event window:                       %u\n", temp16);
+
+    memcpy(&temp32, remote_error_frame_tlv.error_frame_threshold,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_EVENT_THRESHOLD_LEN);
+    temp32 = NET2HOSTL(temp32);
+    PRINTF("Frame error event threshold:                    %u\n", temp32);
+
+    memcpy(&temp32, remote_error_frame_tlv.error_frames,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_EVENT_ERROR_FRAMES_LEN);
+    temp32 = NET2HOSTL(temp32);
+    PRINTF("Frame errors:                                   %u\n", temp32);
+
+    memcpy(&temp64, remote_error_frame_tlv.error_running_total,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_EVENT_TOTAL_ERROR_FRAMES_LEN);
+    temp64 = vtss_eth_link_oam_swap64(temp64);
+    PRINTF("Total frame errors:                             %llu\n", temp64);
+
+    memcpy(&temp32, remote_error_frame_tlv.event_running_total,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_EVENT_TOTAL_ERROR_EVENTS_LEN);
+    temp32 = NET2HOSTL(temp32);
+    PRINTF("Total frame error events:                       %u\n\n", temp32);
+
+    TEST_RC (eth_link_oam_client_port_frame_period_error_info_get ( isid, iport,
+        &error_frame_period_tlv,
+        &remote_error_frame_period_tlv ));
+    /*
+        memcpy(&temp16,remote_error_frame_period_tlv.sequence_number,
+        VTSS_ETH_LINK_OAM_ERROR_FRAME_PERIOD_EVENT_SEQUENCE_NUMBER_LEN);
+        temp16 = NET2HOSTS(temp16);
+        PRINTF("Frame period error event sequece number:        %u\n",temp16);
+    */
+
+    memcpy(&temp16, remote_error_frame_period_tlv.event_time_stamp,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_PERIOD_EVENT_TIME_STAMP_LEN);
+    temp16 = NET2HOSTS(temp16);
+    PRINTF("Frame period error event Timestamp:             %u\n", temp16);
+
+    memcpy(&temp32, remote_error_frame_period_tlv.error_frame_period_window,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_PERIOD_EVENT_WINDOW_LEN);
+    temp32 = NET2HOSTL(temp32);
+    PRINTF("Frame period error event window:                %u\n", temp32);
+
+    memcpy(&temp32, remote_error_frame_period_tlv.error_frame_threshold,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_PERIOD_EVENT_THRESHOLD_LEN);
+
+    temp32 = NET2HOSTL(temp32);
+    PRINTF("Frame period error event threshold:             %u\n", temp32);
+
+    memcpy(&temp32, remote_error_frame_period_tlv.error_frames,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_PERIOD_EVENT_ERROR_FRAMES_LEN);
+    temp32 = NET2HOSTL(temp32);
+    PRINTF("Frame period errors:                            %u\n", temp32);
+
+    memcpy(&temp64, remote_error_frame_period_tlv.error_running_total,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_PERIOD_EVENT_TOTAL_ERROR_FRAMES_LEN);
+    temp64 = vtss_eth_link_oam_swap64(temp64);
+    PRINTF("Total frame period errors:                      %llu\n", temp64);
+
+    memcpy(&temp32, remote_error_frame_period_tlv.event_running_total,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_PERIOD_EVENT_TOTAL_ERROR_EVENTS_LEN);
+    temp32 = NET2HOSTL(temp32);
+    PRINTF("Total frame period error events:                %u\n\n", temp32);
+
+    TEST_RC (eth_link_oam_client_port_error_frame_secs_summary_info_get ( isid, iport,
+        &error_frame_secs_summary_tlv,
+        &remote_frame_secs_summary_tlv ));
+
+    memcpy(&temp16, remote_frame_secs_summary_tlv.event_time_stamp,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_PERIOD_EVENT_TIME_STAMP_LEN);
+    temp16 = NET2HOSTS(temp16);
+    PRINTF("Error Frame Seconds Summary Event Timestamp:    %u\n", temp16);
+
+    memcpy(&temp16, remote_frame_secs_summary_tlv.secs_summary_window,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_SECS_SUMMARY_EVENT_WINDOW_LEN);
+    temp16 = NET2HOSTS(temp16);
+    PRINTF("Error Frame Seconds Summary Event window:       %u\n", temp16);
+
+    memcpy(&temp16, remote_frame_secs_summary_tlv.secs_summary_threshold,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_SECS_SUMMARY_EVENT_THRESHOLD_LEN);
+    temp16 = NET2HOSTS(temp16);
+    PRINTF("Error Frame Seconds Summary  Event Threshold:   %u\n", temp16);
+
+    memcpy(&temp16, remote_frame_secs_summary_tlv.secs_summary_events,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_SECS_SUMMARY_EVENT_ERROR_FRAMES_LEN);
+    temp16 = NET2HOSTS(temp16);
+    PRINTF("Error Frame Seconds Summary Errors:             %u\n", temp16);
+
+    memcpy(&temp32, remote_frame_secs_summary_tlv.error_running_total,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_SECS_SUMMARY_EVENT_TOTAL_FRAMES_LEN);
+    temp32 = NET2HOSTL(temp32);
+    PRINTF("Total Error Frame Seconds Summary Errors:       %u\n", temp32);
+
+    memcpy(&temp32, remote_frame_secs_summary_tlv.event_running_total,
+            VTSS_ETH_LINK_OAM_ERROR_FRAME_SECS_SUMMARY_EVENT_TOTAL_EVENTS_LEN);
+    temp32 = NET2HOSTL(temp32);
+    PRINTF("Total Error Frame Seconds Summary Events:       %u\n", temp32);
+}
+
+static void icli_link_oam_brief_show (
+    vtss_isid_t       isid,
+    vtss_port_no_t    iport
+)
+{
+    vtss_eth_link_oam_control_t         oam_control_flag;
+    u8                                  oper_status;
+    vtss_rc                             rc_remote;
+    vtss_eth_link_oam_info_tlv_t        remote_info;
+    vtss_eth_link_oam_info_tlv_t        local_info;
+    BOOL                                control_flag;
+    
+    control_flag = (eth_link_oam_mgmt_port_control_conf_get (isid, iport, &oam_control_flag) == VTSS_RC_OK)  &&
+        (oam_control_flag == VTSS_ETH_LINK_OAM_CONTROL_ENABLE);
+    PRINTF("%-10s", ( control_flag ? "enabled" : "disabled" ));
+
+    if ( eth_link_oam_client_port_local_info_get ( isid, iport, &local_info ) == VTSS_RC_OK ) {
+        if (IS_CONF_ACTIVE(local_info.oam_conf, VTSS_ETH_LINK_OAM_CONF_MODE)) {
+            PRINTF("%-10s", "active");
+        } else {
+            PRINTF("%-10s", "passive");
+        }
+    } else {
+        PRINTF("%-10s", "passive");
+    }
+    rc_remote = eth_link_oam_client_port_remote_info_get ( isid, iport, &remote_info );
+    oper_status = VTSS_ETH_LINK_OAM_NULL;
+    
+    if ( rc_remote == VTSS_RC_OK ) {
+        if ( eth_link_oam_client_port_control_conf_get ( isid, iport, &oper_status ) == VTSS_RC_OK ) {
+            PRINTF("%s%s\n", (oper_status ? "" :"non "), "operational");
+        }
+    } else {
+        PRINTF("%s\n","non operational");
+    }
+}
+
+static void icli_link_oam_link_event_config_show (
+    vtss_isid_t       isid,
+    vtss_port_no_t    iport
+)
+{
+    u16        error_frame_window;
+    u32        error_frame_threshold;
+    u64        symbol_period_window;
+    u64        symbol_period_threshold;
+    u16        secs_summary_threshold;
+    u16        secs_summary_window;
+
+    TEST_RC (eth_link_oam_mgmt_port_link_error_frame_window_get ( isid, iport, &error_frame_window ));
+    TEST_RC (eth_link_oam_mgmt_port_link_error_frame_threshold_get ( isid, iport, &error_frame_threshold ));
+    TEST_RC (eth_link_oam_mgmt_port_link_symbol_period_error_window_get ( isid, iport, &symbol_period_window ));
+    TEST_RC (eth_link_oam_mgmt_port_link_symbol_period_error_threshold_get ( isid, iport, &symbol_period_threshold ));
+    TEST_RC (eth_link_oam_mgmt_port_link_error_frame_secs_summary_window_get ( isid, iport, &secs_summary_window ));
+    TEST_RC (eth_link_oam_mgmt_port_link_error_frame_secs_summary_threshold_get ( isid, iport, &secs_summary_threshold ));
+    
+    PRINTF("\n");
+    PRINTF("Event Name                           Error Window          Error Threshold\n");
+    PRINTF("----------------                     -------------         ---------------\n");
+    PRINTF("%-40s %-20u %u\n","Error Frame", error_frame_window, error_frame_threshold);
+    PRINTF("%-40s %-20llu %llu\n","Symbol Period Error",symbol_period_window, symbol_period_threshold);
+    PRINTF("%-40s %-20u %u\n","Seconds Summary", secs_summary_window, secs_summary_threshold);
+    PRINTF("\n");
+}
+
+static void icli_link_oam_show (
+    u32                         session_id,
+    icli_switch_port_range_t    *spr,    
+    BOOL                        has_interface,
+    BOOL                        has_status,
+    BOOL                        has_link_monitor,
+    BOOL                        has_statistics,
+    BOOL                        has_first
+)
+{
+    u32               i;
+    u32               uport;
+    vtss_isid_t       isid;
+    vtss_port_no_t    iport;
+    BOOL              brief = TRUE;
+
+    isid = spr->isid;
+
+    for ( i = 0; i < spr->port_cnt; i++ ) {
+        iport = spr->begin_iport + i;
+        uport  = spr->begin_port  + i;
+
+        if ( has_status ) {
+            ICLI_PRINTF("\n");
+            ICLI_PRINTF("%s %u/%u\n", icli_port_type_get_name ( spr->port_type ), spr->switch_id, uport);
+            ICLI_PRINTF("-----------------------------------------\n");
+            icli_link_oam_status_show (isid, iport);
+            icli_link_oam_link_event_config_show ( isid, iport); 
+            brief = FALSE;
+        }
+        if ( has_statistics ) {
+            ICLI_PRINTF("\n");
+            ICLI_PRINTF("%s %u/%u\n", icli_port_type_get_name ( spr->port_type ), spr->switch_id, uport);
+            ICLI_PRINTF("-----------------------------------------\n");
+            icli_link_oam_stats_show (isid, iport); 
+            brief = FALSE;
+        }
+        if ( has_link_monitor ) {
+            ICLI_PRINTF("\n");
+            ICLI_PRINTF("%s %u/%u\n", icli_port_type_get_name ( spr->port_type ), spr->switch_id, uport);
+            ICLI_PRINTF("-----------------------------------------\n");
+            icli_link_oam_link_monitor_status_show ( isid, iport); 
+            brief = FALSE;
+        }
+        if ( brief ) {
+            ICLI_PRINTF("\n");
+            if ( has_first ) {
+                has_first = FALSE;
+                ICLI_PRINTF("    Interface             Control    Mode        Status\n");
+                ICLI_PRINTF("--------------------     ---------  -------   -----------\n");
+            }
+            ICLI_PRINTF("%-18s %u/%-5u", icli_port_type_get_name ( spr->port_type ), spr->switch_id, uport);
+            icli_link_oam_brief_show ( isid, iport );                  
+            ICLI_PRINTF("\n");
+        }          
+    }
+}
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = link-oam remote-loopback { start | stop } interface <port_type_list>
+
+DOC_CMD_DESC    = Turn on or turn off Link OAM remote loopback on an interface 
+DOC_CMD_DEFAULT = Default is stopped
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = link-oam remote-loopback start interface <port_type_list>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: link-oam
+! 2: remote-loopback
+! 3: start
+! 4: stop
+! 5: interface
+! 6: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_start
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+
+HELP = ##HELP_LINK_OAM
+HELP = Configure remote loopback on interface
+HELP = Start remote loopback test on interface
+HELP = Stop remote loopback test on interface
+HELP = Start/Stop remote loopback test on a specific interface or interfaces. 
+HELP = Interface list
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Start : option>
+BYWORD = <Stop : option>
+BYWORD = 
+BYWORD = 
+
+CODE_BEGIN
+    icli_remote_loopback_trigger ( session_id, v_port_type_list, has_start );
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = show link-oam { [ status ] [ link-monitor ] [ statistics ] } [ interface <port_type_list> ]
+
+DOC_CMD_DESC    = Show Link OAM configuration,statistics and status 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: link-oam
+! 3: status
+! 4: link-monitor
+! 5: statistics
+! 6: interface
+! 7: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_status
+CMD_VAR = has_link_monitor
+CMD_VAR = has_statistics
+CMD_VAR = has_interface
+CMD_VAR = plist
+
+HELP = ##ICLI_HELP_SHOW 
+HELP = ##HELP_LINK_OAM
+HELP = Display local and remote node status parameters 
+HELP = Display link-monitor status parameters
+HELP = Display statistics parameters
+HELP = ##ICLI_HELP_SHOW_INTERFACE
+HELP = ##ICLI_HELP_PORT_TYPE_LIST
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Status : option>
+BYWORD = <LinkMonitor : option>
+BYWORD = <Statistics : option>
+BYWORD = <Interface : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+    u32                         i;
+    icli_switch_port_range_t    spr;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( has_interface ) {
+        for ( i = 0; i < plist->cnt; i++ ) {
+            icli_link_oam_show ( session_id, &(plist->switch_range[i]),
+                has_interface, has_status, has_link_monitor, has_statistics, TRUE );
+         }
+    } else {
+        if ( icli_port_get_first(&spr) == FALSE ) {
+            ICLI_PRINTF("%% Fail to get first switch port\n");
+            return ICLI_RC_ERROR;
+        }
+        icli_link_oam_show ( session_id, &spr, has_interface, has_status,
+            has_link_monitor, has_statistics, TRUE );
+
+        while ( icli_port_get_next(&spr) ) {
+            icli_link_oam_show ( session_id, &spr, has_interface, has_status,
+                has_link_monitor, has_statistics, FALSE );
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = clear link-oam statistics [ interface <port_type_list> ]
+
+DOC_CMD_DESC    = Clear Link OAM statistics on interface
+DOC_CMD_DEFAULT = Clear on all ports
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = clear link-oam statistics 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: clear
+! 2: link-oam
+! 3: statistics
+! 4: interface
+! 5: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_interface
+CMD_VAR = plist
+
+HELP = Clear 
+HELP = Clear Link OAM statistics
+HELP = Clear Rx/Tx counters 
+HELP = Clear Link OAM statistic on a specific interface or all interfaces.
+HELP = Interface
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Interface : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+    u32                         i;
+    icli_switch_port_range_t    spr;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( has_interface ) {
+        for ( i = 0; i < plist->cnt; i++ ) {
+            icli_link_oam_statistic_clear ( session_id, &(plist->switch_range[i]) );
+        }
+    } else {
+        if ( icli_port_get_first ( &spr ) == FALSE ) {
+            ICLI_PRINTF("%% Fail to get first switch port\n");
+            return ICLI_RC_ERROR;
+        }
+        icli_link_oam_statistic_clear ( session_id, &spr );
+        while ( icli_port_get_next(&spr) ) {
+            icli_link_oam_statistic_clear ( session_id, &spr );
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+HELP_LINK_OAM_CONTROL = Enable ethernet link oam on this interface
+HELP_LINK_OAM = Link OAM configuration
+
+CMD_BEGIN
+
+COMMAND = link-oam
+
+DOC_CMD_DESC    = Enable Link OAM on an interface 
+DOC_CMD_DEFAULT = Link OAM is disabled
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = link-oam
+
+NO_FORM_DOC_CMD_DESC    = Disable Link OAM on an interface
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no link-oam
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+HELP = Enable or Disable(when the no keyword is entered) Link OAM on the interface
+
+CODE_BEGIN
+    icli_link_oam_control_enable ( session_id, plist, TRUE );
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    icli_link_oam_control_enable ( session_id, plist, FALSE );
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = link-oam mode { active | passive }
+
+DOC_CMD_DESC    = Set Link OAM mode Active or Passive on an interface
+DOC_CMD_DEFAULT = Link OAM mode is Passive
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = link-oam mode active
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_active
+CMD_VAR = 
+
+HELP = ##HELP_LINK_OAM 
+HELP = Set Link OAM mode Active or Passive on this interface 
+HELP = Enable Link OAM Active mode on this interface
+HELP = Enable Link OAM Passive mode on this interface
+
+CODE_BEGIN
+    icli_link_oam_mode_set ( session_id, plist, has_active );
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = no link-oam mode
+
+DOC_CMD_DESC    = Set Link OAM mode to default
+DOC_CMD_DEFAULT = Default Link OAM mode is Passive
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no link-oam mode
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+HELP = ##ICLI_HELP_NO 
+HELP = ##HELP_LINK_OAM
+HELP = Set Link OAM mode to default(Passive) 
+
+CODE_BEGIN
+    icli_link_oam_mode_set (session_id, plist, FALSE );
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = link-oam mib-retrieval supported
+
+DOC_CMD_DESC    = Set Link OAM Mib retrieval support 
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = link-oam mib-retrieval supported 
+
+NO_FORM_DOC_CMD_DESC    = Set Link OAM Mib retrieval support to default, disabled
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no link-oam mib-retrieval supported
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+HELP = ##HELP_LINK_OAM 
+HELP = Set MIB retrieval support 
+HELP = Enable or Disable(when the no keyword is entered) MIB retrieval support on the interface 
+
+CODE_BEGIN
+    icli_link_oam_mib_retrival_enable ( session_id, plist, TRUE ); 
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    icli_link_oam_mib_retrival_enable ( session_id, plist, FALSE ); 
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = link-oam variable-retrieve { local-info | remote-info }
+
+DOC_CMD_DESC    = Set mib variable retrieve configuarion,local info or remote info  
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = link-oam variable-retrieve local-info
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_local_info
+CMD_VAR = 
+
+HELP = Link OAM configuartion on port 
+HELP = Set mib variable retrieve local info or remote info
+HELP = Set mib retrieve local info
+HELP = Set mib retrieve remote info
+
+CODE_BEGIN
+    icli_link_oam_variable_retrival_info_set ( session_id, plist, has_local_info ? 1 : 2 );
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = no link-oam variable-retrieve
+
+DOC_CMD_DESC    = Set Link OAM mib retrieve info to default ,local-info 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no link-oam variable-retrieve
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+HELP = ##ICLI_HELP_NO 
+HELP = Link OAM configuartion on port
+HELP = Set Link OAM mib retrieve info to default ,local-info
+
+VARIABLE_BEGIN
+    u8 variable_choice = 1;
+VARIABLE_END
+
+CODE_BEGIN
+    icli_link_oam_variable_retrival_info_set ( session_id, plist, variable_choice ) ; 
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = link-oam remote-loopback supported
+
+DOC_CMD_DESC    =  Enable Link OAM remote loopback on the interface 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = link-oam remote-loopback supported
+
+NO_FORM_DOC_CMD_DESC    = Disable Link OAM remote loopback on the interface
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no link-oam remote-loopback supported
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: link-oam
+! 2: remote-loopback
+! 3: supported
+
+HELP = ##HELP_LINK_OAM
+HELP = Link OAM remote loopback support
+HELP = Enable or Disable(when the no keyword is entered) remote loopback on the interface
+
+CODE_BEGIN
+    icli_link_oam_remote_loopback_enable ( session_id, plist, TRUE ); 
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    icli_link_oam_remote_loopback_enable ( session_id, plist, FALSE ); 
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+HELP_LINK_MONITOR = Configure link monitoring
+
+CMD_BEGIN
+
+COMMAND = link-oam link-monitor supported
+
+DOC_CMD_DESC    = Enable link monitoring support on interface  
+DOC_CMD_DEFAULT = Default value of link monitor is enabled 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = link-oam link-monitor supported
+
+NO_FORM_DOC_CMD_DESC    = Disable link monitoring support on interface
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no link-oam link-monitor supported
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: link-oam
+! 2: link-monitor
+! 3: supported
+
+HELP = ##HELP_LINK_OAM 
+HELP = ##HELP_LINK_MONITOR 
+HELP = Enable or Disable(when the no keyword is entered) link monitor on the interface
+
+CODE_BEGIN
+    icli_link_oam_link_monitor_enable ( session_id, plist, TRUE ); 
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    icli_link_oam_link_monitor_enable ( session_id, plist, FALSE ); 
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = link-oam link-monitor frame { [ window <1-60> ] [ threshold <0-0xffffffff> ] }*1
+
+DOC_CMD_DESC    = Configure frame error event window and threshold that trigger an error-frame link event. 
+DOC_CMD_DEFAULT = Default for window is 1 second,Default for threshold 0 frames.
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = link-oam link-monitor frame window 20 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: link-oam
+! 2: link-monitor
+! 3: frame
+! 4: window
+! 5: <error_window:1-60>
+! 6: threshold
+! 7: <error_threshold:0-0xffffffff>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_window
+CMD_VAR = error_window
+CMD_VAR = has_threshold
+CMD_VAR = error_threshold
+
+HELP = ##HELP_LINK_OAM
+HELP = ##HELP_LINK_MONITOR
+HELP = Configure frame error event thresholds and window \
+       for error frames that trigger an error-frame link event
+HELP = Set the a window of time during which error frames are counted
+HELP = Duration of the monitoring period in terms of seconds
+HELP = Set a threshold in number of frames
+HELP = Number of permissible errors frames in the period defined by error_window
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Window : option>
+BYWORD = <ErrorWindow : 1-60>
+BYWORD = <Threshold : option>
+BYWORD = <ErrorThreshold : 0-0xffffffff>
+
+CODE_BEGIN
+    icli_link_oam_link_monitoring_param_set ( session_id, plist, ICLI_FRAME_ERROR,
+        has_window, has_threshold, error_window, error_threshold );
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = no link-oam link-monitor frame
+
+DOC_CMD_DESC    = Configure default window and threshold that trigger an error-frame link event 
+DOC_CMD_DEFAULT = Default for window is 1 second,Default for threshold 0 frames.
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no link-oam link-monitor frame
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: link-oam
+! 3: link-monitor
+! 4: frame
+
+HELP = ##ICLI_HELP_NO 
+HELP = ##HELP_LINK_OAM
+HELP = ##HELP_LINK_MONITOR 
+HELP = Configure default value for window is 1 second,for threshold 0 frames
+
+VARIABLE_BEGIN
+    u16 error_window = VTSS_ETH_LINK_OAM_DEFAULT_EVENT_WINDOW_CONF;
+    u32 error_threshold = VTSS_ETH_LINK_OAM_DEFAULT_EVENT_THRESHOLD_CONF;
+VARIABLE_END
+
+CODE_BEGIN
+    icli_link_oam_link_monitoring_param_set ( session_id, plist, ICLI_FRAME_ERROR,
+        TRUE, TRUE, error_window, error_threshold );
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = link-oam link-monitor symbol-period { [ window <1-60> ] [ threshold <0-0xffffffff> ] }*1
+
+DOC_CMD_DESC    = Configure window and thresholds for an error-symbol period that triggers an error-symbol period link event.  
+DOC_CMD_DEFAULT = Default for error window 1 second,for threshold 0 symbols.
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = link-oam link-monitor symbol-period window 20 threshold 10
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: link-oam
+! 2: link-monitor
+! 3: symbol-period
+! 4: window
+! 5: <error_window:1-60>
+! 6: threshold
+! 7: <error_threshold:0-0xffffffff>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_window
+CMD_VAR = error_window
+CMD_VAR = has_threshold
+CMD_VAR = error_threshold
+
+HELP = ##HELP_LINK_OAM
+HELP = ##HELP_LINK_MONITOR
+HELP = Configure window and thresholds for an error-symbol period that triggers an error-symbol period link event 
+HELP = Duration of the monitoring in terms of seconds
+HELP = Set window size in terms of seconds
+HELP = Number of permissible error symbols in the period defined by error_window
+HELP = Threshold in number of symbols
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Window : option>
+BYWORD = <ErrorWindow : 1-60>
+BYWORD = <Threshold : option>
+BYWORD = <ErrorThreshold : 0-0xffffffff>
+
+CODE_BEGIN
+    icli_link_oam_link_monitoring_param_set ( session_id, plist, ICLI_SYMBOL_PERIOD,
+        has_window, has_threshold, error_window, error_threshold );
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = no link-oam link-monitor symbol-period
+
+DOC_CMD_DESC    = Configure default window and thresholds for an error-symbol period that triggers an error-symbol period link event
+DOC_CMD_DEFAULT = Default error window 1 seconds,Default threshold 0 symbols
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no link-oam link-monitor symbol-period
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: link-oam
+! 3: link-monitor
+! 4: symbol-period
+
+HELP = ##ICLI_HELP_NO 
+HELP = ##HELP_LINK_OAM
+HELP = ##HELP_LINK_MONITOR
+HELP = Configure default window and thresholds for an error symbol period
+
+VARIABLE_BEGIN
+    u16 error_window = VTSS_ETH_LINK_OAM_DEFAULT_EVENT_WINDOW_CONF;
+    u32 error_threshold = VTSS_ETH_LINK_OAM_DEFAULT_EVENT_THRESHOLD_CONF;
+VARIABLE_END
+
+CODE_BEGIN
+    icli_link_oam_link_monitoring_param_set ( session_id, plist, ICLI_SYMBOL_PERIOD,
+        TRUE, TRUE, error_window, error_threshold );
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = link-oam link-monitor frame-seconds { [ window <10-900> ] [ threshold <0-0xffff> ] }*1
+
+DOC_CMD_DESC    = Configure frame-seconds summary window and thresholds for triggering an error-frame-seconds event 
+DOC_CMD_DEFAULT = Default window 60 seconds,Default threshold 1
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE =link-oam link-monitor frame-seconds window 70 threshold 40 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: link-oam
+! 2: link-monitor
+! 3: frame-seconds
+! 4: window
+! 5: <error_window:10-900>
+! 6: threshold
+! 7: <error_threshold:0-0xffff>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_window
+CMD_VAR = error_window
+CMD_VAR = has_threshold
+CMD_VAR = error_threshold
+
+HELP = ##HELP_LINK_OAM 
+HELP = ##HELP_LINK_MONITOR
+HELP = Configure frame seconds summary 
+HELP = Configure window value
+HELP = Duration of the monitoring period in terms of seconds
+HELP = Configure threshold 
+HELP = Number of permissible Error Frame Seconds in the period defined by error_window
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Window : option>
+BYWORD = <ErrorWindow : 10-900>
+BYWORD = <Threshold : option>
+BYWORD = <ErrorThreshold : 0-0xffff>
+
+CODE_BEGIN
+    icli_link_oam_link_monitoring_param_set ( session_id, plist, ICLI_FRAME_SECONDS_SUMMARY,
+        has_window, has_threshold, error_window, error_threshold );
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = no link-oam link-monitor frame-seconds
+
+DOC_CMD_DESC    = Configure frame-seconds summary window and thresholds for triggering an error-frame-seconds event 
+DOC_CMD_DEFAULT = Default window 10 seconds,Default threshold 1
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no link-oam link-monitor frame-seconds
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: link-oam
+! 3: link-monitor
+! 4: frame-seconds
+
+HELP = ##ICLI_HELP_NO 
+HELP = ##HELP_LINK_OAM
+HELP = ##HELP_LINK_MONITOR
+HELP = Set default frame-seconds summary window(10 seconds) and thresholds(1 frames)
+
+VARIABLE_BEGIN
+    u16 error_window = VTSS_ETH_LINK_OAM_DEFAULT_EVENT_SECS_SUMMARY_WINDOW_MIN;
+    u32 error_threshold = VTSS_ETH_LINK_OAM_DEFAULT_EVENT_SECS_SUMMARY_THRESHOLD_MIN;
+VARIABLE_END
+
+CODE_BEGIN
+    icli_link_oam_link_monitoring_param_set ( session_id, plist, ICLI_FRAME_SECONDS_SUMMARY,
+        TRUE, TRUE, error_window, error_threshold );
+CODE_END
+
+CMD_END
+

@@ -1,0 +1,50 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_loop_protect := $(DIR_APPL)/loop_protection
+
+OBJECTS_loop_protect := loop_protect.o     \
+  $(call if-module,web,loop_protect_web.o) \
+  $(call if-module,vcli,loop_protect_cli.o) \
+  $(call if-module,conf_xml,loop_protect_xml.o) \
+  $(call if-module,icfg,loop_protect_icfg.o)
+
+# Built-in ICLI
+$(eval $(call add_icli, $(foreach m, loop_protect, $(DIR_loop_protect)/$(m).icli)))
+
+$(OBJECTS_loop_protect): %.o: $(DIR_loop_protect)/%.c
+	$(call compile_c, $@, $<)
+
+INCLUDES += -I$(DIR_loop_protect)
+
+LINT_FILES_loop_protect += $(addprefix $(DIR_loop_protect)/,$(patsubst %.o,%.c,$(OBJECTS_loop_protect)))
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_loop_protect)/html
+
+# Tidy files
+TIDY_FILES_loop_protect += $(DIR_loop_protect)/html/*.htm $(DIR_loop_protect)/html/help/*.htm
+

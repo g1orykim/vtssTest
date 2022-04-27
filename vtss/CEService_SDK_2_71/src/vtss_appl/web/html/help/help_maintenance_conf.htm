@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Maintenance Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+
+<h1>Maintenance Help</h1>
+
+<h2><a name="configuration">Configuration</a></h2>
+
+<p>You can save/view or load the switch configuration. The configuration file is in XML format with a hierarchy of tags:
+</p>
+
+<p>
+Header tags: <tt>&lt;?xml version="1.0"?&gt;</tt> and <tt>&lt;configuration&gt;</tt>. These tags are mandatory and must be present at the beginning of the file.
+</p>
+
+<p>
+Section tags: <tt>&lt;platform&gt;, &lt;global&gt;</tt> and <tt>&lt;switch&gt;</tt>. The platform section must be the first section tag and this section must include the correct platform ID and version. The global section is optional and includes configuration which is not related to specific switch ports. The switch section is optional and includes configuration which is related to specific switch ports.
+</p>
+
+<p>
+Module tags: <tt>&lt;ip&gt;, &lt;mac&gt;, &lt;port&gt;</tt> etc. These tags identify a module controlling specific parts of the configuration.
+</p>
+
+<p>
+Group tags: <tt>&lt;port_table&gt;, &lt;vlan_table&gt;</tt> etc. These tags identify a group of parameters, typically a table.
+</p>
+
+<p>
+Parameter tags: <tt>&lt;mode&gt;, &lt;entry&gt;</tt> etc. These tags identify parameters for the specific section, module and group. The <tt>&lt;entry&gt;</tt> tag is used for table entries.
+</p>
+
+<p>Configuration parameters are represented as attribute values. When saving the configuration from the switch, the entire configuration including syntax descriptions is included in the file. The file may then be modified using an editor and loaded to a switch.</p>
+
+<p>
+The example below shows a small configuration file only including configuration of the MAC address age time and the learning mode per port. When loading this file, only the included parameters will be changed. This means that the age time will be set to 200 and the learn mode will be set to automatic.
+</p>
+
+<p>
+<tt>
+&lt;?xml version="1.0"?&gt;<br/>
+&lt;configuration&gt;<br/>
+&nbsp;&nbsp;&lt;platform&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;pid val="3"&gt;&lt;/pid&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;version val="1"&gt;&lt;/version&gt;<br/>
+&nbsp;&nbsp;&lt;/platform&gt;<br/>
+&nbsp;&nbsp;&lt;global&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;mac&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;age val="200"&gt;&lt;/age>&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/mac&gt;<br/>
+&nbsp;&nbsp;&lt;/global&gt;<br/>
+&nbsp;&nbsp;&lt;switch sid="1"&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;mac&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;entry port="1-24" learn_mode="auto"&gt;&lt;/entry&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/mac&gt;<br/>
+&nbsp;&nbsp;&lt;/switch&gt;<br/>
+&lt;/configuration&gt;<br/>
+</tt>
+</p>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save Configuration ">: Click to save the configuration file.</p>
+<p><input type="button" value=" Upload ">: Click to upload the configuration file.</p>
+
+</body>
+</html>

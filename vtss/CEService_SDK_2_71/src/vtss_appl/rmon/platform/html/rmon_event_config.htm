@@ -1,0 +1,308 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RMON Event Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_rmon_event_config.htm";
+
+var reqObject;
+var entryIdxArray = Array();
+var receiveEntryName = Array();
+var emptyConfigForm = true;
+var originalCnt = 0;
+var newCreateCnt = 0;
+var maxCreateCnt = 128;
+
+var oVVariable = Array(1, 2, 3, 4);
+var oTVariable = Array("none", "log", "snmptrap", "logandtrap");
+var oVSampleType = Array(1, 2);
+var oTSampleType = Array("Absolute", "Delta");
+var oTStartup = Array("Rising", "Falling", "RisingOrFalling");
+var oVStartup = Array(1, 2, 3);
+
+function addEntryIdx()
+{
+    var fld;
+
+    for (var i = 1; i <= maxCreateCnt; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newCreateCnt++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newCreateCnt; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newCreateCnt; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newCreateCnt--;
+    document.getElementById("rmonEventData").removeChild(tr);
+}
+
+function addNewRow() {
+    var delCnt = 0;
+    for (var idx = 0; idx < receiveEntryName.length; idx++) {
+        if (document.getElementById("del_" + receiveEntryName[idx]).checked) {
+            delCnt++;
+        }
+    }
+
+    if (originalCnt - delCnt + newCreateCnt >= maxCreateCnt) {
+        alert("The maximum number of entries is " + maxCreateCnt);
+        return;
+    }
+
+    // Search for a new free name for this row.
+    var new_idx = addEntryIdx();
+    if (new_idx === 0) {
+        alert("The maximum number of entries is " + maxCreateCnt);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalCnt + new_idx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + new_idx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+
+    var td_id_new = addInputCell(tr, "", "cr", "new_id_" + new_idx, 5);
+    td_id_new.setAttribute("maxLength", 5);
+    addInputCell(tr, "", "cr", "new_desc_" + new_idx, 32, 127);
+    addSelectCell(tr, oTVariable, oVVariable, oVVariable[0], "cr", "new_type_" + new_idx);
+    addInputCell(tr, "public", "cr", "new_community_" + new_idx, 32, 127);
+    addTextCell(tr, "0", "cr");
+
+    frag.appendChild(tr);       // Add row to fragment
+    var tbody = document.getElementById("rmonEventData");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function addRow(index, frag, values) {
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    originalCnt++;
+    receiveEntryName[index] = values[0];
+
+    addCheckBoxCell(tr, 0, "c", "del_" + values[0]);
+    addTextCell(tr, values[0], "cr");
+    addInputCell(tr, values[1], "cr", "desc_" + values[0], 32, 127);
+    addSelectCell(tr, oTVariable, oVVariable, oVVariable[parseInt(values[2], 10) - 1], "cr", "type_" + values[0]);
+
+    addInputCell(tr, values[3], "cr", "community_" + values[0], 32, 127);
+
+    addTextCell(tr, values[4], "cr");
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function checkForm() {
+    var fld, idx, new_idx;
+
+    if (emptyConfigForm && !newCreateCnt) {
+        document.location.href = "rmon_event_config.htm";
+        return false;
+    }
+
+    if (!emptyConfigForm) {
+        for (idx = 0; idx < receiveEntryName.length; idx++) {
+            fld = document.getElementById("desc_" + receiveEntryName[idx]);
+            if (fld.value.length > 128) {
+                GiveAlert("The length of 'desc' is restricted to 0 - 127", fld);
+                return false;
+            }
+
+            //data source
+            if(!isWithinRange("type_" + receiveEntryName[idx], 1, 4, "'Type'")) {
+                return false;
+            }
+
+            fld = document.getElementById("community_" + receiveEntryName[idx]);
+            if (fld.value.length > 128) {
+                GiveAlert("The length of 'community' is restricted to 0 - 127", fld);
+                return false;
+            }
+
+        }
+    }
+
+
+    if (newCreateCnt) {
+        for (new_idx = 0; new_idx < newCreateCnt; new_idx++) {
+            //id
+            if(!isWithinRange("new_id_" + entryIdxArray[new_idx], 1, 65535, "'ID'")) {
+                return false;
+            }
+
+            fld = document.getElementById("new_desc_" + entryIdxArray[new_idx]);
+            if (fld.value.length > 128) {
+                GiveAlert("The length of 'desc' is restricted to 0 - 127", fld);
+                return false;
+            }
+
+            //data source
+            if(!isWithinRange("new_type_" + entryIdxArray[new_idx], 1, 4, "'Type'")) {
+                return false;
+            }
+
+            fld = document.getElementById("new_community_" + entryIdxArray[new_idx]);
+            if (fld.value.length > 128) {
+                GiveAlert("The length of 'community' is restricted to 0 - 127", fld);
+                return false;
+            }
+
+
+            //check if repeated group name, security model and security level
+            var new_group = document.getElementById("new_id_" + entryIdxArray[new_idx]);
+            for (idx = 0; idx < receiveEntryName.length; idx++) {
+                if (document.getElementById("del_" + receiveEntryName[idx]).checked) {
+                    continue;
+                }
+                if ((new_group.value ) == receiveEntryName[idx]) {
+                    alert("The entry '" + new_group.value + "' already exists");
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;                // Feed the chickens and go home
+}
+
+function processUpdate(req, ref) {
+    if (redirectOnError(req)) {
+        return;
+    }
+    var frag = document.createDocumentFragment();
+    if (reqObject != req) {
+        reqObject = req;
+    }
+    if (req.responseText) {
+        var snmpv3Config = req.responseText.split("|");
+
+        snmpv3Config[0] = snmpv3Config[0].replace(/^\n/, "");
+        // create holder for accumulated tbody elements and text nodes
+        for (var i = 0; i < snmpv3Config.length; i++) {
+            if (snmpv3Config[i]) {
+                var receiveData = snmpv3Config[i].split("/");
+                receiveData[0] = unescape(receiveData[0]);
+                addRow(i, frag, receiveData);
+                emptyConfigForm = false;
+            }
+        }
+    }
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    newCreateCnt = 0;
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "rmonEventData");
+}
+
+function requestUpdate() {
+    //Format: <ID>/<description>/<event_Type>/<community>
+    //var req="group1|group1|group2|,None|view1|view2|view3|,group1/0/1/view1/view2/view3|group2/1/2/view1/None/None";
+    //processUpdate(req, "rmonEventData");
+    loadXMLDoc("/config/rmon_event_config", processUpdate, "rmonEventData");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>RMON Event Configuration</h1>
+
+<form name="snmpv3ConfigForm" method="POST" action="/config/rmon_event_config" onsubmit="return checkForm();">
+
+<table summary="SNMPv3 Access Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th>Delete</th>
+   <th>ID</th>
+   <th>Desc</th>
+   <th>Type</th>
+   <th>Community</th>
+   <th>Event Last Time</th>
+   <!--th>Notify View Name</th-->
+  </tr>
+ </thead>
+  <tbody id="rmonEventData"></tbody>
+</table>
+
+<p>
+  <input type="button" id="addNewEntry" value="Add New Entry" onclick="addNewRow();">&nbsp;&nbsp;&nbsp;&nbsp;
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

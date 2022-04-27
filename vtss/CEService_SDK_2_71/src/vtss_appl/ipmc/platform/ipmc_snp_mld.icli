@@ -1,0 +1,2158 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_SMB_IPMC)
+
+INCLUDE_BEGIN
+#include "ipmc_snp_icli.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_SNOOPING       = Snooping MLD
+HELP_STATUS_MROUTER = Multicast router port status in MLD
+HELP_STATUS_DETAIL  = Detail running information/statistics of MLD snooping
+HELP_STATISTICS     = Running MLD snooping counters
+HELP_GRP_DB         = Multicast group database from MLD
+HELP_GRP_DB_INC_SFM = Including source filter multicast information from MLD
+HELP_SSM_RANGE      = IPv6 address range of Source Specific Multicast
+HELP_QUERIER        = MLD Querier configuration
+HELP_QUERIER_ELECT  = Act as a MLD Querier to join Querier-Election
+HELP_THROTTLE       = MLD group throttling configuration
+HELP_MAX_GRP_NUM    = Maximun number of MLD group registration
+HELP_FILTER         = Access control on MLD multicast group registration
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_state
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+
+VARIABLE_BEGIN
+    BOOL    icli_ipmcsnp_state_enable;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL    icli_ipmcsnp_state_disable;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    icli_ipmcsnp_state_enable = TRUE;
+    if (ipmc_mgmt_set_mode(&icli_ipmcsnp_state_enable, IPMC_IP_VERSION_MLD) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to enable MLD snooping.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    icli_ipmcsnp_state_disable = FALSE;
+    if (ipmc_mgmt_set_mode(&icli_ipmcsnp_state_disable, IPMC_IP_VERSION_MLD) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to disable MLD snooping.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld unknown-flooding
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_unknown_flooding
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: unknown-flooding
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = Flooding unregistered IPv6 multicast traffic
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasUnknownFlooding : option>
+
+VARIABLE_BEGIN
+    BOOL    icli_ipmcsnp_flooding_enable;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL    icli_ipmcsnp_flooding_disable;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    icli_ipmcsnp_flooding_enable = TRUE;
+    if (ipmc_mgmt_set_unreg_flood(&icli_ipmcsnp_flooding_enable, IPMC_IP_VERSION_MLD) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to enable MLD unknown flooding.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    icli_ipmcsnp_flooding_disable = FALSE;
+    if (ipmc_mgmt_set_unreg_flood(&icli_ipmcsnp_flooding_disable, IPMC_IP_VERSION_MLD) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to disable MLD unknown flooding.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld host-proxy [ leave-proxy ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_proxy
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: host-proxy
+! 4: leave-proxy
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_leave_proxy
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = MLD proxy configuration
+HELP = MLD proxy for leave configuration
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasHostProxy : option>
+BYWORD = <HasLeaveProxy : option>
+
+VARIABLE_BEGIN
+    BOOL    icli_ipmcsnp_proxy_enable;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL    icli_ipmcsnp_proxy_disable;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    icli_ipmcsnp_proxy_enable = TRUE;
+    if (has_leave_proxy) {
+        if (ipmc_mgmt_set_leave_proxy(&icli_ipmcsnp_proxy_enable, IPMC_IP_VERSION_MLD) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to enable MLD leave proxy.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        if (ipmc_mgmt_set_proxy(&icli_ipmcsnp_proxy_enable, IPMC_IP_VERSION_MLD) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to enable MLD proxy.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    icli_ipmcsnp_proxy_disable = FALSE;
+    if (has_leave_proxy) {
+        if (ipmc_mgmt_set_leave_proxy(&icli_ipmcsnp_proxy_disable, IPMC_IP_VERSION_MLD) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to disable MLD leave proxy.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        if (ipmc_mgmt_set_proxy(&icli_ipmcsnp_proxy_disable, IPMC_IP_VERSION_MLD) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to disable MLD proxy.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld ssm-range <ipv6_mcast> <8-128>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_ssm_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: ssm-range
+! 4: <ipv6_mcast>
+! 5: <ipv6_prefix_length:8-128>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = v_ipv6_mcast
+CMD_VAR = ipv6_prefix_length
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SSM_RANGE
+HELP = Valid IPv6 multicast address
+HELP = Prefix length ranges from 8 to 128
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSsmRange : option>
+BYWORD = 
+BYWORD = <Ipv6PrefixLength : 8-128>
+
+VARIABLE_BEGIN
+    ipmc_prefix_t   icli_ipmcsnp_ssm;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&icli_ipmcsnp_ssm, 0x0, sizeof(ipmc_prefix_t));
+    IPMC_LIB_ADRS_CPY(&icli_ipmcsnp_ssm.addr.array.prefix, &v_ipv6_mcast);
+    icli_ipmcsnp_ssm.len = ipv6_prefix_length;
+
+    if (ipmc_mgmt_set_ssm_range(IPMC_IP_VERSION_MLD, &icli_ipmcsnp_ssm) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to set MLD SSM range.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ipv6 mld ssm-range
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_ssm_default
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: ipv6
+! 3: mld
+! 4: ssm-range
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_DEFAULT
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SSM_RANGE
+
+BYWORD = <HasDefault : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSsmRange : option>
+
+VARIABLE_BEGIN
+    ipmc_prefix_t   icli_ipmcsnp_ssm;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&icli_ipmcsnp_ssm, 0x0, sizeof(ipmc_prefix_t));
+    icli_ipmcsnp_ssm.addr.array.prefix.addr[0] = (IPMC_DEF_SSM_PREFIX6_VALUE >> 24) & 0xFF;
+    icli_ipmcsnp_ssm.addr.array.prefix.addr[1] = (IPMC_DEF_SSM_PREFIX6_VALUE >> 16) & 0xFF;
+    icli_ipmcsnp_ssm.addr.array.prefix.addr[2] = (IPMC_DEF_SSM_PREFIX6_VALUE >> 8) & 0xFF;
+    icli_ipmcsnp_ssm.addr.array.prefix.addr[3] = (IPMC_DEF_SSM_PREFIX6_VALUE >> 0) & 0xFF;
+    icli_ipmcsnp_ssm.len = IPMC_DEF_SSM_PREFIX6_LEN_VALUE;
+
+    if (ipmc_mgmt_set_ssm_range(IPMC_IP_VERSION_MLD, &icli_ipmcsnp_ssm) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to default MLD SSM range.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping vlan <vlan_list>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: vlan
+! 5: <vlan_list>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = v_vlan_list
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = MLD VLAN
+HELP = ##ICLI_HELP_IPMC_VID
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasVlan : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_config(IPMC_IP_VERSION_MLD, session_id, v_vlan_list)) {
+        ICLI_PRINTF("%% Failed to config MLD VLAN interface(s).\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ipv6 mld snooping vlan [ <vlan_list> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_delete
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: vlan
+! 6: <vlan_list>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_vlan
+CMD_VAR = v_vlan_list
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = MLD VLAN
+HELP = ##ICLI_HELP_IPMC_VID
+
+BYWORD = <HasNo : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasVlan : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_delete(IPMC_IP_VERSION_MLD, session_id, has_vlan, v_vlan_list)) {
+        ICLI_PRINTF("%% Failed to delete MLD VLAN interface(s).\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping immediate-leave
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_immediate_leave_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: immediate-leave
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_IMD_LEAVE
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasImmediateLeave : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_immediate_leave_set(IPMC_IP_VERSION_MLD, session_id, plist, TRUE)) {
+        ICLI_PRINTF("%% Failed to enable immediate leave.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_ipmc_snp_immediate_leave_set(IPMC_IP_VERSION_MLD, session_id, plist, FALSE)) {
+        ICLI_PRINTF("%% Failed to disable immediate leave.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping mrouter
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_mrouter_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: mrouter
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_MROUTER
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasMrouter : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_mrouter_set(IPMC_IP_VERSION_MLD, session_id, plist, TRUE)) {
+        ICLI_PRINTF("%% Failed to set multicast router port.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_ipmc_snp_mrouter_set(IPMC_IP_VERSION_MLD, session_id, plist, FALSE)) {
+        ICLI_PRINTF("%% Failed to clear multicast router port.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping max-groups <1-10>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_port_throttle_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: max-groups
+! 5: <throttling:1-10>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = throttling
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##HELP_THROTTLE
+HELP = ##HELP_MAX_GRP_NUM
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasMaxGroups : option>
+BYWORD = <Throttling : 1-10>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_port_throttle_set(IPMC_IP_VERSION_MLD, session_id, plist, throttling)) {
+        ICLI_PRINTF("%% Failed to set port throttling.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ipv6 mld snooping max-groups
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_port_throttle_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: max-groups
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##HELP_THROTTLE
+
+BYWORD = <HasNo : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasMaxGroups : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_port_throttle_clear(IPMC_IP_VERSION_MLD, session_id, plist)) {
+        ICLI_PRINTF("%% Failed to clear port throttling.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping filter <word16>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_port_filter_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: filter
+! 5: <profile_name:word16>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = profile_name
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##HELP_FILTER
+HELP = ##ICLI_HELP_PROFILE_NAME
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasFilter : option>
+BYWORD = <ProfileName : word16>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_port_filter_set(IPMC_IP_VERSION_MLD, session_id, plist, profile_name)) {
+        ICLI_PRINTF("%% Failed to set filtering profile %s.\n\n", profile_name);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ipv6 mld snooping filter
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_port_filter_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: filter
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##HELP_FILTER
+
+BYWORD = <HasNo : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasFilter : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_port_filter_clear(IPMC_IP_VERSION_MLD, session_id, plist)) {
+        ICLI_PRINTF("%% Failed to clear filtering profile.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show ipv6 mld snooping mrouter [ detail ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_show_mrouter
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = icli_ipmc_snp_check_present
+
+! 1: show
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: mrouter
+! 6: detail
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_detail
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##HELP_STATUS_MROUTER
+HELP = ##HELP_STATUS_DETAIL
+
+BYWORD = <HasShow : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasMrouter : option>
+BYWORD = <HasDetail : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_show_statistics(IPMC_IP_VERSION_MLD, session_id,
+                                       FALSE, NULL,
+                                       TRUE, has_detail)) {
+        ICLI_PRINTF("%% Failed to display MLD snooping mrouter status.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear ipv6 mld snooping [ vlan <vlan_list> ] statistics
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_clear_statistics
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: clear
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: vlan
+! 6: <vlan_list>
+! 7: statistics
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_vlan
+CMD_VAR = v_vlan_list
+CMD_VAR =
+
+HELP = 
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = Search by VLAN
+HELP = ##ICLI_HELP_IPMC_VID
+HELP = ##HELP_STATISTICS
+
+BYWORD = <HasClear : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasVlan : option>
+BYWORD = 
+BYWORD = <HasStatistics : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_clear_statistics(IPMC_IP_VERSION_MLD, session_id,
+                                       has_vlan, v_vlan_list)) {
+        ICLI_PRINTF("%% Failed to clear MLD snooping statistics.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show ipv6 mld snooping [ vlan <vlan_list> ] [ group-database [ interface <port_type_list> ] [ sfm-information ] ] [ detail ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_show_statistics
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = icli_ipmc_snp_check_present
+RUNTIME = icli_ipmc_snp_check_present
+
+! 1: show
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: vlan
+! 6: <vlan_list>
+! 7: group-database
+! 8: interface
+! 9: <port_type_list>
+! 10: sfm-information
+! 11: detail
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_vlan
+CMD_VAR = v_vlan_list
+CMD_VAR = has_group_database
+CMD_VAR = has_interface
+CMD_VAR = v_port_type_list
+CMD_VAR = has_sfm_information
+CMD_VAR = has_detail
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = Search by VLAN
+HELP = ##ICLI_HELP_IPMC_VID
+HELP = ##HELP_GRP_DB
+HELP = Search by port
+HELP = ##ICLI_HELP_PORT_TYPE_LIST
+HELP = ##HELP_GRP_DB_INC_SFM
+HELP = ##HELP_STATUS_DETAIL
+
+BYWORD = <HasShow : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasVlan : option>
+BYWORD = 
+BYWORD = <HasGroupDatabase : option>
+BYWORD = <HasInterface : option>
+BYWORD = 
+BYWORD = <HasSfmInformation : option>
+BYWORD = <HasDetail : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!has_group_database) {
+        if (!icli_ipmc_snp_show_statistics(IPMC_IP_VERSION_MLD, session_id,
+                                           has_vlan, v_vlan_list,
+                                           FALSE, has_detail)) {
+            ICLI_PRINTF("%% Failed to display MLD snooping interface status.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        if (!icli_ipmc_snp_show_db(IPMC_IP_VERSION_MLD, session_id,
+                                   has_vlan, v_vlan_list,
+                                   has_interface, v_port_type_list,
+                                   has_sfm_information, has_detail)) {
+            ICLI_PRINTF("%% Failed to display group database for MLD snooping.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_state_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_state_set(IPMC_IP_VERSION_MLD, session_id, vlist, TRUE)) {
+        ICLI_PRINTF("%% Failed to enable MLD VLAN interface(s).\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_ipmc_snp_intf_state_set(IPMC_IP_VERSION_MLD, session_id, vlist, FALSE)) {
+        ICLI_PRINTF("%% Failed to disable MLD VLAN interface(s).\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping querier election
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_querier_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: querier
+! 5: election
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##HELP_QUERIER
+HELP = ##HELP_QUERIER_ELECT
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_querier_set(IPMC_IP_VERSION_MLD, session_id, vlist, TRUE)) {
+        ICLI_PRINTF("%% Failed to enable MLD Querier.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_ipmc_snp_intf_querier_set(IPMC_IP_VERSION_MLD, session_id, vlist, FALSE)) {
+        ICLI_PRINTF("%% Failed to disable MLD Querier.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping compatibility { auto | v1 | v2 }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_compat_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: compatibility
+! 5: auto
+! 6: v1
+! 7: v2
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_auto
+CMD_VAR = has_v1
+CMD_VAR = has_v2
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_COMPAT
+HELP = Compatible with MLDv1/MLDv2
+HELP = Forced MLDv1
+HELP = Forced MLDv2
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasCompatibility : option>
+BYWORD = <HasAuto : option>
+BYWORD = <HasV1 : option>
+BYWORD = <HasV2 : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_v1 && !icli_ipmc_snp_intf_compat_set(IPMC_IP_VERSION_MLD, session_id, vlist, VTSS_IPMC_COMPAT_MODE_GEN)) {
+        ICLI_PRINTF("%% Failed to set interface's compatibility.\n\n");
+        return ICLI_RC_ERROR;
+    } else if (has_v2 && !icli_ipmc_snp_intf_compat_set(IPMC_IP_VERSION_MLD, session_id, vlist, VTSS_IPMC_COMPAT_MODE_SFM)) {
+        ICLI_PRINTF("%% Failed to set interface's compatibility.\n\n");
+        return ICLI_RC_ERROR;
+    } else {
+        if (has_auto && !icli_ipmc_snp_intf_compat_set(IPMC_IP_VERSION_MLD, session_id, vlist, VTSS_IPMC_COMPAT_MODE_AUTO)) {
+            ICLI_PRINTF("%% Failed to set interface's compatibility.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ipv6 mld snooping compatibility
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_compat_default
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: no
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: compatibility
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_DEFAULT
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_COMPAT
+
+BYWORD = <HasDefault : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasCompatibility : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_compat_set(IPMC_IP_VERSION_MLD, session_id, vlist, IPMC_DEF_INTF_COMPAT)) {
+        ICLI_PRINTF("%% Failed to default interface's compatibility.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping priority <0-7>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_pri_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: priority
+! 5: <cos_priority:0-7>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = cos_priority
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_PRI
+HELP = CoS priority ranges from 0 to 7
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasPriority : option>
+BYWORD = <CosPriority : 0-7>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_pri_set(IPMC_IP_VERSION_MLD, session_id, vlist, cos_priority)) {
+        ICLI_PRINTF("%% Failed to set interface's CoS priority.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ipv6 mld snooping priority
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_pri_default
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: no
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: priority
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_DEFAULT
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_PRI
+
+BYWORD = <HasDefault : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasPriority : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_pri_set(IPMC_IP_VERSION_MLD, session_id, vlist, IPMC_DEF_INTF_PRI)) {
+        ICLI_PRINTF("%% Failed to default interface's CoS priority.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping robustness-variable <1-255>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_rv_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: robustness-variable
+! 5: <ipmc_rv:1-255>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = ipmc_rv
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_RV
+HELP = Packet loss tolerance count from 1 to 255
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasRobustnessVariable : option>
+BYWORD = <IpmcRv : 1-255>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_rv_set(IPMC_IP_VERSION_MLD, session_id, vlist, ipmc_rv)) {
+        ICLI_PRINTF("%% Failed to set Robustness Variable.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ipv6 mld snooping robustness-variable
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_rv_default
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: no
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: robustness-variable
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_DEFAULT
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_RV
+
+BYWORD = <HasDefault : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasRobustnessVariable : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_rv_set(IPMC_IP_VERSION_MLD, session_id, vlist, IPMC_DEF_INTF_RV)) {
+        ICLI_PRINTF("%% Failed to default Robustness Variable.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping query-interval <1-31744>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_qi_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: query-interval
+! 5: <ipmc_qi:1-31744>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = ipmc_qi
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_QI
+HELP = 1 - 31744 seconds
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasQueryInterval : option>
+BYWORD = <IpmcQi : 1-31744>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_qi_set(IPMC_IP_VERSION_MLD, session_id, vlist, ipmc_qi)) {
+        ICLI_PRINTF("%% Failed to set Query Interval.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ipv6 mld snooping query-interval
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_qi_default
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: no
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: query-interval
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_DEFAULT
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_QI
+
+BYWORD = <HasDefault : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasQueryInterval : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_qi_set(IPMC_IP_VERSION_MLD, session_id, vlist, IPMC_DEF_INTF_QI)) {
+        ICLI_PRINTF("%% Failed to default Query Interval.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping query-max-response-time <0-31744>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_qri_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: query-max-response-time
+! 5: <ipmc_qri:0-31744>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = ipmc_qri
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_QRI
+HELP = 0 - 31744 tenths of seconds
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasQueryMaxResponseTime : option>
+BYWORD = <IpmcQri : 0-31744>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_qri_set(IPMC_IP_VERSION_MLD, session_id, vlist, ipmc_qri)) {
+        ICLI_PRINTF("%% Failed to set Query Maximun Response Time.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ipv6 mld snooping query-max-response-time
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_qri_default
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: no
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: query-max-response-time
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_DEFAULT
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_QRI
+
+BYWORD = <HasDefault : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasQueryMaxResponseTime : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_qri_set(IPMC_IP_VERSION_MLD, session_id, vlist, IPMC_DEF_INTF_QRI)) {
+        ICLI_PRINTF("%% Failed to default Query Maximun Response Time.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping last-member-query-interval <0-31744>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_lmqi_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: last-member-query-interval
+! 5: <ipmc_lmqi:0-31744>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = ipmc_lmqi
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_LMQI
+HELP = 0 - 31744 tenths of seconds
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasLastMemberQueryInterval : option>
+BYWORD = <IpmcLmqi : 0-31744>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_lmqi_set(IPMC_IP_VERSION_MLD, session_id, vlist, ipmc_lmqi)) {
+        ICLI_PRINTF("%% Failed to set Last Member Query Interval.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ipv6 mld snooping last-member-query-interval
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_lmqi_default
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: no
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: last-member-query-interval
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_DEFAULT
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_LMQI
+
+BYWORD = <HasDefault : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasLastMemberQueryInterval : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_lmqi_set(IPMC_IP_VERSION_MLD, session_id, vlist, IPMC_DEF_INTF_LMQI)) {
+        ICLI_PRINTF("%% Failed to default Last Member Query Interval.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ipv6 mld snooping unsolicited-report-interval <0-31744>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_uri_config
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: ipv6
+! 2: mld
+! 3: snooping
+! 4: unsolicited-report-interval
+! 5: <ipmc_uri:0-31744>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = ipmc_uri
+
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_URI
+HELP = 0 - 31744 seconds
+
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasUnsolicitedReportInterval : option>
+BYWORD = <IpmcUri : 0-31744>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_uri_set(IPMC_IP_VERSION_MLD, session_id, vlist, ipmc_uri)) {
+        ICLI_PRINTF("%% Failed to set Unsolicited Report Interval.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ipv6 mld snooping unsolicited-report-interval
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_snp6_intf_uri_default
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+RUNTIME = 
+
+! 1: no
+! 2: ipv6
+! 3: mld
+! 4: snooping
+! 5: unsolicited-report-interval
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_DEFAULT
+HELP = ##ICLI_HELP_IPV6
+HELP = ##ICLI_HELP_MLD
+HELP = ##HELP_SNOOPING
+HELP = ##ICLI_HELP_INTF_URI
+
+BYWORD = <HasDefault : option>
+BYWORD = <HasIpv6 : option>
+BYWORD = <HasMld : option>
+BYWORD = <HasSnooping : option>
+BYWORD = <HasUnsolicitedReportInterval : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_snp_intf_uri_set(IPMC_IP_VERSION_MLD, session_id, vlist, IPMC_DEF_INTF_URI)) {
+        ICLI_PRINTF("%% Failed to default Unsolicited Report Interval.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END

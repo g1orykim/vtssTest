@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Performance Monitor Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Performance Monitor Transfer Configuration Help</h1>
+<p>This page displays current Performance Monitor transfer configurations. The settings can also be configured here.</p>
+
+<dl>
+ <dt>PM Transfer Mode</dt>
+ <dd>
+ Configure the operation mode per system. Possible modes are: 
+ <br><samp>Enabled</samp>: Enable .
+ <br><samp>Disabled</samp>: Disable.
+ </dd>
+
+ <dt>Scheduled Hours</dt>
+ <dd>
+ It must be possible to select one or more of the 24 hours in a day, when PM data transfer will happen.
+ <br><samp>00:00</samp>
+ <br><samp>01:00</samp>
+ <br><samp>02:00</samp>
+ <br><samp>03:00</samp>
+ <br><samp>04:00</samp>
+ <br><samp>05:00</samp>
+ <br><samp>06:00</samp>
+ <br><samp>07:00</samp>
+ <br><samp>08:00</samp>
+ <br><samp>09:00</samp>
+ <br><samp>10:00</samp>
+ <br><samp>11:00</samp>
+ <br><samp>12:00</samp>
+ <br><samp>13:00</samp>
+ <br><samp>14:00</samp>
+ <br><samp>15:00</samp>
+ <br><samp>16:00</samp>
+ <br><samp>17:00</samp>
+ <br><samp>18:00</samp>
+ <br><samp>19:00</samp>
+ <br><samp>20:00</samp>
+ <br><samp>21:00</samp>
+ <br><samp>22:00</samp>
+ <br><samp>23:00</samp>
+ <br>Default is none selected.
+
+ </dd>
+
+ <dt>Scheduled Minutes</dt>
+ <dd>
+ It must be possible to select one or more of the four 15 min. in an hour, when PM data transfer will happen.
+ <br><samp>00:00</samp>
+ <br><samp>00:15</samp>
+ <br><samp>00:30</samp>
+ <br><samp>00:45</samp>
+ <br>Default is none selected. 
+ </dd>
+
+ <dt>Scheduled Offset</dt>
+ <dd>
+ It must be possible to configure a fixed offset that is added to the scheduled transfer time.
+ <br>The rage is 0-15 minutes. Default is 0 min.
+ <br>The sum of Scheduled Fixed Offset and Scheduled Random Offset must not exceed 15 min.
+ </dd>
+ 
+ <dt>Random Offset</dt>
+ <dd>
+ It must be possible to configure a random offset that is added to the scheduled transfer time.
+ <br>The offset added to the scheduled transfer time must be a random value in the range 0-Scheduled Offset.
+ <br>The range is 0-900 seconds. Default is 0 sec.
+ <br>The sum of Scheduled Offset and Random Offset must not exceed 15 min.
+ </dd>
+ 
+ <dt>Server Directory URL</dt>
+ <dd>
+ It must be possible to configure the full URL of the server and the corresponding directory (if any) for uploading.
+ <br>The supported protocols are <a href="glossary.htm#http" class="glossary">HTTP</a> and <a href="glossary.htm#tftp" class="glossary">TFTP</a>.
+ <br>To enable HTTP by entering http:// followed by the domain name or <a href="glossary.htm#ip" class="glossary">IP</a> address.
+ <br>To enable TFTP by entering tftp:// followed by the domain name or IP address.
+ </dd>
+ 
+ <dt>Transfer Interval Mode</dt>
+ <dd>
+ There are three supported interval modes.
+  <br><samp>All available intervals</samp>: To enable transfer of all completed Measurement Intervals.
+  <br><samp>New intervals since last transfer</samp>: To enable transfer of only completed Measurement Intervals since last transfer.
+  <br><samp>Fixed number of intervals</samp>: To enable transfer of all completed Measurement Intervals up to the configured number.
+ </dd>
+ 
+ <dt>Number of intervals</dt>
+ <dd>
+ When Fixed number of interval selected, this value is used to determine the number of intervals to send.
+  <br>The range is 1 to 96 Intervals.
+ </dd>
+
+ <dt>Transfer Option</dt>
+ <dd>
+ When this option is checked, PM data transfer will include the suspended (incomplete) transmission.
+ </dd>
+
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

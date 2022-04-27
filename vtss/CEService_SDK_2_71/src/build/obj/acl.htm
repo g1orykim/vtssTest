@@ -1,0 +1,3352 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<!-- Number of commands
+0024
+-->
+
+<html>
+
+<head>
+<title></title>
+<link href="vtss.css" rel="stylesheet" type="text/css">
+</head>
+
+<body lang=EN-US>
+
+<!-- Title -->
+<div class=Title>
+<p class=NewLine>&nbsp;</p>
+<p class=Title>
+CLI Command Reference Guide
+</p>
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<!-- Reference Link -->
+<div class=RefLink>
+<hr>
+<p class=NewLine>&nbsp;</p>
+
+<p class=RefLink>
+<a href="#cr0020">
+access-list ace [ update ] &lt;ace_id&gt; [ next { &lt;ace_id_next&gt; | last } ] [ ingress { switch &lt;ingress_switch_id&gt; | switchport { &lt;ingress_switch_port_id&gt; | &lt;ingress_switch_port_list&gt; } | interface { &lt;port_type&gt; &lt;ingress_port_id&gt; | &lt;port_type&gt; [ &lt;ingress_port_list&gt; ] } | any } ] [ policy &lt;policy&gt; [ policy-bitmask &lt;policy_bitmask&gt; ] ] [ tag { tagged | untagged | any } ] [ vid { &lt;vid&gt; | any } ] [ tag-priority { &lt;tag_priority&gt; | 0-1 | 2-3 | 4-5 | 6-7 | 0-3 | 4-7 | any } ] [ dmac-type { unicast | multicast | broadcast | any } ] [ frame-type { any | etype [ etype-value { &lt;etype_value&gt; | any } ] [ smac { &lt;etype_smac&gt; | any } ] [ dmac { &lt;etype_dmac&gt; | any } ] | arp [ sip { &lt;arp_sip&gt; | any } ] [ dip { &lt;arp_dip&gt; | any } ] [ smac { &lt;arp_smac&gt; | any } ] [ arp-opcode { arp | rarp | other | any } ] [ arp-flag [ arp-request { &lt;arp_flag_request&gt; | any } ] [ arp-smac { &lt;arp_flag_smac&gt; | any } ] [ arp-tmac { &lt;arp_flag_tmac&gt; | any } ] [ arp-len { &lt;arp_flag_len&gt; | any } ] [ arp-ip { &lt;arp_flag_ip&gt; | any } ] [ arp-ether { &lt;arp_flag_ether&gt; | any } ] ] | ipv4 [ sip { &lt;sipv4&gt; | any } ] [ dip { &lt;dipv4&gt; | any } ] [ ip-protocol { &lt;ipv4_protocol&gt; | any } ] [ ip-flag [ ip-ttl { &lt;ip_flag_ttl&gt; | any } ] [ ip-options { &lt;ip_flag_options&gt; | any } ] [ ip-fragment { &lt;ip_flag_fragment&gt; | any } ] ] | ipv4-icmp [ sip { &lt;sipv4_icmp&gt; | any } ] [ dip { &lt;dipv4_icmp&gt; | any } ] [ icmp-type { &lt;icmpv4_type&gt; | any } ] [ icmp-code { &lt;icmpv4_code&gt; | any } ] [ ip-flag [ ip-ttl { &lt;ip_flag_icmp_ttl&gt; | any } ] [ ip-options { &lt;ip_flag_icmp_options&gt; | any } ] [ ip-fragment { &lt;ip_flag_icmp_fragment&gt; | any } ] ] | ipv4-udp [ sip { &lt;sipv4_udp&gt; | any } ] [ dip { &lt;dipv4_udp&gt; | any } ] [ sport { &lt;sportv4_udp_start&gt; [ to &lt;sportv4_udp_end&gt; ] | any } ] [ dport { &lt;dportv4_udp_start&gt; [ to &lt;dportv4_udp_end&gt; ] | any } ] [ ip-flag [ ip-ttl { &lt;ip_flag_udp_ttl&gt; | any } ] [ ip-options { &lt;ip_flag_udp_options&gt; | any } ] [ ip-fragment { &lt;ip_flag_udp_fragment&gt; | any } ] ] | ipv4-tcp [ sip { &lt;sipv4_tcp&gt; | any } ] [ dip { &lt;dipv4_tcp&gt; | any } ] [ sport { &lt;sportv4_tcp_start&gt; [ to &lt;sportv4_tcp_end&gt; ] | any } ] [ dport { &lt;dportv4_tcp_start&gt; [ to &lt;dportv4_tcp_end&gt; ] | any } ] [ ip-flag [ ip-ttl { &lt;ip_flag_tcp_ttl&gt; | any } ] [ ip-options { &lt;ip_flag_tcp_options&gt; | any } ] [ ip-fragment { &lt;ip_flag_tcp_fragment&gt; | any } ] ] [ tcp-flag [ tcp-fin { &lt;tcpv4_flag_fin&gt; | any } ] [ tcp-syn { &lt;tcpv4_flag_syn&gt; | any } ] [ tcp-rst { &lt;tcpv4_flag_rst&gt; | any } ] [ tcp-psh { &lt;tcpv4_flag_psh&gt; | any } ] [ tcp-ack { &lt;tcpv4_flag_ack&gt; | any } ] [ tcp-urg { &lt;tcpv4_flag_urg&gt; | any } ] ] | ipv6 [ next-header { &lt;next_header&gt; | any } ] [ sip { &lt;sipv6&gt; [ sip-bitmask &lt;sipv6_bitmask&gt; ] | any } ] [ hop-limit { &lt;hop_limit&gt; | any } ] | ipv6-icmp [ sip { &lt;sipv6_icmp&gt; [ sip-bitmask &lt;sipv6_bitmask_icmp&gt; ] | any } ] [ icmp-type { &lt;icmpv6_type&gt; | any } ] [ icmp-code { &lt;icmpv6_code&gt; | any } ] [ hop-limit { &lt;hop_limit_icmp&gt; | any } ] | ipv6-udp [ sip { &lt;sipv6_udp&gt; [ sip-bitmask &lt;sipv6_bitmask_udp&gt; ] | any } ] [ sport { &lt;sportv6_udp_start&gt; [ to &lt;sportv6_udp_end&gt; ] | any } ] [ dport { &lt;dportv6_udp_start&gt; [ to &lt;dportv6_udp_end&gt; ] | any } ] [ hop-limit { &lt;hop_limit_udp&gt; | any } ] | ipv6-tcp [ sip { &lt;sipv6_tcp&gt; [ sip-bitmask &lt;sipv6_bitmask_tcp&gt; ] | any } ] [ sport { &lt;sportv6_tcp_start&gt; [ to &lt;sportv6_tcp_end&gt; ] | any } ] [ dport { &lt;dportv6_tcp_start&gt; [ to &lt;dportv6_tcp_end&gt; ] | any } ] [ hop-limit { &lt;hop_limit_tcp&gt; | any } ] [ tcp-flag [ tcp-fin { &lt;tcpv6_flag_fin&gt; | any } ] [ tcp-syn { &lt;tcpv6_flag_syn&gt; | any } ] [ tcp-rst { &lt;tcpv6_flag_rst&gt; | any } ] [ tcp-psh { &lt;tcpv6_flag_psh&gt; | any } ] [ tcp-ack { &lt;tcpv6_flag_ack&gt; | any } ] [ tcp-urg { &lt;tcpv6_flag_urg&gt; | any } ] ] } ] [ action { permit | deny | filter { switchport &lt;filter_switch_port_list&gt; | interface &lt;port_type&gt; [ &lt;fliter_port_list&gt; ] } } ] [ rate-limiter { &lt;rate_limiter_id&gt; | disable } ] [ evc-policer { &lt;evc_policer_id&gt; | disable } ] [ { redirect | port-copy } { switchport { &lt;redirect_switch_port_id&gt; | &lt;redirect_switch_port_list&gt; } | interface { &lt;port_type&gt; &lt;redirect_port_id&gt; | &lt;port_type&gt; [ &lt;redirect_port_list&gt; ] } | disable } ] [ mirror [ disable ] ] [ logging [ disable ] ] [ shutdown [ disable ] ] [ lookup [ disable ] ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0001">
+access-list action { permit | deny } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0012">
+access-list evc-policer &lt;evc_policer_id&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0008">
+access-list logging 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0006">
+access-list mirror 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0014">
+access-list policy &lt;policy_id&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0016">
+access-list port-state 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0002">
+access-list rate-limiter &lt;rate_limiter_id&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0018">
+access-list rate-limiter [ &lt;rate_limiter_list&gt; ] { pps &lt;pps_rate&gt; | 100pps &lt;pps100_rate&gt; | kpps &lt;kpps_rate&gt; | 100kbps &lt;kpbs100_rate&gt; } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0010">
+access-list shutdown 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0004">
+access-list { redirect | port-copy } interface { &lt;port_type&gt; &lt;port_type_id&gt; | &lt;port_type&gt; [ &lt;port_type_list&gt; ] } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0023">
+clear access-list ace statistics 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0019">
+default access-list rate-limiter [ &lt;rate_limiter_list&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0021">
+no access-list ace &lt;ace_list&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0013">
+no access-list evc-policer 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0009">
+no access-list logging 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0007">
+no access-list mirror 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0015">
+no access-list policy 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0017">
+no access-list port-state 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0003">
+no access-list rate-limiter 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0011">
+no access-list shutdown 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0005">
+no access-list { redirect | port-copy } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0022">
+show access-list [ interface [ &lt;port_type&gt; [ &lt;v_port_type_list&gt; ] ] ] [ rate-limiter [ &lt;rate_limiter_list&gt; ] ] [ ace statistics [ &lt;ace_list&gt; ] ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0024">
+show access-list ace-status [ static ] [ link-oam ] [ loop-protect ] [ dhcp ] [ ptp ] [ upnp ] [ arp-inspection ] [ evc ] [ mep ] [ ipmc ] [ ip-source-guard ] [ ip-mgmt ] [ conflicts ] [ switch &lt;switch_list&gt; ] 
+</a></p>
+
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0020">
+access-list ace [ update ] &lt;ace_id&gt; [ next { &lt;ace_id_next&gt; | last } ] [ ingress { switch &lt;ingress_switch_id&gt; | switchport { &lt;ingress_switch_port_id&gt; | &lt;ingress_switch_port_list&gt; } | interface { &lt;port_type&gt; &lt;ingress_port_id&gt; | &lt;port_type&gt; [ &lt;ingress_port_list&gt; ] } | any } ] [ policy &lt;policy&gt; [ policy-bitmask &lt;policy_bitmask&gt; ] ] [ tag { tagged | untagged | any } ] [ vid { &lt;vid&gt; | any } ] [ tag-priority { &lt;tag_priority&gt; | 0-1 | 2-3 | 4-5 | 6-7 | 0-3 | 4-7 | any } ] [ dmac-type { unicast | multicast | broadcast | any } ] [ frame-type { any | etype [ etype-value { &lt;etype_value&gt; | any } ] [ smac { &lt;etype_smac&gt; | any } ] [ dmac { &lt;etype_dmac&gt; | any } ] | arp [ sip { &lt;arp_sip&gt; | any } ] [ dip { &lt;arp_dip&gt; | any } ] [ smac { &lt;arp_smac&gt; | any } ] [ arp-opcode { arp | rarp | other | any } ] [ arp-flag [ arp-request { &lt;arp_flag_request&gt; | any } ] [ arp-smac { &lt;arp_flag_smac&gt; | any } ] [ arp-tmac { &lt;arp_flag_tmac&gt; | any } ] [ arp-len { &lt;arp_flag_len&gt; | any } ] [ arp-ip { &lt;arp_flag_ip&gt; | any } ] [ arp-ether { &lt;arp_flag_ether&gt; | any } ] ] | ipv4 [ sip { &lt;sipv4&gt; | any } ] [ dip { &lt;dipv4&gt; | any } ] [ ip-protocol { &lt;ipv4_protocol&gt; | any } ] [ ip-flag [ ip-ttl { &lt;ip_flag_ttl&gt; | any } ] [ ip-options { &lt;ip_flag_options&gt; | any } ] [ ip-fragment { &lt;ip_flag_fragment&gt; | any } ] ] | ipv4-icmp [ sip { &lt;sipv4_icmp&gt; | any } ] [ dip { &lt;dipv4_icmp&gt; | any } ] [ icmp-type { &lt;icmpv4_type&gt; | any } ] [ icmp-code { &lt;icmpv4_code&gt; | any } ] [ ip-flag [ ip-ttl { &lt;ip_flag_icmp_ttl&gt; | any } ] [ ip-options { &lt;ip_flag_icmp_options&gt; | any } ] [ ip-fragment { &lt;ip_flag_icmp_fragment&gt; | any } ] ] | ipv4-udp [ sip { &lt;sipv4_udp&gt; | any } ] [ dip { &lt;dipv4_udp&gt; | any } ] [ sport { &lt;sportv4_udp_start&gt; [ to &lt;sportv4_udp_end&gt; ] | any } ] [ dport { &lt;dportv4_udp_start&gt; [ to &lt;dportv4_udp_end&gt; ] | any } ] [ ip-flag [ ip-ttl { &lt;ip_flag_udp_ttl&gt; | any } ] [ ip-options { &lt;ip_flag_udp_options&gt; | any } ] [ ip-fragment { &lt;ip_flag_udp_fragment&gt; | any } ] ] | ipv4-tcp [ sip { &lt;sipv4_tcp&gt; | any } ] [ dip { &lt;dipv4_tcp&gt; | any } ] [ sport { &lt;sportv4_tcp_start&gt; [ to &lt;sportv4_tcp_end&gt; ] | any } ] [ dport { &lt;dportv4_tcp_start&gt; [ to &lt;dportv4_tcp_end&gt; ] | any } ] [ ip-flag [ ip-ttl { &lt;ip_flag_tcp_ttl&gt; | any } ] [ ip-options { &lt;ip_flag_tcp_options&gt; | any } ] [ ip-fragment { &lt;ip_flag_tcp_fragment&gt; | any } ] ] [ tcp-flag [ tcp-fin { &lt;tcpv4_flag_fin&gt; | any } ] [ tcp-syn { &lt;tcpv4_flag_syn&gt; | any } ] [ tcp-rst { &lt;tcpv4_flag_rst&gt; | any } ] [ tcp-psh { &lt;tcpv4_flag_psh&gt; | any } ] [ tcp-ack { &lt;tcpv4_flag_ack&gt; | any } ] [ tcp-urg { &lt;tcpv4_flag_urg&gt; | any } ] ] | ipv6 [ next-header { &lt;next_header&gt; | any } ] [ sip { &lt;sipv6&gt; [ sip-bitmask &lt;sipv6_bitmask&gt; ] | any } ] [ hop-limit { &lt;hop_limit&gt; | any } ] | ipv6-icmp [ sip { &lt;sipv6_icmp&gt; [ sip-bitmask &lt;sipv6_bitmask_icmp&gt; ] | any } ] [ icmp-type { &lt;icmpv6_type&gt; | any } ] [ icmp-code { &lt;icmpv6_code&gt; | any } ] [ hop-limit { &lt;hop_limit_icmp&gt; | any } ] | ipv6-udp [ sip { &lt;sipv6_udp&gt; [ sip-bitmask &lt;sipv6_bitmask_udp&gt; ] | any } ] [ sport { &lt;sportv6_udp_start&gt; [ to &lt;sportv6_udp_end&gt; ] | any } ] [ dport { &lt;dportv6_udp_start&gt; [ to &lt;dportv6_udp_end&gt; ] | any } ] [ hop-limit { &lt;hop_limit_udp&gt; | any } ] | ipv6-tcp [ sip { &lt;sipv6_tcp&gt; [ sip-bitmask &lt;sipv6_bitmask_tcp&gt; ] | any } ] [ sport { &lt;sportv6_tcp_start&gt; [ to &lt;sportv6_tcp_end&gt; ] | any } ] [ dport { &lt;dportv6_tcp_start&gt; [ to &lt;dportv6_tcp_end&gt; ] | any } ] [ hop-limit { &lt;hop_limit_tcp&gt; | any } ] [ tcp-flag [ tcp-fin { &lt;tcpv6_flag_fin&gt; | any } ] [ tcp-syn { &lt;tcpv6_flag_syn&gt; | any } ] [ tcp-rst { &lt;tcpv6_flag_rst&gt; | any } ] [ tcp-psh { &lt;tcpv6_flag_psh&gt; | any } ] [ tcp-ack { &lt;tcpv6_flag_ack&gt; | any } ] [ tcp-urg { &lt;tcpv6_flag_urg&gt; | any } ] ] } ] [ action { permit | deny | filter { switchport &lt;filter_switch_port_list&gt; | interface &lt;port_type&gt; [ &lt;fliter_port_list&gt; ] } } ] [ rate-limiter { &lt;rate_limiter_id&gt; | disable } ] [ evc-policer { &lt;evc_policer_id&gt; | disable } ] [ { redirect | port-copy } { switchport { &lt;redirect_switch_port_id&gt; | &lt;redirect_switch_port_list&gt; } | interface { &lt;port_type&gt; &lt;redirect_port_id&gt; | &lt;port_type&gt; [ &lt;redirect_port_list&gt; ] } | disable } ] [ mirror [ disable ] ] [ logging [ disable ] ] [ shutdown [ disable ] ] [ lookup [ disable ] ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+ace
+</p>
+<p class=CmdSubDesc2>
+Access list entry
+</p>
+<p class=CmdSubTitle2>
+update
+</p>
+<p class=CmdSubDesc2>
+Update an existing ACE
+</p>
+<p class=CmdSubTitle2>
+&lt;ace_id&gt;
+</p>
+<p class=CmdSubDesc2>
+ACE ID
+</p>
+<p class=CmdSubTitle2>
+next
+</p>
+<p class=CmdSubDesc2>
+insert the current ACE before the next ACE ID
+</p>
+<p class=CmdSubTitle2>
+&lt;ace_id_next&gt;
+</p>
+<p class=CmdSubDesc2>
+The next ID
+</p>
+<p class=CmdSubTitle2>
+last
+</p>
+<p class=CmdSubDesc2>
+Place the current ACE to the end of access list
+</p>
+<p class=CmdSubTitle2>
+ingress
+</p>
+<p class=CmdSubDesc2>
+Ingress
+</p>
+<p class=CmdSubTitle2>
+switch
+</p>
+<p class=CmdSubDesc2>
+Switch
+</p>
+<p class=CmdSubTitle2>
+&lt;ingress_switch_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Switch ID
+</p>
+<p class=CmdSubTitle2>
+switchport
+</p>
+<p class=CmdSubDesc2>
+Switchport
+</p>
+<p class=CmdSubTitle2>
+&lt;ingress_switch_port_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Swithport ID
+</p>
+<p class=CmdSubTitle2>
+&lt;ingress_switch_port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of swithport ID
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+Select an interface to configure
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;ingress_port_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Port ID in the format of switch-no/port-no
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;ingress_port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of Port ID, ex, 1/1,3-5;2/2-4,6
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the ingress interface
+</p>
+<p class=CmdSubTitle2>
+policy
+</p>
+<p class=CmdSubDesc2>
+Policy
+</p>
+<p class=CmdSubTitle2>
+&lt;policy&gt;
+</p>
+<p class=CmdSubDesc2>
+Policy ID
+</p>
+<p class=CmdSubTitle2>
+policy-bitmask
+</p>
+<p class=CmdSubDesc2>
+The bitmask for policy ID
+</p>
+<p class=CmdSubTitle2>
+&lt;policy_bitmask&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of policy bitmask
+</p>
+<p class=CmdSubTitle2>
+tag
+</p>
+<p class=CmdSubDesc2>
+Tag
+</p>
+<p class=CmdSubTitle2>
+tagged
+</p>
+<p class=CmdSubDesc2>
+Tagged
+</p>
+<p class=CmdSubTitle2>
+untagged
+</p>
+<p class=CmdSubDesc2>
+Untagged
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care tagged or untagged
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+VID field
+</p>
+<p class=CmdSubTitle2>
+&lt;vid&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of VID field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of VID field
+</p>
+<p class=CmdSubTitle2>
+tag-priority
+</p>
+<p class=CmdSubDesc2>
+Tag priority
+</p>
+<p class=CmdSubTitle2>
+&lt;tag_priority&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of tag priority
+</p>
+<p class=CmdSubTitle2>
+0-1
+</p>
+<p class=CmdSubDesc2>
+The range of tag priority
+</p>
+<p class=CmdSubTitle2>
+2-3
+</p>
+<p class=CmdSubDesc2>
+The range of tag priority
+</p>
+<p class=CmdSubTitle2>
+4-5
+</p>
+<p class=CmdSubDesc2>
+The range of tag priority
+</p>
+<p class=CmdSubTitle2>
+6-7
+</p>
+<p class=CmdSubDesc2>
+The range of tag priority
+</p>
+<p class=CmdSubTitle2>
+0-3
+</p>
+<p class=CmdSubDesc2>
+The range of tag priority
+</p>
+<p class=CmdSubTitle2>
+4-7
+</p>
+<p class=CmdSubDesc2>
+The range of tag priority
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of tag priority field
+</p>
+<p class=CmdSubTitle2>
+dmac-type
+</p>
+<p class=CmdSubDesc2>
+The type of destination MAC address
+</p>
+<p class=CmdSubTitle2>
+unicast
+</p>
+<p class=CmdSubDesc2>
+Unicast destination MAC address
+</p>
+<p class=CmdSubTitle2>
+multicast
+</p>
+<p class=CmdSubDesc2>
+Multicast destination MAC address
+</p>
+<p class=CmdSubTitle2>
+broadcast
+</p>
+<p class=CmdSubDesc2>
+Broadcast destination MAC address
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the type of destination MAC address
+</p>
+<p class=CmdSubTitle2>
+frame-type
+</p>
+<p class=CmdSubDesc2>
+Frame type
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the frame type
+</p>
+<p class=CmdSubTitle2>
+etype
+</p>
+<p class=CmdSubDesc2>
+Frame type of etype
+</p>
+<p class=CmdSubTitle2>
+etype-value
+</p>
+<p class=CmdSubDesc2>
+Etype value
+</p>
+<p class=CmdSubTitle2>
+&lt;etype_value&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of etype field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of etype field
+</p>
+<p class=CmdSubTitle2>
+smac
+</p>
+<p class=CmdSubDesc2>
+Source MAC address field
+</p>
+<p class=CmdSubTitle2>
+&lt;etype_smac&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of source MAC address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of source MAC address field
+</p>
+<p class=CmdSubTitle2>
+dmac
+</p>
+<p class=CmdSubDesc2>
+Destination MAC address field
+</p>
+<p class=CmdSubTitle2>
+&lt;etype_dmac&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of destination MAC address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of destination MAC address field
+</p>
+<p class=CmdSubTitle2>
+arp
+</p>
+<p class=CmdSubDesc2>
+Frame type of ARP
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+Source IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;arp_sip&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+dip
+</p>
+<p class=CmdSubDesc2>
+Destination IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;arp_dip&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of destination IP address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of destination IP address field
+</p>
+<p class=CmdSubTitle2>
+smac
+</p>
+<p class=CmdSubDesc2>
+Source MAC address field
+</p>
+<p class=CmdSubTitle2>
+&lt;arp_smac&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of source MAC address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of source MAC address field
+</p>
+<p class=CmdSubTitle2>
+arp-opcode
+</p>
+<p class=CmdSubDesc2>
+ARP/RARP opcode field
+</p>
+<p class=CmdSubTitle2>
+arp
+</p>
+<p class=CmdSubDesc2>
+ARP opcode
+</p>
+<p class=CmdSubTitle2>
+rarp
+</p>
+<p class=CmdSubDesc2>
+RARP opcode
+</p>
+<p class=CmdSubTitle2>
+other
+</p>
+<p class=CmdSubDesc2>
+None ARP/RARP opcode
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of ARP/RARP opcode field
+</p>
+<p class=CmdSubTitle2>
+arp-flag
+</p>
+<p class=CmdSubDesc2>
+ARP flag
+</p>
+<p class=CmdSubTitle2>
+arp-request
+</p>
+<p class=CmdSubDesc2>
+ARP Request/Reply opcode field
+</p>
+<p class=CmdSubTitle2>
+&lt;arp_flag_request&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of ARP Request/Reply opcode field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of ARP Request/Reply opcode field
+</p>
+<p class=CmdSubTitle2>
+arp-smac
+</p>
+<p class=CmdSubDesc2>
+ARP sender hardware address (SHA) field
+</p>
+<p class=CmdSubTitle2>
+&lt;arp_flag_smac&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of ARP sender hardware address (SHA) field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of ARP sender hardware address (SHA) field
+</p>
+<p class=CmdSubTitle2>
+arp-tmac
+</p>
+<p class=CmdSubDesc2>
+ARP target hardware address (THA) field
+</p>
+<p class=CmdSubTitle2>
+&lt;arp_flag_tmac&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of ARP target hardware address (THA) field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of ARP target hardware address (THA) field
+</p>
+<p class=CmdSubTitle2>
+arp-len
+</p>
+<p class=CmdSubDesc2>
+ARP/RARP hardware address length (HLN) and protocol address length (PLN) field
+</p>
+<p class=CmdSubTitle2>
+&lt;arp_flag_len&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of ARP/RARP hardware address length (HLN) and protocol address length (PLN) field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of ARP/RARP hardware address length (HLN) and protocol address length (PLN) field
+</p>
+<p class=CmdSubTitle2>
+arp-ip
+</p>
+<p class=CmdSubDesc2>
+ARP/RARP hardware address space (HRD) field
+</p>
+<p class=CmdSubTitle2>
+&lt;arp_flag_ip&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of ARP/RARP hardware address space (HRD) field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of ARP/RARP hardware address space (HRD) field
+</p>
+<p class=CmdSubTitle2>
+arp-ether
+</p>
+<p class=CmdSubDesc2>
+ARP/RARP protocol address space (PRO) field
+</p>
+<p class=CmdSubTitle2>
+&lt;arp_flag_ether&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of ARP/RARP protocol address space (PRO) field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of ARP/RARP protocol address space (PRO) field
+</p>
+<p class=CmdSubTitle2>
+ipv4
+</p>
+<p class=CmdSubDesc2>
+Frame type of IPv4
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+Source IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv4&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+dip
+</p>
+<p class=CmdSubDesc2>
+Destination IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;dipv4&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of destination IP address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of destination IP address field
+</p>
+<p class=CmdSubTitle2>
+ip-protocol
+</p>
+<p class=CmdSubDesc2>
+HELP_ACE_IP_PROTO
+</p>
+<p class=CmdSubTitle2>
+&lt;ipv4_protocol&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 protocol field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 protocol field
+</p>
+<p class=CmdSubTitle2>
+ip-flag
+</p>
+<p class=CmdSubDesc2>
+IP flag
+</p>
+<p class=CmdSubTitle2>
+ip-ttl
+</p>
+<p class=CmdSubDesc2>
+IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_ttl&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+ip-options
+</p>
+<p class=CmdSubDesc2>
+IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_options&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+ip-fragment
+</p>
+<p class=CmdSubDesc2>
+IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_fragment&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+ipv4-icmp
+</p>
+<p class=CmdSubDesc2>
+Frame type of IPv4 ICMP
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+Source IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv4_icmp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+dip
+</p>
+<p class=CmdSubDesc2>
+Destination IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;dipv4_icmp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of destination IP address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of destination IP address field
+</p>
+<p class=CmdSubTitle2>
+icmp-type
+</p>
+<p class=CmdSubDesc2>
+ICMP type field
+</p>
+<p class=CmdSubTitle2>
+&lt;icmpv4_type&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of ICMP type field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of ICMP type field
+</p>
+<p class=CmdSubTitle2>
+icmp-code
+</p>
+<p class=CmdSubDesc2>
+ICMP code field
+</p>
+<p class=CmdSubTitle2>
+&lt;icmpv4_code&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of ICMP code field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of ICMP code field
+</p>
+<p class=CmdSubTitle2>
+ip-flag
+</p>
+<p class=CmdSubDesc2>
+IP flag
+</p>
+<p class=CmdSubTitle2>
+ip-ttl
+</p>
+<p class=CmdSubDesc2>
+IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_icmp_ttl&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+ip-options
+</p>
+<p class=CmdSubDesc2>
+IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_icmp_options&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+ip-fragment
+</p>
+<p class=CmdSubDesc2>
+IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_icmp_fragment&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+ipv4-udp
+</p>
+<p class=CmdSubDesc2>
+Frame type of IPv4 TCP
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+Source IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv4_udp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+dip
+</p>
+<p class=CmdSubDesc2>
+Destination IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;dipv4_udp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of destination IP address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of destination IP address field
+</p>
+<p class=CmdSubTitle2>
+sport
+</p>
+<p class=CmdSubDesc2>
+UDP source port field
+</p>
+<p class=CmdSubTitle2>
+&lt;sportv4_udp_start&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of UDP source port field
+</p>
+<p class=CmdSubTitle2>
+to
+</p>
+<p class=CmdSubDesc2>
+Port range
+</p>
+<p class=CmdSubTitle2>
+&lt;sportv4_udp_end&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of UDP source port field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+The value of UDP source port field
+</p>
+<p class=CmdSubTitle2>
+dport
+</p>
+<p class=CmdSubDesc2>
+UDP destination port field
+</p>
+<p class=CmdSubTitle2>
+&lt;dportv4_udp_start&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of UDP destination port field
+</p>
+<p class=CmdSubTitle2>
+to
+</p>
+<p class=CmdSubDesc2>
+Port range
+</p>
+<p class=CmdSubTitle2>
+&lt;dportv4_udp_end&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of UDP destination port field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of UDP destination port field
+</p>
+<p class=CmdSubTitle2>
+ip-flag
+</p>
+<p class=CmdSubDesc2>
+IP flag
+</p>
+<p class=CmdSubTitle2>
+ip-ttl
+</p>
+<p class=CmdSubDesc2>
+IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_udp_ttl&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+ip-options
+</p>
+<p class=CmdSubDesc2>
+IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_udp_options&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+ip-fragment
+</p>
+<p class=CmdSubDesc2>
+IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_udp_fragment&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+ipv4-tcp
+</p>
+<p class=CmdSubDesc2>
+Frame type of IPv4 TCP
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+Source IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv4_tcp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+dip
+</p>
+<p class=CmdSubDesc2>
+Destination IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;dipv4_tcp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of destination IP address field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of destination IP address field
+</p>
+<p class=CmdSubTitle2>
+sport
+</p>
+<p class=CmdSubDesc2>
+TCP source port field
+</p>
+<p class=CmdSubTitle2>
+&lt;sportv4_tcp_start&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP source port field
+</p>
+<p class=CmdSubTitle2>
+to
+</p>
+<p class=CmdSubDesc2>
+Port range
+</p>
+<p class=CmdSubTitle2>
+&lt;sportv4_tcp_end&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP source port field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP source port field
+</p>
+<p class=CmdSubTitle2>
+dport
+</p>
+<p class=CmdSubDesc2>
+TCP destination port field
+</p>
+<p class=CmdSubTitle2>
+&lt;dportv4_tcp_start&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP destination Iport field
+</p>
+<p class=CmdSubTitle2>
+to
+</p>
+<p class=CmdSubDesc2>
+Port range
+</p>
+<p class=CmdSubTitle2>
+&lt;dportv4_tcp_end&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP destination Iport field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP destination port field
+</p>
+<p class=CmdSubTitle2>
+ip-flag
+</p>
+<p class=CmdSubDesc2>
+IP flag
+</p>
+<p class=CmdSubTitle2>
+ip-ttl
+</p>
+<p class=CmdSubDesc2>
+IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_tcp_ttl&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 TTL field
+</p>
+<p class=CmdSubTitle2>
+ip-options
+</p>
+<p class=CmdSubDesc2>
+IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_tcp_options&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 options field
+</p>
+<p class=CmdSubTitle2>
+ip-fragment
+</p>
+<p class=CmdSubDesc2>
+IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+&lt;ip_flag_tcp_fragment&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv4 fragment field
+</p>
+<p class=CmdSubTitle2>
+tcp-flag
+</p>
+<p class=CmdSubDesc2>
+TCP flag
+</p>
+<p class=CmdSubTitle2>
+tcp-fin
+</p>
+<p class=CmdSubDesc2>
+TCP FIN field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv4_flag_fin&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP FIN field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP FIN field
+</p>
+<p class=CmdSubTitle2>
+tcp-syn
+</p>
+<p class=CmdSubDesc2>
+TCP SYN field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv4_flag_syn&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP SYN field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP SYN field
+</p>
+<p class=CmdSubTitle2>
+tcp-rst
+</p>
+<p class=CmdSubDesc2>
+TCP RST field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv4_flag_rst&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP RST field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP RST field
+</p>
+<p class=CmdSubTitle2>
+tcp-psh
+</p>
+<p class=CmdSubDesc2>
+TCP PSH field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv4_flag_psh&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP PSH field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP PSH field
+</p>
+<p class=CmdSubTitle2>
+tcp-ack
+</p>
+<p class=CmdSubDesc2>
+TCP ACK field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv4_flag_ack&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP ACK field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP ACK field
+</p>
+<p class=CmdSubTitle2>
+tcp-urg
+</p>
+<p class=CmdSubDesc2>
+TCP URG field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv4_flag_urg&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP URG field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP URG field
+</p>
+<p class=CmdSubTitle2>
+ipv6
+</p>
+<p class=CmdSubDesc2>
+Frame type of IPv6
+</p>
+<p class=CmdSubTitle2>
+next-header
+</p>
+<p class=CmdSubDesc2>
+IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+&lt;next_header&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv6 next header field
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+Source IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv6&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+sip-bitmask
+</p>
+<p class=CmdSubDesc2>
+The bitmask for IPv6 source address
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv6_bitmask&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv6 source address bitmask
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+hop-limit
+</p>
+<p class=CmdSubDesc2>
+IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+&lt;hop_limit&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+ipv6-icmp
+</p>
+<p class=CmdSubDesc2>
+Frame type of IPv6 ICMP
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+Source IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv6_icmp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+sip-bitmask
+</p>
+<p class=CmdSubDesc2>
+The bitmask for IPv6 source address
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv6_bitmask_icmp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv6 source address bitmask
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+icmp-type
+</p>
+<p class=CmdSubDesc2>
+ICMP type field
+</p>
+<p class=CmdSubTitle2>
+&lt;icmpv6_type&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of ICMP type field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of ICMP type field
+</p>
+<p class=CmdSubTitle2>
+icmp-code
+</p>
+<p class=CmdSubDesc2>
+ICMP code field
+</p>
+<p class=CmdSubTitle2>
+&lt;icmpv6_code&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of ICMP code field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of ICMP code field
+</p>
+<p class=CmdSubTitle2>
+hop-limit
+</p>
+<p class=CmdSubDesc2>
+IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+&lt;hop_limit_icmp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+ipv6-udp
+</p>
+<p class=CmdSubDesc2>
+Frame type of IPv6 UDP
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+Source IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv6_udp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+sip-bitmask
+</p>
+<p class=CmdSubDesc2>
+The bitmask for IPv6 source address
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv6_bitmask_udp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv6 source address bitmask
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+sport
+</p>
+<p class=CmdSubDesc2>
+UDP source port field
+</p>
+<p class=CmdSubTitle2>
+&lt;sportv6_udp_start&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of UDP source port field
+</p>
+<p class=CmdSubTitle2>
+to
+</p>
+<p class=CmdSubDesc2>
+Port range
+</p>
+<p class=CmdSubTitle2>
+&lt;sportv6_udp_end&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of UDP source port field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+The value of UDP source port field
+</p>
+<p class=CmdSubTitle2>
+dport
+</p>
+<p class=CmdSubDesc2>
+UDP destination port field
+</p>
+<p class=CmdSubTitle2>
+&lt;dportv6_udp_start&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of UDP destination port field
+</p>
+<p class=CmdSubTitle2>
+to
+</p>
+<p class=CmdSubDesc2>
+Port range
+</p>
+<p class=CmdSubTitle2>
+&lt;dportv6_udp_end&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of UDP destination port field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of UDP destination port field
+</p>
+<p class=CmdSubTitle2>
+hop-limit
+</p>
+<p class=CmdSubDesc2>
+IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+&lt;hop_limit_udp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+ipv6-tcp
+</p>
+<p class=CmdSubDesc2>
+Frame type of IPv6 TCP
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+Source IP address field
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv6_tcp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+sip-bitmask
+</p>
+<p class=CmdSubDesc2>
+The bitmask for IPv6 source address
+</p>
+<p class=CmdSubTitle2>
+&lt;sipv6_bitmask_tcp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv6 source address bitmask
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of source IP address field
+</p>
+<p class=CmdSubTitle2>
+sport
+</p>
+<p class=CmdSubDesc2>
+TCP source port field
+</p>
+<p class=CmdSubTitle2>
+&lt;sportv6_tcp_start&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP source port field
+</p>
+<p class=CmdSubTitle2>
+to
+</p>
+<p class=CmdSubDesc2>
+Port range
+</p>
+<p class=CmdSubTitle2>
+&lt;sportv6_tcp_end&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP source port field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP source port field
+</p>
+<p class=CmdSubTitle2>
+dport
+</p>
+<p class=CmdSubDesc2>
+TCP destination port field
+</p>
+<p class=CmdSubTitle2>
+&lt;dportv6_tcp_start&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP destination Iport field
+</p>
+<p class=CmdSubTitle2>
+to
+</p>
+<p class=CmdSubDesc2>
+Port range
+</p>
+<p class=CmdSubTitle2>
+&lt;dportv6_tcp_end&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP destination Iport field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP destination port field
+</p>
+<p class=CmdSubTitle2>
+hop-limit
+</p>
+<p class=CmdSubDesc2>
+IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+&lt;hop_limit_tcp&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of IPv6 hop limiter field
+</p>
+<p class=CmdSubTitle2>
+tcp-flag
+</p>
+<p class=CmdSubDesc2>
+TCP flag
+</p>
+<p class=CmdSubTitle2>
+tcp-fin
+</p>
+<p class=CmdSubDesc2>
+TCP FIN field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv6_flag_fin&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP FIN field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP FIN field
+</p>
+<p class=CmdSubTitle2>
+tcp-syn
+</p>
+<p class=CmdSubDesc2>
+TCP SYN field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv6_flag_syn&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP SYN field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP SYN field
+</p>
+<p class=CmdSubTitle2>
+tcp-rst
+</p>
+<p class=CmdSubDesc2>
+TCP RST field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv6_flag_rst&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP RST field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP RST field
+</p>
+<p class=CmdSubTitle2>
+tcp-psh
+</p>
+<p class=CmdSubDesc2>
+TCP PSH field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv6_flag_psh&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP PSH field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP PSH field
+</p>
+<p class=CmdSubTitle2>
+tcp-ack
+</p>
+<p class=CmdSubDesc2>
+TCP ACK field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv6_flag_ack&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP ACK field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP ACK field
+</p>
+<p class=CmdSubTitle2>
+tcp-urg
+</p>
+<p class=CmdSubDesc2>
+TCP URG field
+</p>
+<p class=CmdSubTitle2>
+&lt;tcpv6_flag_urg&gt;
+</p>
+<p class=CmdSubDesc2>
+The value of TCP URG field
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Don't-care the value of TCP URG field
+</p>
+<p class=CmdSubTitle2>
+action
+</p>
+<p class=CmdSubDesc2>
+Access list action
+</p>
+<p class=CmdSubTitle2>
+permit
+</p>
+<p class=CmdSubDesc2>
+Permit
+</p>
+<p class=CmdSubTitle2>
+deny
+</p>
+<p class=CmdSubDesc2>
+Deny
+</p>
+<p class=CmdSubTitle2>
+filter
+</p>
+<p class=CmdSubDesc2>
+Filter
+</p>
+<p class=CmdSubTitle2>
+switchport
+</p>
+<p class=CmdSubDesc2>
+Switchport
+</p>
+<p class=CmdSubTitle2>
+&lt;filter_switch_port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of swithport ID
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+Select an interface to configure
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;fliter_port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of Port ID, ex, 1/1,3-5;2/2-4,6
+</p>
+<p class=CmdSubTitle2>
+rate-limiter
+</p>
+<p class=CmdSubDesc2>
+Rate limiter
+</p>
+<p class=CmdSubTitle2>
+&lt;rate_limiter_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Rate limiter ID
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable rate-limiter
+</p>
+<p class=CmdSubTitle2>
+evc-policer
+</p>
+<p class=CmdSubDesc2>
+EVC policer
+</p>
+<p class=CmdSubTitle2>
+&lt;evc_policer_id&gt;
+</p>
+<p class=CmdSubDesc2>
+EVC policer ID
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable evc-policer
+</p>
+<p class=CmdSubTitle2>
+redirect
+</p>
+<p class=CmdSubDesc2>
+Redirect frame to specific port
+</p>
+<p class=CmdSubTitle2>
+port-copy
+</p>
+<p class=CmdSubDesc2>
+Copy frame to specific port
+</p>
+<p class=CmdSubTitle2>
+switchport
+</p>
+<p class=CmdSubDesc2>
+Switchport
+</p>
+<p class=CmdSubTitle2>
+&lt;redirect_switch_port_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Swithport ID
+</p>
+<p class=CmdSubTitle2>
+&lt;redirect_switch_port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of swithport ID
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+Select an interface to configure
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;redirect_port_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Port ID in the format of switch-no/port-no
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;redirect_port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of Port ID, ex, 1/1,3-5;2/2-4,6
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable
+</p>
+<p class=CmdSubTitle2>
+mirror
+</p>
+<p class=CmdSubDesc2>
+Mirror frame to destination mirror port
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable mirror
+</p>
+<p class=CmdSubTitle2>
+logging
+</p>
+<p class=CmdSubDesc2>
+Logging frame information. Note: The logging feature only works when the packet length is less than 1518 (without VLAN tags) and the System Log memory size and logging rate is limited.
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable logging
+</p>
+<p class=CmdSubTitle2>
+shutdown
+</p>
+<p class=CmdSubDesc2>
+Shutdown incoming port. The shutdown feature only works when the packet length is less than 1518 (without VLAN tags).
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable shutdown
+</p>
+<p class=CmdSubTitle2>
+lookup
+</p>
+<p class=CmdSubDesc2>
+Second lookup
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable second lookup
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0001">
+access-list action { permit | deny } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+action
+</p>
+<p class=CmdSubDesc2>
+Access list action
+</p>
+<p class=CmdSubTitle2>
+permit
+</p>
+<p class=CmdSubDesc2>
+Permit
+</p>
+<p class=CmdSubTitle2>
+deny
+</p>
+<p class=CmdSubDesc2>
+Deny
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0012">
+access-list evc-policer &lt;evc_policer_id&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+evc-policer
+</p>
+<p class=CmdSubDesc2>
+EVC policer
+</p>
+<p class=CmdSubTitle2>
+&lt;evc_policer_id&gt;
+</p>
+<p class=CmdSubDesc2>
+EVC policer ID
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0008">
+access-list logging 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+logging
+</p>
+<p class=CmdSubDesc2>
+Logging frame information. Note: The logging feature only works when the packet length is less than 1518 (without VLAN tags) and the System Log memory size and logging rate is limited.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0006">
+access-list mirror 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+mirror
+</p>
+<p class=CmdSubDesc2>
+Mirror frame to destination mirror port
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0014">
+access-list policy &lt;policy_id&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+policy
+</p>
+<p class=CmdSubDesc2>
+Policy
+</p>
+<p class=CmdSubTitle2>
+&lt;policy_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Policy ID
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0016">
+access-list port-state 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+port-state
+</p>
+<p class=CmdSubDesc2>
+Re-enable shutdown port that was shutdown by access-list module
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0002">
+access-list rate-limiter &lt;rate_limiter_id&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+rate-limiter
+</p>
+<p class=CmdSubDesc2>
+Rate limiter
+</p>
+<p class=CmdSubTitle2>
+&lt;rate_limiter_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Rate limiter ID
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0018">
+access-list rate-limiter [ &lt;rate_limiter_list&gt; ] { pps &lt;pps_rate&gt; | 100pps &lt;pps100_rate&gt; | kpps &lt;kpps_rate&gt; | 100kbps &lt;kpbs100_rate&gt; } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+rate-limiter
+</p>
+<p class=CmdSubDesc2>
+Rate limiter
+</p>
+<p class=CmdSubTitle2>
+&lt;rate_limiter_list&gt;
+</p>
+<p class=CmdSubDesc2>
+Rate limiter ID
+</p>
+<p class=CmdSubTitle2>
+pps
+</p>
+<p class=CmdSubDesc2>
+Packets per second
+</p>
+<p class=CmdSubTitle2>
+&lt;pps_rate&gt;
+</p>
+<p class=CmdSubDesc2>
+Rate value
+</p>
+<p class=CmdSubTitle2>
+100pps
+</p>
+<p class=CmdSubDesc2>
+100 packets per second
+</p>
+<p class=CmdSubTitle2>
+&lt;pps100_rate&gt;
+</p>
+<p class=CmdSubDesc2>
+Rate value
+</p>
+<p class=CmdSubTitle2>
+kpps
+</p>
+<p class=CmdSubDesc2>
+1K packets per second
+</p>
+<p class=CmdSubTitle2>
+&lt;kpps_rate&gt;
+</p>
+<p class=CmdSubDesc2>
+Rate value
+</p>
+<p class=CmdSubTitle2>
+100kbps
+</p>
+<p class=CmdSubDesc2>
+100k bits per second
+</p>
+<p class=CmdSubTitle2>
+&lt;kpbs100_rate&gt;
+</p>
+<p class=CmdSubDesc2>
+Rate value
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0010">
+access-list shutdown 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+shutdown
+</p>
+<p class=CmdSubDesc2>
+Shutdown incoming port. The shutdown feature only works when the packet length is less than 1518 (without VLAN tags).
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0004">
+access-list { redirect | port-copy } interface { &lt;port_type&gt; &lt;port_type_id&gt; | &lt;port_type&gt; [ &lt;port_type_list&gt; ] } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+redirect
+</p>
+<p class=CmdSubDesc2>
+Redirect frame to specific port
+</p>
+<p class=CmdSubTitle2>
+port-copy
+</p>
+<p class=CmdSubDesc2>
+Copy frame to specific port
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+Select an interface to configure
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Port ID in the format of switch-no/port-no
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of Port ID, ex, 1/1,3-5;2/2-4,6
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0023">
+clear access-list ace statistics 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+clear
+</p>
+<p class=CmdSubDesc2>
+Reset functions
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+ace
+</p>
+<p class=CmdSubDesc2>
+Access list entry
+</p>
+<p class=CmdSubTitle2>
+statistics
+</p>
+<p class=CmdSubDesc2>
+Traffic statistics
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0019">
+default access-list rate-limiter [ &lt;rate_limiter_list&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+default
+</p>
+<p class=CmdSubDesc2>
+Set a command to its defaults
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+rate-limiter
+</p>
+<p class=CmdSubDesc2>
+Rate limiter
+</p>
+<p class=CmdSubTitle2>
+&lt;rate_limiter_list&gt;
+</p>
+<p class=CmdSubDesc2>
+Rate limiter ID
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0021">
+no access-list ace &lt;ace_list&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+ace
+</p>
+<p class=CmdSubDesc2>
+Access list entry
+</p>
+<p class=CmdSubTitle2>
+&lt;ace_list&gt;
+</p>
+<p class=CmdSubDesc2>
+ACE ID
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0013">
+no access-list evc-policer 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+evc-policer
+</p>
+<p class=CmdSubDesc2>
+EVC policer
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0009">
+no access-list logging 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+logging
+</p>
+<p class=CmdSubDesc2>
+Logging frame information. Note: The logging feature only works when the packet length is less than 1518 (without VLAN tags) and the System Log memory size and logging rate is limited.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0007">
+no access-list mirror 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+mirror
+</p>
+<p class=CmdSubDesc2>
+Mirror frame to destination mirror port
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0015">
+no access-list policy 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+policy
+</p>
+<p class=CmdSubDesc2>
+Policy
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0017">
+no access-list port-state 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+port-state
+</p>
+<p class=CmdSubDesc2>
+Re-enable shutdown port that was shutdown by access-list module
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0003">
+no access-list rate-limiter 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+rate-limiter
+</p>
+<p class=CmdSubDesc2>
+Rate limiter
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0011">
+no access-list shutdown 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+shutdown
+</p>
+<p class=CmdSubDesc2>
+Shutdown incoming port. The shutdown feature only works when the packet length is less than 1518 (without VLAN tags).
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0005">
+no access-list { redirect | port-copy } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+redirect
+</p>
+<p class=CmdSubDesc2>
+Redirect frame to specific port
+</p>
+<p class=CmdSubTitle2>
+port-copy
+</p>
+<p class=CmdSubDesc2>
+Copy frame to specific port
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0022">
+show access-list [ interface [ &lt;port_type&gt; [ &lt;v_port_type_list&gt; ] ] ] [ rate-limiter [ &lt;rate_limiter_list&gt; ] ] [ ace statistics [ &lt;ace_list&gt; ] ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+Show running system information
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+Select an interface to configure
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;v_port_type_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of Port ID, ex, 1/1,3-5;2/2-4,6
+</p>
+<p class=CmdSubTitle2>
+rate-limiter
+</p>
+<p class=CmdSubDesc2>
+Rate limiter
+</p>
+<p class=CmdSubTitle2>
+&lt;rate_limiter_list&gt;
+</p>
+<p class=CmdSubDesc2>
+Rate limiter ID
+</p>
+<p class=CmdSubTitle2>
+ace
+</p>
+<p class=CmdSubDesc2>
+Access list entry
+</p>
+<p class=CmdSubTitle2>
+statistics
+</p>
+<p class=CmdSubDesc2>
+Traffic statistics
+</p>
+<p class=CmdSubTitle2>
+&lt;ace_list&gt;
+</p>
+<p class=CmdSubDesc2>
+ACE ID
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0024">
+show access-list ace-status [ static ] [ link-oam ] [ loop-protect ] [ dhcp ] [ ptp ] [ upnp ] [ arp-inspection ] [ evc ] [ mep ] [ ipmc ] [ ip-source-guard ] [ ip-mgmt ] [ conflicts ] [ switch &lt;switch_list&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+Show running system information
+</p>
+<p class=CmdSubTitle2>
+access-list
+</p>
+<p class=CmdSubDesc2>
+Access list
+</p>
+<p class=CmdSubTitle2>
+ace-status
+</p>
+<p class=CmdSubDesc2>
+The local ACEs status
+</p>
+<p class=CmdSubTitle2>
+static
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by users manually
+</p>
+<p class=CmdSubTitle2>
+link-oam
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by Link OAM module
+</p>
+<p class=CmdSubTitle2>
+loop-protect
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by Loop Protect module
+</p>
+<p class=CmdSubTitle2>
+dhcp
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by DHCP module
+</p>
+<p class=CmdSubTitle2>
+ptp
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by PTP module
+</p>
+<p class=CmdSubTitle2>
+upnp
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by UPnP module
+</p>
+<p class=CmdSubTitle2>
+arp-inspection
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by ARP Inspection module
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by EVC module
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by MEP module
+</p>
+<p class=CmdSubTitle2>
+ipmc
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by IPMC module
+</p>
+<p class=CmdSubTitle2>
+ip-source-guard
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by IP Source Guard module
+</p>
+<p class=CmdSubTitle2>
+ip-mgmt
+</p>
+<p class=CmdSubDesc2>
+The ACEs that are configured by IP Mamagement module
+</p>
+<p class=CmdSubTitle2>
+conflicts
+</p>
+<p class=CmdSubDesc2>
+The ACEs that did not get applied to the hardware due to hardware limitations
+</p>
+<p class=CmdSubTitle2>
+switch
+</p>
+<p class=CmdSubDesc2>
+Switch
+</p>
+<p class=CmdSubTitle2>
+&lt;switch_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of switch ID, ex, 1,3-5,6
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+</body></html>
+

@@ -1,0 +1,1140 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "sflow_icli_functions.h"
+#include "misc_api.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+
+SFLOW_HELP = Statistics flow.
+SFLOW_STATISTICS = sFlow statistics.
+SFLOW_SAMPLER_INSTANCE_HELP = Sampler instance
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW
+
+COMMAND = show sflow statistics { receiver [ <range_list> ] | samplers [interface [<range_list>] <port_type_list>]}
+
+DOC_CMD_DESC    = Use sflow statistics to show statistics for either receiver or sample interface.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Use to show statistics for either receiver or sample interface.
+DOC_CMD_EXAMPLE = show sflow statistics receiver
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME =  
+RUNTIME =  sflow_icli_run_time_receiver_instances
+RUNTIME = 
+RUNTIME =  sflow_icli_run_time_sampler_instances
+
+! 1: show
+! 2: sflow
+! 3: statistics
+! 4: receiver
+! 5: samplers
+! 6: interface
+! 7: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_receiver
+CMD_VAR = rcvr_idx_list
+CMD_VAR = has_samplers
+CMD_VAR = 
+CMD_VAR = samplers_list
+CMD_VAR = v_port_type_list
+
+HELP = 
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_STATISTICS
+HELP = Show statistics for receiver.
+HELP = runtime, see sflow_icli_functions.c
+HELP = Show statistics for samplers.
+HELP = Interface 
+HELP = runtime, see sflow_icli_functions.c
+HELP = Show statistics for a specific interface or interfaces.
+HELP = Interface list.
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Receiver : option>
+BYWORD = <Samplers : option>
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_statistics(session_id, has_receiver, has_samplers, rcvr_idx_list, samplers_list, v_port_type_list, FALSE));
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW
+
+COMMAND = show sflow 
+
+DOC_CMD_DESC    = Use show sflow to display the current sFlow configuration.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Use to display the current sFlow configuration.
+DOC_CMD_EXAMPLE = show sflow
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: sflow
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = ##SFLOW_HELP 
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_show_flow_conf(session_id));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = clear sflow statistics { receiver [<range_list>] | samplers [interface [<range_list>] <port_type_list>] }
+
+SFLOW_CLEAR_SFLOW_STATISTICS = Clearing statistics.
+DOC_CMD_DESC    = ##SFLOW_CLEAR_SFLOW_STATISTICS
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##SFLOW_CLEAR_SFLOW_STATISTICS
+DOC_CMD_EXAMPLE = clear sflow statistics receiver
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: clear
+! 2: sflow
+! 3: statistics
+! 4: receiver
+! 5: samplers
+! 6: interface
+! 7: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_receiver
+CMD_VAR = receiver_index_list
+CMD_VAR = has_samplers
+CMD_VAR = 
+CMD_VAR = samplers_list
+CMD_VAR = v_port_type_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME =  
+RUNTIME =  sflow_icli_run_time_receiver_instances
+RUNTIME = 
+RUNTIME =  sflow_icli_run_time_sampler_instances
+
+HELP = 
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_STATISTICS
+HELP = Clear statistics for receiver.
+HELP = runtime, see sflow_icli_functions.c
+HELP = Clear statistics for samplers.
+HELP = Interface
+HELP = runtime, see sflow_icli_functions.c
+HELP = Clear statistics for a specific interface or interfaces.
+HELP = Interface list.
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Receiver : option>
+BYWORD = <Samplers : option>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_statistics(session_id, has_receiver, has_samplers, receiver_index_list, samplers_list, v_port_type_list, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = sflow agent-ip {ipv4 <ipv4_addr> | ipv6 <ipv6_addr>}
+
+SFLOW_AGENT_IP_HELP = The agent IP address used as agent-address in UDP datagrams. Defaults to IPv4 loopback address.
+
+DOC_CMD_DESC    = ##SFLOW_AGENT_IP_HELP
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = ##SFLOW_AGENT_IP_HELP
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: sflow
+! 2: agent-ip
+! 3: <ipv4_addr>
+! 4: <ipv6_addr>
+
+CMD_VAR = 
+CMD_VAR =
+CMD_VAR = has_ipv4
+CMD_VAR = v_ipv4_addr
+CMD_VAR = has_ipv6
+CMD_VAR = v_ipv6_addr
+
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_AGENT_IP_HELP
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_agent_ip(session_id, has_ipv4, &v_ipv4_addr, has_ipv6, &v_ipv6_addr, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = no sflow agent-ip
+
+NO_SFLOW_AGENT_IP_HELP = Sets the agent IP address used as agent-address in UDP datagrams to 127.0.0.1.
+
+DOC_CMD_DESC    = ##NO_SFLOW_AGENT_IP_HELP
+DOC_CMD_USAGE   = ##NO_SFLOW_AGENT_IP_HELP
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+! 1: no
+! 2: sflow
+! 3: agent-ip
+
+HELP =
+HELP = ##SFLOW_HELP
+HELP = ##NO_SFLOW_AGENT_IP_HELP
+
+CODE_BEGIN
+  {
+      VTSS_RC(sflow_icli_agent_ip(session_id, FALSE, NULL, FALSE, NULL, TRUE));
+  }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+SFLOW_TIMEOUT_HELP = Receiver timeout measured in seconds. The switch decrements the timeout once per second, and as long as it is non-zero, the receiver receives samples. Once the timeout reaches 0, the receiver and all its configuration is reset to defaults.
+                 
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = sflow timeout [receiver <range_list>] <0-2147483647>
+
+DOC_CMD_DESC    = ##SFLOW_TIMEOUT_HELP
+DOC_CMD_DEFAULT = timeout is 0
+DOC_CMD_USAGE   = ##SFLOW_TIMEOUT_HELP
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+
+! 1: sflow
+! 2: timeout
+! 3: index
+! 4: <timeout:0-2147483647>
+
+
+CMD_VAR = 
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = rcvr_idx_list
+CMD_VAR = timeout
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = 
+
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_TIMEOUT_HELP
+HELP = runtime, see sflow_icli_functions.c
+HELP = runtime, see sflow_icli_functions.c
+HELP = Number of seconds.
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_timeout(session_id, timeout, rcvr_idx_list));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+SFLOW_TIMEOUT_HELP = Receiver timeout measured in seconds. The switch decrements the timeout once per second, and as long as it is non-zero, the receiver receives samples. Once the timeout reaches 0, the receiver and all its configuration is reset to defaults.
+                 
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = no sflow timeout [receiver <range_list>] 
+
+DOC_CMD_DESC    = ##SFLOW_TIMEOUT_HELP
+DOC_CMD_DEFAULT = timeout is 0
+DOC_CMD_USAGE   = ##SFLOW_TIMEOUT_HELP
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: sflow
+! 2: timeout
+! 3: index
+! 4: <timeout:0-2147483647>
+
+CMD_VAR = 
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = rcvr_idx_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = 
+
+HELP =
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_TIMEOUT_HELP
+HELP = runtime, see sflow_icli_functions.c
+HELP = runtime, see sflow_icli_functions.c
+HELP = Number of seconds.
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /*lint -esym(438, timeout)*/ // Timeout is on purpose not used in this function
+    /*lint -esym(550, timeout)*/ // Timeout is on purpose not used in this function
+    VTSS_RC(sflow_icli_release(session_id, rcvr_idx_list));   
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = sflow collector-address [receiver <range_list>] [<word>]
+
+SFLOW_COLLOCTOR_ADDRESS_HELP = Collector address
+
+DOC_CMD_DESC    = ##SFLOW_COLLOCTOR_ADDRESS_HELP
+DOC_CMD_DEFAULT = Address is 0.0.0.0
+DOC_CMD_USAGE   = ##SFLOW_COLLOCTOR_ADDRESS_HELP
+DOC_CMD_EXAMPLE = sflow collector-address 10.10.10.10 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+
+! 1: sflow
+! 2: collector-ip
+! 3: <ipv4_addr>
+! 4: <ipv6_addr>
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = sflow_icli_run_time_collector_address
+RUNTIME = 
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = rcvr_idx_list
+CMD_VAR = host_name
+
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_COLLOCTOR_ADDRESS_HELP
+HELP = runtime, see sflow_icli_functions.c
+HELP = runtime, see sflow_icli_functions.c
+HELP = runtime, see sflow_icli_functions.c
+
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Collo : option>
+
+CODE_BEGIN
+    if (misc_str_is_hostname(host_name) != VTSS_OK) {
+#ifdef VTSS_SW_OPTION_IPV6
+        if (misc_str_is_ipv6(host_name) != VTSS_OK) {
+            ICLI_PRINTF("%% Invalid receiver hostname or IP address\n");
+            return ICLI_RC_ERROR;
+        }
+#else
+        ICLI_PRINTF("%% Invalid receiver hostname or IP address\n");
+        return ICLI_RC_ERROR;
+#endif
+    }
+    VTSS_RC(sflow_icli_collector_address(session_id, rcvr_idx_list, host_name, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = no sflow collector-address [receiver <range_list>]
+
+SFLOW_COLLOCTOR_ADDRESS_HELP = Collector address
+
+DOC_CMD_DESC    = ##SFLOW_COLLOCTOR_ADDRESS_HELP
+DOC_CMD_DEFAULT = Address is 0.0.0.0
+DOC_CMD_USAGE   = ##SFLOW_COLLOCTOR_ADDRESS_HELP
+DOC_CMD_EXAMPLE = sflow collector-address 10.10.10.10 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+
+! 1: sflow
+! 2: collector-ip
+! 3: <ipv4_addr>
+! 4: <ipv6_addr>
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = sflow_icli_run_time_collector_address
+
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = rcvr_idx_list
+
+
+HELP = 
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_COLLOCTOR_ADDRESS_HELP
+HELP = runtime, see sflow_icli_functions.c
+HELP = runtime, see sflow_icli_functions.c
+HELP = runtime, see sflow_icli_functions.c
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_collector_address(session_id, rcvr_idx_list, NULL, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = sflow collector-port [receiver <range_list>] <1-65535>
+
+SFLOW_COLLOCTOR_PORT_HELP = Collector UDP port. Valid range is 0-65536.
+
+DOC_CMD_DESC    = ##SFLOW_COLLOCTOR_PORT_HELP
+DOC_CMD_DEFAULT = Collector port is 6343
+DOC_CMD_USAGE   = #SFLOW_COLLOCTOR_PORT_HELP
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = 
+
+! 1: sflow
+! 2: collector-port
+! 3: <collector_port:1-65535>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = rcvr_idx_list
+CMD_VAR = collector_port
+
+HELP = #SFLOW_HELP
+HELP = Collector UDP port
+HELP = runtime, see sflow_icli_functions.c
+HELP = runtime, see sflow_icli_functions.c
+HELP = Port number
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Collector Port : 1-65535>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_collector_port(session_id, collector_port, rcvr_idx_list, FALSE));
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = no sflow collector-port [receiver <range_list>] 
+
+SFLOW_COLLOCTOR_PORT_HELP = Collector UDP port. Valid range is 0-65536.
+
+DOC_CMD_DESC    = ##SFLOW_COLLOCTOR_PORT_HELP
+DOC_CMD_DEFAULT = Collector port is 6343
+DOC_CMD_USAGE   = #SFLOW_COLLOCTOR_PORT_HELP
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = sflow_icli_run_time_receiver_instances
+
+
+! 1: sflow
+! 2: collector-port
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = rcvr_idx_list
+
+HELP =
+HELP = #SFLOW_HELP
+HELP = Collector UDP port
+HELP = runtime, see sflow_icli_functions.c
+HELP = runtime, see sflow_icli_functions.c
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_collector_port(session_id, 0, rcvr_idx_list, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = sflow max-datagram-size [receiver <range_list>] <200-1468>
+
+SFLOW_MAX_DATAGRAM_SIZE_HELP = Maximum datagram size.
+
+DOC_CMD_DESC    = ##SFLOW_MAX_DATAGRAM_SIZE_HELP
+DOC_CMD_DEFAULT = max datagram size is 1468
+DOC_CMD_USAGE   = ##SFLOW_MAX_DATAGRAM_SIZE_HELP
+DOC_CMD_EXAMPLE = sflow max-datagram-size 245
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = sflow_icli_run_time_receiver_instances
+
+! 1: sflow
+! 2: max-datagram-size
+! 3: <datagram_size:200-1468>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = rcvr_idx_list
+CMD_VAR = datagram_size
+
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_MAX_DATAGRAM_SIZE_HELP
+HELP = receiver
+HELP = receiver list
+HELP = bytes
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <DatagramSize : 200-1468>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_max_datagram_size(session_id, datagram_size, rcvr_idx_list, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = no sflow max-datagram-size [receiver <range_list>] 
+
+SFLOW_MAX_DATAGRAM_SIZE_HELP = Maximum datagram size.
+
+DOC_CMD_DESC    = ##SFLOW_MAX_DATAGRAM_SIZE_HELP
+DOC_CMD_DEFAULT = max datagram size is 1468
+DOC_CMD_USAGE   = ##SFLOW_MAX_DATAGRAM_SIZE_HELP
+DOC_CMD_EXAMPLE = sflow max-datagram-size 245
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = sflow_icli_run_time_receiver_instances
+RUNTIME = sflow_icli_run_time_receiver_instances
+
+! 1: sflow
+! 2: max-datagram-size
+! 3: <datagram_size:200-1468>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = rcvr_idx_list
+
+
+HELP =
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_MAX_DATAGRAM_SIZE_HELP
+HELP =
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_max_datagram_size(session_id, 0, rcvr_idx_list, TRUE));
+CODE_END
+
+CMD_END
+
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = sflow sampling-rate [sampler <range_list>] [<1-4294967295>]
+
+SFLOW_SAMPLE_RATE_HELP = Specifies the statistical sampling rate. The sample rate is specified as N to sample 1/Nth of the packets n the monitored flows. There are no restrictions on the value, but the switch will adjust it to the closest possible sampling rate.
+ 
+DOC_CMD_DESC    = ##SFLOW_SAMPLE_RATE_HELP
+DOC_CMD_DEFAULT = sample rate is 0
+DOC_CMD_USAGE   = ##SFLOW_SAMPLE_RATE_HELP
+DOC_CMD_EXAMPLE = sflow sampling-rate 434
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+
+! 1: sflow
+! 2: sampling-rate
+! 3: <sampling_rate:1-4294967295>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = sampler_idx_list
+CMD_VAR = sampling_rate
+
+RUNTIME =
+RUNTIME =
+RUNTIME = sflow_icli_run_time_sampler_instances
+RUNTIME = sflow_icli_run_time_sampler_instances
+RUNTIME =
+
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_SAMPLE_RATE_HELP
+HELP = sampler
+HELP = ##SFLOW_SAMPLER_INSTANCE_HELP
+HELP = Sampling rate
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <SamplingRate : 1-4294967295>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_sampling_rate(session_id, plist, sampling_rate, sampler_idx_list, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = sflow max-sampling-size [sampler <range_list>] [<14-200>]
+
+SFLOW_MAX_SAMPLE_SIZE_HELP = Specifies the maximum number of bytes to transmit per flow sample.
+ 
+DOC_CMD_DESC    = ##SFLOW_MAX_SAMPLE_SIZE_HELP
+DOC_CMD_DEFAULT = sample rate is 0
+DOC_CMD_USAGE   = ##SFLOW_MAX_SAMPLE_SIZE_HELP
+DOC_CMD_EXAMPLE = sflow sampling-rate 434
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = sampler_idx_list
+CMD_VAR = max_sampling_size
+
+RUNTIME =
+RUNTIME =
+RUNTIME = sflow_icli_run_time_sampler_instances
+RUNTIME = sflow_icli_run_time_sampler_instances
+RUNTIME =
+
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_MAX_SAMPLE_SIZE_HELP
+HELP = sampler
+HELP = ##SFLOW_SAMPLER_INSTANCE_HELP
+HELP = bytes
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_max_hdr_size(session_id, plist, max_sampling_size, sampler_idx_list, FALSE));
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = no sflow max-sampling-size [sampler <range_list>]
+
+SFLOW_MAX_SAMPLE_SIZE_HELP = Specifies the maximum number of bytes to transmit per flow sample.
+ 
+DOC_CMD_DESC    = ##SFLOW_MAX_SAMPLE_SIZE_HELP
+DOC_CMD_DEFAULT = sample rate is 0
+DOC_CMD_USAGE   = ##SFLOW_MAX_SAMPLE_SIZE_HELP
+DOC_CMD_EXAMPLE = sflow sampling-rate 434
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = sampler_idx_list
+
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = sflow_icli_run_time_sampler_instances
+RUNTIME = sflow_icli_run_time_sampler_instances
+RUNTIME =
+
+HELP =
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_MAX_SAMPLE_SIZE_HELP
+HELP = sampler
+HELP = ##SFLOW_SAMPLER_INSTANCE_HELP
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_max_hdr_size(session_id, plist, 0, sampler_idx_list, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = sflow counter-poll-interval [sampler <range_list>] [<1-3600>]
+
+SFLOW_COUNTER_POLL_HELP = The interval - in seconds - between counter poller samples.
+
+DOC_CMD_DESC    = ##SFLOW_COUNTER_POLL_HELP
+DOC_CMD_DEFAULT = Counter poll interval is 0
+DOC_CMD_USAGE   = #SFLOW_COUNTER_POLL_HELP
+DOC_CMD_EXAMPLE = sflow counter-poll-interval 32
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+RUNTIME =
+RUNTIME = sflow_icli_run_time_sampler_instances
+RUNTIME = sflow_icli_run_time_sampler_instances
+RUNTIME =
+
+! 1: sflow
+! 2: counter-poll-interval
+! 3: <poll_interval:1-3600>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = sampler_idx_list
+CMD_VAR = poll_interval
+
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_COUNTER_POLL_HELP
+HELP = sampler
+HELP = ##SFLOW_SAMPLER_INSTANCE_HELP
+HELP = seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <PollInterval : 1-3600>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_counter_poll_interval(session_id, plist, poll_interval, sampler_idx_list, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = no sflow counter-poll-interval [<range_list>]
+
+SFLOW_COUNTER_POLL_HELP = The interval - in seconds - between counter poller samples.
+
+DOC_CMD_DESC    = ##SFLOW_COUNTER_POLL_HELP
+DOC_CMD_DEFAULT = Counter poll interval is 0
+DOC_CMD_USAGE   = #SFLOW_COUNTER_POLL_HELP
+DOC_CMD_EXAMPLE = sflow counter-poll-interval 32
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = sflow_icli_run_time_sampler_instances
+
+
+! 1: sflow
+! 2: counter-poll-interval
+! 3: <poll_interval:0-3600>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = sampler_idx_list
+
+
+HELP = 
+HELP = ##SFLOW_HELP
+HELP = ##SFLOW_COUNTER_POLL_HELP
+HELP = ##SFLOW_SAMPLER_INSTANCE_HELP
+
+
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_counter_poll_interval(session_id, plist, 0, sampler_idx_list, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_SFLOW 
+
+COMMAND = sflow [<range_list>]
+
+SFLOW_ENABLE_HELP = Enables/disables flow sampling on this port.
+
+DOC_CMD_DESC    = ##SFLOW_ENABLE_HELP
+DOC_CMD_DEFAULT = sflow is disabled
+DOC_CMD_USAGE   = ##SFLOW_ENABLE_HELP
+DOC_CMD_EXAMPLE = sflow
+
+NO_FORM_DOC_CMD_DESC    = ##SFLOW_ENABLE_HELP
+NO_FORM_DOC_CMD_DEFAULT = sflow is disabled
+NO_FORM_DOC_CMD_USAGE   = ##SFLOW_ENABLE_HELP
+NO_FORM_DOC_CMD_EXAMPLE = no sflow
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+RUNTIME = sflow_icli_run_time_sampler_instances
+! 1: sflow
+
+CMD_VAR = 
+CMD_VAR = sampler_idx_list
+
+HELP = ##SFLOW_ENABLE_HELP
+HELP = ##SFLOW_SAMPLER_INSTANCE_HELP
+
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(sflow_icli_enable(session_id, plist, sampler_idx_list, FALSE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(sflow_icli_enable(session_id, plist, sampler_idx_list, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+

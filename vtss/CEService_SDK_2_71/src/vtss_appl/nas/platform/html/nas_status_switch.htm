@@ -1,0 +1,253 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Network Access Server Switch Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Refresh timer
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_nas_status_switch.htm";
+
+// Maps to nas_port_status_t;
+var PortStateTyp  = Array("Link Down", "Authorized", "Unauthorized", "Globally Disabled");
+
+// Maps to nas_port_control_t:
+var AdminStateTyp = Array("Globally Disabled", "Force Authorized", "802.1X", "Force Unauthorized", "MAC-based Auth.", "Single 802.1X", "Multi 802.1X");
+
+var PARM_IDX_SYS_PROTOCOLS          = 0; // Bitmask of supported protocols. 0x1 = Port-based 802.1X (incl. force auth and force unauth), 0x2 = MAC-based, 0x4 = Single Dot1x, 0x8 = Multi Dot1x.
+var PARM_IDX_SYS_OPTIONS            = 1; // Bitmask of support options. 0x1 = RADIUS-assigned QoS Class, 0x2 = RADIUS-assigned VLAN.
+var PARM_SYS_CNT                    = (PARM_IDX_SYS_OPTIONS + 1);
+
+var PARM_IDX_PORT_NUMBER            = 0;
+var PARM_IDX_PORT_ADMIN_STATE       = 1;
+var PARM_IDX_PORT_STATE             = 2;
+var PARM_IDX_PORT_LAST_FRAME_SOURCE = 3;
+var PARM_IDX_PORT_LAST_IDENTITY     = 4;
+var PARM_IDX_PORT_QOS               = 5;
+var PARM_IDX_PORT_VLAN              = 6;
+var PARM_PORT_CNT                   = (PARM_IDX_PORT_VLAN + 1);
+
+function add_port_head(frag, qos_support, vlan_support)
+{
+  var tr = CreateStyledElement("tr", "display_header");
+  addTextHeaderCell(tr, "Port");
+  addTextHeaderCell(tr, "Admin State");
+  addTextHeaderCell(tr, "Port State");
+  addTextHeaderCell(tr, "Last Source");
+  addTextHeaderCell(tr, "Last ID");
+  if (qos_support) {
+    addTextHeaderCell(tr, "QoS Class");
+  }
+  if (vlan_support) {
+    addTextHeaderCell(tr, "Port VLAN ID");
+  }
+  frag.appendChild(tr); // Add row to fragment
+}
+
+// Helper function to add a row of port state.
+function add_port_row(idx, frag, qos_support, vlan_support, port_values)
+{
+  var port = port_values[PARM_IDX_PORT_NUMBER];
+  var tr = CreateStyledElement("tr", idx % 2 ? "display_odd" : "display_even");
+  var admin_state = port_values[PARM_IDX_PORT_ADMIN_STATE];
+
+  // Port number with href.
+  var td   = CreateStyledElement("td", "cr");
+  var link = document.createElement("a");
+  var txt  = document.createTextNode(port);
+  link.href = "nas_status_port.htm?port=" + port; // Independent of Admin State, we request the same page. The Web server figures out what to return.
+  link.appendChild(txt);
+  td.appendChild(link);
+  tr.appendChild(td);
+
+  // Admin State
+  addTextCell(tr, AdminStateTyp[admin_state], "cl");
+
+  // Port State (Link Down = 0, Authorized = 1, Unauthorized = 2, Globally Disabled = 3)
+  // If value >= 4 it's interpreted as the number of authenticated and unauthenticated clients on this port
+  var port_state = port_values[PARM_IDX_PORT_STATE];
+  if (port_state >= PortStateTyp.length) {
+    // MAC-based. The port_state is encoded as follows: Upper 16 bits = # of unauthorized clients + 1, Lower 16 bits = # of authorized clients + 1
+    var unauth_clients = ((port_state >> 16) & 0xFFFF) - 1;
+    var auth_clients   = ((port_state >>  0) & 0xFFFF) - 1;
+    addTextCell(tr, auth_clients + " Auth/" + unauth_clients + " Unauth","cl");
+  } else {
+    addTextCell(tr, PortStateTyp[port_state], "cl");
+  }
+
+  // Last Frame Source (MAC Address)
+  addTextCell(tr, port_values[PARM_IDX_PORT_LAST_FRAME_SOURCE], "c mac");
+
+  // Last Supplicant ID
+  addTextCell(tr, unescape(port_values[PARM_IDX_PORT_LAST_IDENTITY]), "cl");
+
+  if (qos_support) {
+    addTextCell(tr, port_values[PARM_IDX_PORT_QOS], "cl");
+  }
+  if (vlan_support) {
+    addTextCell(tr, port_values[PARM_IDX_PORT_VLAN], "cl");
+  }
+
+  frag.appendChild(tr); // Add row to fragment
+}
+
+function contentUpdate(req, ref)
+{
+  // Format: Protocols/Options#[PortStates]
+  // [PortStates] = [PortState1]#[PortState2]#...#[PortStateN]
+  // [PortState]  = PortNumber/AdminState/PortState/LastSource/LastIdentity/QosClass/VLAN
+  var values = req.responseText.split("#");
+
+  document.getElementById("update").style.visibility = "hidden";
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  var sys_values = values[0].split("/");
+  if (sys_values.length != PARM_SYS_CNT) {
+    return;
+  }
+
+  var dot1x_port_based_support = (sys_values[PARM_IDX_SYS_PROTOCOLS] & 0x1) !== 0;
+//var mac_based_support        = (sys_values[PARM_IDX_SYS_PROTOCOLS] & 0x2) !== 0;
+  var dot1x_single_support     = (sys_values[PARM_IDX_SYS_PROTOCOLS] & 0x4) !== 0;
+  var dot1x_multi_support      = (sys_values[PARM_IDX_SYS_PROTOCOLS] & 0x8) !== 0;
+
+  var qos_support              = (sys_values[PARM_IDX_SYS_OPTIONS]   & 0x1) !== 0;
+  var vlan_support             = (sys_values[PARM_IDX_SYS_OPTIONS]   & 0x2) !== 0;
+
+  // Create the header for the per-port configuration
+  var frag_port_head = document.createDocumentFragment();
+  add_port_head(frag_port_head, qos_support, vlan_support);
+  var thead = document.getElementById('port_head');
+  clearChildNodes(thead);
+  thead.appendChild(frag_port_head);
+
+  if (dot1x_port_based_support && (dot1x_single_support || dot1x_multi_support)) {
+    // Emphasize that it's port-based 802.1X when at least
+    // one of the other 802.1X types are defined.
+    AdminStateTyp[2] = "Port-based 802.1X";
+  } else {
+    AdminStateTyp[2] = "802.1X";
+  }
+
+  var cnt = values.length - 1;
+
+  // Port state:
+  var frag_port = document.createDocumentFragment();
+  for (var i = 1; i <= cnt; i++) {
+    var port_values = values[i].split("/");
+    if (port_values.length != PARM_PORT_CNT) {
+      return;
+    }
+    add_port_row(i - 1, frag_port, qos_support, vlan_support, port_values);
+  }
+
+  var tbody = document.getElementById('port_state');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag_port);
+
+  // Update the timer
+  var autorefresh = document.getElementById('autorefresh');
+  if (autorefresh.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+  }
+}
+
+function requestUpdate() {
+  if (SpomNavigationLoading()) {
+    return;                 // Bail out, navigation will trigger update
+  }
+
+  document.getElementById("update").style.visibility = "visible";
+  loadXMLDoc(SpomAddSidArg("/stat/nas_status_switch"), contentUpdate, null);
+  SpomUpdateDisplaySid("sid_display");
+}
+
+function chkRefresh(fld)
+{
+  if (!fld.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = null;
+  } else {
+    requestUpdate();
+  }
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+  SpomSetCurrentSid(sid); // Save current SID
+  requestUpdate();        // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+  <body class="content" onload="requestUpdate();">
+
+    <h1>Network Access Server Switch Status <span id="sid_display"></span></h1>
+
+    <div class="refreshbar">
+      <form action="#">
+        <label for="autorefresh">Auto-refresh</label>
+        <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+        <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+        <img id="update" alt="" src="images/updating.gif">
+     </form>
+    </div>
+
+    <table summary="NAS Port Status" class="display">
+      <thead id="port_head"></thead>
+      <tbody id="port_state"></tbody>
+    </table>
+  </body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

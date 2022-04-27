@@ -1,0 +1,836 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>MVR Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+var reqObject;
+var NewMvidArray = Array(); //Store Index
+var OldMvidArray = Array(); //Store MVID
+var oTEntryProfile = Array();
+var oVEntryProfile = Array();
+var mvrPortMax = 53;        //configNormalPortMax + SpomStackPortCount();
+var mvrStackNo = Array();
+var actualPortNumber;
+var curMaxProfileCnt;
+var span1 = 4, span2 = 8, span3 = 6, span4 = 5, span5 = 5, span6 = 4, span7 = 4, span8 = 7;
+var oldEntriesNum, newEntriesNum;
+
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = Array(0, 1);
+var oTModeVlan = Array("Dynamic", "Compatible");
+var oVModeVlan = Array(0, 1);
+var oTPriTVlan = Array("Untagged", "Tagged");
+var oVPriTVlan = Array(0, 1);
+var oTRoleVlan = Array("Inactive", "Source", "Receiver", "Stacking");
+var oVRoleVlan = Array(0, 1, 2, 3);
+var oSRoleVlan = Array("images/inactive.gif", "images/source.gif", "images/receiver.gif", "images/maskinactive.gif");
+//  var configMvrVlanMax = 4;
+//  var configMvrVlanNameLen = 16;
+//  var configMvrRoleStack = 3;
+//  var configMvrCharAsciiMin = 33;
+//  var configMvrCharAsciiMax = 126;
+
+
+// Help page magic
+var help_page = "/help/help_mvr.htm";
+
+function checkName(sText)
+{
+    var idx, nmx;
+
+    for (idx = 0; idx < sText.length; idx++) {
+        nmx = sText.charAt(idx);
+        if(isNaN(parseInt(nmx, 10))) {
+            if ((nmx < configMvrCharAsciiMin) || (nmx > configMvrCharAsciiMax)) {
+                return -1;
+            }
+        }
+    }
+
+    return 1;
+}
+
+function searchEntryProfile(entryKey)
+{
+    var pdx;
+
+    for (pdx = 0; pdx <= curMaxProfileCnt; pdx++) {
+        if (oTEntryProfile[pdx] === entryKey) {
+            return pdx;
+        }
+    }
+
+    return -1;
+}
+
+function pfRuleNavigate()
+{
+    window.open("ipmc_lib_rule_table.htm?CurSidV=" + document.getElementById("submit_sid").value + "&DoPdxOp=0&DynBgnPdx=" + textStrToAsciiStr(this.value), "", "height=480,width=640,top=0,left=0,resizable=1,scrollbars=1");
+}
+
+function addImageInputCell(tr, style, oS, oA, value, name, onclick)
+{
+    var td = CreateTd(style);
+    var field = document.createElement('input');
+    field.type = "hidden";
+    field.id = field.name = name;
+    field.setAttribute("value", value);
+    field.setAttribute("defaultValue", value);
+    field.defaultValue = value; // Needed for MSIE 8
+    addCell(tr, td, field);
+
+    field = document.createElement('img');
+    field.src = oS[value];
+    field.border = 0;
+    field.title = field.alt = oA[value];
+    field.setAttribute("defaultValue", name);
+    field.defaultValue = name; // Needed for MSIE 8
+    addCell(tr, td, field);
+    field.onclick = onclick;
+    return field;
+}
+
+function addImageInline(frag, style, src, text, idx, value, click)
+{
+    var field = document.createElement('img');
+    var pval = text.split(" ");
+    field.id = pval[0] + "_" + pval[1] + "_" + idx;
+    field.src = src;
+    field.border = 0;
+    field.value = value;
+    if (click) {
+        field.onclick = click;
+    }
+    field.title = field.alt = text;
+    frag.appendChild(field);
+    return field;
+}
+
+function updateImageInline(idx, value, src, text, click)
+{
+    var td = document.getElementById("Navigate_Profile_" + idx);
+    td.value = value;
+    td.src = src;
+    td.title = td.alt = text;
+    td.onclick = click;
+}
+
+function checkNewProfile()
+{
+    var pdx = this.id.split("_");
+    var idx = parseInt(this.value, 10);
+    var newEntry = oTEntryProfile[idx];
+    var fld = document.getElementById("delete_mvr_vlan_" + pdx[3]);
+
+    if (idx && newEntry && newEntry !== "") {
+        idx = parseInt(pdx[3], 10);
+        updateImageInline(idx, newEntry, "images/eye.png", "Navigate Profile " + newEntry, pfRuleNavigate);
+
+        if (fld) {
+            td = document.getElementById("ref_profile_mvr_vlan_" + idx);
+        } else {
+            td = document.getElementById("new_profile_mvr_vlan_" + idx);
+        }
+        if (td) {
+            td.value = newEntry;
+        }
+    } else {
+        idx = parseInt(pdx[3], 10);
+        updateImageInline(idx, "", "images/eye_gray.png", "Navigate Profile", null);
+
+        if (fld) {
+            td = document.getElementById("ref_profile_mvr_vlan_" + idx);
+        } else {
+            td = document.getElementById("new_profile_mvr_vlan_" + idx);
+        }
+        if (td) {
+            td.value = "";
+        }
+    }
+}
+
+function changeMember()
+{
+    if (this.src.match(/\/inactive\.gif/g)) {
+        document.getElementById(this.defaultValue).value = 1;
+        this.src = "images/source.gif";
+        this.title = this.alt = "Source";
+    } else if (this.src.match(/\/source\.gif/g)) {
+        document.getElementById(this.defaultValue).value = 2;
+        this.src = "images/receiver.gif";
+        this.title = this.alt = "Receiver";
+    } else if (this.src.match(/\/receiver\.gif/g)) {
+        document.getElementById(this.defaultValue).value = 0;
+        this.src = "images/inactive.gif";
+        this.title = this.alt = "Inactive";
+    }
+}
+
+function CreateTableHeaderVlan(fragVlan)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Delete", "hdrc");
+    addTextHeaderCell(tr, "MVR VID", "hdrc", span1);
+    addTextHeaderCell(tr, "MVR Name", "hdrc", span2);
+    addTextHeaderCell(tr, "IGMP Address", "hdrc", span3);
+    addTextHeaderCell(tr, "Mode", "hdrc", span4);
+    addTextHeaderCell(tr, "Tagging", "hdrc", span5);
+    addTextHeaderCell(tr, "Priority", "hdrc", span6);
+    addTextHeaderCell(tr, "LLQI", "hdrc", span7);
+    var finalSpan = mvrPortMax - span1 - span2 - span3 -span4 - span5 - span6 - span7;
+    addTextHeaderCell(tr, "Interface Channel Profile", "hdrc", finalSpan);
+    fragVlan.appendChild(tr);
+}
+
+function addRowVlanBasic(index, frag, values)
+{
+    var td, tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var rowIdx, vid_val = parseInt(values[0], 10);
+
+    rowIdx = oldEntriesNum;
+    OldMvidArray[oldEntriesNum++] = vid_val;
+
+    td = addHiddenInputCell(tr, vid_val, "cr", "mvid_mvr_vlan_" + rowIdx, span1);
+    td.readOnly = true;
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    /* [vid]/[name]/[vmode]/[vtag]/[vpri]/[vllqi]/[profile]/[igmp_adrs] */
+    addCheckBoxCell(tr, 0, "c", "delete_mvr_vlan_" + vid_val);
+    addTextCell(tr, vid_val, "cr", span1);
+
+    if (values[1]) {
+        td = addInputCell(tr, unescape(values[1]), "cr", "name_mvr_vlan_" + vid_val, configMvrVlanNameLen, configMvrVlanNameLen, 0, span2);
+    } else {
+        td = addInputCell(tr, "", "cr", "name_mvr_vlan_" + vid_val, configMvrVlanNameLen, configMvrVlanNameLen, 0, span2);
+    }
+
+    if (values[7]) {
+        td = addInputCell(tr, values[7], "cr", "adrs_mvr_vlan_" + vid_val, 15, 15, 0, span3);
+    } else {
+        td = addInputCell(tr, "0.0.0.0", "cr", "adrs_mvr_vlan_" + vid_val, 15, 15, 0, span3);
+    }
+
+    addSelectCell(tr, oTModeVlan, oVModeVlan, parseInt(values[2], 10), "c", "vmode_mvr_vlan_" + vid_val, 0, span4);
+    addSelectCell(tr, oTPriTVlan, oVPriTVlan, parseInt(values[3], 10), "c", "vtag_mvr_vlan_" + vid_val, 0, span5);
+    if (values[4]) {
+        td = addInputCell(tr, parseInt(values[4], 10), "cr", "vpri_mvr_vlan_" + vid_val, 1, 1, 0, span6);
+    } else {
+        td = addInputCell(tr, 0, "cr", "vpri_mvr_vlan_" + vid_val, 1, 1, 0, span6);
+    }
+    if (values[5]) {
+        td = addInputCell(tr, parseInt(values[5], 10), "cr", "vllqi_mvr_vlan_" + vid_val, 5, 5, 0, span7);
+    } else {
+        td = addInputCell(tr, 5, "cr", "vllqi_mvr_vlan_" + vid_val, 5, 5, 0, span7);
+    }
+
+    // control button
+    var container = document.createElement("td");
+    if (values[6] !== "") {
+        addImageInline(container, "c", "images/eye.png", "Navigate Profile " + values[6], vid_val, values[6], pfRuleNavigate);
+    } else {
+        addImageInline(container, "c", "images/eye_gray.png", "Navigate Profile", vid_val, "", null);
+    }
+    tr.appendChild(container);
+
+    if (values[6] !== "") {
+        td = addSelectCell(tr, oTEntryProfile, oVEntryProfile, searchEntryProfile(unescape(values[6])), "cl", "profile_mvr_vlan_" + vid_val, 0, span8);
+    } else {
+        td = addSelectCell(tr, oTEntryProfile, oVEntryProfile, 0, "cl", "profile_mvr_vlan_" + vid_val, 0, span8);
+    }
+    td.onchange = checkNewProfile;
+
+    var finalSpan = mvrPortMax - span1 - span2 - span3 -span4 - span5 - span6 - span7 - span8 - 1;
+    td = addInputCell(tr, unescape(values[6]), "cr", "ref_profile_mvr_vlan_" + vid_val, 16, 16, 0, finalSpan);
+    td.readOnly = true;
+    td.style.visibility = "hidden";
+
+    frag.appendChild(tr);
+}
+
+function addRowVlanPorts(index, frag)
+{
+    var idx, field;
+    var td, tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    addTextCell(tr, "Port", "hdrc");
+
+    for (idx = 1; idx <= mvrPortMax; idx++) {
+        if (idx > actualPortNumber) {
+            td = CreateTd("c");
+            field = document.createElement('img');
+            field.src = index % 2 ? "images/emptyodd.gif" : "images/emptyeven.gif";
+            field.border = 0;
+            addCell(tr, td, field);
+        } else {
+            addTextCell(tr, idx, "hdrc");
+        }
+    }
+
+    frag.appendChild(tr);
+}
+
+function addRowVlanRoles(index, frag, values)
+{
+    var idx, field;
+    var td, tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    /* [prole]/... */
+    addTextCell(tr, "Role", "hdrc");
+    for (idx = 0; idx < mvrPortMax; idx++) {
+        if (idx < values.length) {
+            td = addImageInputCell(tr, "c", oSRoleVlan, oTRoleVlan, parseInt(values[idx], 10), "prole_" + idx + "_mvr_vlan_" + index, changeMember);
+            if (parseInt(values[idx], 10) == parseInt(configMvrRoleStack, 10)) {
+                td.disabled = true;
+            }
+        } else {
+            td = CreateTd("c");
+            field = document.createElement('img');
+            field.src = index % 2 ? "images/emptyodd.gif" : "images/emptyeven.gif";
+            field.border = 0;
+            addCell(tr, td, field);
+        }
+//        td.id = field.name = "img_port_" + idx;
+        td.id = "img_port_" + idx;
+    }
+    frag.appendChild(tr);
+}
+
+function CreateTableHeaderFastLeave(fragFastLeave)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Port", "param_label");
+    addTextHeaderCell(tr, "Immediate Leave", "param_label");
+    fragFastLeave.appendChild(tr);       // Add row to fragment
+
+    thead = document.getElementById("fastLeaveHead");
+    clearChildNodes(thead);
+    thead.appendChild(fragFastLeave);
+}
+
+function addRowFastLeave(index, frag, values)
+{
+    /* [pmode] */
+    var tr = CreateStyledElement("tr", (index + 1) % 2 ? "config_odd" : "config_even");
+    addTextCell(tr, configPortName(index, 0), "cr");
+    if (parseInt(values, 10) < 0) {
+        var td = addSelectCell(tr, oTMode, oVMode, 0, "c", "fastleave_port_" + index);
+        td.disabled = true;
+
+        if (SpomStackPortCount()) {
+            for (var i = 0; i < SpomStackPortCount(); i++) {
+                if (!mvrStackNo[i]) {
+                    mvrStackNo[i] = index;
+                    break;
+                }
+            }
+        }
+    } else {
+        addSelectCell(tr, oTMode, oVMode, parseInt(values, 10), "c", "fastleave_port_" + index);
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function procUpdMvrConfig(req, ref)
+{
+    var idx = 0;
+    var values, frag;
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    frag = document.createDocumentFragment();
+    CreateTableHeaderVlan(frag);
+
+    curMaxProfileCnt = oldEntriesNum = newEntriesNum = 0;
+    if (reqObject !== req) {
+        reqObject = req;
+    }
+
+    /*
+        Format:
+        [mvr_mode];[channel_conflict];[profile_1]|...|[profile_n];[pmode]|...
+        ;[vid]/[name]/[vmode]/[vtag]/[vpri]/[vllqi]/[profile]/[igmp_adrs],[prole]/...|...
+    */
+
+    //values = req.split(";");
+    values = req.responseText.split(";");
+
+    if (values[2] !== "") {
+        var profileTable = values[2].split("|");
+        curMaxProfileCnt = profileTable.length;
+        for (idx = 0; idx <= curMaxProfileCnt; idx++) {
+            if (idx === 0) {
+                oTEntryProfile[idx] = "-";
+            } else {
+                oTEntryProfile[idx] = unescape(profileTable[idx - 1]);
+            }
+
+            oVEntryProfile[idx] = idx;
+        }
+    } else {
+        oTEntryProfile[idx] = "-";
+        oVEntryProfile[idx] = 0;
+    }
+
+    var fastleaveData = values[3].split("|");
+    actualPortNumber = fastleaveData.length;
+    if (SpomStackPortCount()) {
+        for (idx = 0; idx < SpomStackPortCount(); idx++) {
+            mvrStackNo[idx] = 0;
+        }
+    }
+
+    if (req.responseText) {
+    //if (req) {
+        UpdateIdSelect("mvr_mode", oTMode, oVMode, parseInt(values[0], 10));
+
+        var caution = parseInt(values[1], 10);
+        if (caution) {
+            if (caution == 1) {
+                UpdateId("display_warning", " CAUTION: Overlapped channels are used! ");
+            } else if (caution == 2) {
+                UpdateId("display_warning", " CAUTION: Invalid channel profiles! ");
+            } else {
+                UpdateId("display_warning", " CAUTION: Invalid channel settings! ");
+            }
+        }
+
+        if (values[4] !== "NoEntries") {
+            var vlanEntry = values[4].split("|");
+            for (idx = 0; idx < vlanEntry.length; idx++) {
+                var vlanIntf = vlanEntry[idx].split(","); //vlanIntf[0]: Basic; vlanIntf[1]: Role
+                addRowVlanBasic(idx, frag, vlanIntf[0].split("/"));
+                var portVal = vlanIntf[1].split("/");
+                addRowVlanPorts(idx, frag);
+                addRowVlanRoles(idx, frag, portVal);
+            }
+        }
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var tbody = document.getElementById("vlanData");
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    frag = document.createDocumentFragment();
+    CreateTableHeaderFastLeave(frag);
+    if (req.responseText) {
+    //if (req) {
+        for (idx = 1; idx <= actualPortNumber; idx++) {
+            addRowFastLeave(idx, frag, fastleaveData[idx - 1]);
+        }
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    tbody = document.getElementById("fastLeaveData");
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    var cBar = new MasterControlBar([{text: "*", className: "cr"}]);
+    cBar.extend([{name: "fastleave_port_"}]);
+    cBar.construct('fastLeaveData');
+}
+
+function resetForm()
+{
+    procUpdMvrConfig(reqObject, null);
+}
+
+function addEntryIdx()
+{
+    var i, fld, cnt, idx;
+
+    cnt = idx = 0;
+    for (i = 1; i <= configMvrVlanMax; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            if (idx === 0) {
+                idx = i;
+            }
+        } else {
+            cnt++;
+        }
+    }
+
+    if (idx) {
+        if ((oldEntriesNum + cnt + 1) > configMvrVlanMax) {
+            idx = 0;
+        } else {
+            NewMvidArray[newEntriesNum++] = idx;
+        }
+    }
+
+    return idx;
+}
+
+function delEntryIdx(id, trRole, trPort, trBody)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == NewMvidArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                NewMvidArray[j] = NewMvidArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById("vlanData").removeChild(trRole);
+    document.getElementById("vlanData").removeChild(trPort);
+    document.getElementById("vlanData").removeChild(trBody);
+}
+
+function AddNewRow()
+{
+    var entryIdx = addEntryIdx();
+    if (parseInt(entryIdx, 10) === 0) {
+        alert("The maximum number of entries is " + configMvrVlanMax);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var newRowIndex = oldEntriesNum + entryIdx + 1;    //+1: Header is the first row
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", newRowIndex % 2 ? "config_odd" : "config_even");
+
+    var button = document.createElement('input');
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+
+    addInputCell(tr, "", "cr", "new_mvid_mvr_vlan_" + entryIdx, 4, 4, 0, span1);
+    addInputCell(tr, "", "cr", "new_name_mvr_vlan_" + entryIdx, configMvrVlanNameLen, configMvrVlanNameLen, 0, span2);
+    addInputCell(tr, "0.0.0.0", "cr", "new_adrs_mvr_vlan_" + entryIdx, 15, 15, 0, span3);
+    addSelectCell(tr, oTModeVlan, oVModeVlan, 0, "c", "new_vmode_mvr_vlan_" + entryIdx, 0, span4);
+    addSelectCell(tr, oTPriTVlan, oVPriTVlan, 1, "c", "new_vtag_mvr_vlan_" + entryIdx, 0, span5);
+    addInputCell(tr, 0, "cr", "new_vpri_mvr_vlan_" + entryIdx, 1, 1, 0, span6);
+    addInputCell(tr, 5, "cr", "new_vllqi_mvr_vlan_" + entryIdx, 5, 5, 0, span7);
+
+    // control button
+    var container = document.createElement("td");
+    addImageInline(container, "c", "images/eye_gray.png", "Navigate Profile", entryIdx, "", null);
+    tr.appendChild(container);
+
+    td = addSelectCell(tr, oTEntryProfile, oVEntryProfile, 0, "cl", "profile_mvr_vlan_" + entryIdx, 0, span8);
+    td.onchange = checkNewProfile;
+
+    var finalSpan = mvrPortMax - span1 - span2 - span3 -span4 - span5 - span6 - span7 - span8 - 1;
+    td = addInputCell(tr, "", "cr", "new_profile_mvr_vlan_" + entryIdx, 16, 16, 0, finalSpan);
+    td.readOnly = true;
+    td.style.visibility = "hidden";
+
+    frag.appendChild(tr);
+
+    var trPort = CreateStyledElement("tr", newRowIndex % 2 ? "config_odd" : "config_even");
+    addTextCell(trPort, "Port", "hdrc");
+    for (idx = 1; idx <= mvrPortMax; idx++) {
+        if (idx > actualPortNumber) {
+            td = CreateTd("c");
+            field = document.createElement('img');
+            field.src = newRowIndex % 2 ? "images/emptyodd.gif" : "images/emptyeven.gif";
+            field.border = 0;
+            addCell(trPort, td, field);
+        } else {
+            addTextCell(trPort, idx, "hdrc");
+        }
+    }
+    frag.appendChild(trPort);
+
+    var trRole = CreateStyledElement("tr", newRowIndex % 2 ? "config_odd" : "config_even");
+    addTextCell(trRole, "Role", "hdrc");
+    for (idx = 0; idx < mvrPortMax; idx++) {
+        if (idx < actualPortNumber) {
+            if (SpomStackPortCount()) {
+                var i, j;
+                j = 0;
+                for (i = 0; i < SpomStackPortCount(); i++) {
+                    if (mvrStackNo[i] == (idx + 1)) {
+                        j = 1;
+                        break;
+                    }
+                }
+
+                if (j) {
+                    td = addImageInputCell(trRole, "c", oSRoleVlan, oTRoleVlan, configMvrRoleStack, "new_prole_" + idx + "_mvr_vlan_" + entryIdx, changeMember);
+                    td.disabled = true;
+                } else {
+                    td = addImageInputCell(trRole, "c", oSRoleVlan, oTRoleVlan, 0, "new_prole_" + idx + "_mvr_vlan_" + entryIdx, changeMember);
+                }
+            } else {
+                td = addImageInputCell(trRole, "c", oSRoleVlan, oTRoleVlan, 0, "new_prole_" + idx + "_mvr_vlan_" + entryIdx, changeMember);
+            }
+        } else {
+            td = CreateTd("c");
+            field = document.createElement('img');
+            field.src = newRowIndex % 2 ? "images/emptyodd.gif" : "images/emptyeven.gif";
+            field.border = 0;
+            addCell(trRole, td, field);
+        }
+//        td.id = field.name = "img_port_" + idx;
+        td.id = "img_port_" + idx;
+    }
+    frag.appendChild(trRole);
+
+    button.onclick = function() { delEntryIdx(this.id, trRole, trPort, tr);};
+
+    var tbody = document.getElementById("vlanData");
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function checkForm(form)
+{
+    var mvid, idx, i, j, fld, fldChk, matchCnt;
+
+    matchCnt = 0;
+    for (i = 0; i < oldEntriesNum; i++) {
+        mvid = OldMvidArray[i];
+
+        fld = document.getElementById("delete_mvr_vlan_" + mvid);
+        if (fld.checked) {
+            continue;
+        }
+
+        fld = document.getElementById("name_mvr_vlan_" + mvid);
+        if (fld) {
+            if (String(fld.value) !== "") {
+                j = parseInt(checkName(fld.value), 10);
+
+                if (j < 0) {
+                    alert(fld.value + " is not a valid MVR name.");
+                    return false;
+                }
+            }
+        }
+
+        fld = document.getElementById("adrs_mvr_vlan_" + mvid);
+        if (fld && !isIpStr("adrs_mvr_vlan_" + mvid, 0, "'IGMP Address'")) {
+            return false;
+        }
+
+        fld = document.getElementById("vpri_mvr_vlan_" + mvid);
+        if (fld) {
+            if (!isWithinRange("vpri_mvr_vlan_" + mvid, 0, 7, "'Priority'", " ")) {
+                return false;
+            }
+        }
+
+        fld = document.getElementById("vllqi_mvr_vlan_" + mvid);
+        if (fld) {
+            if (!isWithinRange("vpri_mvr_vlan_" + mvid, 0, 31744, "'LLQI'", " ")) {
+                return false;
+            }
+        }
+
+        matchCnt++;
+    }
+
+    for (i = 0; i < newEntriesNum; i++) {
+        fld = document.getElementById("new_mvid_mvr_vlan_" + NewMvidArray[i]);
+        if (fld) {
+            idx = NewMvidArray[i];
+
+            if (!isWithinRange("new_mvid_mvr_vlan_" + idx, 1, 4095, "'MVR VID'", " ")) {
+                return false;
+            }
+
+            for (j = 0; j < oldEntriesNum; j++) {
+                mvid = OldMvidArray[j];
+                fldChk = document.getElementById("delete_mvr_vlan_" + mvid);
+                if (fldChk.checked) {
+                    continue;
+                }
+
+                if (parseInt(fld.value, 10) == parseInt(mvid, 10)) {
+                    alert("An entry already exists with MVR VID equal to " + mvid);
+                    return false;
+                }
+            }
+
+            fld = document.getElementById("new_name_mvr_vlan_" + idx);
+            if (String(fld.value) !== "") {
+                j = parseInt(checkName(fld.value), 10);
+
+                if (j < 0) {
+                    alert(fld.value + " is not a valid MVR name.");
+                    return false;
+                }
+            }
+
+            fld = document.getElementById("new_adrs_mvr_vlan_" + idx);
+            if (fld && !isIpStr("new_adrs_mvr_vlan_" + idx, 0, "'IGMP Address'")) {
+                return false;
+            }
+
+            fld = document.getElementById("new_vpri_mvr_vlan_" + idx);
+            if (fld) {
+                if (!isWithinRange("new_vpri_mvr_vlan_" + idx, 0, 7, "'Priority'", " ")) {
+                    return false;
+                }
+            }
+
+            fld = document.getElementById("new_vllqi_mvr_vlan_" + idx);
+            if (fld) {
+                if (!isWithinRange("new_vllqi_mvr_vlan_" + idx, 0, 31744, "'LLQI'", " ")) {
+                    return false;
+                }
+            }
+
+            if (matchCnt < configMvrVlanMax) {
+                matchCnt++;
+            } else {
+                alert("The maximum number of entries is " + configMvrVlanMax);
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+function requestUpdate()
+{
+    if (SpomNavigationLoading()) {
+        return;    // Bail out, navigation will trigger update
+    }
+
+    /*
+        Format:
+        [mvr_mode];[pmode]|...
+        ;[vid]/[name]/[vmode]/[vtag]/[vpri]/[vllqi],[prole]/...|...
+    */
+    //var req = "1;1|1|1|0|0|1|1|1|0|0|0|0|1|-1|1|0|0|1|1|1|1|0|0|1|-1|0;100/Charles/0/1/5/9,0/3/2/0/1/2/0/1/2/0/1/2/0/1/2/0/3/2/0/1/2/0/1/2/2/1|200/Liang/1/0/3/13,2/1/0/0/3/2/2/1/0/0/1/2/2/3/0/0/1/2/2/1/0/1/2/0/1/2|300/YiTung/0/1/5/9,0/3/2/0/3/2/0/1/2/0/1/2/1/0/0/1/2/0/1/2/0/1/2/0/1/2";
+    //procUpdMvrConfig(req, null);
+    loadXMLDoc(SpomAddSidArg("/config/mvr"), procUpdMvrConfig, null);
+
+    SpomUpdateDisplaySid("display_sid_vif");
+    SpomUpdateDisplaySid("display_sid_flp");
+
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/mvr" onsubmit="return checkForm(this);">
+
+<h1>MVR Configurations</h1>
+
+<h2 class="SPOM_only">Global Setting</h2>
+<table summary="MVR Global Setting" cellspacing="0" class="config">
+ <tr class="config">
+  <td class="param_label">MVR Mode</td>
+  <td class="cl"><select id="mvr_mode" name="mvr_mode"><option value=0>Disabled</option><option value=1>Enabled</option></select></td>
+ </tr>
+</table>
+
+<p>&nbsp;</p>
+
+<h2>VLAN Interface Setting <span id="display_sid_vif"></span> <b><font color="red"><span id="display_warning"></span></font></b> (Role [I:Inactive / S:Source / R:Receiver])</h2>
+<table id="vlanConfig" summary="MVR VLAN Interface Setting" cellspacing="0" class="config">
+ <tbody id="vlanData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="button" id="addNewEntry" value="Add New MVR VLAN" onclick="AddNewRow();">
+</p>
+
+<p>&nbsp;</p>
+
+<h2>Immediate Leave Setting <span id="display_sid_flp"></span></h2>
+<table id="fastLeaveConfig" summary="MVR Immediate Leave Setting" cellspacing="0" class="config">
+ <thead id="fastLeaveHead">
+ </thead>
+ <tbody id="fastLeaveData">
+ </tbody>
+</table>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+
+<!-- IE caching bug -->
+<div style="display: none;">
+ <img alt="" src="images/inactive.gif">
+ <img alt="" src="images/source.gif">
+ <img alt="" src="images/receiver.gif">
+ <img alt="" src="images/maskinactive.gif">
+ <img alt="" src="images/emptyeven.gif">
+ <img alt="" src="images/emptyodd.gif">
+ <img alt="" src="images/eye.png">
+ <img alt="" src="images/eye_gray.png">
+</div>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

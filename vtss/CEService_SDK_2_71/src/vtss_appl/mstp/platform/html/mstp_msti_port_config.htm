@@ -1,0 +1,241 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>STP MSTI Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_mstp_msti_port_config.htm";
+
+var ppT = Array(16);
+var ppV = Array(16);
+for(var i = 0; i < 16; i++) {
+    ppV[i] = (i << 4);
+    ppT[i] = String(ppV[i]);
+}
+
+var pcT = Array("Auto", "Specific");
+var pcV = Array(1, 0);
+
+function isPort(port_no)
+{
+    return (port_no >= configPortMin && port_no <= configNormalPortMax);
+}
+
+function addRow(index, frag, values)
+{
+    var port_no = parseInt(values[0], 10);
+    var pathcost = parseInt(values[1], 10);
+    var mstiprio = parseInt(values[2], 10);
+
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    if(isPort(port_no)) {            // Normal Port?
+        addTextCell(tr, poag2portid(values[0]), "cr");
+    } else {
+        addTextCell(tr, "-", "cr");
+    }
+
+    var pcauto = (pathcost === 0);
+    var sel = addSelectCell(tr, pcT, pcV, pcauto, "cr", "pcauto_" + port_no);
+    var pc_in = addInputCell(tr, pathcost ? pathcost : "", "c", "pathcost_" + port_no, 8);
+    pc_in.setAttribute("maxLength", 9); // Takes a value in range 1 - 200_000_000
+    sel.onchange = function () { pc_in.disabled = (sel.selectedIndex === 0); };
+    pc_in.disabled = pcauto;
+
+    addSelectCell(tr, ppT, ppV, mstiprio, "c", "mstiprio_" + port_no);
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req, "/stack_error.htm")) {
+        return;
+    }
+    var msticonfig = req.responseText.split("|");
+    // create holder for accumulated tbody elements and text nodes
+    var frag_aggr = document.createDocumentFragment();
+    var frag_port = document.createDocumentFragment();
+    for(var i = 0; i < msticonfig.length; i++) {
+        if(msticonfig[i]) {
+            var pval = msticonfig[i].split("/");
+            var port_no = parseInt(pval[0], 10);
+            addRow(i, isPort(port_no) ? frag_port : frag_aggr, pval);
+        }
+    }
+    var tbody;
+    tbody = document.getElementById('aggrData');
+    clearChildNodes(tbody);
+    tbody.appendChild(frag_aggr);
+    tbody = document.getElementById('portData');
+    clearChildNodes(tbody);
+    tbody.appendChild(frag_port);
+    var cBar = new MasterControlBar([{text: "*", className: "cr"}, 
+                                     {name: "pcauto_"}, {name: "pathcost_"}, {name: "mstiprio_"}]);
+    cBar.construct('portData', 'config_even');
+}
+
+// Check if the user input is OK (first stage; the next stage
+// is within the actual C-code that gets invoked when this
+// function returns true.
+function checkForm()
+{
+    // Check all path costs, which are written by the user in clear text.
+    var i = 0;
+    var fld;
+    while((fld = document.getElementById("pcauto_" + i)) !== null) {
+        // Only check if the mode is "Specific"
+        if(fld.selectedIndex == 1) {
+            if(!isWithinRange("pathcost_" + i, 1, 200000000, "'Path Cost'")) {
+                return false;
+            }
+        }
+        i++;
+    }
+    return true; // Feed the chickens and go home
+}
+
+function requestUpdate() {
+    var sel = document.getElementById("msti_select");
+    var opt = sel.options[sel.selectedIndex];
+    
+    UpdateId('mstiname', opt.text + " MSTI");
+    UpdateIdValue('bridge', opt.value);
+    loadXMLDoc(SpomAddSidArg("/config/rstp_msti_ports?bridge=" + opt.value), processUpdate, null);
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function selectMsti(form)
+{
+    requestUpdate();
+
+    SetVisible("choose_msti", false);
+    SetVisible("cfgmsti", true);
+
+    return false;
+}
+
+function ResetForm(form)
+{
+    form.reset();
+    $$('select[id^="pcauto_"]').each(function(sel) {
+            sel.onchange();
+        });
+}
+
+ </script>
+</head>
+
+<body class="content">
+
+<h1><span id="mstiname">MSTI</span> Port Configuration</h1>
+
+<form id="choose_msti" method="POST" action="dummy" onsubmit="return selectMsti(this);">
+ <fieldset>
+  <legend>Select MSTI</legend>
+  <select id="msti_select">
+   <option value="1">MST1</option>
+   <option value="2">MST2</option>
+   <option value="3">MST3</option>
+   <option value="4">MST4</option>
+   <option value="5">MST5</option>
+   <option value="6">MST6</option>
+   <option value="7">MST7</option>
+  </select>
+  <input type="submit" value="Get">
+ </fieldset>
+</form>
+
+<form id="cfgmsti" style="display:none;" method="POST" action="/config/rstp_msti_ports" onsubmit="return checkForm();">
+
+ <fieldset class="haveAggregations">
+ <legend>MSTI Aggregated Ports Configuration <span class="SPOM_only">(Stack Global)</span></legend>
+ <table id="aggrConfig" summary="STP Aggregations Configuration" class="config">
+  <thead>
+   <tr class="config_header">
+    <th>Port</th>
+    <th colspan="2">Path Cost</th>
+    <th>Priority</th>
+   </tr>
+  </thead>
+  <tbody id="aggrData">
+  </tbody>
+ </table>
+ </fieldset>
+
+ <fieldset>
+ <legend>MSTI Normal Ports Configuration <span id="display_sid"></span></legend>
+ <table id="mstiConfig" summary="MSTI Configuration" class="config">
+  <thead>
+   <tr class="config_header">
+    <th>Port</th>
+    <th colspan="2">Path Cost</th>
+    <th>Priority</th>
+   </tr>
+  </thead>
+  <tbody id="portData">
+  </tbody>
+ </table>
+ </fieldset>
+ <p>
+  <input type="hidden" id="submit_sid" name="sid">
+  <input type="hidden" id="bridge" name="bridge">
+  <input type="submit" value="Save">
+  <input type="reset" value="Reset" onclick="ResetForm(this.form);">
+ </p>
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

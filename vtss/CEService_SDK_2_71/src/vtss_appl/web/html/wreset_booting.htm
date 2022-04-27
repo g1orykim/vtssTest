@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Firmware update in progress</title>
+ <link href="/lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/ajax.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+var currentReq;
+
+function getCompleted()
+{
+    top.location.href = top.location.href;
+}
+
+function startUpdate(message, when)
+{
+    var ticker = document.getElementById('ticker');
+    ticker.innerHTML = message;
+    ticker.style.fontStyle = "italic";
+    timerID = setTimeout('doPoll()', when);
+}
+
+function doRetry(mesg)
+{
+    startUpdate(mesg, 2 * 1000);
+}
+
+function pollTimeout()
+{
+    currentReq.abort();
+    doRetry("Poll timeout, retry...");
+}
+
+function doFailed(err_msg)
+{
+    document.getElementById("InProgressHeader").style.visibility = "hidden";
+    document.getElementById("alertMsg").style.visibility = "hidden";
+    document.getElementById("progress").style.visibility = "hidden";
+    var ticker = document.getElementById('ticker');
+    ticker.innerHTML = err_msg;
+    ticker.style.fontWeight = "bold";
+    ticker.style.fontStyle = "normal";
+}
+
+function doCompleted()
+{
+    var progress = document.getElementById('progress');
+    progress.src = "/images/yes.gif";
+    var ticker = document.getElementById('ticker');
+    ticker.innerHTML = "Completed!";
+    ticker.style.fontWeight = "bold";
+    ticker.style.fontStyle = "normal";
+    timerID = setTimeout('getCompleted()', 2 * 1000);
+}
+
+function doPoll()
+{
+    var ticker = document.getElementById('ticker');
+    ticker.innerHTML = "Polling...";
+    ticker.style.fontStyle = "italic";
+    var req = initXMLHTTP();
+    var file = "/config/wreset_status";
+    if(typeof(configURLRemap) == "function") {
+        file = configURLRemap(file);
+    }
+    req.open("GET", file, true);
+    req.onreadystatechange = function () {
+        clearTimeout(timerID);
+        try {
+            if (req.readyState == 4) {
+                if (req.status && req.status == 200) {
+                    if (req.responseText == "idle") {
+                        doCompleted();
+                    } else if (req.responseText.match(/fail/)) {
+                        doFailed(req.responseText);
+                    } else {
+                        doRetry(req.responseText);
+                    }
+                    req = null; // MSIE leak avoidance
+                } else {
+                    var status;
+                    try{
+                        status = req.statusText;
+                    }
+                    catch(e){
+                        status = "Unknown error";
+                    }
+                    doRetry(status);
+                }
+            }
+        }
+        catch(err){
+            doRetry("Request timed out");
+        }
+    };
+    req.setRequestHeader("If-Modified-Since", "0"); // None cache
+    req.send(null);
+    currentReq = req;
+    timerID = setTimeout('pollTimeout()', 2 * 1000);
+}
+
+function docLoad()
+{
+    parent.contents.StopUpdate(); // Stop stack selector update
+    startUpdate("Waiting, please stand by...", 10 * 1000);
+}
+
+ </script>
+</head>
+
+<body class="content" onload="docLoad();">
+
+<h1 id="InProgressHeader">System restart in progress</h1>
+
+<div id="alertMsg" class="alert">
+The system is now restarting.
+</div>
+
+<p>
+ <img alt="" id="progress" src="/images/progress.gif">
+</p>
+
+<div id="ticker"></div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

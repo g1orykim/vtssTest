@@ -1,0 +1,528 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_AGGR)
+
+INCLUDE_BEGIN
+#include "aggr_api.h"
+#include "mgmt_api.h"
+#include "icli_api.h"
+#include "icli_porting_util.h"
+#include "cli_api.h"
+#define PRINTF (void)icli_session_self_printf
+#define AGGR_PORT_BUF_SIZE 180
+INCLUDE_END
+
+FUNCTION_BEGIN
+
+static BOOL aggr_icli_group_runtime(u32                session_id,
+                                    icli_runtime_ask_t ask,
+                                    icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_RANGE:
+        ICLI_PRINTF("ICLI_ASK_RANGE");
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt  = AGGR_MGMT_GROUP_NO_END-AGGR_MGMT_GROUP_NO_START;
+        runtime->range.u.sr.range[0].min  = AGGR_MGMT_GROUP_NO_START;
+        runtime->range.u.sr.range[0].max  = AGGR_MGMT_GROUP_NO_END-1;
+        return TRUE;
+    case ICLI_ASK_PRESENT:
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    default :
+        return FALSE;
+    }
+}
+
+static void icli_cmd_usid_print(switch_iter_t *sit)
+{
+    if ((sit->first && sit->last) == 0) {
+        PRINTF("\nSwitch:%u\n",sit->usid);
+        PRINTF("--------\n");
+    }
+}
+
+static BOOL icli_cmd_aggr_add(u32 session_id, icli_stack_port_range_t *plist, aggr_mgmt_group_no_t group_id, BOOL no)
+{
+    switch_iter_t            sit;
+    port_iter_t              pit;
+    aggr_mgmt_group_member_t group_add;
+    vtss_rc                  rc;
+
+    // Loop over all configurable switches in usid order...
+    (void)icli_switch_iter_init(&sit);
+    // ... provided they're also in the plist.
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        memset(&group_add,0,(sizeof(aggr_mgmt_group_member_t)));
+        if (no) {
+            // Loop over all ports in uport order...
+            (void)icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+            // ... provided they're also in the plist.
+            while (icli_port_iter_getnext(&pit, plist)) {
+                group_id = 0;
+                while (aggr_mgmt_port_members_get(sit.isid, group_id, &group_add, 1) == VTSS_RC_OK) {
+                    if (group_add.entry.member[pit.iport]) {
+                        group_add.entry.member[pit.iport] = 0;
+                        if ((rc = aggr_mgmt_port_members_add(sit.isid, group_add.aggr_no, &group_add.entry)) != VTSS_RC_OK) {
+                            ICLI_PRINTF("Error: %s\n", aggr_error_txt(rc));
+                            return 0;
+                        }
+                        break;
+                    }
+                    group_id = group_add.aggr_no;
+                }
+            }
+        } else {
+            (void)(aggr_mgmt_port_members_get(sit.isid, group_id, &group_add, 0));
+            // Loop over all ports in uport order...
+            (void)icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+            // ... provided they're also in the plist.
+            while (icli_port_iter_getnext(&pit, plist)) {
+                group_add.entry.member[pit.iport] = 1;
+            }
+            if ((rc = aggr_mgmt_port_members_add(sit.isid, group_id, &group_add.entry)) != VTSS_RC_OK) {
+                ICLI_PRINTF("Error: %s\n", aggr_error_txt(rc));
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+static BOOL icli_cmd_aggr_mode(u32 session_id,  BOOL ip, BOOL ipport, BOOL smac, BOOL dmac, BOOL show, BOOL no)
+{
+    vtss_aggr_mode_t mode;
+    vtss_rc          rc;
+
+    if (show) {
+        if ((rc=aggr_mgmt_aggr_mode_get(&mode)) != VTSS_RC_OK) {
+            ICLI_PRINTF("Error:%s\n",aggr_error_txt(rc));
+            return 0;
+        }
+        ICLI_PRINTF("Aggregation Mode:\n\n");
+        ICLI_PRINTF("SMAC  : %s\n", mode.smac_enable ? "Enabled":"Disabled");
+        ICLI_PRINTF("DMAC  : %s\n", mode.dmac_enable ? "Enabled":"Disabled");
+        ICLI_PRINTF("IP    : %s\n", mode.sip_dip_enable ? "Enabled":"Disabled");
+        ICLI_PRINTF("Port  : %s\n", mode.sport_dport_enable ? "Enabled":"Disabled");
+        return 1;
+    }
+   
+    if (no) {
+        mode.smac_enable        = 1;
+        mode.dmac_enable        = 0;
+        mode.sip_dip_enable     = 1;
+        mode.sport_dport_enable = 1;
+    } else {
+        mode.smac_enable        = smac;
+        mode.dmac_enable        = dmac;
+        mode.sip_dip_enable     = ip;
+        mode.sport_dport_enable = ipport;
+    }
+
+    if ((rc=aggr_mgmt_aggr_mode_set(&mode)) != VTSS_RC_OK) {
+        ICLI_PRINTF("Error:%s\n",aggr_error_txt(rc));
+        return 0;
+    }
+    return 1;
+}
+
+static BOOL icli_cmd_aggr_dump(u32 session_id)
+{
+    switch_iter_t            sit;
+    aggr_mgmt_group_no_t     search_group;
+    aggr_mgmt_group_member_t *found_group,aggr_lacp,aggr_static,grp;
+    vtss_rc                  rc,rc2=VTSS_RC_ERROR;
+    char                     buf[AGGR_PORT_BUF_SIZE],*p;
+    char                     buf2[AGGR_PORT_BUF_SIZE];
+    vtss_port_speed_t        spd;
+    BOOL                     static_grp, first;
+    
+    memset(&aggr_lacp,0,(sizeof(aggr_mgmt_group_member_t)));
+    memset(&aggr_static,0,(sizeof(aggr_mgmt_group_member_t)));
+
+    // Loop over all existing (not configurable) switches in usid order...
+    (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID);
+    while (switch_iter_getnext(&sit)) {
+        search_group=0;
+        first=1;
+        while (1) {
+            rc = aggr_mgmt_port_members_get(sit.isid, search_group, &aggr_static, 1);
+#if  defined(VTSS_SW_OPTION_LACP)
+            rc2 = aggr_mgmt_lacp_members_get(sit.isid, search_group, &aggr_lacp, 1);
+#endif /* VTSS_SW_OPTION_LACP */
+            if ((rc != VTSS_RC_OK) && (rc2 != VTSS_RC_OK)) {
+                break; /* No groups found */
+            } else if ((rc2 != VTSS_RC_OK) || ((aggr_static.aggr_no < aggr_lacp.aggr_no) && rc == VTSS_RC_OK)) {
+                found_group = &aggr_static;
+                static_grp = 1;
+            } else {
+                found_group = &aggr_lacp;
+                static_grp = 0;
+            }
+            search_group = found_group->aggr_no;                
+            spd = aggr_mgmt_speed_get(sit.isid, found_group->aggr_no);
+            (void)aggr_mgmt_members_get(sit.isid, found_group->aggr_no, &grp, 0);
+            if (first) {
+                (void)icli_cmd_usid_print(&sit);
+                first = 0;
+                p = &buf[0];
+                p += sprintf(p, "%-9s","Aggr ID");
+                p += sprintf(p, "%-8s","Name");
+#if  defined(VTSS_SW_OPTION_LACP)
+                p += sprintf(p, "%-8s","Type");
+#endif /* VTSS_SW_OPTION_LACP */
+                p += sprintf(p, "%-10s","Speed");
+                p += sprintf(p, "%-75s","Configured Ports");
+                p += sprintf(p, "%-65s","Aggregated Ports  ");
+                cli_table_header(buf);
+            }
+            p = &buf[0];
+            p += sprintf(p,"%-9u",found_group->aggr_no);
+            sprintf(buf2,"%s%u",AGGR_MGMT_GROUP_IS_LAG(found_group->aggr_no)?"LLAG":"GLAG",AGGR_MGMT_NO_TO_ID(found_group->aggr_no));
+            p += sprintf(p,"%-8s",buf2);
+#if  defined(VTSS_SW_OPTION_LACP)
+            p += sprintf(p,"%-8s", static_grp ? "Static" : "LACP");
+#endif /* VTSS_SW_OPTION_LACP */
+            p += sprintf(p,"%-10s", !static_grp  ? "-" :
+                         spd == VTSS_SPEED_10M   ? "10M":
+                         spd == VTSS_SPEED_100M  ? "100M" :
+                         spd == VTSS_SPEED_1G    ? "1G" :
+                         spd == VTSS_SPEED_2500M ? "2G5" :
+                         spd == VTSS_SPEED_10G   ? "10G" :
+                         spd == VTSS_SPEED_12G   ? "12G" : "Undefined");
+            p += sprintf(p,"%-75s", icli_port_list_info_txt(sit.isid,found_group->entry.member, buf2, FALSE));
+            p += sprintf(p,"%-65s", strlen(icli_port_list_info_txt(sit.isid,grp.entry.member, buf2, FALSE)) ? buf2 : "none");
+            ICLI_PRINTF("%s\n", buf);
+
+        }
+    }
+    return 1;
+}
+
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show aggregation [ mode ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: aggregation
+! 3: mode
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_mode
+
+HELP = Aggregation configuration 
+HELP = Aggregation port configuration 
+HELP = Traffic distribution mode 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Mode : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_mode) {
+        if (!icli_cmd_aggr_mode(session_id, 0, 0, 0, 0, 1, 0)) {
+            ICLI_PRINTF("Could not show aggregation mode\n");    
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        if (!icli_cmd_aggr_dump(session_id)) {
+            ICLI_PRINTF("Could not show aggregation(s)\n");    
+            return ICLI_RC_ERROR;
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = aggregation mode { [ smac ] [ dmac ] [ ip ] [ port ] }*1
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: aggregation
+! 2: mode
+! 3: smac
+! 4: dmac
+! 5: ip
+! 6: port
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_smac
+CMD_VAR = has_dmac
+CMD_VAR = has_ip
+CMD_VAR = has_port
+
+HELP = Aggregation mode
+HELP = Traffic distribution mode 
+HELP = Source MAC affects the distribution
+HELP = Destination MAC affects the distribution
+HELP = IP address affects the distribution
+HELP = IP port affects the distribution
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Smac : option>
+BYWORD = <Dmac : option>
+BYWORD = <Ip : option>
+BYWORD = <Port : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    //static BOOL icli_cmd_aggr_mode(u32 session_id,  BOOL ip, BOOL ipport, BOOL smac, BOOL dmac, BOOL show, BOOL no)
+    if (!icli_cmd_aggr_mode(session_id, has_ip, has_port, has_smac, has_dmac, 0, 0)) {
+        ICLI_PRINTF("Could not set aggregation mode\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no aggregation mode
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: aggregation
+! 3: mode
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = Aggregation mode
+HELP = Traffic distribution mode 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    //static BOOL icli_cmd_aggr_mode(u32 session_id,  BOOL ip, BOOL ipport, BOOL smac, BOOL dmac, BOOL show, BOOL no)
+    if (!icli_cmd_aggr_mode(session_id, 0, 0, 0, 0, 0, 1)) {
+        ICLI_PRINTF("Could not reset aggregation mode\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = aggregation group <uint>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =  aggr_icli_group_runtime
+
+! 1: aggregation
+! 2: group
+! 3: <uint>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_uint
+
+HELP = Create an aggregation
+HELP = Create an aggregation group
+HELP = The aggregation group id
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    u32  i;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!AGGR_MGMT_GROUP_IS_AGGR(v_uint)) {
+        ICLI_PRINTF("Group ids supported: %d-%d\n",AGGR_MGMT_GROUP_NO_START,AGGR_MGMT_GROUP_NO_END-1);    
+        return ICLI_RC_ERROR;
+    }
+    for (i = 0; i < plist->cnt; i++) {
+        if (plist->switch_range[i].port_cnt > AGGR_MGMT_LAG_PORTS_MAX) {
+        ICLI_PRINTF("The aggregation cannot include more than %d ports\n",AGGR_MGMT_LAG_PORTS_MAX);
+        return ICLI_RC_ERROR;
+        }
+    }
+    if (!icli_cmd_aggr_add(session_id, plist, v_uint, 0)) {
+        ICLI_PRINTF("Could not add port(s) to aggregation\n");    
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no aggregation group
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: aggregation
+! 3: group
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = Aggregation keyword
+HELP = Aggregation group
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_aggr_add(session_id, plist, 0, 1)) {
+        ICLI_PRINTF("Could not remove port(s) from aggregation\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+

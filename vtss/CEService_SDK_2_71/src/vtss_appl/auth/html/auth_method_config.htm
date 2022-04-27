@@ -1,0 +1,237 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IP Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_auth_method_config.htm";
+
+// Global variables
+var client_names = [];
+var client_found = [];
+var method_name = [];
+var method_num = [];
+var method_col; // Number of method columns to show
+
+function updateMethods(client) {
+    var cl, method, grayout = false;
+
+    if (client === undefined) { // If called without a parameter we loop through all clients
+        for (cl = 0; cl < client_found.length; cl++) {
+            if (client_found[cl]) {
+                updateMethods(cl);
+            }
+        }
+    } else {
+        for (method = 0; method < method_col; method++) { // Loop through all methods for a client
+            sel = document.getElementById("client_method_" + client + "_" + method);
+            if (sel) {
+                sel.disabled = grayout;
+                if (!grayout) {
+                    grayout = (sel.options[sel.selectedIndex].value <= 1); // Gray-out remaining if 'no' or 'local' found
+                }
+            }
+        }
+    }
+}
+
+function addClientRow(ix, client, frag)
+{
+    var i;
+    var tr = CreateStyledElement("tr", ix % 2 ? "config_odd" : "config_even");
+    var values = client.split("|");
+    var client_name = values[0];
+    var client_num = values[1];
+    var methods = values[2].split(",");
+    var td;
+    var helper = function(cl) {
+        return function() {
+            updateMethods(cl);
+        };
+    };
+
+    client_names[client_num] = client_name;
+    client_found[client_num] = true;
+    addTextCell(tr, client_name, "cl");
+    for (i = 0; i < method_col; i++) {
+        td = addSelectCell(tr,
+                           method_name, 
+                           method_num, 
+                           parseInt(methods[i],10), 
+                           "cl",
+                           "client_method_" + client_num + "_" + i);
+        td.onchange = helper(client_num);
+    }
+    frag.appendChild(tr);
+}
+
+/*
+# Configuration format:
+#
+# <clients>#<method_name>#<method_num>
+#
+# clients         :== <client 0>/<client 1>/...<client n>
+#   client x      :== <client_name>|<client_num>|<methods>
+#     client_name :== "console" or "telnet" or "ssh" or "http"
+#     client_num  :== 0..3 # the corresponding value for client_name
+#     methods     :== <method 0>,<method 1>,...<method n> # List of configured methods. E.g {3,1,0} ~ {tacacs, local, no}
+#       method x  :== 0..3 # the method value
+#
+# method_name :== <name 0>/<name 1>/...<name n>
+#   name x    :== "no" or "local" or "radius" or "tacacs"
+#
+# method_num  :== <num 0>/<num 1>/...<num n>
+#   num x     :== 0..3 # the corresponding value for method_name
+#
+ */
+function processUpdate(req, ref) {
+    var clients, methods, frag, tr, elem, i;
+    var values = req.responseText.split("#");
+
+    if (values.length != 3) {
+        alert("Invalid Parameter Length = " + values.length);
+    }
+
+    clients     = values[0].split("/");
+    method_name = values[1].split("/");
+    method_num  = values[2].split("/");
+    method_col  = method_name.length - 1;
+
+    // Create Client Table Header
+    frag = document.createDocumentFragment();
+    tr = document.createElement("tr");
+    addTextHeaderCell(tr, "Client", "cl");
+    addTextHeaderCell(tr, (method_col > 1) ?  "Methods" : "Method", "cl", method_col);
+    frag.appendChild(tr);
+    elem = document.getElementById("client_thead");
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+
+    // Create Client Table Body
+    frag = document.createDocumentFragment();
+    for (i = 0; i < clients.length; i++) {
+        addClientRow(i, clients[i], frag);
+    }
+    elem = document.getElementById("client_tbody");
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+    updateMethods();
+}
+
+function requestUpdate() {
+    loadXMLDoc("/config/auth_method_config", processUpdate, "");
+}
+
+function checkForm()
+{
+    var cl, methods, me, sel, local_found, i;
+
+    for (cl = 0; cl < client_found.length; cl++) {
+        if (client_found[cl]) {
+            methods = [];
+            for (me = 0; me < method_col; me++) { // Get all methods for a client
+                sel = document.getElementById("client_method_" + cl + "_" + me);
+                if (sel) {
+                    methods[me] = sel.options[sel.selectedIndex].value;
+                }
+            }
+            if (methods[0] < 1) { // First method is set to 'no'
+                if (!confirm("Warning: " +
+                             "When setting first method for '" + client_names[cl] + "' to 'no', login via '" + client_names[cl] + "' is not possible.\n" +
+                             "Do you want to continue?")) {
+                    return false;
+                }
+            } else if (methods[0] > 1) { // First method is set to 'radius' or 'tacacs'.
+                local_found = false;
+                for (i = 1; i < method_col; i++) {
+                    if (methods[i] == 1) {
+                        local_found = true;
+                    }
+                }
+                if (!local_found) { // No fallback to local authentication
+                    if (!confirm("Warning: " +
+                                 "When setting first method for '" + client_names[cl] + "' to other than 'local',\n" +
+                                 "you may lose '" + client_names[cl] + "' connectivity unless you set a later method for '" + client_names[cl] + "' to 'local'.\n" +
+                                 "Do you want to continue?")) {
+                        return false;
+                    }
+                }
+            }
+
+        }
+    }
+    return true;
+}
+
+function resetForm(form)
+{
+    form.reset();
+    updateMethods();
+}
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form name="authMethodConfigForm" method="POST" action="/config/auth_method_config" onsubmit="return checkForm();">
+
+<h1>Authentication Method Configuration</h1>
+
+<table summary="Client Configuration" class="config">
+ <thead id="client_thead">
+ </thead>
+ <tbody id="client_tbody">
+ </tbody>
+</table>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm(this.form);">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

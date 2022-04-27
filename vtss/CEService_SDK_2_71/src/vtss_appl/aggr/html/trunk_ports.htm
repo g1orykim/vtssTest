@@ -1,0 +1,309 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Trunk Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page macic
+var help_page = "/help/help_trunk_ports.htm";
+
+var show_hash;
+var show_locality;
+var show_invalid;
+var name_size;
+
+var membership;
+
+var trunks;
+
+var oTMode = ["Disabled", "Static", "LACP Active", "LACP Passive"];
+var oVMode = [0, 1, 2, 3];
+
+function addHeader(ref)
+{
+    var frag = document.createDocumentFragment();
+    var tr1;
+    var tr2;
+    var i;
+    var port_cnt = 0;
+    var tbody;
+
+    tr1 = CreateStyledElement("tr", "config_header");
+    tr2 = CreateStyledElement("tr", "config_header");
+
+    addTextHeaderCell(tr1, "Trunk", "cl", 1, 2);
+    if (show_locality) {
+        addTextHeaderCell(tr1, "Locality", "cl", 1, 2);
+    }
+    addTextHeaderCell(tr1, "Name", "cl", 1, 2);
+    addTextHeaderCell(tr1, "Mode", "cl", 1, 2);
+
+    for (i = 0; i < membership.length; i++ ) {
+	if (show_invalid || (membership[i] > -1)) { // show even if port is invalid
+            addTextHeaderCell(tr2, i + 1, "portno");
+	    port_cnt++; // Count the number of shown ports
+        }
+    }
+    addTextHeaderCell(tr1, "Port Members", "hdrc", port_cnt);
+
+    frag.appendChild(tr1);
+    frag.appendChild(tr2);
+
+    tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    tbody.appendChild(frag);
+}
+
+function addRow(index, frag, values) {
+    var port;
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    if (index === 0) { // Normal ports
+        addTextCell(tr, "Normal", "c");
+	if (show_locality) {
+            addTextCell(tr, " ", "c");
+        }
+        addTextCell(tr, " ", "c");
+        addTextCell(tr, " ", "c");
+    } else { // Trunk ports
+        addTextCell(tr, "T" + values[0], "c");
+	if (show_locality) {
+            addTextCell(tr, !!parseInt(values[1]) ? "Global" : "Local", "c");
+        }
+        addInputCell(tr, unescape(values[2]), "cl", "trunk_name_" + index, name_size, name_size);
+        addSelectCell(tr, oTMode, oVMode, parseInt(values[3]), "cr", "trunk_mode_" + index);
+    }
+
+    for (port = 0; port < membership.length; port++) {
+        if (membership[port] === -1) { // Port is invalid
+            if (show_invalid) { // show it as disabled radio button
+                addRadioCell(tr, 0, "c", "trunk_port_" + port, "trunk_" + index + "_port_" + port).disabled = true;
+	    }
+        } else {
+            addRadioCell(tr, (membership[port] === index), "c", "trunk_port_" + port, "trunk_" + index + "_port_" + port);
+        }
+    }
+    frag.appendChild(tr);
+}
+
+/*
+ * Format:
+ *
+ * <options>|<hash_contrib>|<membership>|<trunks>
+ * 
+ * options :== <show_hash>#<show_locality>#<show_invalid>#<name_size>
+ *   show_hash     :== 0..1 // 0: hide - , 1: show hash contributors
+ *   show_locality :== 0..1 // 0: hide - , 1: show locality (local/global) information
+ *   show_invalid  :== 0..1 // 0: hide - , 1: show ports that cannot be used in trunks as disabled
+ *   name_size     :== integer // number of characters in the trunk name field
+ *
+ * hash_contrib :== <smac>#<dmac>#<sip_dip>#<sport_dport>
+ *   smac          :== 0..1 // 0: don't use - , 1: use src MAC for hash calculation
+ *   dmac          :== 0..1 // 0: don't use - , 1: use dst MAC for hash calculation
+ *   sip_dip       :== 0..1 // 0: don't use - , 1: use src and dst IP address for hash calculation
+ *   sport_dport   :== 0..1 // 0: don't use - , 1: use src and dst TCP/UDP port for hash calculation
+ *
+ * membership :== <port 1>#<port 1>#<port 3>#...<port n>
+ *   port x := -1..trunk_max // -1: invalid trunk port, 0: normal, 1..trunk_max: trunk_id
+ *
+ * trunks :== <trunk 1>#<trunk 2>#<trunk 3>#...<trunk n>
+ *   trunk x :== <trunk_id>/<locality>/<name>/<mode>/<port_min>/<port_max>/<port_mask>
+ *     trunk_id  :== 1..trunk_max  // trunk_max is maximum number of supported trunks
+ *     locality  :== 0..1          // 0: local, 1: global
+ *     name      :== string(15)    // up to 15 alphanumeric characters
+ *     mode      :== 0..3          // 0: Disabled, 1: Static, 2: LACP Active, 3: LACP Passive
+ *     port_min  :== 0..n          // Minimum number of required ports in this trunk
+ *     port_max  :== 0..n          // Maximum number of allowed ports in this trunk
+ */
+function processUpdate(req, ref)
+{
+    var i;
+    var values;
+    var options;
+    var hash_contrib;
+    var frag;
+    var tbody;
+
+    if(redirectOnError(req)) {
+        return;
+    }
+    if (req.responseText) {
+        values = req.responseText.split("|");
+
+        options       = values[0].split("#");
+	show_hash     = parseInt(options[0]);
+	show_locality = parseInt(options[1]);
+	show_invalid  = parseInt(options[2]);
+	name_size     = parseInt(options[3]);
+
+        hash_contrib  = values[1].split("#");
+        UpdateIdChecked("hash_smac",        parseInt(hash_contrib[0]));
+        UpdateIdChecked("hash_dmac",        parseInt(hash_contrib[1]));
+        UpdateIdChecked("hash_sip_dip",     parseInt(hash_contrib[2]));
+        UpdateIdChecked("hash_sport_dport", parseInt(hash_contrib[3]));
+        if (show_hash) {
+            SetVisible("hash_contributors", 1);
+        }
+
+        membership = values[2].split("#");
+        for (i = 0; i < membership.length; i++) {
+            membership[i] = parseInt(membership[i]);
+        }
+
+        trunks = values[3].split("#");
+
+	addHeader('trunk_head');
+
+        frag = document.createDocumentFragment();
+
+        addRow(0, frag); // Add the normal ports row
+
+        for (i = 0; i < trunks.length; i++) {
+            addRow(i + 1, frag, trunks[i].split("/"));
+        }
+
+        tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        tbody.appendChild(frag);
+    } else {
+        SpomHandleError();
+    }
+}
+
+function checkForm(form)
+{
+    var i;
+    var trunk;
+    var fld;
+    var min;
+    var max;
+    var count;
+    
+    for (i = 0; i < trunks.length; i++) {
+        fld = $('trunk_name_' + (i + 1)); // Trunks numbers are 1-based here
+        fld.value = fld.value.trim(); // Remove leading and trailing spaces
+	if (!/^[a-zA-Z0-9 _-]*$/i.test(fld.value)) {
+            GiveAlert('Invalid characters in trunk name. Valid characters are a-z, A-Z, 0-9, space, underscore and dash', fld);
+            return false;
+        }
+	trunk = trunks[i].split("/");
+        min   = parseInt(trunk[4]);
+        max   = parseInt(trunk[5]);
+        count = $$('input[id^="trunk_' + (i + 1) + '_port_"]:checked').length; // Trunks numbers are 1-based here
+	if (count && (count < min)) {
+            alert("Trunk " + parseInt(trunk[0]) + " requires at least " + min + " port members");
+            return false;
+	}
+	if (count > max) {
+            alert("Trunk " + parseInt(trunk[0]) + " allows at most " + max + " port members");
+            return false;
+	}
+    }
+    return true;
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/trunk_ports"), processUpdate, 'trunk_body');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Trunk Configuration</h1>
+
+<form method="POST" action="/config/trunk_ports" onsubmit="return checkForm(this);">
+
+<div id="hash_contributors" style="display:none">
+<h2>Hash Code Contributors <span class="SPOM_only">(Stack Global)</span></h2>
+<table summary="Hash Code Contributors" cellspacing="0" class="config">
+ <tr class="config">
+  <td class="param_label"><label accesskey="S" for="hash_smac">Source MAC Address</label></td>
+  <td class="cl"><input type="checkbox" id="hash_smac" name="hash_smac"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label accesskey="D" for="hash_dmac">Destination MAC Address</label></td>
+  <td class="cl"><input type="checkbox" id="hash_dmac" name="hash_dmac"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label accesskey="I" for="hash_sip_dip">IP Address</label></td>
+  <td class="cl"><input type="checkbox" id="hash_sip_dip" name="hash_sip_dip"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label accesskey="P" for="hash_sport_dport">TCP/UDP Port Number</label></td>
+  <td class="cl"><input type="checkbox" id="hash_sport_dport" name="hash_sport_dport"></td>
+ </tr>
+</table>
+</div>
+
+<h2>Trunk Membership <span id="display_sid"></span></h2>
+
+<table summary="Trunk Membership" cellspacing="0" class="config">
+ <thead id="trunk_head"></thead>
+ <tbody id="trunk_body"></tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">    
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

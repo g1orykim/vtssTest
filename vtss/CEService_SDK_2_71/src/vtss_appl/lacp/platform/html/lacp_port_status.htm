@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>LACP Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_lacp_portstatus.htm";
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+
+    addTextCell(tr, values[0], "cr"); // port
+    addTextCell(tr, values[1], "cl"); // LACP
+    if (values[2] == 0) {
+        addTextCell(tr, "-", "cr"); // key
+    } else {
+        addTextCell(tr, values[2], "cr"); // key
+    }
+	addTextCell(tr, values[3], "cr"); // aggr id
+    addTextCell(tr, values[4], "c");  // sys id
+    addTextCell(tr, values[5], "cr"); // parnter port
+	addTextCell(tr, values[6], "cr"); // Prio
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req, "/stack_error.htm"))
+        return;
+    var data = req.responseText.split("|");
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var rows = 0;
+    for(var i = 0; i < data.length; i++) {
+        if(data[i]) {
+            var pval = data[i].split("/");
+            addRow(rows++, frag, pval);
+        }
+    }
+    if(rows == 0) {
+        var tr = CreateStyledElement("tr", "notice");
+        addTextCell(tr, "No ports enabled", "cl", 7);
+        frag.appendChild(tr);
+    }
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate() {
+    document.getElementById("update").style.visibility = "visible";
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+    loadXMLDoc(SpomAddSidArg("/stat/lacp_port_status"), processUpdate, 'portData');
+    SpomUpdateDisplaySid("display_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = null;
+    } else
+        requestUpdate();
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>LACP Status <span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<table id="portStatus" summary="LACP Status" class="display">
+ <thead>
+  <tr class="display_header">
+   <th>Port</th>
+   <th>LACP</th>
+   <th>Key</th>
+   <th>Aggr ID</th>
+   <th>Partner<br>System ID</th>
+   <th>Partner<br>Port</th>
+   <th>Partner<br>Prio</th>
+  </tr>
+ </thead>
+ <tbody id="portData">
+ </tbody>
+</table>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

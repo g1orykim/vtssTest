@@ -1,0 +1,50 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2010 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# E-StaX-34 board code
+
+BOARD_FUNCTIONS_BOARD_ESTAX_34_GEN  := led_estax34.o ser_gpio_estax34.o board_misc_estax34.o interrupt_l28.o
+BOARD_FUNCTIONS_BOARD_LUTON26_REF   := led_luton26.o interrupt_l26.o
+BOARD_FUNCTIONS_BOARD_LUTON10_REF   := $(BOARD_FUNCTIONS_BOARD_LUTON26_REF)
+BOARD_FUNCTIONS_BOARD_JAGUAR1_REF   := led_jaguar1.o interrupt_jaguar1.o
+BOARD_FUNCTIONS_BOARD_SERVAL_REF    := led_serval.o interrupt_serval.o
+
+DIR_board := $(DIR_APPL)/board
+OBJECTS_board := led.o $(BOARD_FUNCTIONS_$(VTSS_PRODUCT_HW)) interrupt.o interrupt_dev.o
+
+$(OBJECTS_board): %.o: $(DIR_board)/%.c
+	$(call compile_c, $@, $<)
+
+INCLUDES += -I$(DIR_board)
+
+# E-StaX-34 board defines
+BOARD_DEFINES_BOARD_ESTAX_34_GEN  := $(BOARD_DEFINES_BOARD_ESTAX_34)
+BOARD_DEFINES_BOARD_ESTAX_34_ENZO := -DVTSS_SW_OPTION_SERIALIZED_GPIO
+BOARD_FUNCTIONS_BOARD_LUTON26_REF :=
+
+# i2c needed for temperature sensor
+DEFINES += $(BOARD_DEFINES_$(VTSS_PRODUCT_HW)) -DVTSS_SW_OPTION_I2C
+

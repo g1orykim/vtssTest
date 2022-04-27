@@ -1,0 +1,213 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IP Source Guard Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_ip_source_guard.htm";
+
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = Array(0, 1);
+var oTDynamicClient = Array("0", "1", "2", "Unlimited");
+var oVDynamicClient = Array(0, 1, 2, 0xFFFF);
+var ipSourceGuardMode;
+var portNoArray = Array();
+var maxDynamicClients = Array();
+var inputPortNum = 0;
+
+function checkForm(form)
+{
+    var fld1, fld2;
+
+    fld1 = document.getElementById("ip_source_guard_mode");
+    if (ipSourceGuardMode && parseInt(fld1.value, 10)) {
+        for (var i = 0; i < inputPortNum; i++) {
+            fld2 = document.getElementById("max_dynamic_clients_" + portNoArray[i]);
+            if (parseInt(fld2.value, 10) < maxDynamicClients[i]) {
+                if (!confirm("The new setting maybe lost some dynamic entries of port " + configPortName(portNoArray[i], 0) +".\nDo you want to proceed anyway?")) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+function addPortHeader(frag) {
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Port", "param_label");
+    addTextHeaderCell(tr, "Mode", "param_label");
+    addTextHeaderCell(tr, "Max Dynamic Clients", "param_label");
+    frag.appendChild(tr);
+    elem = document.getElementById("portModeHead");
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+}
+
+function addPortRow(frag, i, values)
+{
+    portNoArray[inputPortNum] = parseInt(values[0], 10);
+    maxDynamicClients[inputPortNum++] = parseInt(values[2], 10);
+
+    var tr = CreateStyledElement("tr", i % 2 ? "config_odd" : "config_even");
+    addTextCell(tr, configPortName(values[0], 0), "cr");
+    addSelectCell(tr, oTMode, oVMode, parseInt(values[1], 10), "c", "port_mode_" + values[0]);
+    var td = addSelectCell(tr, oTDynamicClient, oVDynamicClient, parseInt(values[2], 10), "c", "max_dynamic_clients_" + values[0]);
+    td.style.width = "12em";
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    if (req.responseText) {
+        var configData = req.responseText.split(",");
+        ipSourceGuardMode = parseInt(configData[0], 10);
+        UpdateIdSelect("ip_source_guard_mode", oTMode, oVMode, ipSourceGuardMode);
+
+        // Create Table Header
+        var frag = document.createDocumentFragment();
+        addPortHeader(frag);
+
+        // Create Table Body
+        frag = document.createDocumentFragment();
+        var portConfigData = configData[1].split("|");
+        for (var i = 0; i < portConfigData.length; i++) {
+            if (portConfigData[i]) {
+                addPortRow(frag, i, portConfigData[i].split("/"));
+            }
+        }
+
+        var tbody = document.getElementById("portModeTable");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+        var cBar = new MasterControlBar([{text: "*", className: "cr"},{name: "port_mode_"},{name: "max_dynamic_clients_"}]);
+        cBar.construct('portModeCtrl','config_odd');
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate()
+{
+    /* Format: <mode>,[port_no]/[port_mode]/[max_dynamic_clients]|...
+     */
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    loadXMLDoc(SpomAddSidArg("/config/ip_source_guard"), processUpdate, "");
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function requestTranslate()
+{
+    /* Format: <mode>,[port_no]/[port_mode]/[max_dynamic_clients]|...
+     */
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    loadXMLDoc(SpomAddSidArg("/config/ip_source_guard?translateFlag=1"), processUpdate, "inputData");
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/ip_source_guard" onsubmit="return checkForm(this);">
+
+<h1>IP Source Guard Configuration</h1>
+<h2 class="SPOM_only">Stack Global Settings</h2>
+
+<table summary="Configuration" cellspacing="0" class="config">
+ <tr class="config">
+  <td class="param_label">Mode</td>
+  <td class="cl"><select id="ip_source_guard_mode" name="ip_source_guard_mode"><option value=0>Disabled</option><option value=1>Enabled</option></select></td>
+ </tr>
+</table>
+
+<p>
+<input type="button" id="translate" value="Translate dynamic to static" onclick="requestTranslate();">
+</p>
+
+<p>&nbsp;</p>
+
+<h1>Port Mode Configuration <span id="display_sid"></span></h1>
+<table summary="Port Mode Configuration" cellspacing="0" class="config">
+ <thead id="portModeHead">
+ </thead>
+ <tbody id="portModeCtrl">
+ </tbody>
+ <tbody id="portModeTable">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

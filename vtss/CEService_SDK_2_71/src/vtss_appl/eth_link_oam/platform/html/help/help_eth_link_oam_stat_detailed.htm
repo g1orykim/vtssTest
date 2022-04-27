@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Detailed Link OAM Port Statistics Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+ window.addEvent('domready', function() {
+         $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+         });
+</script>
+</head>
+
+<body>
+<h1>Detailed Link OAM Port Statistics Help</h1>
+
+<p>This page provides detailed OAM traffic statistics for a specific switch port. 
+Use the port select box to select which switch port details to display.</p>
+
+<p>The displayed counters represent the total number of OAM frames received and transmitted for the selected port.
+   Discontinuities of these counter can occur at re-initialization of the management system.</p>
+
+<h2>Receive Total and Transmit Total</h2>
+
+<dl>
+ <dt>Rx and Tx OAM Information PDU's</dt>
+ <dd>
+ The number of received and transmitted OAM Information PDU's. Discontinuities of this counter can occur at re-initialization of the management system.
+ </dd>
+
+ <dt>Rx and Tx Unique Error Event Notification</dt>
+ <dd>
+     A count of the number of unique Event OAMPDUs received and transmitted on
+     this interface.  Event Notifications may be sent in duplicate
+     to increase the probability of successfully being received,
+     given the possibility that a frame may be lost in transit.
+     Duplicate Event Notification transmissions are counted by
+     Duplicate Event Notification counters for Tx and Rx respectively.
+     A unique Event Notification OAMPDU is indicated as an Event
+     Notification OAMPDU with a Sequence Number field that is
+     distinct from the previously transmitted Event Notification
+     OAMPDU Sequence Number.
+     
+ </dd>
+
+ <dt>Rx and Tx Duplicate Error Event Notification</dt>
+ <dd>
+     A count of the number of duplicate Event OAMPDUs received and transmitted
+     on this interface.  Event Notification OAMPDUs may be sent in
+     duplicate to increase the probability of successfully being
+     received, given the possibility that a frame may be lost in
+     transit.
+     A duplicate Event Notification OAMPDU is indicated as an Event
+     Notification OAMPDU with a Sequence Number field that is
+     identical to the previously transmitted Event Notification
+     OAMPDU Sequence Number.     
+ </dd>
+
+ <dt>Rx and Tx Loopback Control</dt>
+ <dd>
+ A count of the number of Loopback Control OAMPDUs received and transmitted
+ on this interface.
+ </dd>
+
+ <dt>Rx and Tx Variable Request</dt>
+ <dd>
+ A count of the number of Variable Request OAMPDUs received and transmitted
+ on this interface.
+ </dd>
+
+ <dt>Rx and Tx Variable Response</dt>
+ <dd>
+ A count of the number of Variable Response OAMPDUs
+received and transmitted on this interface.
+ </dd>
+
+ <dt>Rx and Tx Org Specific PDU's</dt>
+ <dd>
+  A count of the number of Organization Specific OAMPDUs
+  transmitted on this interface.
+ </dd>
+
+<dt>Rx and Tx Unsupported Codes </dt>
+<dd>
+ A count of the number of OAMPDUs transmitted on this
+ interface with an unsupported op-code.
+</dd>
+<dt>Rx and Tx Link fault PDU's </dt>
+<dd>
+ A count of the number of Link fault PDU's received and transmitted on this
+ interface.
+</dd>
+<dt>Rx and Tx Dying Gasp </dt>
+<dd>
+ A count of the number of Dying Gasp events received and transmitted on this
+ interface.
+</dd>
+<dt>Rx and Tx Critical Event PDU's </dt>
+<dd>
+ A count of the number of Critical event PDU's  received and transmitted on this
+ interface.
+</dd>
+</dl>
+<h2>Buttons</h2>
+<p><i>The port select box determines which port is affected by clicking the buttons.</i></p>
+<p>Auto-refresh<input type="checkbox" disabled>: Check this box to enable an automatic refresh. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh " disabled>: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Clear " disabled>: Clears the counters for the selected port.</p>
+</body>
+</html>

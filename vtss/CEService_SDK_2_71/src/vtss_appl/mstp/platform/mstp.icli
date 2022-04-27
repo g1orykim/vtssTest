@@ -1,0 +1,3534 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+MODULE_IF_FLAG =
+ 
+INCLUDE_BEGIN
+#include "misc_api.h"  // For misc_time2interval()
+#include "mstp_api.h"
+#include "icli_api.h"
+#include "l2proto_api.h"
+#include "icli_porting_util.h"
+#include "conf_api.h" // For conf_mgmt_mac_addr_get()
+#include "vlan_api.h" /* For VLAN_ID_MAX */
+INCLUDE_END
+
+FUNCTION_BEGIN
+
+static BOOL icli_runtime_mst(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_MSTP_FULL)
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif
+        return TRUE;
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL icli_runtime_bpdu(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#ifdef VTSS_SW_OPT_MSTP_BPDU_ENH
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif
+        return TRUE;
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static void icli_mstp_display_port(u32 session_id, uchar msti, l2_port_no_t l2port, vtss_usid_t usid, vtss_port_no_t uport, BOOL show_mst, BOOL first)
+{
+    mstp_port_mgmt_status_t status, *ps = &status;
+    char   portString[ICLI_DEFAULT_WIDTH];
+
+    if (first) {
+        ICLI_PRINTF("%sPort       Port Role       State       Pri  PathCost  Edge  P2P  Uptime       \n",show_mst?"Mst    ":"");
+        ICLI_PRINTF("%s---------  --------------  ----------  ---  --------  ----  ---  -------------\n",show_mst?"-----  ":"");
+    }
+    if(mstp_get_port_status(msti, l2port, ps) && ps->active) {
+        if(ps->parent != L2_NULL) {
+            char buf[16];
+            (void) snprintf(buf, sizeof(buf), "Aggr(%s)", l2port2str(ps->parent));
+            if (show_mst) {
+                ICLI_PRINTF("%-7s",msti_name(msti));
+            }
+        } else {
+            if (show_mst) {
+                ICLI_PRINTF("%-7s",msti_name(msti));
+            }
+            ICLI_PRINTF("%-9s  %-14.14s  %-10.10s  %3u  %8u  %-4s  %-3s  %s\n",
+                        (strlen(icli_port_info_txt_short(usid, uport, portString)) ? portString : l2port2str(l2port)),
+                        ps->core.rolestr, ps->core.statestr,
+                        (uint) (ps->core.portId[0] & 0xf0),
+                        ps->core.pathCost,
+                        ps->core.operEdgePort ? "Yes" : "No",
+                        ps->core.operPointToPointMAC ? "Yes" : "No",
+                        misc_time2interval(ps->core.uptime));
+        }
+    }
+}
+
+static void icli_mstp_show_mstimapping(u32 session_id, const mstp_msti_config_t *conf, u8 msti)
+{
+    char vlanrange[(4096/2)*4]; /* Worst case */
+
+    ICLI_PRINTF("%s  ", msti_name(msti));
+    (void) mstp_mstimap2str(conf, msti, vlanrange, sizeof(vlanrange));
+    if(strlen(vlanrange) == 0) {
+        strcpy(vlanrange, "No VLANs mapped");
+    }
+    ICLI_PRINTF(vlanrange);
+    ICLI_PRINTF("\n");
+}
+
+static void icli_mstp_display_port_statistics(u32 session_id, l2_port_no_t l2port, vtss_usid_t usid, vtss_port_no_t uport, BOOL clear)
+{
+    mstp_port_statistics_t stats, *ps = &stats;
+    char   portString[ICLI_DEFAULT_WIDTH];
+    if(mstp_get_port_statistics(l2port, ps, clear)) {
+        if (!clear) {
+            ICLI_PRINTF("%9s  %8u  %8u  %8u  %8u  %7u  %7u  %7u  %7u  %7u  %7u\n",
+                        icli_port_info_txt_short(usid, uport, portString),
+                        ps->mstp_frame_recvs,
+                        ps->mstp_frame_xmits,
+                        ps->rstp_frame_recvs,
+                        ps->rstp_frame_xmits,
+                        ps->stp_frame_recvs,
+                        ps->stp_frame_xmits,
+                        ps->tcn_frame_recvs,
+                        ps->tcn_frame_xmits,
+                        ps->illegal_frame_recvs,
+                        ps->unknown_frame_recvs);
+        }
+    }
+}
+
+static BOOL icli_cmd_mstp_dump(u32 session_id, BOOL summary, BOOL active, BOOL detail, 
+                               icli_stack_port_range_t *plist, BOOL mst, BOOL mst_conf, u32 instance, 
+                               icli_stack_port_range_t *plist2, icli_stack_port_range_t *plist3)
+{
+    uchar msti,msti_end,msti_start;
+    mstp_bridge_status_t status, *bs = &status;
+    l2port_iter_t l2pit;
+    char str[32];
+    BOOL first = 1, show_mst = (plist != NULL || plist2 != NULL || mst);
+
+    if (mst) {
+        msti_start = instance;
+        msti_end = instance;
+    } else {
+        msti_start = 0;
+        msti_end = N_MSTI_MAX-1;
+    }
+
+    if (mst_conf) {
+        mstp_msti_config_t conf;
+        if(mstp_get_msti_config(&conf, NULL)) {
+            for(msti = 1; msti < N_MSTI_MAX; msti++) {
+                icli_mstp_show_mstimapping(session_id,&conf, msti);
+            }
+        }
+        return 1;
+    }
+
+    if (detail) { 
+        ICLI_PRINTF("Port       Rx MSTP   Tx MSTP   Rx RSTP   Tx RSTP   Rx STP   Tx STP   Rx TCN   Tx TCN   Rx Ill.  Rx Unk.\n");
+        ICLI_PRINTF("---------  --------  --------  --------  --------  -------  -------  -------  -------  -------  -------\n");        
+        (void)l2port_iter_init(&l2pit, VTSS_ISID_GLOBAL, L2PORT_ITER_TYPE_ALL | L2PORT_ITER_USID_ORDER);
+        while(l2port_iter_getnext(&l2pit)) {
+            /* show spanning tree detail <interface> */
+            if ((plist3 != NULL) && !icli_uport_is_included(l2pit.usid, l2pit.uport, plist3)) {
+                continue;
+            }                            
+            (void)icli_mstp_display_port_statistics(session_id, l2pit.l2port, l2pit.usid, l2pit.uport, 0);
+        }
+        return 1;
+    }
+  
+    if (summary) {
+        mstp_bridge_param_t       sc;
+        (void) mstp_get_system_config(&sc);            
+        ICLI_PRINTF("Protocol Version: %s\n",
+               sc.forceVersion == MSTP_PROTOCOL_VERSION_MSTP ? "MSTP" :
+               sc.forceVersion == MSTP_PROTOCOL_VERSION_RSTP ? "RSTP" : "Compatible (STP)");       
+        ICLI_PRINTF("Max Age         : %u\n", sc.bridgeMaxAge);
+        ICLI_PRINTF("Forward Delay   : %u\n", sc.bridgeForwardDelay);
+        ICLI_PRINTF("Tx Hold Count   : %u\n", sc.txHoldCount);        
+        ICLI_PRINTF("Max Hop Count   : %u\n", sc.MaxHops);
+#ifdef VTSS_SW_OPT_MSTP_BPDU_ENH
+        ICLI_PRINTF("BPDU Filtering  : %s\n", sc.bpduFiltering ? "Enabled" : "Disabled");
+        ICLI_PRINTF("BPDU Guard      : %s\n", sc.bpduGuard ? "Enabled" : "Disabled");
+        if (sc.errorRecoveryDelay) {
+            ICLI_PRINTF("Error Recovery  : %u seconds\n", sc.errorRecoveryDelay);
+        } else {
+            ICLI_PRINTF("Error Recovery  : Disabled\n");
+        }
+        for(msti = 0; msti < N_MSTI_MAX; msti++) {
+            if(!mstp_get_bridge_status(msti, bs)) {
+                continue;
+            }
+            ICLI_PRINTF("%s Bridge is active\n", msti_name(msti));
+        }
+#endif /* VTSS_SW_OPT_MSTP_BPDU_ENH */               
+        return 1;
+    }
+
+    if (active) {
+        for(msti = msti_start; msti <= msti_end; msti++) {
+            if(!mstp_get_bridge_status(msti, bs)) {
+                continue;
+            }
+            if (plist == NULL && plist2 == NULL) {
+                ICLI_PRINTF("%s Bridge STP Status\n", msti_name(msti));
+                (void) vtss_mstp_bridge2str(str, sizeof(str), bs->bridgeId);
+                ICLI_PRINTF("Bridge ID    : %s\n", str);
+                (void) vtss_mstp_bridge2str(str, sizeof(str), bs->designatedRoot);
+                ICLI_PRINTF("Root ID      : %s\n", str);
+                ICLI_PRINTF("Root Port    : %s\n", bs->rootPort != L2_NULL ? l2port2str(bs->rootPort) : "-");
+                ICLI_PRINTF("Root PathCost: %u\n", bs->rootPathCost);
+                if(msti == 0) {
+                    (void) vtss_mstp_bridge2str(str, sizeof(str), bs->cistRegionalRoot);
+                    ICLI_PRINTF("Regional Root: %s\n", str);
+                    ICLI_PRINTF("Int. PathCost: %u\n", bs->cistInternalPathCost);
+                    ICLI_PRINTF("Max Hops     : %u\n", bs->maxHops);
+                }
+                ICLI_PRINTF("TC Flag      : %s\n", bs->topologyChange ? "Changing" : "Steady");
+                ICLI_PRINTF("TC Count     : %u\n", bs->topologyChangeCount);
+                ICLI_PRINTF("TC Last      : %s\n",
+                       bs->timeSinceTopologyChange == MSTP_TIMESINCE_NEVER ?
+                       "-" : misc_time2interval(bs->timeSinceTopologyChange));
+            }
+            (void)l2port_iter_init(&l2pit, VTSS_ISID_GLOBAL, L2PORT_ITER_TYPE_ALL | L2PORT_ITER_USID_ORDER);
+            while(l2port_iter_getnext(&l2pit)) {
+                /* show spanning tree mst <0-7> <interface> */
+                if ((plist2 != NULL) && !icli_uport_is_included(l2pit.usid, l2pit.uport, plist2)) {
+                    continue;
+                }
+                /* show spanning tree <interface> */
+                if ((plist != NULL) && !icli_uport_is_included(l2pit.usid, l2pit.uport, plist)) {
+                    continue;
+                }                            
+                icli_mstp_display_port(session_id, msti, l2pit.l2port, l2pit.usid, l2pit.uport, show_mst, first);
+                first = 0;
+            }
+        }
+        return 1;
+    }
+    return 1;
+}
+
+
+static BOOL icli_cmd_mstp_clear(u32 session_id, BOOL statis, icli_stack_port_range_t *plist, BOOL mcheck, icli_stack_port_range_t *plist2)
+{
+    l2port_iter_t l2pit;
+    (void)l2port_iter_init(&l2pit, VTSS_ISID_GLOBAL, L2PORT_ITER_TYPE_ALL | L2PORT_ITER_USID_ORDER);
+    while(l2port_iter_getnext(&l2pit)) {                
+        if (statis) {
+            if ((plist != NULL) && !icli_uport_is_included(l2pit.usid, l2pit.uport, plist)) {
+                continue;
+            }                           
+            (void)icli_mstp_display_port_statistics(session_id, l2pit.l2port, l2pit.usid, l2pit.uport, 1);
+        }
+
+        if (mcheck) {
+            if ((plist2 != NULL) && !icli_uport_is_included(l2pit.usid, l2pit.uport, plist2)) {
+                continue;
+            }     
+            (void)mstp_set_port_mcheck(l2pit.l2port);
+        }
+    }
+    
+    return 1;
+}
+
+static BOOL icli_cmd_mstp_mode(u32 session_id, u32 version)
+{
+    mstp_bridge_param_t       sc;
+    if (mstp_get_system_config(&sc)) {
+        sc.forceVersion = version;
+        return mstp_set_system_config(&sc);
+    }
+    return 0;
+}
+
+static BOOL icli_cmd_mstp_bridge_conf(u32 session_id,
+                                      BOOL age, BOOL delay, 
+                                      BOOL txhold, BOOL maxhops,
+                                      BOOL bpdu_filtering, BOOL bpdu_guard, BOOL recovery, u32 value, u32 val2, BOOL no)
+{
+    mstp_bridge_param_t       sc;
+
+    if (mstp_get_system_config(&sc)) {
+        if (delay && age) {
+            sc.bridgeMaxAge = value;
+            sc.bridgeForwardDelay = val2;
+        } 
+        if (delay) {
+            if  (!(sc.bridgeMaxAge <= ((val2-1)*2))) {
+                return 0;
+            }
+        }
+        if (age) {
+            if (!(value <= ((sc.bridgeForwardDelay-1)*2))) {
+                return 0;
+            }
+        }
+        if (age)
+            sc.bridgeMaxAge = no ? 20 : value;       /* 17.14 - Table 17-1: Default recommended value */
+        if (delay)
+            sc.bridgeForwardDelay = no ? 15 : val2; /* 17.14 - Table 17-1: Default recommended value */
+        if (txhold)
+            sc.txHoldCount = no ? 6 : value;         /* 17.14 - Table 17-1: Default recommended value */
+        if (maxhops)
+            sc.MaxHops = no ? 20 : value;            /* 13.37.3 MaxHops */
+#ifdef VTSS_SW_OPT_MSTP_BPDU_ENH
+        if (bpdu_filtering)
+            sc.bpduFiltering = no ? 0 : value;
+        if (bpdu_guard)
+            sc.bpduGuard = no ? 0 : value;
+        if (recovery) {
+            sc.errorRecoveryDelay = no ? 0 : value;
+        }
+#endif /* VTSS_SW_OPT_MSTP_BPDU_ENH */
+        return mstp_set_system_config(&sc);   
+    }
+    return 0;
+}
+
+/* MSTI (priority) configuration */
+static BOOL icli_cmd_mstp_msti_conf(u32 session_id, u8 msti, u32 prio, BOOL no)
+{
+    if (no) {
+        prio = 32768; /* Default */
+    }
+    return  mstp_set_msti_priority(msti, prio >> 8);
+}
+
+static BOOL icli_cmd_mstp_mstimap_add(u32 session_id, u8 msti, icli_unsigned_range_t *v_vlan_list, BOOL no)
+{
+    mstp_msti_config_t conf;
+    u32                idx;
+    vtss_vid_t         vidx;
+
+    if (mstp_get_msti_config(&conf, NULL)) {
+        if (!no) {
+            for (idx = 0; idx < v_vlan_list->cnt; idx++) {
+                for (vidx = v_vlan_list->range[idx].min; vidx <= (v_vlan_list->range[idx].max); vidx++) {
+                    conf.map.map[vidx] = msti;
+                }
+            }
+        } else {
+            for(vidx = MSTP_MIN_VID; vidx < MSTP_MAX_VID; vidx++) {
+                if (conf.map.map[vidx] == msti) {
+                    conf.map.map[vidx] = 0;
+                }
+            }
+        }
+        return mstp_set_msti_config(&conf);
+    }
+    return 0;
+}
+
+static BOOL icli_cmd_mstp_cname(u32 session_id, char name[MSTP_CONFIG_NAME_MAXLEN], u16 rev, BOOL no)
+{
+    mstp_msti_config_t conf;
+    if(mstp_get_msti_config(&conf, NULL)) {
+        if (no) {
+            u8 mac[6];
+            (void) conf_mgmt_mac_addr_get(mac, 0);
+            (void) misc_mac_txt(mac, conf.configname);
+            conf.revision = 0;            
+        } else {
+            strncpy(conf.configname, name, sizeof(conf.configname));
+            conf.revision = rev;            
+        }
+        return mstp_set_msti_config(&conf);
+    }
+    return 0;
+}
+
+
+static BOOL icli_cmd_mstp_port_apply(u32 session_id, u32 isid, u32 iport,
+                                    BOOL mode, BOOL edge, BOOL p2p, mstp_p2p_t p2p_type, BOOL autoedge,
+                                    BOOL rRole, BOOL rTcn, BOOL bpduGuard, BOOL no)
+{
+    BOOL                      enable;
+    mstp_port_param_t         conf;
+
+    if(mstp_get_port_config(isid, iport, &enable, &conf)) {
+        if (mode) 
+            enable = no ? 0 : 1;
+        if (edge)
+            conf.adminEdgePort = no ? 0 : 1;
+        if (autoedge)
+            conf.adminAutoEdgePort = no ? 0 : 1;
+        if (p2p)
+            conf.adminPointToPointMAC = no ? P2P_AUTO : p2p_type;;
+        if (rRole)
+            conf.restrictedRole = no ? 0 : 1;
+        if (rTcn)
+            conf.restrictedTcn = no ? 0 : 1;
+#ifdef VTSS_SW_OPT_MSTP_BPDU_ENH
+        if (bpduGuard)
+            conf.bpduGuard = no ? 0 : 1;
+#endif /* VTSS_SW_OPT_MSTP_BPDU_ENH */
+        return (mstp_set_port_config(isid, iport, enable, &conf));
+    }
+    return 0;
+}
+
+static BOOL icli_cmd_mstp_port_conf(u32 session_id, icli_stack_port_range_t *plist,
+                                    BOOL mode, BOOL edge, BOOL p2p, mstp_p2p_t p2p_type, BOOL autoedge,
+                                    BOOL rRole, BOOL rTcn, BOOL bpduGuard, BOOL no)
+{
+    if (!mode && !edge && !p2p && !autoedge && !rRole && !rTcn && !bpduGuard && !no) {
+        return 0;
+    }
+    if (plist == NULL) {
+        /* Aggregation  */     
+        return icli_cmd_mstp_port_apply(session_id, VTSS_ISID_LOCAL, VTSS_PORT_NO_NONE, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no);
+    } else {
+        port_iter_t   pit;
+        switch_iter_t sit;
+
+        (void)icli_switch_iter_init(&sit);
+        while (icli_switch_iter_getnext(&sit, plist)) {
+            (void)icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+            while (icli_port_iter_getnext(&pit, plist)) {
+                if (!icli_cmd_mstp_port_apply(session_id, sit.isid, pit.iport, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+                    return 0;
+                }                
+            }
+        }
+    }
+    return 1;  
+}
+
+
+static BOOL icli_cmd_mstp_mstiport_apply(vtss_isid_t isid, u32 iport,
+                                        u16 msti, BOOL cost, BOOL prio, u32 value, BOOL no)
+{
+    mstp_msti_port_param_t    conf;
+
+    if (mstp_get_msti_port_config(isid, msti, iport, &conf)) {
+        if (cost)
+            conf.adminPathCost = no ? MSTP_PORT_PATHCOST_AUTO : value;
+        if (prio)
+            conf.adminPortPriority = no ? 0x80 : value;
+  
+        return mstp_set_msti_port_config(isid, msti, iport, &conf);
+    }
+    return 0;
+}
+
+static BOOL icli_cmd_mstp_mstiport_conf(u32 session_id, icli_stack_port_range_t *plist,
+                                        u16 msti, BOOL cost, BOOL prio, u32 value, BOOL no)
+{
+
+    if (!cost && !prio && !no) {
+        return 0;
+    }
+        
+    if (plist == NULL) {
+        /* Aggregation  */
+        return icli_cmd_mstp_mstiport_apply(VTSS_ISID_LOCAL, VTSS_PORT_NO_NONE, msti, cost, prio, value, no);
+    } else {
+        port_iter_t               pit;
+        switch_iter_t             sit;
+        (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID_CFG);
+        while (switch_iter_getnext(&sit)) {
+            if (!icli_usid_is_included(sit.usid, plist)) {
+                continue;
+            }
+            (void)port_iter_init(&pit, NULL, sit.isid, PORT_ITER_SORT_ORDER_IPORT, PORT_ITER_FLAGS_NORMAL);
+            while (port_iter_getnext(&pit)) {
+                if (!icli_uport_is_included(sit.usid, pit.uport, plist)) {
+                    continue;
+                }
+                if (!icli_cmd_mstp_mstiport_apply(sit.isid, pit.iport, msti, cost, prio, value, no)) {
+                    return 0;
+                }                
+            }
+        }
+    }
+    return 1;
+}
+
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show spanning-tree [ summary | active | { interface <port_type_list> } | { detailed [ interface <port_type_list> ] } | { mst [ configuration | { <0-7> [ interface <port_type_list> ] } ] } ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = icli_runtime_mst
+RUNTIME = icli_runtime_mst
+RUNTIME = icli_runtime_mst
+RUNTIME = icli_runtime_mst
+RUNTIME = icli_runtime_mst
+
+! 1: show
+! 2: spanning-tree
+! 3: summary
+! 4: active
+! 5: interface
+! 6: <port_type_list>
+! 7: detailed
+! 8: interface
+! 9: <port_type_list>
+! 10: mst
+! 11: configuration
+! 12: <instance:0-7>
+! 13: interface
+! 14: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_summary
+CMD_VAR = has_active
+CMD_VAR = has_interface
+CMD_VAR = v_port_type_list
+CMD_VAR = has_detailed
+CMD_VAR = has_interface_1
+CMD_VAR = v_port_type_list_1
+CMD_VAR = has_mst
+CMD_VAR = has_configuration
+CMD_VAR = instance
+CMD_VAR = has_interface_2
+CMD_VAR = v_port_type_list_2
+
+HELP = ##ICLI_HELP_SHOW
+HELP = STP Bridge
+HELP = STP summary 
+HELP = STP active interfaces
+HELP = Choose port
+HELP = ##ICLI_HELP_PORT_TYPE_LIST
+HELP = STP statistics
+HEKP = Choose port
+HELP = ##ICLI_HELP_PORT_TYPE_LIST
+HELP = Multiple STP
+HELP = Configuration
+HELP = STP bridge instance no (0-7, CIST=0, MST2=1...)
+HELP = Choose port
+HELP = ##ICLI_HELP_PORT_TYPE_LIST
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Summary : option>
+BYWORD = <Active : option>
+BYWORD = <Interface : option>
+BYWORD = 
+BYWORD = <Detailed : option>
+BYWORD = <Interface : option>
+BYWORD = 
+BYWORD = <Mst : option>
+BYWORD = <Configuration : option>
+BYWORD = <Instance : 0-7>
+BYWORD = <Interface : option>
+BYWORD = 
+
+
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    (void)has_interface;   /* don't need this */
+    (void)has_interface_1; /* don't need this */
+    (void)has_interface_2; /* don't need this */
+    if (!has_summary && !has_active && !has_detailed && v_port_type_list==NULL) {
+        has_active = 1; /* show spannig tree */
+    }
+
+    if (v_port_type_list!=NULL || has_mst) {
+        has_active = 1; /* show spannig tree */
+    }
+
+    if (!icli_cmd_mstp_dump(session_id, has_summary, has_active, has_detailed,  v_port_type_list, 
+                            has_mst, has_configuration, instance, v_port_type_list_2, v_port_type_list_1)) {
+        ICLI_PRINTF("Could not show MSTP\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear spanning-tree { { statistics [ interface <port_type_list> ] } | { detected-protocols [ interface <port_type_list> ] } }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: clear
+! 2: spanning-tree
+! 3: statistics
+! 4: interface
+! 5: <port_type_list>
+! 6: detected-protocols
+! 7: interface
+! 8: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_statistics
+CMD_VAR = has_interface
+CMD_VAR = v_port_type_list
+CMD_VAR = has_detected_protocols
+CMD_VAR = has_interface_1
+CMD_VAR = v_port_type_list_1
+
+HELP = ##ICLI_HELP_CLEAR
+HELP = STP Bridge
+HELP = STP statistics
+HELP = Choose port
+HELP = ##ICLI_HELP_PORT_TYPE_LIST 
+HELP = Set the STP migration check
+HELP = Choose port
+HELP = ##ICLI_HELP_PORT_TYPE_LIST 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Statistics : option>
+BYWORD = <Interface : option>
+BYWORD = 
+BYWORD = <DetectedProtocols : option>
+BYWORD = <Interface : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    (void)has_interface;   /* don't need this */
+    (void)has_interface_1; /* don't need this */
+    if (!icli_cmd_mstp_clear(session_id, has_statistics, v_port_type_list, has_detected_protocols, v_port_type_list_1)) {
+        ICLI_PRINTF("Could not clear MSTP\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree mode { stp | rstp | mstp }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = icli_runtime_mst
+
+! 1: spanning-tree
+! 2: mode
+! 3: stp
+! 4: rstp
+! 5: mstp
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_stp
+CMD_VAR = has_rstp
+CMD_VAR = has_mstp
+
+HELP = STP Bridge
+HELP = STP protocol mode
+HELP = 802.1D Spanning Tree
+HELP = Rabid Spanning Tree (802.1w)
+HELP = Multiple Spanning Tree (802.1s)
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Stp : option>
+BYWORD = <Rstp : option>
+BYWORD = <Mstp : option>
+
+VARIABLE_BEGIN
+    u32 version;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) has_stp;
+    if (has_mstp) {
+        version = MSTP_PROTOCOL_VERSION_MSTP;
+    } else if (has_rstp) {
+        version = MSTP_PROTOCOL_VERSION_RSTP;
+    } else {
+        version = MSTP_PROTOCOL_VERSION_COMPAT;
+    }
+    if (!icli_cmd_mstp_mode(session_id, version)) {
+        ICLI_PRINTF("Could not set MSTP version\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree mode
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: spanning-tree
+! 3: mode
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = STP protocol mode
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    u32 version = MSTP_PROTOCOL_VERSION_MSTP;
+VARIABLE_END
+
+CODE_BEGIN
+#if !defined(VTSS_MSTP_FULL)
+    version = MSTP_PROTOCOL_VERSION_RSTP;
+#endif
+    if (!icli_cmd_mstp_mode(session_id, version)) {
+        ICLI_PRINTF("Could not set MSTP version\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree transmit hold-count <1-10>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: transmit
+! 3: hold-count
+! 4: <holdcount:1-10>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = holdcount
+
+HELP = STP Bridge
+HELP = BPDUs to transmit
+HELP = Max number of transmit BPDUs per sec
+HELP = 1-10 per sec, 6 is default
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Holdcount : 1-10>
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,maxhops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    txhold = 1;
+    value = holdcount;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, maxhops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree transmit hold-count
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: spanning-tree
+! 3: transmit
+! 4: hold-count
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,maxhops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    no = 1;
+    txhold = 1;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, maxhops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree mst max-hops <6-40>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: spanning-tree
+! 2: mst
+! 3: max-hops
+! 4: <maxhops:6-40>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = maxhops
+
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = MSTP bridge max hop count
+HELP = Hop count range
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Maxhops : 6-40>
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    max_hops = 1;
+    value = maxhops;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree mst max-hops
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: no
+! 2: spanning-tree
+! 3: mst
+! 4: max-hops
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = MSTP bridge max hop count
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    max_hops = 1;
+    no = 1;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree mst max-age <6-40> [ forward-time <4-30> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: spanning-tree
+! 2: mst
+! 3: max-age
+! 4: <6-40>
+! 5: forward-time
+! 6: <4-30>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = maxage
+CMD_VAR = has_forward_time
+CMD_VAR = fwdtime
+
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = Max bridge age before timeout 
+HELP = Range in seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Maxage : 6-40>
+BYWORD = forward-time : Option
+BYWORD = <Fwdtime : 4-30>
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value = 0, val2 = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    age = 1;
+    if (has_forward_time) {
+        delay = 1;
+        val2 = fwdtime;
+    }
+    value = maxage;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, val2, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree mst max-age
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: no
+! 2: spanning-tree
+! 3: mst
+! 4: max-age
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = STP bridge instance
+HELP = Max bridge age before timeout 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    age = 1;
+    no = 1;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree mst forward-time <4-30>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: spanning-tree
+! 2: mst
+! 3: forward-time
+! 4: <fwdtime:4-30>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = fwdtime
+
+HELP = STP Bridge
+HELP = STP bridge instance
+HELP = Delay between port states
+HELP = Range in seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Fwdtime : 4-30>
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    delay = 1;
+    value = fwdtime;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, 0, value,  no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree mst forward-time
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: no
+! 2: spanning-tree
+! 3: mst
+! 4: forward-time
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = Delay between port states
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    no = 1;
+    delay = 1;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree edge bpdu-filter
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = icli_runtime_bpdu
+
+! 1: spanning-tree
+! 2: edge
+! 3: bpdu-filter
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Edge ports
+HELP = Enable BPDU filter (stop BPDU tx/rx) 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value = 0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value = 0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    value = 1;
+    bpdu_filtering = 1;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    no = 1;
+    bpdu_filtering = 1;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree edge bpdu-guard
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = icli_runtime_bpdu
+
+! 1: spanning-tree
+! 2: edge
+! 3: bpdu-guard
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Edge ports
+HELP = Enable BPDU guard
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    value = 1;
+    bpdu_guard = 1;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    no = 1;
+    bpdu_guard = 1;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree recovery interval <30-86400>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: recovery
+! 3: interval
+! 4: <interval:30-86400>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = interval
+
+HELP = STP Bridge
+HELP = The error recovery timeout
+HELP = The interval 
+HELP = Range in seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Interval : 30-86400>
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value=0;
+VARIABLE_END
+
+CODE_BEGIN
+    recovery = 1;
+    value = interval;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree recovery interval
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: spanning-tree
+! 3: recovery
+! 4: interval
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = The error recovery timeout
+HELP = Interval
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL age=0,delay=0,txhold=0,max_hops=0,bpdu_filtering=0,bpdu_guard=0,recovery=0,no=0;
+    u32 value=0;
+VARIABLE_END
+
+CODE_BEGIN
+    recovery = 1;
+    no = 1;
+    if (!icli_cmd_mstp_bridge_conf(session_id, age, delay, txhold, max_hops,
+                                   bpdu_filtering, bpdu_guard, recovery, value, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP bridge parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree mst <0-7> priority <0-61440>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: spanning-tree
+! 2: mst
+! 3: <instance:0-7>
+! 4: priority
+! 5: <prio:0-61440>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+CMD_VAR = prio
+
+HELP = STP Bridge
+HELP = STP bridge instance
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = Priority of the instance
+HELP = Range in seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+BYWORD = <Prio : 0-61440>
+
+VARIABLE_BEGIN
+    BOOL no = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    if (prio % 4096) {
+        ICLI_PRINTF("STP bridge priority must be one of  0/4096/8192/12288/.../53248/57344/61440 i.e. divisable by 4096\n");    
+        return ICLI_RC_ERROR;
+    }
+    if (!icli_cmd_mstp_msti_conf(session_id, instance, prio, no)) {
+        ICLI_PRINTF("Could not set MSTP msti parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree mst <0-7> priority
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: no
+! 2: spanning-tree
+! 3: mst
+! 4: <instance:0-7>
+! 5: priority
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = Priority of the instance
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL no = 1;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_msti_conf(session_id, instance, 0, no)) {
+        ICLI_PRINTF("Could not set MSTP msti parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree mst <0-7> vlan <vlan_list>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: spanning-tree
+! 2: mst
+! 3: <instance:0-7>
+! 4: vlan
+! 5: <vlan_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = VLAN keyword
+HELP = Range of VLANs
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+BYWORD = 
+    
+VARIABLE_BEGIN
+    u32 idx;
+VARIABLE_END
+
+CODE_BEGIN
+    for (idx = 0; idx < v_vlan_list->cnt; idx++) {
+        if (v_vlan_list->range[idx].max >= MIN(VLAN_ID_MAX, 4094)) {
+            ICLI_PRINTF("VLAN out of range\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+    if (!icli_cmd_mstp_mstimap_add(session_id, instance, v_vlan_list, 0)) {
+        ICLI_PRINTF("Could not set MSTP msti parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree mst <0-7> vlan
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: no
+! 2: spanning-tree
+! 3: mst
+! 4: <instance:0-7>
+! 5: vlan
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = VLAN keyword
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_mstimap_add(session_id, instance, NULL, 1)) {
+        ICLI_PRINTF("Could not set MSTP msti parameters\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree mst name <word32> revision <0-65535>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: spanning-tree
+! 2: mst
+! 3: name
+! 4: <name:word32>
+! 5: revision
+! 6: <0-65535>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = name
+CMD_VAR = 
+CMD_VAR = v_0_to_65535
+
+HELP = STP Bridge
+HELP = STP bridge instance
+HELP = Name keyword
+HELP = Name of the bridge
+HELP = Revision keyword
+HELP = Revision number
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Name : word32>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_cname(session_id, name, v_0_to_65535, 0)) {
+        ICLI_PRINTF("Could not set MSTP mst name \n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree mst name
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: no
+! 2: spanning-tree
+! 3: mst
+! 4: name
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = STP bridge instance
+HELP = Bridge name keyword
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_cname(session_id, "", 0, 1)) {
+        ICLI_PRINTF("Could not set MSTP mst name \n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: spanning-tree
+
+CMD_VAR = 
+
+HELP = Enable/disable STP on this interface
+
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=1, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=1, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree edge
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: edge
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Edge port
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=1, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=0, edge=1, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree auto-edge
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: auto-edge
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Auto detect edge status
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=1, rRole=0, rTcn=0, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=0, edge=1, p2p=0,autoedge=1, rRole=0, rTcn=0, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree link-type { point-to-point | shared | auto }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: link-type
+! 3: point-to-point
+! 4: shared
+! 5: auto
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_point_to_point
+CMD_VAR = has_shared
+CMD_VAR = has_auto
+
+HELP = STP Bridge
+HELP = Port link-type
+HELP = Forced to point-to-point
+HELP = Forced to Shared
+HELP = Auto detect
+
+BYWORD = 
+BYWORD = 
+BYWORD = <PointToPoint : option>
+BYWORD = <Shared : option>
+BYWORD = <Auto : option>
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=1,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) has_auto;
+    if (has_point_to_point) {
+        p2p_type=P2P_FORCETRUE;
+    } else if (has_shared) {
+       p2p_type=P2P_FORCEFALSE;
+    } else {
+       p2p_type=P2P_AUTO;
+    }
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree link-type
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: spanning-tree
+! 3: link-type
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = Port link-type
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=1,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree restricted-role
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: restricted-role
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Port role is restricted (never root port)
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=1, rTcn=0, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=1, rTcn=0, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree restricted-tcn
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: restricted-tcn
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Restrict topology change notifications
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=1, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=1, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree bpdu-guard
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: bpdu-guard
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Enable/disable BPDU guard
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=1,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=1,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, plist, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree mst <0-7> cost { <1-200000000> | auto }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = icli_runtime_mst
+
+! 1: spanning-tree
+! 2: mst
+! 3: <instance:0-7>
+! 4: cost
+! 5: <cost:1-200000000>
+! 6: auto
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+CMD_VAR = cost
+CMD_VAR = has_auto
+
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = STP Cost of this port
+HELP = Cost range 
+HELP = Use auto cost
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+BYWORD = <Cost : 1-200000000>
+BYWORD = <Auto : option>
+
+VARIABLE_BEGIN
+    BOOL _cost=1, _prio=0, no=0;
+    u32 value=0;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_auto) {
+        value = MSTP_PORT_PATHCOST_AUTO;
+    } else {
+        value = cost;
+    }
+    if (!icli_cmd_mstp_mstiport_conf(session_id, plist, instance, _cost, _prio, value, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree mst <0-7> cost
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = icli_runtime_mst
+
+! 1: no
+! 2: spanning-tree
+! 3: mst
+! 4: <instance:0-7>
+! 5: cost
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = STP cost of this port
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL _cost=1, _prio=0, no=1;
+    u32 value=0;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_mstiport_conf(session_id, plist, instance, _cost, _prio, value, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree mst <0-7> port-priority <0-240>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = icli_runtime_mst
+
+! 1: spanning-tree
+! 2: mst
+! 3: <instance:0-7>
+! 4: port-priority
+! 5: <prio:0-240>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+CMD_VAR = prio
+
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = STP priority of this port
+HELP = Range (lower higher priority)
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+BYWORD = <Prio : 0-240>
+
+VARIABLE_BEGIN
+    BOOL _cost=0, _prio=1, no=0;
+    u32 value;
+VARIABLE_END
+
+CODE_BEGIN
+    value=prio;
+    if (!icli_cmd_mstp_mstiport_conf(session_id, plist, instance, _cost, _prio, value, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree mst <0-7> port-priority
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = icli_runtime_mst
+
+! 1: no
+! 2: spanning-tree
+! 3: mst
+! 4: <instance:0-7>
+! 5: port-priority
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO 
+HELP = STP Bridge
+HELP = STP bridge instance
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = STP priority of this port
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL _cost=0, _prio=1, no=1;
+    u32 value=0;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_mstiport_conf(session_id, plist, instance, _cost, _prio, value, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: spanning-tree
+
+CMD_VAR = 
+
+HELP = Enable/disable STP on this interface
+
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=1, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=1, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree edge
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: edge
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Edge port
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=1, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=0, edge=1, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree auto-edge
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: auto-edge
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Auto detect edge status
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=1, rRole=0, rTcn=0, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=0, edge=1, p2p=0,autoedge=1, rRole=0, rTcn=0, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree link-type { point-to-point | shared | auto }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: link-type
+! 3: point-to-point
+! 4: shared
+! 5: auto
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_point_to_point
+CMD_VAR = has_shared
+CMD_VAR = has_auto
+
+HELP = STP Bridge
+HELP = Port link-type
+HELP = Forced to point-to-point
+HELP = Forced to Shared
+HELP = Auto detect
+
+BYWORD = 
+BYWORD = 
+BYWORD = <PointToPoint : option>
+BYWORD = <Shared : option>
+BYWORD = <Auto : option>
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=1,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) has_auto;
+    if (has_point_to_point) {
+        p2p_type=P2P_FORCETRUE;
+    } else if (has_shared) {
+       p2p_type=P2P_FORCEFALSE;
+    } else {
+       p2p_type=P2P_AUTO;
+    }
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree link-type
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: spanning-tree
+! 3: link-type
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = Port link-type
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=1,autoedge=0, rRole=0, rTcn=0, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree restricted-role
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: restricted-role
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Port role is restricted (never root port)
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=1, rTcn=0, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=1, rTcn=0, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree restricted-tcn
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: restricted-tcn
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Restrict topology change notifications
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=1, bpduGuard=0,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=1, bpduGuard=0,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree bpdu-guard
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: spanning-tree
+! 2: bpdu-guard
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = STP Bridge
+HELP = Enable/disable BPDU guard
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=1,  no=0;
+    mstp_p2p_t p2p_type=0;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode=0, edge=0, p2p=0,autoedge=0, rRole=0, rTcn=0, bpduGuard=1,  no=1;
+    mstp_p2p_t p2p_type=0;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_mstp_port_conf(session_id, NULL, mode, edge, p2p, p2p_type, autoedge, rRole, rTcn, bpduGuard, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree mst <0-7> cost { <1-200000000> | auto }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: spanning-tree
+! 2: mst
+! 3: <instance:0-7>
+! 4: cost
+! 5: <cost:1-200000000>
+! 6: auto
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+CMD_VAR = cost
+CMD_VAR = has_auto
+
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = STP Cost of this port
+HELP = Cost range 
+HELP = Use auto cost
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+BYWORD = <Cost : 1-200000000>
+BYWORD = <Auto : option>
+
+VARIABLE_BEGIN
+    BOOL _cost=1, _prio=0, no=0;
+    u32 value=0;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_auto) {
+        value = MSTP_PORT_PATHCOST_AUTO;
+    } else {
+        value = cost;
+    }
+    if (!icli_cmd_mstp_mstiport_conf(session_id, NULL, instance, _cost, _prio, value, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree mst <0-7> cost
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: no
+! 2: spanning-tree
+! 3: mst
+! 4: <instance:0-7>
+! 5: cost
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = STP cost of this port
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL _cost=1, _prio=0, no=1;
+    u32 value=0;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_mstiport_conf(session_id, NULL, instance, _cost, _prio, value, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = spanning-tree mst <0-7> port-priority <0-240>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: spanning-tree
+! 2: mst
+! 3: <instance:0-7>
+! 4: port-priority
+! 5: <prio:0-240>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+CMD_VAR = prio
+
+HELP = STP Bridge
+HELP = STP bridge instance 
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = STP priority of this port
+HELP = Range (lower higher priority)
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+BYWORD = <Prio : 0-240>
+
+VARIABLE_BEGIN
+    BOOL _cost=0, _prio=1, no=0;
+    u32 value;
+VARIABLE_END
+
+CODE_BEGIN
+    value=prio;
+    if (!icli_cmd_mstp_mstiport_conf(session_id, NULL, instance, _cost, _prio, value, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no spanning-tree mst <0-7> port-priority
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_STP_AGGR
+MODE_VAR = 
+
+RUNTIME = icli_runtime_mst
+
+! 1: no
+! 2: spanning-tree
+! 3: mst
+! 4: <instance:0-7>
+! 5: port-priority
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = instance
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO 
+HELP = STP Bridge
+HELP = STP bridge instance
+HELP = instance  0-7 (CIST=0, MST2=1...)
+HELP = STP priority of this port
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Instance : 0-7>
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL _cost=0, _prio=1, no=1;
+    u32 value=0;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_mstp_mstiport_conf(session_id, NULL, instance, _cost, _prio, value, no)) {
+        ICLI_PRINTF("Could not set MSTP port conf\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+

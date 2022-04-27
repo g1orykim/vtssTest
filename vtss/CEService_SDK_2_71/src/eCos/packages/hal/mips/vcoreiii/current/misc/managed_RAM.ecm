@@ -1,0 +1,400 @@
+cdl_savefile_version 1;
+cdl_savefile_command cdl_savefile_version {};
+cdl_savefile_command cdl_savefile_command {};
+cdl_savefile_command cdl_configuration { description hardware template package };
+cdl_savefile_command cdl_package { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_component { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_option { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_interface { value_source user_value wizard_value inferred_value };
+
+cdl_configuration eCos {
+    description "" ;
+    hardware    vcoreiii_mips32_24kec ;
+    template    minimal ;
+    package -hardware CYGPKG_HAL_MIPS current ;
+    package -hardware CYGPKG_HAL_MIPS_MIPS32 current ;
+    package -hardware CYGPKG_HAL_MIPS_VCOREIII current ;
+    package -hardware CYGPKG_DEVS_ETH_MIPS_VCOREIII current ;
+    package -hardware CYGPKG_DEVS_FLASH_SPI_M25PXX current ;
+    package -hardware CYGPKG_DEVS_SPI_MIPS_VCOREIII current ;
+    package -hardware CYGPKG_IO_I2C_MIPS_VCOREIII current ;
+    package -hardware CYGPKG_IO_SPI current ;
+    package -hardware CYGPKG_IO_FLASH current ;
+    package -template CYGPKG_HAL current ;
+    package -template CYGPKG_IO current ;
+    package -template CYGPKG_INFRA current ;
+    package -template CYGPKG_ERROR current ;
+    package -template CYGPKG_ISOINFRA current ;
+    package -template CYGPKG_IO_SERIAL current ;
+    package -template CYGPKG_IO_I2C current ;
+    package -template CYGPKG_KERNEL current ;
+    package -template CYGPKG_LIBC_STRING current ;
+    package -template CYGPKG_LIBC_TIME current ;
+    package -template CYGPKG_LIBC_STDLIB current ;
+    package -template CYGPKG_LIBC_STDIO current ;
+    package -template CYGPKG_LIBC_I18N current ;
+    package CYGPKG_MEMALLOC current ;
+    package CYGPKG_NET_FREEBSD_STACK current ;
+    package CYGPKG_NET current ;
+    package CYGPKG_IO_ETH_DRIVERS current ;
+    package CYGPKG_IO_FILEIO current ;
+    package CYGPKG_CRC current ;
+    package CYGPKG_ATHTTPD current ;
+    package CYGPKG_NET_SNTP current ;
+    package CYGPKG_IO_WALLCLOCK current ;
+    package CYGPKG_SNMPLIB current ;
+    package CYGPKG_POSIX current ;
+    package CYGPKG_LIBC_STARTUP current ;
+    package CYGPKG_SNMPAGENT current ;
+    package CYGPKG_OPENSSL current ;
+    package CYGPKG_NS_DNS current ;
+    package CYGPKG_LIBM current ;
+    package CYGPKG_CPULOAD current ;
+    package CYGPKG_THREADLOAD current ;
+    package CYGPKG_LIBC current ;
+    package CYGPKG_COMPRESS_ZLIB current ;
+    package CYGPKG_FS_RAM current ;
+};
+
+cdl_option CYGHWR_HAL_MIPS_MIPS32_CORE {
+    user_value 4Kc
+};
+
+cdl_component CYGPKG_IO_SERIAL_DEVICES {
+    user_value 1
+};
+
+cdl_option CYGIMP_KERNEL_SCHED_SORTED_QUEUES {
+    inferred_value 1
+};
+
+cdl_option CYGSEM_KERNEL_SCHED_TIMESLICE_ENABLE {
+    inferred_value 1
+};
+
+# ASR = Asynchronous Service Routine. A function
+# called from the scheduler when it has exited the
+# scheduler lock. This is typically used by
+# compatibility layer packages, such as POSIX.
+cdl_component CYGSEM_KERNEL_SCHED_ASR_SUPPORT {
+    inferred_value 1
+};
+
+cdl_option CYGSEM_KERNEL_SCHED_ASR_GLOBAL {
+    inferred_value 1
+};
+
+cdl_component CYGPKG_INFRA_DEBUG {
+    user_value 1
+};
+
+cdl_option CYGSEM_ERROR_PER_THREAD_ERRNO {
+    inferred_value 0
+};
+
+cdl_option CYGBLD_ISO_CTYPE_HEADER {
+    inferred_value 1 <cyg/libc/i18n/ctype.inl>
+};
+
+cdl_option CYGBLD_ISO_ERRNO_CODES_HEADER {
+    inferred_value 1 <cyg/error/codes.h>
+};
+
+cdl_option CYGBLD_ISO_ERRNO_HEADER {
+    inferred_value 1 <cyg/error/errno.h>
+};
+
+cdl_option CYGBLD_ISO_STDIO_FILETYPES_HEADER {
+    inferred_value 1 <cyg/libc/stdio/stdio.h>
+};
+
+cdl_option CYGBLD_ISO_STDIO_STREAMS_HEADER {
+    inferred_value 1 <cyg/libc/stdio/stdio.h>
+};
+
+cdl_option CYGBLD_ISO_STDIO_FILEOPS_HEADER {
+    inferred_value 1 <cyg/libc/stdio/stdio.h>
+};
+
+cdl_option CYGBLD_ISO_STDIO_FILEACCESS_HEADER {
+    inferred_value 1 <cyg/libc/stdio/stdio.h>
+};
+
+cdl_option CYGBLD_ISO_STDIO_FORMATTED_IO_HEADER {
+    inferred_value 1 <cyg/libc/stdio/stdio.h>
+};
+
+cdl_option CYGBLD_ISO_STDIO_CHAR_IO_HEADER {
+    inferred_value 1 <cyg/libc/stdio/stdio.h>
+};
+
+cdl_option CYGBLD_ISO_STDIO_DIRECT_IO_HEADER {
+    inferred_value 1 <cyg/libc/stdio/stdio.h>
+};
+
+cdl_option CYGBLD_ISO_STDIO_FILEPOS_HEADER {
+    inferred_value 1 <cyg/libc/stdio/stdio.h>
+};
+
+cdl_option CYGBLD_ISO_STDIO_ERROR_HEADER {
+    inferred_value 1 <cyg/libc/stdio/stdio.h>
+};
+
+cdl_option CYGBLD_ISO_STDLIB_STRCONV_HEADER {
+    inferred_value 1 <cyg/libc/stdlib/atox.inl>
+};
+
+cdl_option CYGBLD_ISO_STDLIB_ABS_HEADER {
+    inferred_value 1 <cyg/libc/stdlib/abs.inl>
+};
+
+cdl_option CYGBLD_ISO_STDLIB_DIV_HEADER {
+    inferred_value 1 <cyg/libc/stdlib/div.inl>
+};
+
+cdl_option CYGBLD_ISO_STRERROR_HEADER {
+    inferred_value 1 <cyg/error/strerror.h>
+};
+
+cdl_option CYGBLD_ISO_STRTOK_R_HEADER {
+    inferred_value 1 <cyg/libc/string/string.h>
+};
+
+cdl_option CYGBLD_ISO_STRING_LOCALE_FUNCS_HEADER {
+    inferred_value 1 <cyg/libc/string/string.h>
+};
+
+cdl_option CYGBLD_ISO_STRING_BSD_FUNCS_HEADER {
+    inferred_value 1 <cyg/libc/string/bsdstring.h>
+};
+
+cdl_option CYGBLD_ISO_STRING_MEMFUNCS_HEADER {
+    inferred_value 1 <cyg/libc/string/string.h>
+};
+
+cdl_option CYGBLD_ISO_STRING_STRFUNCS_HEADER {
+    inferred_value 1 <cyg/libc/string/string.h>
+};
+
+cdl_option CYGBLD_ISO_FNMATCH_HEADER {
+    inferred_value 1 <cyg/fileio/fnmatch.h>
+};
+
+cdl_option CYGBLD_ISO_C_TIME_TYPES_HEADER {
+    inferred_value 1 <cyg/libc/time/time.h>
+};
+
+cdl_option CYGBLD_ISO_C_CLOCK_FUNCS_HEADER {
+    inferred_value 1 <cyg/libc/time/time.h>
+};
+
+cdl_option CYGBLD_ISO_DIRENT_HEADER {
+    inferred_value 1 <cyg/fileio/dirent.h>
+};
+
+cdl_option CYGBLD_ISO_BSDTYPES_HEADER {
+    inferred_value 1 <sys/bsdtypes.h>
+};
+
+cdl_option CYGBLD_ISO_OPEN_MAX_HEADER {
+    inferred_value 1 <cyg/fileio/limits.h>
+};
+
+cdl_option CYGBLD_ISO_NAME_MAX_HEADER {
+    inferred_value 1 <cyg/fileio/limits.h>
+};
+
+cdl_option CYGBLD_ISO_NETDB_PROTO_HEADER {
+    inferred_value 1 <net/netdb.h>
+};
+
+cdl_option CYGBLD_ISO_NETDB_SERV_HEADER {
+    inferred_value 1 <net/netdb.h>
+};
+
+
+cdl_option CYGDBG_KERNEL_DEBUG_GDB_THREAD_SUPPORT {
+    user_value 0
+};
+
+cdl_option CYGSEM_LIBC_TIME_TIME_WORKING {
+    inferred_value 1
+};
+
+cdl_option CYGSEM_LIBC_TIME_SETTIME_WORKING {
+    inferred_value 1
+};
+
+cdl_component CYGPKG_NET_DHCP {
+    user_value 1
+};
+
+cdl_option CYGOPT_NET_DHCP_DHCP_THREAD {
+    user_value 0
+};
+
+cdl_component CYGOPT_NET_DHCP_OPTION_HOST_NAME {
+    user_value 1
+};
+
+cdl_option CYGNUM_NET_DHCP_MIN_RETRY_TIME {
+    user_value 100
+};
+
+cdl_option CYGNUM_IO_ETH_DRIVERS_SG_LIST_SIZE {
+    user_value 64
+};
+
+cdl_component CYGHWR_NET_DRIVER_ETH0_BOOTP {
+    user_value 1
+};
+
+cdl_option CYGHWR_NET_DRIVER_ETH0_BOOTP_SHOW {
+    user_value 0
+};
+
+cdl_option CYGHWR_NET_DRIVER_ETH0_DHCP {
+    user_value 1
+};
+
+cdl_option CYGPKG_NET_FREEBSD_SYSCTL {
+    user_value 1
+};
+
+cdl_option CYGPKG_NET_FREEBSD_LOGGING {
+    user_value 1 0x0000C007
+};
+
+cdl_option CYGNUM_FILEIO_NFILE {
+    user_value 512
+};
+
+cdl_option CYGNUM_FILEIO_NFD {
+    user_value 512
+};
+
+cdl_option CYGDAT_NET_ATHTTPD_SERVEROPT_SERVERID {
+    user_value "\"Vitesse Web Server\""
+};
+
+cdl_option CYGNUM_ATHTTPD_SERVER_MAX_POST {
+    user_value (6*1024*1024)
+};
+
+cdl_option CYGDAT_NET_ATHTTPD_ALTERNATE_HOME {
+    user_value 1 "\"/index.htm\""
+};
+
+cdl_option CYGOPT_NET_ATHTTPD_USE_FS {
+    user_value 0
+};
+
+cdl_option CYGOPT_NET_ATHTTPD_CLOSE_CHUNKED_CONNECTIONS {
+    user_value 0
+};
+
+cdl_option CYGOPT_NET_ATHTTPD_USE_IRES_ETAG {
+    user_value 1
+};
+
+# Boost the thread priority so that we don't starve the user's interface
+# just because of a busy CPU (default was 16)
+cdl_option CYGNUM_NET_ATHTTPD_THREADOPT_PRIORITY {
+    user_value 7
+};
+
+# The required stack size is about 64K when using ICLI.
+cdl_option CYGNUM_NET_ATHTTPD_THREADOPT_STACKSIZE {
+    user_value 65536
+};
+
+cdl_option CYGOPT_NET_ATHTTPD_USE_IRES_HEADER {
+    user_value 1 "\"Cache-Control: max-age=300, must-revalidate, post-check=300, pre-check=600\\r\\n\""
+};
+
+cdl_option CYGOPT_NET_ATHTTPD_USE_COOKIES {
+    user_value 1
+};
+
+cdl_option CYGOPT_NET_ATHTTPD_USE_COOKIE_AUTH {
+    user_value 0
+};
+
+cdl_option CYGOPT_NET_ATHTTPD_USE_AUTH {
+    user_value 1
+};
+
+# Do not call init_all_network_interfaces() from atHTTPD daemon,
+# since that would also start DHCP, which we'd like to control
+# ourselves.
+cdl_option CYGOPT_NET_ATHTTPD_INIT_ALL_NETWORK_INTERFACES {
+    user_value 0
+};
+
+cdl_component CYGPKG_NET_SNTP_UNICAST {
+    user_value 1
+};
+
+cdl_option CYGNUM_NET_SNTP_UNICAST_MAXDHCP {
+    user_value 1 1
+};
+
+# We need 12 words per thread rather than the default of
+# 6 words, since DNS Client module requires extra thread data.
+cdl_option CYGNUM_KERNEL_THREADS_DATA_MAX {
+    user_value 12
+};
+
+cdl_option CYGDAT_LIBC_STDIO_DEFAULT_CONSOLE {
+    user_value "\"/dev/termios0\""
+};
+
+# The Network Alarm Support thread by default has a
+# stack size of 2400 bytes. This is not enough - at least
+# when compiling with -O0.
+cdl_option CYGNUM_NET_FAST_THREAD_STACKSIZE {
+    user_value 4096
+};
+
+# Disable adjtimer until verified by "Time Bandits" :-)
+cdl_option CYG_HAL_TIMER_ADJUSTMENT_SUPPORT {
+    user_value 0
+};
+
+cdl_option CYGPKG_FS_RAM_BLOCKS {
+    user_value 1
+};
+
+cdl_option CYGNUM_RAMFS_BLOCK_SIZE {
+    user_value 4096
+};
+
+cdl_option CYGNUM_RAMFS_BLOCKS_INDIRECT2 {
+    user_value 0
+};
+
+cdl_option CYGNUM_RAMFS_DIRENT_SIZE {
+    user_value 256
+};
+
+cdl_component CYGPKG_SNMPLIB_FILESYSTEM_SUPPORT {
+    user_value 0
+};
+
+# We need a greater network processing thread stack than the
+# default 4K.
+cdl_option CYGNUM_NET_THREAD_STACKSIZE {
+    user_value 8192
+}
+
+cdl_component CYGPKG_IO_ETH_DRIVERS_WARN_NO_MBUFS {
+    user_value 0
+};
+
+# For the sake of a larger vtss_init_conf_t for JR due to
+# QS configuration, we need a larger stack when cyg_user_start()
+# gets invoked.
+cdl_option CYGNUM_HAL_COMMON_INTERRUPTS_STACK_SIZE {
+    user_value 8192
+}
+

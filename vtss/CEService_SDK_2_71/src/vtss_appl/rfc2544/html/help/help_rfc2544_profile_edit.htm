@@ -1,0 +1,341 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RFC2544 Profile Edit Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" src="/lib/mootools-more.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+   $$('span.vid_min'    ).set('text', configVlanIdMin);
+   $$('span.vid_max'    ).set('text', configVlanIdMax);
+   $$('span.dwell_min'  ).set('text', rfc2544_dwell_min);
+   $$('span.dwell_max'  ).set('text', rfc2544_dwell_max);
+   $$('span.dwell_def'  ).set('text', rfc2544_dwell_def);
+   $$('span.tp_dur_min' ).set('text', rfc2544_tp_dur_min);
+   $$('span.tp_dur_max' ).set('text', rfc2544_tp_dur_max);
+   $$('span.tp_dur_def' ).set('text', rfc2544_tp_dur_def);
+   $$('span.tp_min_min' ).set('text', rfc2544_tp_min_min);
+   $$('span.tp_min_max' ).set('text', rfc2544_tp_min_max);
+   $$('span.tp_min_def' ).set('text', rfc2544_tp_min_def);
+   $$('span.tp_max_min' ).set('text', rfc2544_tp_max_min);
+   $$('span.tp_max_max' ).set('text', rfc2544_tp_max_max);
+   $$('span.tp_max_def' ).set('text', rfc2544_tp_max_def);
+   $$('span.tp_step_min').set('text', rfc2544_tp_step_min);
+   $$('span.tp_step_max').set('text', rfc2544_tp_step_max);
+   $$('span.tp_step_def').set('text', rfc2544_tp_step_def);
+   $$('span.tp_pass_min').set('text', rfc2544_tp_pass_min);
+   $$('span.tp_pass_max').set('text', rfc2544_tp_pass_max);
+   $$('span.tp_pass_def').set('text', rfc2544_tp_pass_def);
+   $$('span.la_dur_min' ).set('text', rfc2544_la_dur_min);
+   $$('span.la_dur_max' ).set('text', rfc2544_la_dur_max);
+   $$('span.la_dur_def' ).set('text', rfc2544_la_dur_def);
+   $$('span.la_dmm_min' ).set('text', rfc2544_la_dmm_min);
+   $$('span.la_dmm_max' ).set('text', rfc2544_la_dmm_max);
+   $$('span.la_dmm_def' ).set('text', rfc2544_la_dmm_def);
+   $$('span.la_pass_min').set('text', rfc2544_la_pass_min);
+   $$('span.la_pass_max').set('text', rfc2544_la_pass_max);
+   $$('span.la_pass_def').set('text', rfc2544_la_pass_def);
+   $$('span.fl_dur_min' ).set('text', rfc2544_fl_dur_min);
+   $$('span.fl_dur_max' ).set('text', rfc2544_fl_dur_max);
+   $$('span.fl_dur_def' ).set('text', rfc2544_fl_dur_def);
+   $$('span.fl_min_min' ).set('text', rfc2544_fl_min_min);
+   $$('span.fl_min_max' ).set('text', rfc2544_fl_min_max);
+   $$('span.fl_min_def' ).set('text', rfc2544_fl_min_def);
+   $$('span.fl_max_min' ).set('text', rfc2544_fl_max_min);
+   $$('span.fl_max_max' ).set('text', rfc2544_fl_max_max);
+   $$('span.fl_max_def' ).set('text', rfc2544_fl_max_def);
+   $$('span.fl_step_min').set('text', rfc2544_fl_step_min);
+   $$('span.fl_step_max').set('text', rfc2544_fl_step_max);
+   $$('span.fl_step_def').set('text', rfc2544_fl_step_def);
+   $$('span.bb_dur_min' ).set('text', rfc2544_bb_dur_min);
+   $$('span.bb_dur_max' ).set('text', rfc2544_bb_dur_max);
+   $$('span.bb_dur_def' ).set('text', rfc2544_bb_dur_def);
+   $$('span.bb_cnt_min' ).set('text', rfc2544_bb_cnt_min);
+   $$('span.bb_cnt_max' ).set('text', rfc2544_bb_cnt_max);
+   $$('span.bb_cnt_def' ).set('text', rfc2544_bb_cnt_def);
+   });
+ </script>
+</head>
+
+<body>
+
+<h1>RFC2544 Profile Edit Help</h1>
+
+<p>
+  A profile defines key parameters and sub-tests to be executed as part of the <a href="glossary.htm#rfc2544">RFC2544</a> benchmark testing.<br/>
+  The profile configuration is divided into a common section, which contains parameters shared by the four tests that can be defined for a profile.
+</p>
+
+<p>
+  All rates configured in a profile are measured in permille of the line rate. The reason for not using bits per second or other
+  units is that egress ports may be configured at various speeds, so in order to have a link-speed independent way of configuring
+  rates, permille of the line rate is chosen.
+</p>
+
+<p>
+  All rates configured in a profile are interpreted as requested rates on the customer-facing side of the switch.
+  The egress port on which the tests are conducted is considered the network-facing side.
+  If the switch adds a VLAN tag to frames (see <a href="#type">Type</a>), the rate on the network-facing side will
+  therefore be higher than the requested customer-facing side's rate, with the exception that the rate, of course,
+  cannot exceed the line rate.
+</p>
+
+<h2>Common Parameters</h2>
+<dl>
+  <dt>Profile Name</dt>
+  <dd>
+    Each profile must have a name that uniquely identifies it, since it is this name that is used in the process of executing a profile.<br/>
+    The length must be from 1 to 32 characters with each ASCII character being in the range [33; 126].
+  </dd>
+
+  <dt>Description</dt>
+  <dd>
+    This field allows for providing a textual description of the profile. Up to 128 characters can be entered.
+  </dd>
+
+  <dt>MEG Level</dt>
+  <dd>
+    The frame types used in the various tests are Y.1731 TST and 1DM frames, both of which contain a MEG Level (MEL) field, which can be controlled with the value entered in this select box, which ranges from 0 to 7 with 7 being the default.
+  </dd>
+
+  <dt>Egress Port</dt>
+  <dd>
+    The port on which the generated frames are transmitted <u>and</u> expected received.
+  </dd>
+
+  <dt>Sequence Number Check</dt>
+  <dd>
+    When checked, looped Y.1731 TST frames are tested for out-of-order upon reception. Out-of-order frames are frames received in a different order than they were transmitted.<br/>
+    If an out-of-order sequence is detected, the sub-test or trial is considered failing.
+  </dd>
+
+  <dt><a name="dwell">Dwell Time</a></dt>
+  <dd>
+    When a trial is executed, Y.1731 TST frames are transmitted for a certain period of time.
+    When that period has elapsed, the Dwell Time determines how long to wait before reading hardware
+    counters and status in order to asses the status of the trial.
+    The required dwell time must be at least the worstcase roundtrip time, and therefore a.o. depends
+    on the physical distance between the near and far ends.<br/>
+    Valid range is from <span class="dwell_min">?</span> to <span class="dwell_max">?</span> with a default of <span class="dwell_def">?</span> seconds.
+  </dd>
+
+  <dt><a name="type">Type</a></dt>
+  <dd>
+    The RFC2544 test suite supports to types of tagging of frames on egress:<br/>
+    <ul>
+      <li><samp>Port Down-MEP</samp>, where all frames are transmitted untagged.</li>
+      <li><samp>VLAN-based Down-MEP</samp>, where all frames are transmitted with a VLAN tag.
+        In order for this to work, the following manual VLAN configuration of the egress port is required:
+        <ul>
+          <li>The VLAN Port Mode must be Trunk or Hybrid in order to get frames tagged upon transmission.</li>
+          <li>The VLAN Port Type must be either of C-, S-, or S-Custom.</li>
+          <li>VLAN Egress Tagging must be set to either tag all or untag Port VLAN. In the latter case the chosen VLAN ID for the profile must be different from the configured VLAN Port VLAN ID.</li>
+          <li>The port must be member of the chosen VLAN ID.</li>
+        </ul>
+      </li>
+    </ul>
+
+    Whether one or the other type is selected, frames are generated as close to the egress port as possible
+    (hence the &quot;Down-MEP&quot; term) and therefore not sent through the queueing system, due to lack
+    of integration with <a href="glossary.htm#EVC">EVCs</a> in this version of the software.<br/>
+    When VLAN-based Down-MEP is selected, the VLAN tag's ID, PCP, and DEI values are selected with the subsequent fields.
+  </dd>
+
+  <dt>VLAN ID</dt>
+  <dd>
+    When <a href="#type">Type</a> is set to VLAN-based Down-MEP, this field determines the VLAN ID used in the tag.<br/>
+    Valid values are in the range <span class="vid_min">?</span> to <span class="vid_max">?</span>.
+  </dd>
+
+  <dt>PCP</dt>
+  <dd>
+    When <a href="#type">Type</a> is set to VLAN-based Down-MEP, this field determines the <a href="glossary.htm#PCP" class="glossary">PCP</a> value used in the VLAN tag.<br/>
+  </dd>
+
+  <dt>DEI</dt>
+  <dd>
+    When <a href="#type">Type</a> is set to VLAN-based Down-MEP, this field determines the <a href="glossary.htm#DEI" class="glossary">DEI</a> value used in the VLAN tag.<br/>
+  </dd>
+
+  <dt>DMAC</dt>
+  <dd>
+    This field determines the destination MAC address used in generation of the Y.1731 TST and 1DM frames.<br/>
+    The source MAC address will automatically become the egress port's native MAC address.<br/>
+    Note that it is important that the remote end swaps DMAC and SMAC while looping the frame.
+  </dd>
+
+  <dt>Frame Sizes</dt>
+  <dd>
+    Each sub-test is repeated for every selected frame size. At least one frame size must be checked. By default, all but the jumbo frame size are selected.
+  </dd>
+
+  <dt>Tests to Run</dt>
+  <dd>
+    One or more of the following sub-tests may be executed through the same profile.<br/>
+    <ul>
+      <li>
+        <samp>Throughput</samp>: The throughput test searches for the maximum rate at which at most a certain percentage of the frames are lost.<br/>
+        The throughput test starts at the maximum configured rate and uses a dichotomist algorithm (binary search) to find the optimum rate.
+        The trials continue until the difference between a faling and succeeding rate is smaller than the configured accuracy.
+      </li>
+      <li>
+        <samp>Latency</samp>: The latency test measures the round-trip time of frames leaving the near-end until they get back to the near-end.<br/>
+        Y.1731 TST frames are transmitted at the maximum rate determined by the throughput test less 200 Kbps.
+        Every so many seconds, a Y.1731 1DM frame is transmitted and the time from this frame leaves the switch until it comes back is measured.
+        If more than two 1DM frames are transmitted during a trial, also the delay variation will be part of the generated report.<br/>
+        Selecting the latency test causes the througput test to be selected automatically.
+      </li>
+      <li>
+        <samp>Frame Loss</samp>: The frame loss test measures frame loss at configurable transmission rates.
+        It starts at the configured maximum rate and steps down by the configured step size and stops when two consecutive trials
+        have zero frame loss (test succeeded in that case) or the minimum rate is reached (test failed in that case).
+        For each trial, the report displays the frame loss ratio.
+      </li>
+      <li>
+        <samp>Back-to-Back</samp>: The back-to-back test aims to measure the network's ability to absorb bursty traffic.<br/>
+        The test runs at line rate less 200 Kbps, and bursts of Y.1731 TST frames are generated a configurable number of times.
+        The duration of a burst is configured in milliseconds, and the time from one burst ends until
+        the next starts is configured through the <a href="#dwell">Dwell Time</a>.
+      </li>
+    </ul>
+    <br/>The tables that define parameters for the individual sub-tests appear and disappear depending on whether the test is selected or not.
+  </dd>
+</dl>
+
+<h2>Throughput Test Parameters</h2>
+<dl>
+  <dt>Trial Duration</dt>
+  <dd>
+    The time - in seconds - to transmit Y.1731 TST frames at one given rate and frame size. This is known as a &quot;trial&quot;.<br/>
+    Valid range is from <span class="tp_dur_min">?</span> to <span class="tp_dur_max">?</span> with a default of <span class="tp_dur_def">?</span> seconds.
+  </dd>
+
+  <dt>Minimum Rate</dt>
+  <dd>
+    The minimum rate - in permille of the egress port's line rate - to transmit Y.1731 TST frames at. If a trial fails at this rate, the test fails.<br/>
+    Valid range is from <span class="tp_min_min">?</span> to <span class="tp_min_max">?</span> with a default of <span class="tp_min_def">?</span> permille of the line rate.
+  </dd>
+
+  <dt>Maximum Rate</dt>
+  <dd>
+    The maximum rate - in permille of the egress port's line rate - transmit Y.1731 TST frames at while searching for maximum throughput. This is the rate that the search starts at.<br/>
+    Valid range is from <span class="tp_max_min">?</span> to <span class="tp_max_max">?</span> with a default of <span class="tp_max_def">?</span> permille of the line rate.
+  </dd>
+
+  <dt>Accuracy</dt>
+  <dd>
+    This specifies the stop criterion for the search for a maximum throughput rate.
+    When the difference between a failing and succeeding rate is smaller than the accuracy, the search stops and the succeeding rate becomes the result.<br/>
+    Valid range is from <span class="tp_step_min">?</span> to <span class="tp_step_max">?</span> with a default of <span class="tp_step_def">?</span> permille of the line rate.
+  </dd>
+
+  <dt>Allowed Frame Loss</dt>
+  <dd>
+    In some cases, it may be acceptable to have loss on a connection. The allowed loss can be specified with this parameter.
+    The loss is measured in permille of the number of transmitted frames during a trial, so if allowed loss is set to e.g.
+    1 permille and 1000 frames is transmitted during a trial, the trial will be considered successful if 999 or 1000 frames return to the transmitter.
+    Valid range is from <span class="tp_pass_min">?</span> to <span class="tp_pass_max">?</span> with a default of <span class="tp_pass_def">?</span> permille of the number of transmitted frames.
+  </dd>
+</dl>
+
+<h2>Latency Test Parameters</h2>
+<dl>
+  <dt>Trial Duration</dt>
+  <dd>
+    The time - in seconds - to transmit Y.1731 TST frames at a given rate and frame size. This is known as a &quot;trial&quot;.<br/>
+    Valid range is from <span class="la_dur_min">?</span> to <span class="la_dur_max">?</span> with a default of <span class="la_dur_def">?</span> seconds.
+  </dd>
+
+  <dt>Delay Measurement Interval</dt>
+  <dd>
+    This controls the period - in seconds - at which Y.1731 1DM frames are transmitted. The first 1DM frame is transmitted this number of
+    seconds after the trial has started. The total number of transmitted 1DM frames in one trial therefore depends on the configured trial duration.<br/>
+    Valid range is from <span class="la_dmm_min">?</span> to <span class="la_dmm_max">?</span> with a default of <span class="la_dmm_def">?</span> seconds.
+  </dd>
+
+  <dt>Allowed Frame Loss</dt>
+  <dd>
+    In some cases, it may be acceptable to have loss on a connection. The allowed loss can be specified with this parameter.
+    A trial is considered failing if more than this percentage of frames are lost.
+    Valid range is from <span class="la_pass_min">?</span> to <span class="la_pass_max">?</span> with a default of <span class="la_pass_def">?</span> permille of the number of transmitted frames.
+  </dd>
+</dl>
+
+<h2>Frame Loss Test Parameters</h2>
+<dl>
+  <dt>Trial Duration</dt>
+  <dd>
+    The time - in seconds - to transmit Y.1731 TST frames at a given rate and frame size. This is known as a &quot;trial&quot;.<br/>
+    Valid range is from <span class="fl_dur_min">?</span> to <span class="fl_dur_max">?</span> with a default of <span class="fl_dur_def">?</span> seconds.
+  </dd>
+
+  <dt>Minimum Rate</dt>
+  <dd>
+    The minimum rate - in permille of the egress port's line rate - to transmit Y.1731 TST frames at.<br/>
+    Valid range is from <span class="fl_min_min">?</span> to <span class="fl_min_max">?</span> with a default of <span class="fl_min_def">?</span> permille of the line rate.
+  </dd>
+
+  <dt>Maximum Rate</dt>
+  <dd>
+    The highest (and first) rate - in permille of the egress port's line rate - to transmit Y.1731 TST frames at.<br/>
+    Valid range is from <span class="fl_max_min">?</span> to <span class="fl_max_max">?</span> with a default of <span class="fl_max_def">?</span> permille of the line rate.
+  </dd>
+
+  <dt>Rate Step</dt>
+  <dd>
+    The rate decrement - in permille of the egress port's line rate - per trial.<br/>
+    Valid range is from <span class="fl_step_min">?</span> to <span class="fl_step_max">?</span> with a default of <span class="fl_step_def">?</span> permille of the line rate.
+  </dd>
+</dl>
+
+<h2>Back-to-Back Test Parameters</h2>
+<dl>
+  <dt>Trial Duration</dt>
+  <dd>
+    The time - in milliseconds - to transmit a burst of Y.1731 TST frames at line rate and frame size. This is known as a &quot;trial&quot;.<br/>
+    Valid range is from <span class="bb_dur_min">?</span> to <span class="bb_dur_max">?</span> with a default of <span class="bb_dur_def">?</span> milliseconds.
+  </dd>
+
+  <dt>Trial Count</dt>
+  <dd>
+    The number of times to repeat the burst.<br/>
+    Valid range is from <span class="bb_cnt_min">?</span> to <span class="bb_cnt_max">?</span> with a default of <span class="bb_cnt_def">?</span> times.
+  </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: If all input parameters are valid, the profile will be saved to non-volatile memory and you will be returned to the RFC2544 Profile Overview page.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved or default values.</p>
+<p><input type="button" value=" Cancel ">: Return to the RFC2544 Profile Overview page without creating a new profile.</p>
+
+</body>
+</html>

@@ -1,0 +1,1731 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<!-- Number of commands
+0029
+-->
+
+<html>
+
+<head>
+<title></title>
+<link href="vtss.css" rel="stylesheet" type="text/css">
+</head>
+
+<body lang=EN-US>
+
+<!-- Title -->
+<div class=Title>
+<p class=NewLine>&nbsp;</p>
+<p class=Title>
+CLI Command Reference Guide
+</p>
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<!-- Reference Link -->
+<div class=RefLink>
+<hr>
+<p class=NewLine>&nbsp;</p>
+
+<p class=RefLink>
+<a href="#cr0001">
+aaa authentication login { console | telnet | ssh | http } { { local | radius | tacacs } [ { local | radius | tacacs } [ { local | radius | tacacs } ] ] } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0002">
+no aaa authentication login { console | telnet | ssh | http } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0016">
+no radius-server attribute 32 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0012">
+no radius-server attribute 4 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0014">
+no radius-server attribute 95 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0008">
+no radius-server deadtime 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0018">
+no radius-server host &lt;host_name&gt; [ auth-port &lt;auth_port&gt; ] [ acct-port &lt;acct_port&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0010">
+no radius-server key 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0006">
+no radius-server retransmit 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0004">
+no radius-server timeout 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0022">
+no tacacs-server deadtime 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0026">
+no tacacs-server host &lt;host_name&gt; [ port &lt;port&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0024">
+no tacacs-server key 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0020">
+no tacacs-server timeout 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0015">
+radius-server attribute 32 &lt;id&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0011">
+radius-server attribute 4 &lt;ipv4&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0013">
+radius-server attribute 95 &lt;ipv6&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0007">
+radius-server deadtime &lt;minutes&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0017">
+radius-server host &lt;host_name&gt; [ auth-port &lt;auth_port&gt; ] [ acct-port &lt;acct_port&gt; ] [ timeout &lt;seconds&gt; ] [ retransmit &lt;retries&gt; ] [ key &lt;key&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0009">
+radius-server key &lt;key&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0005">
+radius-server retransmit &lt;retries&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0003">
+radius-server timeout &lt;seconds&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0027">
+show aaa 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0028">
+show radius-server [ statistics ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0029">
+show tacacs-server 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0021">
+tacacs-server deadtime &lt;minutes&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0025">
+tacacs-server host &lt;host_name&gt; [ port &lt;port&gt; ] [ timeout &lt;seconds&gt; ] [ key &lt;key&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0023">
+tacacs-server key &lt;key&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0019">
+tacacs-server timeout &lt;seconds&gt; 
+</a></p>
+
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0001">
+aaa authentication login { console | telnet | ssh | http } { { local | radius | tacacs } [ { local | radius | tacacs } [ { local | radius | tacacs } ] ] } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+aaa
+</p>
+<p class=CmdSubDesc2>
+Authentication, Authorization and Accounting
+</p>
+<p class=CmdSubTitle2>
+authentication
+</p>
+<p class=CmdSubDesc2>
+Authentication
+</p>
+<p class=CmdSubTitle2>
+login
+</p>
+<p class=CmdSubDesc2>
+Login
+</p>
+<p class=CmdSubTitle2>
+console
+</p>
+<p class=CmdSubDesc2>
+Configure Console
+</p>
+<p class=CmdSubTitle2>
+telnet
+</p>
+<p class=CmdSubDesc2>
+Configure Telnet
+</p>
+<p class=CmdSubTitle2>
+ssh
+</p>
+<p class=CmdSubDesc2>
+Configure SSH
+</p>
+<p class=CmdSubTitle2>
+http
+</p>
+<p class=CmdSubDesc2>
+Configure HTTP
+</p>
+<p class=CmdSubTitle2>
+local
+</p>
+<p class=CmdSubDesc2>
+Use local database for authentication
+</p>
+<p class=CmdSubTitle2>
+radius
+</p>
+<p class=CmdSubDesc2>
+Use RADIUS for authentication
+</p>
+<p class=CmdSubTitle2>
+tacacs
+</p>
+<p class=CmdSubDesc2>
+Use TACACS+ for authentication
+</p>
+<p class=CmdSubTitle2>
+local
+</p>
+<p class=CmdSubDesc2>
+Use local database for authentication
+</p>
+<p class=CmdSubTitle2>
+radius
+</p>
+<p class=CmdSubDesc2>
+Use RADIUS for authentication
+</p>
+<p class=CmdSubTitle2>
+tacacs
+</p>
+<p class=CmdSubDesc2>
+Use TACACS+ for authentication
+</p>
+<p class=CmdSubTitle2>
+local
+</p>
+<p class=CmdSubDesc2>
+Use local database for authentication
+</p>
+<p class=CmdSubTitle2>
+radius
+</p>
+<p class=CmdSubDesc2>
+Use RADIUS for authentication
+</p>
+<p class=CmdSubTitle2>
+tacacs
+</p>
+<p class=CmdSubDesc2>
+Use TACACS+ for authentication
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0002">
+no aaa authentication login { console | telnet | ssh | http } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+aaa
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+authentication
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+login
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+console
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+telnet
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ssh
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+http
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0016">
+no radius-server attribute 32 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+attribute
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0012">
+no radius-server attribute 4 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+attribute
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0014">
+no radius-server attribute 95 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+attribute
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+95
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0008">
+no radius-server deadtime 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+deadtime
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0018">
+no radius-server host &lt;host_name&gt; [ auth-port &lt;auth_port&gt; ] [ acct-port &lt;acct_port&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+host
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;host_name&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+auth-port
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;auth_port&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+acct-port
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;acct_port&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0010">
+no radius-server key 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+key
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0006">
+no radius-server retransmit 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+retransmit
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0004">
+no radius-server timeout 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+timeout
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0022">
+no tacacs-server deadtime 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tacacs-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+deadtime
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0026">
+no tacacs-server host &lt;host_name&gt; [ port &lt;port&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tacacs-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+host
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;host_name&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+port
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;port&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0024">
+no tacacs-server key 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tacacs-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+key
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0020">
+no tacacs-server timeout 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tacacs-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+timeout
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0015">
+radius-server attribute 32 &lt;id&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+attribute
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;id&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0011">
+radius-server attribute 4 &lt;ipv4&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+attribute
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;ipv4&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0013">
+radius-server attribute 95 &lt;ipv6&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+attribute
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+95
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;ipv6&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0007">
+radius-server deadtime &lt;minutes&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+Configure RADIUS
+</p>
+<p class=CmdSubTitle2>
+deadtime
+</p>
+<p class=CmdSubDesc2>
+Time to stop using a RADIUS server that doesn't respond
+</p>
+<p class=CmdSubTitle2>
+&lt;minutes&gt;
+</p>
+<p class=CmdSubDesc2>
+Time in minutes
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0017">
+radius-server host &lt;host_name&gt; [ auth-port &lt;auth_port&gt; ] [ acct-port &lt;acct_port&gt; ] [ timeout &lt;seconds&gt; ] [ retransmit &lt;retries&gt; ] [ key &lt;key&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+Configure RADIUS
+</p>
+<p class=CmdSubTitle2>
+host
+</p>
+<p class=CmdSubDesc2>
+Specify a RADIUS server
+</p>
+<p class=CmdSubTitle2>
+&lt;host_name&gt;
+</p>
+<p class=CmdSubDesc2>
+Hostname or IP address
+</p>
+<p class=CmdSubTitle2>
+auth-port
+</p>
+<p class=CmdSubDesc2>
+UDP port for RADIUS authentication server
+</p>
+<p class=CmdSubTitle2>
+&lt;auth_port&gt;
+</p>
+<p class=CmdSubDesc2>
+UDP port number
+</p>
+<p class=CmdSubTitle2>
+acct-port
+</p>
+<p class=CmdSubDesc2>
+UDP port for RADIUS accounting server
+</p>
+<p class=CmdSubTitle2>
+&lt;acct_port&gt;
+</p>
+<p class=CmdSubDesc2>
+UDP port number
+</p>
+<p class=CmdSubTitle2>
+timeout
+</p>
+<p class=CmdSubDesc2>
+Time to wait for this RADIUS server to reply (overrides default)
+</p>
+<p class=CmdSubTitle2>
+&lt;seconds&gt;
+</p>
+<p class=CmdSubDesc2>
+Wait time in seconds
+</p>
+<p class=CmdSubTitle2>
+retransmit
+</p>
+<p class=CmdSubDesc2>
+Specify the number of retries to active server (overrides default)
+</p>
+<p class=CmdSubTitle2>
+&lt;retries&gt;
+</p>
+<p class=CmdSubDesc2>
+Number of retries for a transaction
+</p>
+<p class=CmdSubTitle2>
+key
+</p>
+<p class=CmdSubDesc2>
+Server specific key (overrides default)
+</p>
+<p class=CmdSubTitle2>
+&lt;key&gt;
+</p>
+<p class=CmdSubDesc2>
+The shared key
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0009">
+radius-server key &lt;key&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+Configure RADIUS
+</p>
+<p class=CmdSubTitle2>
+key
+</p>
+<p class=CmdSubDesc2>
+Set RADIUS encryption key
+</p>
+<p class=CmdSubTitle2>
+&lt;key&gt;
+</p>
+<p class=CmdSubDesc2>
+The shared key
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0005">
+radius-server retransmit &lt;retries&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+Configure RADIUS
+</p>
+<p class=CmdSubTitle2>
+retransmit
+</p>
+<p class=CmdSubDesc2>
+Specify the number of retries to active server
+</p>
+<p class=CmdSubTitle2>
+&lt;retries&gt;
+</p>
+<p class=CmdSubDesc2>
+Number of retries for a transaction
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0003">
+radius-server timeout &lt;seconds&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+Configure RADIUS
+</p>
+<p class=CmdSubTitle2>
+timeout
+</p>
+<p class=CmdSubDesc2>
+Time to wait for a RADIUS server to reply
+</p>
+<p class=CmdSubTitle2>
+&lt;seconds&gt;
+</p>
+<p class=CmdSubDesc2>
+Wait time in seconds
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0027">
+show aaa 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+aaa
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0028">
+show radius-server [ statistics ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+radius-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+statistics
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0029">
+show tacacs-server 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tacacs-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0021">
+tacacs-server deadtime &lt;minutes&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+tacacs-server
+</p>
+<p class=CmdSubDesc2>
+Configure TACACS+
+</p>
+<p class=CmdSubTitle2>
+deadtime
+</p>
+<p class=CmdSubDesc2>
+Time to stop using a TACACS+ server that doesn't respond
+</p>
+<p class=CmdSubTitle2>
+&lt;minutes&gt;
+</p>
+<p class=CmdSubDesc2>
+Time in minutes
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0025">
+tacacs-server host &lt;host_name&gt; [ port &lt;port&gt; ] [ timeout &lt;seconds&gt; ] [ key &lt;key&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+tacacs-server
+</p>
+<p class=CmdSubDesc2>
+Configure TACACS+
+</p>
+<p class=CmdSubTitle2>
+host
+</p>
+<p class=CmdSubDesc2>
+Specify a TACACS+ server
+</p>
+<p class=CmdSubTitle2>
+&lt;host_name&gt;
+</p>
+<p class=CmdSubDesc2>
+Hostname or IP address
+</p>
+<p class=CmdSubTitle2>
+port
+</p>
+<p class=CmdSubDesc2>
+TCP port for TACACS+ server
+</p>
+<p class=CmdSubTitle2>
+&lt;port&gt;
+</p>
+<p class=CmdSubDesc2>
+TCP port number
+</p>
+<p class=CmdSubTitle2>
+timeout
+</p>
+<p class=CmdSubDesc2>
+Time to wait for this TACACS+ server to reply (overrides default)
+</p>
+<p class=CmdSubTitle2>
+&lt;seconds&gt;
+</p>
+<p class=CmdSubDesc2>
+Wait time in seconds
+</p>
+<p class=CmdSubTitle2>
+key
+</p>
+<p class=CmdSubDesc2>
+Server specific key (overrides default)
+</p>
+<p class=CmdSubTitle2>
+&lt;key&gt;
+</p>
+<p class=CmdSubDesc2>
+The shared key
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0023">
+tacacs-server key &lt;key&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+tacacs-server
+</p>
+<p class=CmdSubDesc2>
+Configure TACACS+
+</p>
+<p class=CmdSubTitle2>
+key
+</p>
+<p class=CmdSubDesc2>
+Set TACACS+ encryption key
+</p>
+<p class=CmdSubTitle2>
+&lt;key&gt;
+</p>
+<p class=CmdSubDesc2>
+The shared key
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0019">
+tacacs-server timeout &lt;seconds&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+tacacs-server
+</p>
+<p class=CmdSubDesc2>
+Configure TACACS+
+</p>
+<p class=CmdSubTitle2>
+timeout
+</p>
+<p class=CmdSubDesc2>
+Time to wait for a TACACS+ server to reply
+</p>
+<p class=CmdSubTitle2>
+&lt;seconds&gt;
+</p>
+<p class=CmdSubDesc2>
+Wait time in seconds
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+</body></html>
+

@@ -1,0 +1,31 @@
+HowToUpdate.txr
+
+ Created on: 18 Jun 2010
+     Author: markretallack
+How to update ssl:
+
+   1. delete all existing c and h files
+   1. copy all the files in crypto/* from the new openssl to the crypto directory
+   1. copy all the header files in includes/openssl into the include directory
+   1. copy the e_os.h file from the root of Openssl into the include directory 
+   1. copy all src/crypto/*/*.h include/
+   1. copy crypto/cryptlib.h to include
+   1. copy crypto/o_time.h to include
+   1. copy crypto/o_dir.h to include
+   1. restore the crypto/rand/rand_ecos.c file
+   1. copy crypto/*.c to src/crypto/
+   
+
+   
+  The following files have special ecos related stuff in:
+  
+     * include/e_os.h      
+     * include/opensslconf.h
+     * crypto/rand/rand_egd.c
+     * crypto/cversion.c
+     * des/read_pwd.c
+     * include/ui_compat.h
+      
+  
+  
+  

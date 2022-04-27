@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>ACL Port Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="../lib/config.js"></script>
+</head>
+
+<body onload="document.getElementById('AclRateLimitIdMax').innerHTML=configAclRateLimitIdMax; document.getElementById('AclPolicyMax').innerHTML=configPolicyMax; document.getElementById('AclEvcPolicerMin').innerHTML=configAclEvcPolicerMin; document.getElementById('AclEvcPolicerMax').innerHTML=configAclEvcPolicerMax;">
+<h1>ACL Ports Configuration Help</h1>
+
+<p>Configure the ACL parameters (<a href="glossary.htm#ace" class="glossary">ACE</a>) of each switch port. These parameters will affect frames received on a port unless the frame matches a specific ACE.</p>
+
+<p class="SPOM_only">The settings relate to the currently selected stack
+unit, as reflected by the page header.</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>
+ The logical port for the settings contained in the same row.
+ </dd>
+
+ <dt>Policy ID</dt>
+ <dd>
+ Select the policy to apply to this port. The allowed values are <samp>0</samp> through <samp><span id="AclPolicyMax">7</span></samp>. The default value is 0.
+ </dd>
+
+ <dt>Action</dt>
+ <dd>
+ Select whether forwarding is permitted ("Permit") or denied ("Deny"). The default value is "Permit".
+ </dd>
+
+ <dt>Rate Limiter ID</dt>
+ <dd>
+ Select which rate limiter to apply on this port. The allowed values are <samp>Disabled</samp> or the values <samp>1</samp> through <samp><span id="AclRateLimitIdMax">15</span></samp>. The default value is "Disabled".
+ </dd>
+
+ <dt class="acl_evc_policer_only">EVC Policer</dt>
+ <dd class="acl_evc_policer_only">
+ Select whether EVC policer is enabled or disabled. The default value is "Disabled".
+ Note that ACL rate limiter and EVC policer can not both be enabled.
+ </dd>
+
+ <dt class="acl_evc_policer_only">EVC Policer ID</dt>
+ <dd class="acl_evc_policer_only">
+ Select which EVC policer ID to apply on this port. The allowed values are <samp>Disabled</samp> or the values <samp><span id="AclEvcPolicerMin">1</span></samp> through <samp><span id="AclEvcPolicerMax">128</span></samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">Port Redirect</dt>
+ <dd class="has_arch_luton26">
+  Select which port frames are redirected on. The allowed values are <samp>Disabled</samp> or a specific port number and it can't be set when action is permitted. The default value is "Disabled".
+ </dd>
+
+ <dt class="has_arch_jaguar_1">Port Redirect</dt>
+ <dd class="has_arch_jaguar_1">
+  Select which port frames are redirected on. The allowed values are <samp>Disabled</samp> or a specific port number and it can't be set when action is permitted. The default value is "Disabled".
+ </dd>
+
+ <dt class="has_arch_serval">Port Redirect</dt>
+ <dd class="has_arch_serval">
+  Select which port frames are redirected on. The allowed values are <samp>Disabled</samp> or a specific port number and it can't be set when action is permitted. The default value is "Disabled".
+ </dd>
+
+ <dt class="acl_v2_only">Mirror</dt>
+ <dd class="acl_v2_only">
+ Specify the mirror operation of this port. The allowed values are:
+ <br><samp>Enabled</samp>: Frames received on the port are mirrored.
+ <br><samp>Disabled</samp>: Frames received on the port are not mirrored.
+ <br>The default value is "Disabled".
+ </dd>
+
+ <dt class="acl_log_only">Logging</dt>
+ <dd class="acl_log_only">
+ Specify the logging operation of this port. Notice that the logging message doesn't include the 4 bytes CRC. The allowed values are:
+ <br><samp>Enabled</samp>: Frames received on the port are stored in the System Log.
+ <br><samp>Disabled</samp>: Frames received on the port are not logged.
+ <br>The default value is "Disabled".
+ Note: The logging feature only works when the packet length is less than 1518(without VLAN tags)
+ and the System Log memory size and logging rate is limited.
+ </dd>
+
+ <dt class="acl_shutdown_only">Shutdown</dt>
+ <dd class="acl_shutdown_only">
+ Specify the port shut down operation of this port. The allowed values are:
+ <br><samp>Enabled</samp>: If a frame is received on the port, the port will be disabled.
+ <br><samp>Disabled</samp>: Port shut down is disabled.
+ <br>The default value is "Disabled".
+ <br> Note: The shutdown feature only works when the packet length is less than 1518(without VLAN tags).
+ </dd>
+
+ <dt>State</dt>
+ <dd>
+ Specify the port state of this port. The allowed values are:
+ <br><samp>Enabled</samp>: To reopen ports by changing the volatile port configuration of the ACL user module.
+ <br><samp>Disabled</samp>: To close ports by changing the volatile port configuration of the ACL user module.
+ <br>The default value is "Enabled".
+ </dd>
+
+ <dt>Counter</dt>
+ <dd>
+ Counts the number of frames that match this ACE.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page; any changes made locally will be undone.</p>
+<p><input type="button" value=" Clear ">: Click to clear the counters.</p>
+
+</body>
+</html>

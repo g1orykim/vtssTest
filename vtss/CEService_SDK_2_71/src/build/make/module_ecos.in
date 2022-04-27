@@ -1,0 +1,103 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+# Rest of the system only needs header file location
+SYS_INCLUDES += -I$(ECOS_INSTALL)/include
+
+# Used HAL Path
+ECOS_HAL_PATH_vcoreii         := $(ECOS_REPOSITORY)/hal/arm/arm9/vcoreii/current
+ECOS_HAL_PATH_vcoreiii        := $(ECOS_REPOSITORY)/hal/mips/vcoreiii/current
+ECOS_HAL_PATH_vcoreiii_serval := $(ECOS_REPOSITORY)/hal/mips/vcoreiii_serval/current
+ECOS_HAL_PATH := $(ECOS_HAL_PATH_$(ECOS_HAL))
+
+# ECOSCONFIG used below
+ECOSCONFIG := $(ECOS_TOOLS)/ecosconfig
+
+# This dependancy is the main responsible for compiling ecos!
+$(ECOS_BUILD)/install/include/pkgconf/ecos.mak: $(ECOS_BUILD)/ecos.ecc
+	$(call what,Compiling eCos library)
+	$(MAKE) -C $(ECOS_BUILD)
+
+define ecos_configs
+$(addsuffix .ecm,$(addprefix $(ECOS_HAL_PATH)/misc/,$1))
+endef
+
+define import_configs
+$(foreach cfgfile,$1,$(ECOSCONFIG) import $(cfgfile);)
+endef
+
+define remove_packages
+$(foreach pkg,$(Custom/eCosRemovePackages),$(ECOSCONFIG) remove $(pkg);)
+endef
+
+ECOS_CONFIGS  := $(call ecos_configs,$(ECOS_CONF)$(ECOS_RAM_SIZE) $(ECOS_CONF_EXTRA) $(if $(CCACHE),ccache))
+
+$(ECOS_BUILD)/ecos.ecc: $(ECOS_CONFIGS)
+	$(call what,Generating eCos configuration)
+	$(Q)[ -d $(ECOS_BUILD) ] || mkdir -p $(ECOS_BUILD)
+	$(Q)(cd $(ECOS_BUILD); \
+	 $(ECOSCONFIG) new $(ECOS_HAL) minimal; \
+	 $(call import_configs,$(ECOS_CONFIGS)) \
+	 $(call remove_packages) \
+	 $(ECOSCONFIG) resolve; \
+	 $(ECOSCONFIG) tree)
+
+build_ecos: $(ECOS_BUILD)/ecos.ecc
+	$(call what,Update eCos library)
+	$(MAKE) -C $(ECOS_BUILD)
+
+redboot: redboot.img redboot.bin redboot-ram.elf
+
+# With the current plf_misc.c implementation, we must compile RedBoot with -O2
+# (and not -O only), because it relies on the stack not being used for inline
+# functions, which is needed for the very first boot-steps. IMO this is ugly
+# and doesn't ascertain that the compiler doesn't use a stack, but that's how
+# it is as of now.
+# Therefore, the call below to import_configs cannot include the debug.ecm file,
+# which otherwise would override the CFLAGS.
+define compile_redboot
+	$(call what,Compiling redboot $1$2 loader)
+	$(Q)[ -d redboot-$1 ] || mkdir -p redboot-$1
+	$(Q)(cd redboot-$1; \
+	 $(ECOSCONFIG) new $(ECOS_HAL) redboot; \
+	 $(call import_configs,$(call ecos_configs,redboot_$1$2 $(filter-out debug l3_mempool,$(ECOS_CONF_EXTRA)))) \
+	 $(ECOSCONFIG) resolve; \
+	 $(ECOSCONFIG) tree; $(MAKE))
+endef
+
+redboot.img: redboot.bin $(TOP)/build/make/mkbootimage.pl
+	$(call what,Make $@ signed image)
+	$(Q)perl -I$(TOP)/build/lib $(TOP)/build/make/mkbootimage.pl -C $(VTSS_PRODUCT_CHIP) -T $(TARGET_CPU) $<
+
+redboot.bin:
+	$(call compile_redboot,ROMRAM,$(ECOS_RAM_SIZE))
+	$(call what,Copy $@ - ROM version)
+	$(Q)cp redboot-ROMRAM/install/bin/redboot.bin $@
+
+redboot-ram.elf:
+	$(call compile_redboot,RAM,$(ECOS_RAM_SIZE))
+	$(call what,Copy $@ - RAM version)
+	$(Q)cp redboot-RAM/install/bin/redboot.elf $@
+

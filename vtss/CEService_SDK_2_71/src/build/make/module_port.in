@@ -1,0 +1,84 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_port := $(DIR_APPL)/port
+DIR_pcustom := $(TOP)/vtss_api/boards
+
+PORT_MAP_BOARD_ESTAX_34_GEN  := port_custom_lu28.o
+PORT_MAP_BOARD_LUTON26_REF   := port_custom_lu26.o
+PORT_MAP_BOARD_LUTON10_REF   := port_custom_lu26.o
+PORT_MAP_BOARD_SERVAL_REF    := port_custom_serval.o
+PORT_MAP_BOARD_JAGUAR1_REF   := port_custom_jr1.o
+
+PORT_WEB_BOARD_ESTAX_34_GEN  := port_web_lu28.o
+PORT_WEB_BOARD_LUTON26_REF   := port_web_lu26.o
+PORT_WEB_BOARD_LUTON10_REF   := port_web_lu26.o
+PORT_WEB_BOARD_SERVAL_REF    := port_web_serval.o
+PORT_WEB_BOARD_JAGUAR1_REF   := port_web_jr1.o
+
+OBJECTS_pcust := board_probe.o $(call BSP_Component,PORT_MAP) port_custom_jr1_cu48.o
+
+OBJECTS_port_base := port.o                                     \
+  $(if $(MODULE_VCLI),port_cli.o)                               \
+  $(if $(MODULE_ICLI),port_icli_functions.o)  \
+  $(if $(MODULE_WEB),port_web.o $(call BSP_Component,PORT_WEB)) \
+  $(if $(MODULE_CONF_XML),port_xml.o)
+
+#Built-in ICLI
+$(eval $(call add_icli,$(DIR_port)/port.icli))
+
+$(OBJECTS_pcust): %.o: $(DIR_pcustom)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_port_base): %.o: $(DIR_port)/%.c
+	$(call compile_c, $@, $<)
+
+OBJECTS_port := $(OBJECTS_pcust) $(OBJECTS_port_base)
+
+INCLUDES += -I$(DIR_port) -I$(DIR_pcustom)
+
+DEFINES += -DVTSS_SW_OPTION_PHY_POWER_CONTROL=1
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_port)/html
+
+# Lint files. Notice that the $(OBJECTS_pcust) are already linted through module_vtss_api.in.
+LINT_FILES_port +=                           \
+  $(if $(MODULE_VCLI),$(DIR_port)/port_cli.c) \
+  $(if $(MODULE_WEB),$(DIR_port)/port_web.c) \
+  $(if $(MODULE_ICLI),$(DIR_port)/port_icli_functions.c)\
+  $(if $(MODULE_CONF_XML),$(DIR_port)/port_xml.c)
+
+LINT_FILES_port += $(addprefix $(DIR_vtss_api)/boards/,board_probe.c port_custom_lu26.c port_custom_jr1.c port_custom_jr1_cu48.c port_custom_lu28.c port_custom_serval.c)
+
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_port += $(DIR_port)/port_icli_functions.* 
+
+# Tidy files
+TIDY_FILES_port += $(DIR_port)/html/*.htm $(DIR_port)/html/help/*.htm
+
+# JSlint files
+JSLINT_FILES_port += $(DIR_port)/html/ports.htm
+

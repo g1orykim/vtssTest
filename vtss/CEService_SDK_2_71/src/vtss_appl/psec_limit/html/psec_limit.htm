@@ -1,0 +1,349 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Limit Control Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Help page magic
+var help_page = "/help/help_psec_limit.htm";
+
+var EnaDisTyp = Array("Disabled", "Enabled");
+var EnaDisVal = Array(0, 1);
+
+var ActionTyp = Array("None", "Trap", "Shutdown", "Trap & Shutdown");
+var ActionVal = Array(0, 1, 2, 3);
+
+var StateTyp  = Array("Disabled", "Ready", "Limit Reached", "Shutdown");
+var StateVal  = Array(0, 1, 2, 3);
+
+var max_limit;
+var row2port = Array();
+
+var PARM_IDX_SYS_ENA          = 0;
+var PARM_IDX_SYS_AGING_ENA    = 1;
+var PARM_IDX_SYS_AGING_PERIOD = 2;
+var PARM_IDX_SYS_MAX_LIMIT    = 3;
+var PARM_SYS_CNT              = PARM_IDX_SYS_MAX_LIMIT + 1;
+
+// Port parameters follow the system parameters. There are PARM_PORT_CNT per port.
+var PARM_IDX_PORT_NUMBER      = 0;
+var PARM_IDX_PORT_ENA         = 1;
+var PARM_IDX_PORT_LIMIT       = 2;
+var PARM_IDX_PORT_ACTION      = 3;
+var PARM_IDX_PORT_STATE       = 4;
+var PARM_PORT_CNT             = PARM_IDX_PORT_STATE + 1;
+
+// Predeclaration of function to avoid JSLint warning.
+var requestUpdate;
+
+// Reopen port button click event handler.
+// It's made in this way because IE (6.0) doesn't work with
+// setAttribute("onclick", "on_reopen_click(this)")
+var on_reopen_click = function() {
+  // Post a new request to web.c's config/psec_limit_reopen() handler
+  var req = initXMLHTTP();
+  if (req) {
+    try {
+      // this.name holds the URL to GET (i.e. /config/psec_limit_reopen?port=<port>)
+      var url_to_get = SpomAddSidArg(this.name);
+      req.open("GET", url_to_get, true);
+      req.send(null);
+    } catch(e) {
+      alert("Send error: " + e.toString());
+    }
+  } else {
+    alert("Failed to create request");
+  }
+
+  // Since this may have cause a change in state, request a new page
+  requestUpdate();
+};
+
+var on_aging_enable_change = function() {
+  var fld = document.getElementById("aging_period");
+  if (fld) {
+    // May not be enabled in all cases.
+    fld.disabled = !document.getElementById("aging_enabled").checked;
+  }
+};
+
+function UpdateEnabledness(port_ena_select, limit_edit, action_select)
+{
+  var dis = parseInt(port_ena_select[port_ena_select.selectedIndex].value, 10) === 0;
+  limit_edit.disabled = action_select.disabled = dis;
+  return true;
+}
+
+function OnEnablednessChange(port)
+{
+  UpdateEnabledness(document.getElementById("ena_" + port), document.getElementById("limit_" + port), document.getElementById("action_" + port));
+}
+
+// Helper function to add the system configuration parameter table
+function add_system_table(sys_values, frag)
+{
+  var tr, td, fld;
+
+  // Enable/Disable
+  tr = CreateStyledElement("tr", "config");
+  addTypedTextCell(tr, "td", "Mode", "param_label");
+  fld = addSelectCell(tr, EnaDisTyp, EnaDisVal, sys_values[PARM_IDX_SYS_ENA], "cl", "glbl_ena");
+  fld.style.cssText = "width: 9em"; // IE likes this better than the setAttribute("style", "width: 9em") method. FF doesn't care which method is used.
+  frag.appendChild(tr);
+
+  // Aging Enabled
+  tr = CreateStyledElement("tr", "config");
+  addTypedTextCell(tr, "td", "Aging Enabled", "param_label");
+  fld = addCheckBoxCell(tr, parseInt(sys_values[PARM_IDX_SYS_AGING_ENA], 10) ? true : false, "cl", "aging_enabled");
+  fld.onclick= on_aging_enable_change;
+  frag.appendChild(tr);
+
+  // Aging Period
+  tr = CreateStyledElement("tr", "config");
+  addTypedTextCell(tr, "td", "Aging Period", "param_label");
+  fld = addInputCell(tr, sys_values[PARM_IDX_SYS_AGING_PERIOD], "cl", "aging_period", 6);
+  fld.parentNode.appendChild(document.createTextNode(" seconds")); // Unfortunately, I cannot use &nbsp; in place of the space.
+  fld.setAttribute("maxLength", 7);
+  frag.appendChild(tr);
+}
+
+// Helper function to add a row of port data.
+function add_port_row(row, port, glbl_ena, port_values, frag)
+{
+  var tr = CreateStyledElement("tr", row % 2 ? "config_even" : "config_odd");
+
+  // Port number
+  addTextCell(tr, port, "cr");
+
+  // Port mode
+  port_ena = port_values[PARM_IDX_PORT_ENA];
+  var ena_select = addSelectCell(tr, EnaDisTyp, EnaDisVal, port_values[PARM_IDX_PORT_ENA], "cl", "ena_" + port);
+  ena_select.onchange = function () {OnEnablednessChange(port);};
+
+  // Port limit
+  var limit_edit = addInputCell(tr, port_values[PARM_IDX_PORT_LIMIT], "cr", "limit_" + port, 4);
+  limit_edit.setAttribute("maxLength", 4);
+
+  // Port action
+  var action_select = addSelectCell(tr, ActionTyp, ActionVal, port_values[PARM_IDX_PORT_ACTION], "cl", "action_" + port);
+
+  // Port state
+  var state = port_values[PARM_IDX_PORT_STATE];
+  addTextCell(tr, StateTyp[state], "cl");
+  var btn = document.createElement('input');
+  // The button is enabled when the port is globally enabled, enabled, and the port's state is "shutdown".
+  var btn_ena = glbl_ena == 1 && port_ena == 1 && state == 3;
+  btn.onclick = on_reopen_click;
+  btn.type = "button";
+  btn.value = " Reopen ";
+  btn.name = "/config/psec_limit_reopen?port=" + port;
+  btn.disabled = !btn_ena;
+  var td = CreateTd("c");
+  addCell(tr, td, btn);
+
+  UpdateEnabledness(ena_select, limit_edit, action_select); // Update enabled/disabled state for limit and action controls
+
+  frag.appendChild(tr); // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+  // Format of whole string:
+  // GlblEna/AgingEna/AgingPeriod/MaxLimit#[PortConfig]
+  // Format of [PortConfig]
+  // PortNumber_1/PortEna_1/Limit_1/Action_1/State_1#PortEna_2/Limit_2/Action_2/State_2#...#PortEna_N/Limit_N/Action_N/State_N
+  var values = req.responseText.split("#");
+
+  document.getElementById("update").style.visibility = "hidden";
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  var sys_values = values[0].split("/");
+  if (sys_values.length != PARM_SYS_CNT) {
+    return;
+  }
+
+  max_limit = parseInt(sys_values[PARM_IDX_SYS_MAX_LIMIT], 10);
+
+  // Create the system-configuration table
+  var frag_sys_tbl = document.createDocumentFragment();
+  add_system_table(sys_values, frag_sys_tbl);
+  var sys_tbl = document.getElementById('psec_limit_sys_table');
+  clearChildNodes(sys_tbl);
+  sys_tbl.appendChild(frag_sys_tbl);
+
+  // Enable/disable aging_period edit box
+  on_aging_enable_change();
+
+  // Port config:
+  // Port numbers may not be consecutive, so we need to
+  // create a lookup table for converting a row number to a port number
+  // which can be used in getElementById() various places in this function.
+  row2port.length = 0;
+
+  var frag_port_body = document.createDocumentFragment();
+  for (var row = 1; row <= values.length - 1; row++) {
+    var port_values = values[row].split("/");
+    if (port_values.length != PARM_PORT_CNT) {
+      return;
+    }
+    row2port.push(port_values[PARM_IDX_PORT_NUMBER]); 
+    add_port_row(row, port_values[PARM_IDX_PORT_NUMBER], sys_values[PARM_IDX_SYS_ENA], port_values, frag_port_body);
+  }
+
+  var tbody = document.getElementById('port_data');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag_port_body);
+  var cBar = new MasterControlBar([{text: "*", className: "cr"}, {name: "ena_"}, {name: "limit_"}, {name: "action_"}, null, null]);
+  cBar.construct('port_data');
+}
+
+requestUpdate = function () {
+  if (SpomNavigationLoading()) {
+    return; // Bail out, navigation will trigger update
+  }
+
+  document.getElementById("update").style.visibility = "visible";
+  loadXMLDoc(SpomAddSidArg("/config/psec_limit"), processUpdate, null);
+  SpomUpdateDisplaySid("display_sid");
+  SpomUpdateFormSid("submit_sid");
+};
+
+// Check if the user input is OK
+function checkForm()
+{
+  // Since most of these fields are optional (depending on which protocols are supported)
+  // we need to check for their existence before using their values.
+
+  // Aging Period
+  var fld = document.getElementById("aging_enabled");
+  if (fld && fld.checked) {
+    if (!isWithinRange("aging_period", 10, 10000000, "'Aging Period'", " seconds")) {
+      return false;
+    }
+  }
+
+  // Limit
+  for (var row = 0; row < row2port.length; row++) {
+    var port_number = row2port[row];
+    fld = document.getElementById("limit_" + port_number);
+    if (!fld.disabled) {
+      // If it's disabled, no need to check further.
+      if (!isWithinRange("limit_" + port_number, 1, max_limit, "'Limit'")) {
+        return false;
+      }
+    }
+  }
+
+  return true; // Feed the chickens and go home
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+  SpomSetCurrentSid(sid); // Save current SID
+  requestUpdate();        // Update page to reflect selector
+}
+
+// Called when the user hits the reset-button.
+function resetForm(form)
+{
+  form.reset();
+  on_aging_enable_change();
+  for (var row = 0; row < row2port.length; row++) {
+    var port_number = row2port[row];
+    OnEnablednessChange(port_number);
+  }
+}
+  </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+  <div class="refreshbar">
+    <form action="#">
+    <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();"/>
+    <img id="update" alt="" src="images/updating.gif"/>
+   </form>
+  </div>
+
+  <form name="psec_limit_cfg_form" method="POST" action="/config/psec_limit" onsubmit="return checkForm();">
+
+    <h1>Port Security Limit Control Configuration</h1>
+    <h2>System Configuration <span class="SPOM_only">(Stack Global)</span></h2>
+
+    <table summary="Limit Control System Configuration" cellspacing="0" class="config">
+      <!-- Satisfy HTML validators by placing empty tr and td elements. -->
+      <tbody id="psec_limit_sys_table"><tr><td></td></tr></tbody>
+    </table>
+
+    <h2>Port Configuration <span id="display_sid"></span></h2>
+
+    <table summary="Limit Control Port Configuration" cellspacing="0" class="config">
+      <thead>
+        <tr class="config_header">
+          <th>Port</th>
+          <th>Mode</th>
+          <th>Limit</th>
+          <th>Action</th>
+          <th>State</th>
+          <th>Re-open</th>
+        </tr>
+      </thead>
+      <tbody id="port_data"><tr><td></td></tr></tbody>
+    </table>
+
+    <p>
+      <input type="hidden" id="submit_sid" name="sid"/>
+      <input type="submit" value="Save"/>
+      <input type="reset"  value="Reset" onclick="resetForm(this.form);"/>
+    </p>
+
+  </form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

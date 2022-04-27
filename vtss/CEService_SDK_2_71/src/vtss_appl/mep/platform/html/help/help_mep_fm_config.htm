@@ -1,0 +1,307 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>MEP Fault Management Configuration And State Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1> MEP Fault Management Configuration Help</h1>
+
+<p> This page allows the user to inspect and configure the Fault Management of the current <a href="glossary.htm#MEP" class="glossary">MEP</a> Instance.</p>
+
+<h2>Loop Back</h2>
+<dl>
+ <dt>Enable</dt>
+ <dd>
+ Loop Back based on transmitting/receiving LBM/LBR PDU can be enabled/disabled.
+ Loop Back is automatically disabled when all 'To Send' LBM PDU has been transmitted - waiting 5 sec. for all LBR from the end.
+ </dd>
+ <dt>Dei</dt>
+ <dd>
+ The DEI to be inserted as PCP bits in TAG (if any).
+ </dd>
+ <dt>Priority</dt>
+ <dd>
+ The priority to be inserted as PCP bits in TAG (if any).
+ </dd>
+ <dt>Cast</dt>
+ <dd>
+ Selection of LBM PDU transmitted unicast or multi-cast. The unicast MAC will be configured through 'Peer MEP' or 'Unicast Peer MAC'.
+ To-wards MIP only unicast Loop Back is possible.
+ </dd>
+ <dt>Peer MEP</dt>
+ <dd>
+ This is only used if the 'Unicast MAC' is configured to all zero.
+ The LBM unicast MAC will be taken from the 'Unicast Peer MAC' configuration of this peer.
+ </dd>
+ <dt>Unicast MAC</dt>
+ <dd>
+ This is only used if NOT configured to all zero.
+ This will be used as the LBM PDU unicast MAC.
+ This is the only way to configure Loop Back to-wards a MIP.
+ </dd>
+ <dt>To Send</dt>
+ <dd>
+ The number of LBM PDU to send in one loop test. The value 0 indicate infinite transmission (test behaviour). This is HW based LBM/LBR and Requires VOE.
+ </dd>
+ <dt>Size</dt>
+ <dd>
+ The LBM frame size. This is entered as the wanted size (in bytes) of a un-tagged frame containing LBM OAM PDU - including CRC (four bytes).
+ <p> Example when 'Size' = 64  =>  Un-tagged frame size = DMAC(6) + SMAC(6) + TYPE(2) + LBM PDU LENGTH(46) + CRC(4) = 64 bytes </p>
+ <p> The transmitted frame will be four bytes longer for each tag added - 8 bytes in case of a tunnel EVC. </p>
+ <p> Minimum Size is 64 Bytes. Maximum Size is 9600 Bytes </p>
+ </dd>
+ <dt>Interval</dt>
+ <dd>
+ The interval between transmitting LBM PDU.
+ In 10ms. in case 'To Send' != 0 (max 100 - '0' is as fast as possible)
+ In 1us. in case 'To Send' == 0 (max 10.000)",
+</dd>
+</dl>
+
+<h2>Loop Back State</h2>
+<dl>
+ <dt>Transaction ID</dt>
+ <dd>
+ The transaction id of the first LBM transmitted. For each LBM transmitted the transaction id in the PDU is incremented.
+ </dd>
+ <dt>Transmitted</dt>
+ <dd>
+ The total number of LBM PDU transmitted.
+ </dd>
+ <dt>Reply MAC</dt>
+ <dd>
+ The MAC of the replying MEP/MIP. In case of multi-cast LBM, replies can be received from all peer MEP in the group. This MAC is not shown in case of 'To Send' == 0.
+ </dd>
+ <dt>Received</dt>
+ <dd>
+ The total number of LBR PDU received from this 'Reply MAC'.
+ </dd>
+ <dt>Out Of Order</dt>
+ <dd>
+ The number of LBR PDU received from this 'Reply MAC' with incorrect 'Transaction ID'.
+ </dd>
+</dl>
+
+<h2>Link Trace</h2>
+<dl>
+ <dt>Enable</dt>
+ <dd>
+ Link Trace based on transmitting/receiving LTM/LTR PDU can be enabled/disabled.
+ Link Trace is automatically disabled when all 5 transactions are done with 5 sec. interval - waiting 5 sec. for all LTR in the end.
+ The LTM PDU is always transmitted as Multi-cast Class 2.
+ </dd>
+ <dt>Priority</dt>
+ <dd>
+ The priority to be inserted as PCP bits in TAG (if any).
+ </dd>
+ <dt>Peer MEP</dt>
+ <dd>
+ This is only used if the 'Unicast MAC' is configured to all zero.
+ The Link Trace Target MAC will be taken from the 'Unicast Peer MAC' configuration of this peer.
+ </dd>
+ <dt>Unicast MAC</dt>
+ <dd>
+ This is only used if NOT configured to all zero.
+ This will be used as the Link Trace Target MAC.
+ This is the only way to configure a MIP as Target MAC.
+ </dd>
+ <dt>Time To Live</dt>
+ <dd>
+ This is the LTM PDU TTL value as described in Y.1731. This value is decremented each time forwarded by a MIP. Will not be forwarded reaching zero.
+ </dd>
+</dl>
+
+<h2>Link Trace State</h2>
+<dl>
+ <dt>Transaction ID</dt>
+ <dd>
+ The transaction id is incremented for each LTM send. This value is inserted the transmitted LTM PDU and is expected to be received in the LTR PDU.
+ Received LTR with wrong transaction id is ignored.
+ There are five transactions in one Link Trace activated.
+ </dd>
+ <dt>Time To Live</dt>
+ <dd>
+ This is the TTL value taken from the LTM received by the MIP/MEP sending this LTR - decremented as if forwarded.
+ </dd>
+ <dt>Mode</dt>
+ <dd>
+ Indicating if is was a MEP/MIP sending this LTR.
+ </dd>
+ <dt>Direction</dt>
+ <dd>
+ Indicating if MEP/MIP sending this LTR is ingress/egress.
+ </dd>
+ <dt>Forwarded</dt>
+ <dd>
+ Indicating if MEP/MIP sending this LTR has forwarded the LTM.
+ </dd>
+ <dt>Relay</dt>
+ <dd>
+ The Relay action can be one of the following
+ <p><b>MAC:</b>  The was a hit on the LT Target MAC</p>
+ <p><b>FDB:</b>   LTM is forwarded based on hit in the Filtering DB</p>
+ <p><b>MFDB:</b>  LTM is forwarded based on hit in the MIP CCM DB</p>
+ </dd>
+ <dt>Last MAC</dt>
+ <dd>
+ The MAC identifying the last sender of the LBM causing this LTR - initiating MEP or previous MIP forwarding.
+ </dd>
+ <dt>Next MAC</dt>
+ <dd>
+ The MAC identifying the next sender of the LBM causing this LTR - MIP forwarding or terminating MEP.
+ </dd>
+</dl>
+
+<h2>Test Signal</h2>
+<dl>
+ <dt>Enable</dt>
+ <dd>
+ Test Signal based on transmitting TST PDU can be enabled/disabled.
+ </dd>
+ <dt>Dei</dt>
+ <dd>
+ The DEI to be inserted as PCP bits in TAG (if any).
+ </dd>
+ <dt>Priority</dt>
+ <dd>
+ The priority to be inserted as PCP bits in TAG (if any).
+ </dd>
+ <dt>Peer MEP</dt>
+ <dd>
+ The TST frame destination MAC will be taken from the 'Unicast Peer MAC' configuration of this peer.
+ </dd>
+ <dt>Rate</dt>
+ <dd>
+ The TST frame transmission bit rate - in Mega bits pr. second. Limit on Caracal is 400 Mbps. Limit on Serval is 1Gbps.
+ This is the bit rate of a standard frame without any encapsulation. If 1 Mbps rate is selected in a EVC MEP, the added tag will give a higher bitrate on the wire.
+</dd>
+ <dt>Size</dt>
+ <dd>
+ The TST frame size. This is entered as the wanted size (in bytes) of a un-tagged frame containing TST OAM PDU - including CRC (four bytes).
+ <p> Example when 'Size' = 64  =>  Un-tagged frame size = DMAC(6) + SMAC(6) + TYPE(2) + TST PDU LENGTH(46) + CRC(4) = 64 bytes </p>
+ <p> The transmitted frame will be four bytes longer for each tag added - 8 bytes in case of a tunnel EVC. </p>
+ <p> Minimum Size is 64 Bytes. Maximum Size is 9600 Bytes </p>
+ </dd>
+ <dt>Pattern</dt>
+ <dd>
+ The 'empty' TST PDU has the size of 12 bytes. In order to achieve the configured frame size a data TLV will be added with a pattern.
+ <p> Example when 'Size' = 64  =>  Un-tagged frame size = DMAC(6) + SMAC(6) + TYPE(2) + TST PDU LENGTH(46) + CRC(4) = 64 bytes </p>
+ <p> The TST PDU needs to be 46 bytes so a pattern of 46-12=34 bytes will be added. </p>
+ <p><b>All Zero:</b>  Pattern will be '00000000'</p>
+ <p><b>All One:</b>   Pattern will be '11111111'</p>
+ <p><b>10101010:</b>  Pattern will be '10101010'</p>
+ </dd>
+</dl>
+
+<h2>Test Signal State</h2>
+<dl>
+ <dt>TX frame count</dt>
+ <dd>
+ The number of transmitted TST frames since last 'Clear'.
+ </dd>
+ <dt>RX frame count</dt>
+ <dd>
+ The number of received TST frames since last 'Clear'.
+ </dd>
+ <dt>RX rate</dt>
+ <dd>
+ The current received TST frame bit rate in Kbps. This is calculated on a 1 s. basis, starting when first TST frame is received after 'Clear'. The frame size used for this calculation is the first received after 'Clear'
+ </dd>
+ <dt>Test time</dt>
+ <dd>
+ The number of seconds passed since first TST frame received after last 'Clear'.
+ </dd>
+ <dt>Clear</dt>
+ <dd>
+ This will clear all Test Signal State. Transmission of TST frame will be restarted. Calculation of 'Rx frame count', 'RX rate' and 'Test time' will be started when receiving first TST frame.
+ </dd>
+</dl>
+
+<h2>Client Configuration</h2>
+ Only a Port MEP is able to be a server MEP with flow configuration. The Priority in the client flow is always the highest priority configured in the EVC.
+<dl>
+ <dt>Domain</dt>
+ <dd>
+ The domain of the client layer. Must be EVC.
+ </dd>
+ <dt>Flow</dt>
+ <dd>
+ Client layer flow instance numbers - max. 10.
+ </dd>
+ <dt>Level</dt>
+ <dd>
+ Client layer level - AIS and LCK PDU transmitted in this client layer flow will be on this level.
+ </dd>
+ <dt>AIS Prio</dt>
+ <dd>
+ The priority to be used when transmitting AIS in each client flow. Priority resulting in highest possible PCP can be selected.
+ </dd>
+ <dt>LCK Prio</dt>
+ <dd>
+ The priority to be used when transmitting LCK in each client flow. Priority resulting in highest possible PCP can be selected.
+  </dd>
+</dl>
+
+<h2>AIS</h2>
+<dl>
+ <dt>Enable</dt>
+ <dd>
+ Insertion of AIS signal (AIS PDU transmission) in client layer flows, can be enable/disabled.
+ </dd>
+ <dt>Frame Rate</dt>
+ <dd>
+ Selecting the frame rate of AIS PDU. This is the inverse of transmission period as described in Y.1731.:
+ </dd>
+ <dt>Protection</dt>
+ <dd>
+ Selecting this means that the first 3 AIS PDU is transmitted as fast as possible - in case of using this for protection in the end point.
+ </dd>
+</dl>
+
+<h2>LOCK</h2>
+<dl>
+ <dt>Enable</dt>
+ <dd>
+ Insertion of LOCK signal (LCK PDU transmission) in client layer flows, can be enable/disabled.
+ </dd>
+ <dt>Frame Rate</dt>
+ <dd>
+ Selecting the frame rate of LCK PDU. This is the inverse of transmission period as described in Y.1731.:
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Back ">: Click to go back to this MEP instance main page.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+</body>
+</html>

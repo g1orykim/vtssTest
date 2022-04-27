@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>ECE Statistics Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+
+<body>
+<h1>ECE Statistics Help</h1>
+<p>This page provides UNI port traffic statistics for available <a href="glossary.htm#ECE" class="glossary">ECE</a>.
+   It also shows counters for NNI ports of the <a href="glossary.htm#EVC" class="glossary">EVC</a> to which the ECE is mapped.</p>
+
+<dl>
+ <dt>Clear</dt>
+ <dd>
+ This box is used to mark a port for clearance in next Clear operation.
+ </dd>
+
+ <dt>Port</dt>
+ <dd>
+ The UNI/NNI port for the ECE.
+ </dd>
+
+ <dt>Rx Green Frames and Bytes</dt>
+ <dd>
+ The number of green bytes and frames received.
+ </dd>
+
+ <dt>Tx Green Frames and Bytes</dt>
+ <dd>
+ The number of green bytes and frames transmitted.
+ </dd>
+
+ <dt>Rx Yellow Frames and Bytes</dt>
+ <dd>
+ The number of yellow bytes and frames received.
+ </dd>
+
+ <dt>Tx Yellow Frames and Bytes</dt>
+ <dd>
+ The number of yellow bytes and frames transmitted.
+ </dd>
+
+ <dt>Rx Red Frames and Bytes</dt>
+ <dd>
+ The number of red bytes and frames received.
+ </dd>
+
+ <dt>Rx Discarded Frames and Bytes</dt>
+ <dd>
+ The number of bytes and frames discarded in the ingress queue system.
+ </dd>
+
+ <dt>Tx Discarded Frames and Bytes</dt>
+ <dd>
+ The number of bytes and frames discarded in the egress queue system.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="radio">Frames: Show frames statistics only.</p>
+<p><input type="radio">Bytes: Show bytes statistics only.</p>
+<p><input type="radio">Both: Show both frames and bytes statistics.</p>
+
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Clear ">: Clears the counters for selected ports.</p>
+<p><input type="button" value=" Clear All ">: Clears the counters for all ports.</p>
+
+</body>
+</html>

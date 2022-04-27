@@ -1,0 +1,179 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>GVRP Configuration</title>
+
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript">
+
+var help_page = "/help/help_gvrp_config.htm";
+
+
+function processUpdate(req, ref)
+{
+    var message        = document.getElementById("message");
+    var fields         = req.responseText.split("*");
+    var status         = fields[0];
+    var param          = fields.slice(1);
+    var x;
+
+    if (status === "OK") {
+
+        if (param.length != 5) {
+            message.innerHTML   = "Wrong amount of data.";
+        } else {
+            x = document.getElementById("jointime");
+            x.value = param[0];
+
+            x = document.getElementById("leavetime");
+            x.value = param[1];
+
+            x = document.getElementById("leavealltime");
+            x.value = param[2];
+
+            x = document.getElementById("maxvlans");
+            x.value = param[3];
+
+            x = document.getElementById("gvrp_enable");
+            x.checked = (param[4] == 1 ? true : false);
+        }
+
+    } else if (status === "ERR") {
+
+        message.innerHTML = "Could not retrieve GVRP settings. Please try again later.";
+    } 
+}
+
+
+
+function requestUpdate()
+{
+    loadXMLDoc("/config/gvrp_conf_status?op=global", processUpdate, "file_list_rows");
+}
+
+
+function onSubmit()
+{
+    x=document.getElementById("jointime");
+
+    if (isNaN(x.value) || x.value < 1 || x.value > 20) {
+        alert("Join-time must be a number in the range 1-20");
+        return false;
+    }
+
+
+    x=document.getElementById("leavetime");
+
+    if (isNaN(x.value) || x.value < 60 || x.value > 300) {
+        alert("Leave-time must be a number in the range 60-300");
+        return false;
+    }
+
+
+    x=document.getElementById("leavealltime");
+
+    if (isNaN(x.value) || x.value < 1000 || x.value > 5000) {
+        alert("LeaveAll-time must be a number in the range 1000-5000");
+        return false;
+    }
+
+    return true;
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+  <div class="refreshbar">
+    <form action="#">
+      <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+      <img id="update" alt="" src="images/updating.gif">
+    </form>
+  </div>
+
+  <h1>GVRP Configuration</h1>
+
+  <form name="gvrp_form" method="POST" action="/config/gvrp_conf_status" onsubmit="return onSubmit();">
+
+    <input type="checkbox" id="gvrp_enable" name="gvrp_enable"/><label for="gvrp_enable">Enable GVRP</label>
+
+    <table summary="GVRP Configuration" cellspacing="0" class="config">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+
+      <tr class="config_even">
+        <th align="left"> Join-time: </th>
+        <th> <input type="text" id="jointime" name="jointime" value="-" align="right" maxlength="5">
+      </tr>
+      <tr class="config_odd">
+        <th align="left"> Leave-time: </th>
+        <th> <input type="text" id="leavetime" name="leavetime" value="-" align="right" maxlength="5">
+      </tr>
+      <tr class="config_even">
+        <th align="left"> LeaveAll-time: </th>
+        <th> <input type="text" id="leavealltime" name="leavealltime" value="-" align="right" maxlength="5">
+      </tr>
+      <tr class="config_odd">
+        <th align="left"> Max VLANs: </th>
+        <th> <input type="text" id="maxvlans" name="maxvlans" value="-" align="right" maxlength="5">
+      </tr>
+    </table>
+
+    <p id="message"></p>
+
+    <p>
+      <input type="submit" value="Save">
+    </p>
+
+
+  </form>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,43 @@
+cdl_savefile_version 1;
+cdl_savefile_command cdl_savefile_version {};
+cdl_savefile_command cdl_savefile_command {};
+cdl_savefile_command cdl_configuration { description hardware template package };
+cdl_savefile_command cdl_package { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_component { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_option { value_source user_value wizard_value inferred_value };
+cdl_savefile_command cdl_interface { value_source user_value wizard_value inferred_value };
+
+cdl_configuration eCos {
+    description "" ;
+
+    # These fields should not be modified.
+    hardware    vcoreiii_mips32_24kec ;
+    template    redboot ;
+    package -hardware CYGPKG_HAL_MIPS current ;
+    package -hardware CYGPKG_HAL_MIPS_MIPS32 current ;
+    package -hardware CYGPKG_HAL_MIPS_VCOREIII current ;
+    package -hardware CYGPKG_DEVS_FLASH_SPI_M25PXX current ;
+    package -hardware CYGPKG_DEVS_SPI_MIPS_VCOREIII current ;
+    package -hardware CYGPKG_IO_SPI current ;
+    package -hardware CYGPKG_IO_FLASH current ;
+    package -template CYGPKG_HAL current ;
+    package -template CYGPKG_INFRA current ;
+    package -template CYGPKG_REDBOOT current ;
+    package -template CYGPKG_ISOINFRA current ;
+    package -template CYGPKG_LIBC_STRING current ;
+    package -template CYGPKG_CRC current ;
+    package CYGPKG_COMPRESS_ZLIB current ;
+    package CYGPKG_MEMALLOC current ;
+};
+
+cdl_component CYG_HAL_STARTUP {
+    user_value ROMRAM
+};
+
+cdl_component CYG_HAL_VCOREIII_CHIPTYPE {
+    user_value LUTON26
+};
+
+cdl_component CYGBLD_BUILD_REDBOOT {
+    user_value 1
+};

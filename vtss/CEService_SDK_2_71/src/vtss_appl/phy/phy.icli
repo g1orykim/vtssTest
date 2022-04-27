@@ -1,0 +1,1483 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_PHY)
+
+INCLUDE_BEGIN
+#include "phy_api.h"
+#include "icli_porting_util.h"
+#include "port_api.h"
+#include "phy_icli_util.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+static void phy_icli_req_init(phy_icli_req_t *req, u32 session_id)
+{
+    memset(req, 0, sizeof(*req));
+    req->session_id = session_id;
+    req->header = 1;
+}
+
+#if defined(VTSS_CHIP_10G_PHY)
+static vtss_rc icli_cmd_phy_inst_def_activate(u32 session_id)
+{
+    if (phy_mgmt_inst_activate_default() != VTSS_RC_OK) {
+        ICLI_PRINTF("Could not set phy_mgmt_inst_activate_default()\n");
+        return VTSS_RC_ERROR;
+    } else
+        ICLI_PRINTF("Default instance successfully activated\n");
+    return VTSS_RC_OK;
+}
+static vtss_rc icli_cmd_phy_failover(u32 session_id, icli_stack_port_range_t *plist, BOOL set, BOOL enable)
+{
+    port_iter_t                     pit;
+    switch_iter_t                   sit;
+    vtss_phy_10g_failover_mode_t    phy_failover, api_failover;
+    vtss_phy_10g_id_t               phy_id;
+    BOOL                            active, next, bc;
+
+    (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void)icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (!vtss_phy_10G_is_valid(PHY_INST, pit.iport)) {
+                if (set)
+                    ICLI_PRINTF("%% Note: Failover is only supported on 10G PHYs on port: %d\n", pit.uport);
+                continue;
+            }
+            if (vtss_phy_10g_id_get(PHY_INST, pit.iport, &phy_id) != VTSS_RC_OK) {
+                T_E("Could not get the Phy id for port: %u",pit.iport);
+                continue;
+            }
+            if (phy_id.part_number != 0x8487) {
+                if (set) {
+                    ICLI_PRINTF("%% Note: Failover only applies to VSC8487 (you are addressing 0x%x of port: %d)\n",
+                                phy_id.part_number, pit.uport);
+                }
+                continue;
+            }
+            if (vtss_phy_10g_failover_get(PHY_INST, pit.iport, &api_failover) != VTSS_RC_OK)
+                ICLI_PRINTF("%% Error: Could not get failover\n");
+            if (set) {
+                if (enable) {
+                    if (api_failover == VTSS_PHY_10G_PMA_0_TO_FROM_XAUI_0_TO_XAUI_1) {
+                        phy_failover = VTSS_PHY_10G_PMA_0_TO_FROM_XAUI_1_TO_XAUI_0;
+                    } else {
+                        phy_failover = VTSS_PHY_10G_PMA_0_TO_FROM_XAUI_0_TO_XAUI_1;
+                    }
+                }
+                if (phy_mgmt_failover_set(pit.iport, &phy_failover) != VTSS_RC_OK) {
+                    ICLI_PRINTF("%% Error: Could not set failover on port: %d\n", pit.uport);
+                }
+            } else {
+                if (phy_mgmt_failover_get(pit.iport, &phy_failover) != VTSS_RC_OK) {
+                    ICLI_PRINTF("%% Error: Could not get failover on port: %d\n", pit.uport);
+                }
+                active = 0;
+                next = 0;
+                bc = 0;
+                if ((phy_id.channel_id == 0) && (api_failover == VTSS_PHY_10G_PMA_TO_FROM_XAUI_NORMAL)) {
+                    active = 1;
+                }
+
+                if (((phy_id.channel_id == 0) && (api_failover == VTSS_PHY_10G_PMA_0_TO_FROM_XAUI_0_TO_XAUI_1)) ||
+                        ((phy_id.channel_id == 1) && (api_failover == VTSS_PHY_10G_PMA_0_TO_FROM_XAUI_1_TO_XAUI_0))) {
+                    active = 1;
+                    bc = 1;
+                }
+                if (((phy_id.channel_id == 0) && (phy_failover == VTSS_PHY_10G_PMA_0_TO_FROM_XAUI_0_TO_XAUI_1)) ||
+                        (((phy_id.channel_id == 1) && (phy_failover == VTSS_PHY_10G_PMA_0_TO_FROM_XAUI_1_TO_XAUI_0)))) {
+                    next = 1;
+                    bc = 1;
+                }
+                ICLI_PRINTF("%-12u %-10s %-10d %-10s %-10s\n",pit.uport, active ? "Yes" : "No", phy_id.channel_id, bc ?
+                        "Yes" : "No", next ? "Yes" : "No");
+            }
+        }
+    }
+    return VTSS_RC_OK;
+}
+#endif /* defined(VTSS_CHIP_10G_PHY) */
+static vtss_rc icli_cmd_phy_conf(u32 session_id, icli_stack_port_range_t *plist)
+{
+    port_iter_t             pit;
+    switch_iter_t           sit;
+    vtss_phy_conf_t         conf;
+    vtss_port_status_t      stat_1g;
+    vtss_phy_type_t         id1g;
+    BOOL                    phy10g=0;
+    BOOL                    link=0;
+#if defined(VTSS_CHIP_10G_PHY)
+    vtss_phy_10g_mode_t     mode;
+    vtss_phy_10g_status_t   stat_10g;
+    memset(&mode, 0, sizeof(vtss_phy_10g_mode_t));
+#endif
+    memset(&conf, 0, sizeof(vtss_phy_conf_t));
+
+    /* show PHY module's configuration for all ports */
+
+    (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void)icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (vtss_phy_id_get(PHY_INST, pit.iport, &id1g) == VTSS_RC_OK && (id1g.part_number != 0)) {
+                phy10g = 0;
+                if (vtss_phy_conf_get(PHY_INST, pit.iport, &conf) != VTSS_RC_OK) {
+                    ICLI_PRINTF("Could not perform vtss_phy_conf_get() operation");
+                    continue;
+                }
+                if  (vtss_phy_status_get(PHY_INST, pit.iport, &stat_1g)) {
+                    ICLI_PRINTF("Could not perform vtss_phy_status_get() operation");
+                    continue;
+                }
+                link = stat_1g.link;
+            }
+#if defined(VTSS_CHIP_10G_PHY)
+            else {
+                if (!vtss_phy_10G_is_valid(PHY_INST, pit.iport)) {
+                    continue;
+                }
+                phy10g = 1;
+                if (vtss_phy_10g_mode_get(PHY_INST, pit.iport, &mode) != VTSS_RC_OK) {
+                    ICLI_PRINTF("Could not perform vtss_phy_10g_mode_get() operation");
+                    continue;
+                }
+                if (vtss_phy_10g_status_get(PHY_INST, pit.iport, &stat_10g) != VTSS_RC_OK) {
+                    ICLI_PRINTF("Could not perform vtss_phy_10g_mode_get() operation");
+                    continue;
+                }
+                link = stat_10g.pma.rx_link && stat_10g.pcs.rx_link && stat_10g.xs.rx_link;
+            }
+#endif
+#if defined(VTSS_CHIP_10G_PHY)
+            ICLI_PRINTF("%-6u %-10s %-10s %-10s %-10s %-10s %-10s\n",pit.uport,
+                    PHY_INST==NULL?"Default":"PHY",
+                    phy10g ? (mode.oper_mode == VTSS_PHY_WAN_MODE ? "WAN" : mode.oper_mode == VTSS_PHY_LAN_MODE ? "LAN" : "1G"):"1G",
+                    phy10g ? "-" : (conf.mode == VTSS_PHY_MODE_ANEG ? "ANEG" : conf.mode == VTSS_PHY_MODE_FORCED ? "FORCED" : "PD"),
+                    phy10g ? "-" : (conf.mode != VTSS_PHY_MODE_ANEG ? (conf.forced.fdx ? "FDX":"HDX") : "-"),
+                    phy10g ? "-" : (conf.mode != VTSS_PHY_MODE_ANEG ? conf.forced.speed==VTSS_SPEED_10M ? "10M" : conf.forced.speed==VTSS_SPEED_100M ? "100M" : "1G" : "-"),link?"Yes":"No");
+
+#else
+            ICLI_PRINTF("%-6u %-10s %-10s %-10s %-10s %-10s,%-10s\n",phy10g?0:pit.uport,
+                    PHY_INST==NULL?"Default":"PHY",
+                    "1G",(conf.mode == VTSS_PHY_MODE_FORCED ? "FORCED" : "PD"),
+                    (conf.mode != VTSS_PHY_MODE_ANEG ? (conf.forced.fdx ? "FDX":"HDX") : "-"),
+                    (conf.mode != VTSS_PHY_MODE_ANEG ? conf.forced.speed==VTSS_SPEED_10M ? "10M" :
+                     conf.forced.speed==VTSS_SPEED_100M ? "100M" : "1G" : "-"),link?"Yes":"No");
+#endif
+        }
+    }
+    return VTSS_RC_OK;
+}
+
+static vtss_rc icli_cmd_phy_id(u32 session_id, icli_stack_port_range_t *plist)
+{
+    port_iter_t             pit;
+    switch_iter_t           sit;
+    vtss_phy_type_t         id1g;
+    BOOL                    phy10g=0;
+#if defined(VTSS_CHIP_10G_PHY)
+    vtss_phy_10g_id_t       id10g;
+    memset(&id10g,0,sizeof(vtss_phy_10g_id_t));
+#endif /* defined(VTSS_CHIP_10G_PHY) */
+    memset(&id1g,0,sizeof(vtss_phy_type_t));
+
+    /* Get and show phy id information of this board */
+    (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void)icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (vtss_phy_id_get(PHY_INST, pit.iport, &id1g) == VTSS_RC_OK && (id1g.part_number != 0)) {
+                phy10g = 0;
+            }
+#if defined(VTSS_CHIP_10G_PHY)
+            else {
+                if (!vtss_phy_10G_is_valid(PHY_INST, pit.iport))
+                    continue;
+                phy10g = 1;
+                if (vtss_phy_10g_id_get(PHY_INST, pit.iport, &id10g) != VTSS_RC_OK) {
+                    ICLI_PRINTF("Could not perform vtss_phy_10g_mode_get() operation");
+                    continue;
+                }
+            }
+        ICLI_PRINTF("%-6u %-10u %u %-8s %-10d %-10x\n",pit.uport,
+                    phy10g ? id10g.channel_id  : id1g.channel_id,
+                    phy10g ? id10g.phy_api_base_no : id1g.phy_api_base_no,phy10g?"(10g)":"(1g)",
+                    phy10g ? id10g.type            : id1g.part_number,
+                    phy10g ? id10g.revision        : id1g.revision);
+#else
+        ICLI_PRINTF("%-6u %-10u %u %-8s %-10d %-10x\n",phy10g?0:pit.uport,id1g.channel_id,
+                    id1g.phy_api_base_no,"(1g)",id1g.part_number,id1g.revision);
+#endif /* defined(VTSS_CHIP_10G_PHY) */
+        }
+    }
+    return VTSS_RC_OK;
+}
+static const char *cli_restart_txt(vtss_restart_t restart)
+{
+    return (restart == VTSS_RESTART_COLD ? "Cold" :
+            restart == VTSS_RESTART_COOL ? "Cool" :
+            restart == VTSS_RESTART_WARM ? "Warm" : "?");
+}
+static vtss_rc icli_cmd_phy_inst_status(u32 session_id)
+{
+    vtss_restart_status_t  status;
+    vtss_restart_t         restart;
+    vtss_init_conf_t       init_conf;
+    phy_inst_start_t       start_inst;
+
+    if (vtss_init_conf_get(PHY_INST, &init_conf) != VTSS_RC_OK) {
+        ICLI_PRINTF("Failed Couldn't do vtss_init_conf_get() operation");
+        return VTSS_RC_ERROR;
+    }
+    if (vtss_restart_conf_get(PHY_INST, &restart) == VTSS_RC_OK)
+        ICLI_PRINTF("Next Restart    : %s\n", cli_restart_txt(restart));
+    if (vtss_restart_status_get(PHY_INST, &status) == VTSS_RC_OK) {
+        ICLI_PRINTF("Previous Restart: %s\n", cli_restart_txt(status.restart));
+        ICLI_PRINTF("Current API Version : %u\n", status.cur_version);
+        ICLI_PRINTF("Previous API Version: %u\n", status.prev_version);
+    }
+    if (vtss_restart_conf_get(PHY_INST, &restart) == VTSS_RC_OK) {
+        ICLI_PRINTF("Phy Instance Restart Source:%s\n",init_conf.restart_info_src == VTSS_RESTART_INFO_SRC_10G_PHY ? "10G" : "1G");
+        ICLI_PRINTF("Phy Instance Restart Port:%u\n",init_conf.restart_info_port);
+    }
+    start_inst = phy_mgmt_start_inst_get();
+    ICLI_PRINTF("Current Phy Start Instance:%s\n", start_inst == PHY_INST_1G_PHY ? "1g" : start_inst == PHY_INST_10G_PHY ? 
+                "10g" : "none");
+    return VTSS_RC_OK;
+}
+static vtss_rc icli_cmd_phy_inst_restart(u32 session_id, BOOL cool)
+{
+    if (PHY_INST == NULL) {
+        ICLI_PRINTF("You can't restart the default switch instance.  Did you forget to create a PHY instance?\n");
+        return 0;
+    }
+    if (phy_mgmt_inst_restart(PHY_INST, cool?COOL:WARM) != VTSS_RC_OK) {
+        ICLI_PRINTF("Could not restart the API instance\n");
+        return 0;
+    } else {
+        ICLI_PRINTF("%s restart completed successfully\n",cool?"COOL":"WARM");
+    }
+    return VTSS_RC_OK;
+}
+static void icli_cmd_phy_status(u32 session_id, icli_stack_port_range_t *plist)
+{
+    port_iter_t             pit;
+    switch_iter_t           sit;
+    BOOL                    first = 1;
+
+    (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void)icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (first) {
+#if defined(VTSS_CHIP_10G_PHY)
+                ICLI_PRINTF("%-6s %-35s %-20s\n", "Port", "Issues seen during 1G PHY warmstart", "Issues during 10G PHY WS");
+                ICLI_PRINTF("%-6s %-35s %-20s\n", "----", "-----------------------------------", "------------------------");
+#else
+                ICLI_PRINTF("%-6s %-35s\n", "Port", "Issues seen during 1G PHY warmstart");
+                ICLI_PRINTF("%-6s %-35s\n", "----", "-----------------------------------");
+#endif
+                first = 0;
+            }
+#if defined(VTSS_CHIP_10G_PHY)
+            ICLI_PRINTF("%-6u %-35s %-20s\n", pit.uport, vtss_phy_warm_start_failed_get(PHY_INST, pit.iport) == VTSS_RC_ERROR ? "Yes" : "No",
+                        vtss_phy_warm_start_10g_failed_get(PHY_INST, pit.iport) == VTSS_RC_ERROR ? "Yes" : "No");
+#else
+            ICLI_PRINTF("%-6u %-35s\n", pit.uport, vtss_phy_warm_start_failed_get(PHY_INST, pit.iport) == VTSS_RC_ERROR ? "Yes" : "No");
+#endif
+        }
+    }
+}
+static vtss_rc icli_cmd_phy_state_create(u32 session_id, BOOL has_1g, BOOL has_10g)
+{
+    if (phy_mgmt_inst_create(has_10g ? PHY_INST_10G_PHY : has_1g ? PHY_INST_1G_PHY : PHY_INST_NONE) != VTSS_RC_OK) {
+        ICLI_PRINTF("Could not restart inst\n");
+        return VTSS_RC_ERROR;
+    }
+
+    return VTSS_RC_OK;
+}
+
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show platform phy [ interface <port_type_list> ]
+
+DOC_CMD_DESC    = Show PHY module's information for all or a given interface
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: platform
+! 3: phy
+! 4: interface
+! 5: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_interface
+CMD_VAR = v_port_type_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Platform specific information
+HELP = PHYs' information
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = interface : Option
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if(!has_interface)
+    {
+        v_port_type_list = NULL;
+    }
+    ICLI_PRINTF("%-6s %-10s %-10s %-10s %-10s %-10s %-10s\n","Port","API Inst","WAN/LAN/1G","Mode","Duplex","Speed","Link");
+    ICLI_PRINTF("%-6s %-10s %-10s %-10s %-10s %-10s %-10s\n","----","---------","---------","----","------","-----","----");
+    if(icli_cmd_phy_conf(session_id, v_port_type_list) != VTSS_RC_OK)
+    {
+        ICLI_PRINTF("Could not show phy configuration for given list of interfaces");
+    }
+
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show platform phy id [ interface <port_type_list> ]
+
+DOC_CMD_DESC    = Platform PHY's IDs
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = show platform id interface giga 1/1 or show platform id
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: platform
+! 3: phy
+! 4: id
+! 5: interface
+! 6: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_interface
+CMD_VAR = v_port_type_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = interface : Option
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!has_interface) {
+        v_port_type_list = NULL;
+    }
+    ICLI_PRINTF("%-6s %-10s %-10s %-10s %-10s\n","Port","Channel","API Base","Phy Id","Phy Rev.");
+    ICLI_PRINTF("%-6s %-10s %-10s %-10s %-10s\n","----","-------","--------","-------","------");
+
+    if (icli_cmd_phy_id(session_id, v_port_type_list) != VTSS_RC_OK) {
+        ICLI_PRINTF("Could not show phy id\n");
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show platform phy instance
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: platform
+! 3: phy
+! 4: instance
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = 
+HELP = PHY Instance Information
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (icli_cmd_phy_inst_status(session_id) != VTSS_RC_OK) {
+        ICLI_PRINTF("Could not show PHY Instance's current status\n");
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_CHIP_10G_PHY)
+
+COMMAND = show platform phy failover
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: platform
+! 3: phy
+! 4: failover
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = PHY Intance Information
+HELP = Failover status
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = Current Failover settings
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_PRINTF("%-12s %-10s %-10s %-10s %-10s\n","Port","Active","Channel","Broadcast","After reset");
+    ICLI_PRINTF("%-12s %-10s %-10s %-10s %-10s\n","----","------","-------","---------","------------");
+    if (icli_cmd_phy_failover(session_id, NULL, FALSE, FALSE) != VTSS_RC_OK) {
+        ICLI_PRINTF("Could not show phy failover status\n");
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = platform phy instance restart { cool | warm }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_PHY_NONE_SHOW_CMDS_PROPERTY
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: platform
+! 2: phy
+! 3: instance
+! 4: restart
+! 5: cool
+! 6: warm
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_cool
+CMD_VAR =
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = 
+HELP = Restart the PHY Instance
+HELP = PHY will be reset (data/frame loss expected)
+HELP = PHY will not be reset (no data/frame loss expected)
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = cool : Option
+BYWORD = warm : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (icli_cmd_phy_inst_restart(session_id, has_cool) != VTSS_RC_OK) {
+        ICLI_PRINTF("Could not restart PHY Instance\n");
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_CHIP_10G_PHY)
+
+COMMAND = platform phy instance default-activate
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_PHY_NONE_SHOW_CMDS_PROPERTY
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: platform
+! 2: phy
+! 3: instance
+! 4: default-activate
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = 
+HELP = Copy PHY Instance data to default Instance
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (icli_cmd_phy_inst_def_activate(session_id) != VTSS_RC_OK) {
+        ICLI_PRINTF("Could not restart PHY Instance\n");
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show platform phy status [interface <port_type_list>]
+
+DOC_CMD_DESC    = Shows logged errors, if any
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: platform
+! 3: phy
+! 4: status
+! 5: interface
+! 6: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_interface
+CMD_VAR = v_port_type_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME =
+RUNTIME =
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP =
+HELP =
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!has_interface) {
+        v_port_type_list = NULL;
+    }
+    icli_cmd_phy_status(session_id, v_port_type_list);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = platform phy instance { 1g | 10g }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_PHY_NONE_SHOW_CMDS_PROPERTY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: platform
+! 2: phy
+! 3: instance
+! 4: 1g
+! 5: 10g
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_1g
+CMD_VAR = has_10g
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 1 : Option
+BYWORD = 10 : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (icli_cmd_phy_state_create(session_id, has_1g, has_10g) != VTSS_RC_OK) {
+        ICLI_PRINTF("Could not restart PHY Instance\n");
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no platform phy instance
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY | ICLI_PHY_NONE_SHOW_CMDS_PROPERTY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: platform
+! 3: phy
+! 4: instance
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Platform specific commands
+HELP = PHY Instance
+HELP = Destroy all PHY Instances
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (icli_cmd_phy_state_create(session_id, FALSE, FALSE) != VTSS_RC_OK) {
+        ICLI_PRINTF("Could not destroy PHY Instance\n");
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_CHIP_10G_PHY)
+
+COMMAND = platform phy failover
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_PHY_NONE_SHOW_CMDS_PROPERTY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: platform
+! 2: phy
+! 3: failover
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Enable/Disable Failover
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (icli_cmd_phy_failover(session_id, plist, TRUE, TRUE) != VTSS_RC_OK) {
+        ICLI_PRINTF("Couldn't enable phy failover\n");
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (icli_cmd_phy_failover(session_id, plist, TRUE, FALSE) != VTSS_RC_OK) {
+        ICLI_PRINTF("Couldn't disable phy failover\n");
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug phy read [ <0~31> ] [ <0-0xffff> ] [ addr-sort ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! phy
+CMD_VAR = 
+RUNTIME = 
+HELP    = PHY register access
+BYWORD  = 
+
+! read
+CMD_VAR = 
+RUNTIME = 
+HELP    = Read PHY registers
+BYWORD  = 
+
+! <0~31>
+CMD_VAR = addr_list
+RUNTIME = 
+HELP    = PHY address list
+BYWORD  = <AddrList : 0~31>
+
+! <0-0xffff>
+CMD_VAR = page
+RUNTIME = 
+HELP    = PHY address page
+BYWORD  = <Page: 0-0xffff>
+
+! addr-sort
+CMD_VAR = has_addr_sort
+RUNTIME = 
+HELP    = Enable (address, port) output sorting
+BYWORD  = addr-sort : Option
+
+VARIABLE_BEGIN
+    phy_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    phy_icli_req_init(&req, session_id);
+    req.port_list = plist;
+    req.addr_list = addr_list;
+    req.page = page;
+    req.addr_sort = has_addr_sort;
+    phy_icli_debug_phy(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug phy write [ <0~31> ] <0-0xffff> [ <0-0xffff> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! phy
+CMD_VAR = 
+RUNTIME = 
+HELP    = PHY register access
+BYWORD  = 
+
+! write
+CMD_VAR = 
+RUNTIME = 
+HELP    = Write PHY registers
+BYWORD  = 
+
+! <0~31>
+CMD_VAR = addr_list
+RUNTIME = 
+HELP    = PHY address list
+BYWORD  = <AddrList : 0~31>
+
+! <0-0xffff>
+CMD_VAR = value
+RUNTIME = 
+HELP    = PHY register value
+BYWORD  = <Value : 0-0xffff>
+
+! <0-0xffff>
+CMD_VAR = page
+RUNTIME = 
+HELP    = PHY address page
+BYWORD  = <Page: 0-0xffff>
+
+VARIABLE_BEGIN
+    phy_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    phy_icli_req_init(&req, session_id);
+    req.port_list = plist;
+    req.addr_list = addr_list;
+    req.value = value;
+    req.page = page;
+    req.write = 1;
+    phy_icli_debug_phy(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug phy do-page-chk [enable|disable]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! phy
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! do-page-chk
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! has_enable
+CMD_VAR = has_enable
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! has_disable
+CMD_VAR = has_disable
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+CODE_BEGIN
+   VTSS_RC(phy_icli_debug_do_page_chk(session_id, has_enable, has_disable));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug phy force-pass-through-speed {1G | 100M | 10M}
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! phy
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! force-pass-through-speed
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! Speed
+CMD_VAR = has_1g
+CMD_VAR = has_100M
+CMD_VAR = has_10M
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+CODE_BEGIN
+   VTSS_RC(phy_icli_debug_phy_pass_through_speed(session_id, plist, has_1g, has_100M, has_10M));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug phy reset
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! phy
+CMD_VAR = 
+RUNTIME = 
+HELP    = Select phy for debugging (Note only local PHYs, NOT stack-aware)
+BYWORD  = 
+
+
+CODE_BEGIN
+    VTSS_RC(phy_icli_debug_phy_reset(session_id, plist));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug phy gpio <0-13> mode {output|input|alternative}
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! phy
+CMD_VAR = 
+RUNTIME = 
+HELP    = Phy keyword (Remember to use the interface with the PHY which contains the GPIO)
+BYWORD  = 
+
+!gpio
+CMD_VAR = 
+RUNTIME = 
+HELP    = GPIO keyword
+BYWORD  = 
+
+!<1-13>
+CMD_VAR = gpio_no
+RUNTIME = 
+HELP    = GPIO number to configure
+BYWORD  = 
+
+!mode
+CMD_VAR = 
+RUNTIME = 
+HELP    = Configure GPIO operating mode
+BYWORD  = 
+
+!output
+CMD_VAR = has_mode_output
+RUNTIME = 
+HELP    = Set GPIO as output 
+BYWORD  = 
+
+!input
+CMD_VAR = has_mode_input
+RUNTIME = 
+HELP    = Set GPIO as input 
+BYWORD  = 
+
+!alternative
+CMD_VAR = has_mode_alternative
+RUNTIME = 
+HELP    = Set GPIO in alternative mode (see data-sheet)
+BYWORD  = 
+
+CODE_BEGIN
+    VTSS_RC(phy_icli_debug_phy_gpio(session_id, plist, has_mode_output, has_mode_input, has_mode_alternative, FALSE, FALSE, FALSE, gpio_no))
+;
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug phy gpio <0-13> set {high|low}
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! phy
+CMD_VAR = 
+RUNTIME = 
+HELP    = Phy keyword (Remember to use the interface with the PHY which contains the GPIO)
+BYWORD  = 
+
+!gpio
+CMD_VAR = 
+RUNTIME = 
+HELP    = GPIO keyword
+BYWORD  = 
+
+!<1-13>
+CMD_VAR = gpio_no
+RUNTIME = 
+HELP    = GPIO number to set
+BYWORD  = 
+
+!get
+CMD_VAR = 
+RUNTIME = 
+HELP    = Set the GPIO
+BYWORD  = 
+
+!high
+CMD_VAR = high
+RUNTIME = 
+HELP    = Set the GPIO high
+BYWORD  = 
+
+!low
+CMD_VAR = low
+RUNTIME = 
+HELP    = Set the GPIO low
+BYWORD  = 
+
+
+CODE_BEGIN
+   high = !low;     
+   VTSS_RC(phy_icli_debug_phy_gpio(session_id, plist, FALSE, FALSE, FALSE, FALSE, TRUE, high, gpio_no));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug phy gpio <0-13> get
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! phy
+CMD_VAR = 
+RUNTIME = 
+HELP    = Phy keyword (Remember to use the interface with the PHY which contains the GPIO)
+BYWORD  = 
+
+!gpio
+CMD_VAR = 
+RUNTIME = 
+HELP    = GPIO keyword
+BYWORD  = 
+
+!<1-13>
+CMD_VAR = gpio_no
+RUNTIME = 
+HELP    = GPIO number to get from
+BYWORD  = 
+
+!get
+CMD_VAR = 
+RUNTIME = 
+HELP    = Print the value of the GPIO
+BYWORD  = 
+
+
+CODE_BEGIN
+    VTSS_RC(phy_icli_debug_phy_gpio(session_id, plist, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, gpio_no));
+CODE_END
+
+CMD_END

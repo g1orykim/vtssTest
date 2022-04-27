@@ -1,0 +1,76 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse VLAN Translation Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_vlan_translation := $(DIR_APPL)/vlan_translation
+DIR_vlan_translation_platform := $(DIR_vlan_translation)/platform
+DIR_vlan_translation_base := $(DIR_vlan_translation)/base
+DIR_vlan_translation_html := $(DIR_vlan_translation_platform)/html
+
+OBJECTS_vlan_translation_base := vtss_vlan_translation.o
+OBJECTS_vlan_translation_platform := vlan_translation.o \
+  $(if $(MODULE_VCLI),vlan_translation_cli.o)            \
+  $(if $(MODULE_ICLI),vlan_translation_icli_functions.o)  \
+  $(if $(MODULE_WEB),vlan_translation_web.o)
+
+#Built-in ICLI
+$(eval $(call add_icli,$(DIR_vlan_translation_platform)/vlan_translation.icli))
+
+OBJECTS_vlan_translation := $(OBJECTS_vlan_translation_platform) $(OBJECTS_vlan_translation_base)
+
+$(OBJECTS_vlan_translation_platform): %.o: $(DIR_vlan_translation_platform)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vlan_translation_base): %.o: $(DIR_vlan_translation_base)/%.c
+	$(call compile_c, $@, $<)
+
+DEFINES  += -DVTSS_SW_OPTION_VLAN_TRANSLATION=1
+
+INCLUDES += -I$(DIR_vlan_translation_platform)/include -I$(DIR_vlan_translation_base)/include
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_vlan_translation_html)
+
+# Lint files
+LINT_FILES_vlan_translation += $(DIR_vlan_translation_base)/vtss_vlan_translation.c
+LINT_FILES_vlan_translation += $(DIR_vlan_translation_platform)/vlan_translation.c
+LINT_FILES_vlan_translation += $(if $(MODULE_VCLI), $(DIR_vlan_translation_platform)/vlan_translation_cli.c)
+LINT_FILES_vlan_translation += $(if $(MODULE_WEB), $(DIR_vlan_translation_platform)/vlan_translation_web.c)
+LINT_FILES_vlan_translation += $(if $(MODULE_ICLI),$(DIR_vlan_translation_platform)/vlan_translation_icli_functions.c)
+
+# Coding style check
+VTSS_CODE_STYLE_CHK_FILES_vlan_translation += $(DIR_vlan_translation_base)/*.c
+VTSS_CODE_STYLE_CHK_FILES_vlan_translation += $(DIR_vlan_translation_base)/include/*.h
+VTSS_CODE_STYLE_CHK_FILES_vlan_translation += $(DIR_vlan_translation_platform)/include/*.h
+
+VTSS_CODE_STYLE_CHK_FILES_vlan_translation += $(DIR_vlan_translation_platform)/vlan_translation.c
+VTSS_CODE_STYLE_CHK_FILES_vlan_translation += $(DIR_vlan_translation_platform)/vlan_translation_cli.c
+VTSS_CODE_STYLE_CHK_FILES_vlan_translation += $(DIR_vlan_translation_platform)/vlan_translation_web.c
+
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_port += $(DIR_vlan_translation_platform)/vlan_translation_icli_functions.*
+
+# Tidy files
+TIDY_FILES_vlan_translation += $(DIR_vlan_translation_html)/*.htm $(DIR_vlan_translation_html)/help/*.htm
+

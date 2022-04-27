@@ -1,0 +1,62 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_lacp          := $(DIR_APPL)/lacp
+DIR_lacp_base     := $(DIR_lacp)/base
+DIR_lacp_platform := $(DIR_lacp)/platform
+
+OBJECTS_lacp_base := $(addprefix lacp_, vtss_lacp.o)
+OBJECTS_lacp_platform := lacp.o    \
+  $(if $(MODULE_VCLI),lacp_cli.o)  \
+  $(if $(MODULE_ICLI),lacp_icfg.o) \
+  $(if $(MODULE_WEB),lacp_web.o)
+
+OBJECTS_lacp := $(OBJECTS_lacp_base) $(OBJECTS_lacp_platform)
+
+$(OBJECTS_lacp_base): lacp_%.o: $(DIR_lacp_base)/%.c
+	$(call compile_c, $@, $<, -DLACP_ECOS -DVTSS_TRACE_MODULE_ID=VTSS_MODULE_ID_LACP)
+
+$(OBJECTS_lacp_platform): %.o: $(DIR_lacp_platform)/%.c
+	$(call compile_c, $@, $<)
+
+INCLUDES += -I$(DIR_lacp_base) -I$(DIR_lacp_platform)
+
+# Built-in ICLI
+$(eval $(call add_icli,$(DIR_lacp_platform)/lacp.icli))
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_lacp_platform)/html
+
+# Lint files
+LINT_FILES_lacp += $(call if-module,vcli,$(DIR_lacp)/platform/lacp_cli.c,$(DIR_lacp)/lacp_icfg.c)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_lacp := $(DIR_lacp_base)/*.[ch]
+VTSS_CODE_STYLE_CHK_FILES_lacp += $(DIR_lacp_platform)/*.[ch]
+
+# Tidy files
+TIDY_FILES_lacp += $(DIR_lacp_platform)/html/*.htm $(DIR_lacp_platform)/html/help/*.htm
+

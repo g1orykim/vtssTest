@@ -1,0 +1,382 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QCL Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page macic
+var help_page = "/help/help_qcl_v2_stat.htm";
+
+var num_columns = 0; // Initialized at runtime
+
+var timerID;
+var timeOut = settingsRefreshInterval();
+var defaultQclUser = 0;
+var hw = 0;
+var userArray = ["Static", "Voice VLAN"];
+
+// indexes in values array:
+var idx = 0;
+var idx_conflict   = idx++;
+var idx_user       = idx++;
+var idx_qce_id     = idx++;
+var idx_ports      = idx++;
+var idx_frame_type = idx++;
+var idx_act_cos    = idx++;
+var idx_act_dpl    = idx++;
+var idx_act_dscp   = idx++;
+var idx_act_pcp    = idx++;
+var idx_act_dei    = idx++;
+var idx_act_policy = idx++;
+
+function updateFuncBar(enable)
+{
+    if (enable) {
+        if (document.getElementById("qclUser").options.length > 2) {
+            document.getElementById("qclUser").style.visibility = "visible";
+        }
+        document.getElementById("refresh").style.visibility = "visible";
+        document.getElementById("update").style.visibility = "hidden";
+    } else {
+        document.getElementById("qclUser").style.visibility = "hidden";
+        document.getElementById("refresh").style.visibility = "hidden";
+        document.getElementById("update").style.visibility = "visible";
+    }
+}
+
+function addRow(frag, values, idx)
+{
+    var tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+
+    addTextCell(tr, userArray[values[idx_user]] , "cl");
+    addTextCell(tr, values[idx_qce_id], "cl");
+    addTextCell(tr, values[idx_ports], "cl");
+
+    switch (parseInt(values[idx_frame_type], 10)){
+    case 0:
+        addTextCell(tr, "Ethernet", "cl");
+        break;
+    case 1:
+        addTextCell(tr, "Any", "cl");
+        break;
+    case 2:
+        addTextCell(tr, "LLC", "cl");
+        break;
+    case 3:
+        addTextCell(tr, "SNAP", "cl");
+        break;
+    case 4:
+        addTextCell(tr, "IPv4", "cl");
+        break;
+    case 5:
+        addTextCell(tr, "IPv6", "cl");
+        break;
+    default:
+        addTextCell(tr, "????", "cl");
+        alert("Unexpected frame type " + values[idx_frame_type]);
+        break;
+    }
+
+    if (parseInt(values[idx_act_cos], 10) != -1) {
+        addTextCell(tr, values[idx_act_cos], "cl");
+    } else {
+        addTextCell(tr, "Default", "cl");
+    }
+
+    if (parseInt(values[idx_act_dpl], 10) != -1) {
+        addTextCell(tr, values[idx_act_dpl], "cl");
+    } else {
+        addTextCell(tr, "Default", "cl");
+    }
+
+    if (parseInt(values[idx_act_dscp], 10) != -1) {//DSCP
+        addTextCell(tr, configQosDscpNames[parseInt(values[idx_act_dscp], 10)], "cl");
+    } else {
+        addTextCell(tr, "Default", "cl");
+    }
+
+    if (configArchServal) {
+        if (parseInt(values[idx_act_pcp], 10) != -1) {
+            addTextCell(tr, values[idx_act_pcp], "cl");
+        } else {
+            addTextCell(tr, "Default", "cl");
+        }
+        if (parseInt(values[idx_act_dei], 10) != -1) {
+            addTextCell(tr, values[idx_act_dei], "cl");
+        } else {
+            addTextCell(tr, "Default", "cl");
+        }
+        if (parseInt(values[idx_act_policy], 10) != -1) {
+            addTextCell(tr, values[idx_act_policy], "cl");
+        } else {
+            addTextCell(tr, "Default", "cl");
+        }
+    }
+
+    addTextCell(tr, values[idx_conflict], "cl");
+    frag.appendChild(tr);
+}
+
+function updateQclUser(values)
+{
+    var fld = document.getElementById("qclUser");
+    var text = ["Static", "Voice VLAN"];
+    var optionItem;
+
+    while (fld.options.length > 1) {
+        fld.removeChild(fld.lastChild);
+    }
+    // Get defaut QCL user
+    var defaultQclUser = parseInt(values[0], 10);
+
+    // Add new option item
+    for (i = 1; i < values.length; i++) {
+        if (values[i] === "") {
+            continue;
+        }
+        optionItem = document.createElement('OPTION');
+        fld.options.add(optionItem);
+        optionItem.innerHTML = text[values[i]];
+        optionItem.value = values[i];
+    }
+
+    // Add option item: conflict
+    optionItem = document.createElement('OPTION');
+    fld.options.add(optionItem);
+    optionItem.innerHTML = "Conflict";
+    optionItem.value = -2;
+
+    // Set default select item
+    for (i = 0; i < fld.options.length; i++) {
+        if (defaultQclUser == fld.options[i].value) {
+            fld.options[i].setAttribute("selected", true);
+            fld.options[i].setAttribute("defaultSelected", true);
+            fld.options[i].defaultSelected = true;
+            break;
+        }
+    }
+}
+
+/* Format:
+ * <qcl_info>|<qce_list>
+ *
+ * qcl_info       :== <sel_user>/<user 1>/<user 2>/...<user n>
+ *   sel_user     :== -2: Show Conflict, -1: Show Combined, 0: Show Static, 1: Show Voice VLAN
+ *   user x       :== 0..n    // List of defined users to show in user selector between "Combined" and "Conflict".
+ *
+ * qce_list       :== <qce 1>;<qce 2>;<qce 3>;...<qce n> // List of currently defined QCEs (might be empty).
+ *   qce  x       :== <conflict>/<user>/<qce_id>/<frame_type>/<ports>/<act_class>/<act_dpl>/<act_dscp>
+ *     conflict   :== String  // "Yes" or "No"
+ *     user       :== 0..n    // One of the defined users
+ *     qce_id     :== 1..256
+ *     ports      :== String  // List of ports e.g. "1,3,5,7,9-53"
+ *     frame_type :== 0..5    // One of vtss_qce_type_t
+ *     act_cos    :== -1..7   // -1 is no action, else classify to selected value
+ *     act_dpl    :== -1..3   // -1 is no action, else classify to selected value
+ *     act_dscp   :== -1..63  // -1 is no action, else classify to selected value
+ *     act_pcp    :== -1..7   // -1 is no action, else classify to selected value
+ *     act_dei    :== -1..1   // -1 is no action, else classify to selected value
+ *     act_policy :== -1..63  // -1 is no action, else classify to selected value
+ */
+
+function processUpdate(req, ref) {
+    var frag = document.createDocumentFragment();
+    if (req.responseText) {
+        var values_sep = req.responseText.split("|");
+        updateQclUser(values_sep[0].split("/"));
+        var qcl_rec = values_sep[1].split(";");
+        var qce_cnt = 0;
+        for (var i = 0; i < qcl_rec.length; i++) {
+            if (qcl_rec[i]) {
+                var pval = qcl_rec[i].split("/");
+                addRow(frag, pval, i);
+                qce_cnt++;
+            }
+        }
+        if (qce_cnt === 0) {
+            var tr = document.createElement("tr");
+            addTextCell(tr, "No entries", "cl", num_columns);
+            frag.appendChild(tr);   // Add row to fragment
+        }
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    updateFuncBar(1);
+}
+
+function requestUpdate() {
+    updateFuncBar(0);
+    var new_url = "/stat/qcl_v2?qclUser=" + document.getElementById('qclUser').value;
+    if (parseInt(hw, 10) == 1) {
+        new_url = new_url + "&ConflictResolve=1";
+    }
+    loadXMLDoc(SpomAddSidArg(new_url), processUpdate, 'qclData');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function chkRefresh(fld) {
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate(0);
+    }
+}
+
+function changeQclUser(fld) {
+    updateFuncBar(0);
+    var new_url = "/stat/qcl_v2?qclUser=" + fld.value;
+    loadXMLDoc(SpomAddSidArg(new_url), processUpdate, 'qclData');
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function refreshType (fld)
+{
+    hw = 1;
+    requestUpdate();
+    hw = 0;
+}
+
+// Create table header
+function addHeader() {
+    var frag;
+    var tr;
+    var td;
+    var elem;
+
+    num_columns = 8; // Default number of columns
+    frag = document.createDocumentFragment();
+
+    tr = document.createElement("tr");
+    addTextHeaderCell(tr, "User", "c", 1, 2);
+    addTextHeaderCell(tr, "QCE", "c", 1, 2);
+    addTextHeaderCell(tr, "Port", "c", 1, 2);
+    td = addTextHeaderCell(tr, "Frame", "c", 1, 2);
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("Type"));
+    addTextHeaderCell(tr, "Action", "c", (configArchServal) ? 6 : 3, 1);
+    addTextHeaderCell(tr, "Conflict", "c", 1, 2);
+    frag.appendChild(tr);
+
+    tr = document.createElement("tr");
+    addTextHeaderCell(tr, "CoS", "c");
+    addTextHeaderCell(tr, "DPL", "c");
+    addTextHeaderCell(tr, "DSCP", "c");
+    if (configArchServal) {
+        addTextHeaderCell(tr, "PCP", "c");
+        addTextHeaderCell(tr, "DEI", "c");
+        addTextHeaderCell(tr, "Policy", "c");
+        num_columns += 3; // Add the 3 extra actions
+    }
+    frag.appendChild(tr);
+
+    elem = document.getElementById("qclHeader");
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+}
+
+function docLoad() {
+    addHeader();
+    requestUpdate();
+}
+
+ </script>
+</head>
+
+<body class="content" onload="docLoad();">
+
+<div class="refreshbar">
+<form action="#">
+  <select id="qclUser" style="visibility:hidden;" onchange="changeQclUser(this);">
+       <option value= "-1">Combined</option>
+ <!--  <option value= "0">Static</option>
+       <option value= "1">Voice VLAN</option>
+ -->   <option value= "-2">Conflict</option>
+  </select>
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" style="visibility: visible;" onclick="refreshType(this); this.blur();" value="Resolve Conflict" id="ConflictResolve">
+  <input type="button" id="refresh" value="Refresh" onclick="requestUpdate(); this.blur(); " style="visibility:hidden;">
+  <span id="update">&nbsp;Updating...</span>
+ </form>
+</div>
+
+<div id="control_bar_tbl">
+
+<h1>QoS Control List Status <span id="display_sid"></span></h1>
+
+<table summary="QCL Status" class="display">
+ <thead id="qclHeader">
+ </thead>
+
+ <tbody id="qclData">
+ </tbody>
+</table>
+
+</div>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

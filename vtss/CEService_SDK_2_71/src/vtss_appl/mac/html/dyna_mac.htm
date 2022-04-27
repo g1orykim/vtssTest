@@ -1,0 +1,377 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_dyn_mac_table.htm";
+var timerID = null
+
+//
+// Global variables
+//
+
+var macconfig = Array();
+var LastMacAddr ;
+var LastVid;
+var KeepStartMacAddr = true;
+function addClonedNode(tr, val, proto)
+{
+    if(parseInt(val)) {
+        var td = CreateTd("c");
+        addCell(tr, td, proto.cloneNode(1));
+    } else {
+        addTextCell(tr, "", "c");
+    }
+}
+
+function portIsFilter(portNo)
+{
+    if(configPortType >= 3 && (configPortName(portNo, 0) == "WAN" || configPortName(portNo, 0) == "WAN2" || configPortName(portNo, 0) == "EPON"))
+        return true;
+    return false;
+}
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+    var bullet = document.getElementById("bullet");
+
+    var MAC      = values[0];
+    var VID      = values[1];
+    var Locked   = values[2];
+    var Switch   = values[3];
+    var a        = 3;
+    if ( (SpomStackPortCount() > 0) && configArchJaguar_1)  {
+        a = 4;
+    } 
+
+    if (MAC=="NoEntries") {
+        if ( (SpomStackPortCount() > 0) && configArchJaguar_1)  {
+            addTextCell(tr, "", "c");  
+        }
+	addTextCell(tr, "", "cl");
+	addTextCell(tr, "", "c");  
+	addTextCell(tr, "No more entries", "c", 4 + configNormalPortMax);
+    } else {
+        if ( (SpomStackPortCount() > 0) && configArchJaguar_1)  {
+            addTextCell(tr, Switch, "c");  
+        }
+	addTextCell(tr, (parseInt(Locked) ? "Static" : "Dynamic"), "cl");
+	addTextCell(tr, VID, "c");  
+	addTextCell(tr, toMacAddress(MAC), "c mac");
+
+	 for (i = a; i < values.length; i++ ) {
+         if (portIsFilter(i-2)) /* value[4] is Config D WAN port */
+             continue;
+	     addClonedNode(tr, values[i], bullet);
+	 }
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+
+function UpdateTable (ref, frag)
+{
+    if (macconfig.length > 1) { 
+        FirstMacAddr = document.getElementById("StartMacAddr").value;
+	FirstVid = document.getElementById("StartVid").value ;
+        for(var i = 1; i < macconfig.length -1; i++) {
+  	    var 
+	    pval = macconfig[i].split("/");
+	    addRow(i - 1, frag, pval);
+	    
+	    if (i == 1 && pval[0] != "NoEntries") {
+		FirstMacAddr = pval[0];
+		FirstVid = pval[1];
+	    }
+	    
+	}
+	
+	// Store the last element shown, for being able to do a find next entry.
+	if (pval[0] != "NoEntries") {
+	    LastMacAddr = toMacAddress(pval[0]);
+	    LastVid = pval[1];
+	}
+
+ 	if (KeepStartMacAddr) {
+	    // Convert the format of the MAC address to a format we like 
+ 	    document.getElementById("StartMacAddr").value = toMacAddress(document.getElementById("StartMacAddr").value);
+ 	} else {
+	    // Insert the first entry currently shown as the start entry.
+ 	    document.getElementById("StartMacAddr").value = toMacAddress(FirstMacAddr);
+ 	    document.getElementById("StartVid").value = FirstVid;
+ 	}
+
+	// Set start vid to the last VID showned in the table
+
+	
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+}
+
+
+function CreateTableHeader (frag)
+{
+    var tr = CreateStyledElement("tr", "display_header");
+    var nCells = 3;
+
+    if ( (SpomStackPortCount() > 0) && configArchJaguar_1)  {
+        nCells = 4;
+    }
+
+    addTextHeaderCell(tr, "", "hdrc", nCells);
+    var nPorts = configNormalPortMax - configPortMin + 1;
+    addTextHeaderCell(tr, "Port Members", "hdrc", 
+                      nPorts + SpomStackPortCount() + 1); // + 1 for the CPU port
+    frag.appendChild(tr);       // Add row to fragment
+    
+    var tr = CreateStyledElement("tr", "display_header"); // start next line
+    if ( (SpomStackPortCount() > 0) && configArchJaguar_1)  {
+        addTextHeaderCell(tr,"Switch","hdrc");
+    }
+    addTextHeaderCell(tr,"Type","hdrc");
+    addTextHeaderCell(tr,"VLAN","hdrc");
+    addTextHeaderCell(tr,"MAC Address","hdrc");
+
+    addTextHeaderCell(tr,"CPU","portno");
+    for (var i = configPortMin; i <= configNormalPortMax; i++ ) {
+        if(portIsFilter(i))
+            continue;
+        addTextHeaderCell(tr,configPortName(i, 0),"portno");
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req))
+        return;
+
+    if(req.responseText) {
+	macconfig = req.responseText.split("|");
+
+        // Get number of entries
+	var pval = macconfig[0].split("/");
+	document.getElementById("NumberOfEntries").value = pval[0];
+	document.getElementById("StartMacAddr").value = toMacAddress(pval[1]);
+	
+	// create holder for accumulated tbody elements and text nodes
+	var frag = document.createDocumentFragment();
+    
+	// Make table header
+	CreateTableHeader(frag);
+
+	// Create the table
+	UpdateTable(ref, frag);
+
+        // Update the timer
+        try {
+            if(timerID) {
+              clearTimeout(timerID); // Make sure that the last timer is closed.
+            }
+        } catch(e) {
+        }
+	timerID = setTimeout('auto_requestUpdate(false)', settingsRefreshInterval());
+    } else {
+        auto_requestUpdate(true);
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function checkForm(auto_refresh_string)
+{
+
+   // Check that get next entry is a valid mac address
+    if ( !IsMacAddress(document.getElementById("StartMacAddr").value,0)) {
+	alert ("Start MAC address is not valid. The format is 'xx-xx-xx-xx-xx-xx' or 'xx.xx.xx.xx.xx.xx' or 'xxxxxxxxxxxx' (x is a hexadecimal digit)." + auto_refresh_string);
+	return false;
+    }
+    
+    // Make sure that mac address has the correct format
+    document.getElementById("StartMacAddr").value = 
+	toMacAddress(document.getElementById("StartMacAddr").value);
+
+    // Make sure that input box contains a correct value.
+    if(!isWithinRange("NumberOfEntries", 2, 999, "'entries per page'", auto_refresh_string)) {
+	return false;
+    }
+
+    // Make sure that VID input box contains a correct value.
+    if (!isWithinRange("StartVid", 1, 4095, "'VLAN'", auto_refresh_string)) {
+	return false;
+    }
+
+
+     return true;                // Feed the chickens and go home
+}
+
+function GetFirstEntry() {
+    LastMacAddr = "00-00-00-00-00-00";
+    LastVid = 1;
+    document.getElementById("StartVid").value     = LastVid;
+    document.getElementById("StartMacAddr").value = toMacAddress(LastMacAddr);
+    requestUpdate('Refresh');
+}
+
+function requestUpdate(type) {
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+
+    if (!checkForm('')) { return; } // Skip update in case that the field contains invalid values
+
+    KeepStartMacAddr = true;
+
+    document.getElementById("update").style.visibility = "visible";
+    if (type == "NextEntries") {
+	KeepStartMacAddr = false;
+	loadXMLDoc(SpomAddSidArg("/config/dynamic_mac_table?DynGetNextAddr=" + LastMacAddr + 
+                                 "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value +
+                                 "&DynStartVid=" + LastVid +
+				 "&GetNextEntry=1"),
+		   processUpdate, 'MacData');
+	
+
+    } else if (type == "Flush") {
+	loadXMLDoc(SpomAddSidArg("/config/dynamic_mac_table?Flush=1"), processUpdate, 'MacData');
+    } else if (type == "Refresh") {
+	loadXMLDoc(SpomAddSidArg("/config/dynamic_mac_table?DynGetNextAddr=" + document.getElementById("StartMacAddr").value + 
+                                 "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value +
+                                 "&DynStartVid=" + document.getElementById("StartVid").value +
+				 "&GetNextEntry=0"),
+		   processUpdate, 'MacData');
+
+    } else {
+	loadXMLDoc(SpomAddSidArg("/config/dynamic_mac_table"), processUpdate, 'MacData');
+    }
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);
+     // Save current SID
+    GetFirstEntry();
+}
+
+function auto_requestUpdate(force_clear)
+{
+  var fld = document.getElementById('autorefresh');
+  var clear_timeout = true;
+
+  if(!force_clear && fld.checked && checkForm(". Turning off Auto-refresh.")) {
+    clear_timeout = false;
+    requestUpdate('Refresh');
+  }
+
+  if(clear_timeout) {
+    fld.checked = false;
+    try {
+      clearTimeout(timerID);
+    } catch(e) {}
+    timerID = null;
+  }
+}
+
+</script>
+    
+</head>
+    
+<body class="content" onload="requestUpdate();">
+
+<h1>MAC Address Table <span id="display_sid"></span></h1>
+
+<form name="MacForm" method="POST" action="/config/dynamic_mac_table" onsubmit="return checkForm('');"> </form>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="auto_requestUpdate(false);">
+  <input type="button" value="Refresh" onClick="requestUpdate('Refresh'); this.blur();">
+  <input type="button" value="Clear"   title="Flush all dynamic entries"  onClick="requestUpdate('Flush');GetFirstEntry(); this.blur();">
+  <input type="button" value=" |<< "   title="First page" onClick="GetFirstEntry(); this.blur();">
+  <input type="button" value=" >> "    title="Next page" onClick="requestUpdate('NextEntries'); this.blur();">
+ <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<form action="#">
+  <p>
+    <span class="displaytext">Start from VLAN</span>
+    <INPUT id="StartVid" name="StartVid" maxlength="4" value="1" size = "5">
+    <span class="displaytext">and MAC address </span>
+    <INPUT id="StartMacAddr" name="StartMacAddr" maxlength="17" value="00-00-00-00-00-00" size = "17">
+    <span class="displaytext"> with </span>
+
+    <INPUT id="NumberOfEntries" name="NumberOfEntries" maxlength="4" value = "20" size = "4">
+    <span class="displaytext"> entries per page. </span>
+  </p>
+</form>
+
+<table id="StaticMacTable" summary="Static Mac Table" cellspacing="0" class="display">
+  <tbody id="MacData"></tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+
+<!-- IE caching bug -->
+<div style="visibility: hidden">
+ <!-- <div style="padding : 0 4px 0 4px; font-size: 14pt" id="bullet">&bull;</div> -->
+ <img id="bullet" alt="yes" src="images/yes.gif">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

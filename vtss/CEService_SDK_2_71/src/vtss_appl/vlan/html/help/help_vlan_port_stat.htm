@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+Vitesse Switch Software.
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>VLAN Port Status Help</title>
+<link href="/lib/help.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="/lib/dynforms.js"></script>
+<script type="text/javascript" src="/lib/mootools-core.js"></script>
+<script type="text/javascript" language="JavaScript">
+  window.addEvent('domready', function() {
+   $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+  });
+</script>
+</head>
+<body>
+<h1>VLAN Port Status Help</h1>
+<p>This page provides <a href="glossary.htm#vlan" class="glossary">VLAN</a> Port Status.</p>
+<p class="SPOM_only">The ports belong to the currently selected stack unit as reflected by the page header.</p>
+
+<dl>
+  <dt>VLAN User</dt>
+  <dd>
+    Various internal software modules may use VLAN services to configure VLAN port configuration on the fly.<br/>
+    The drop-down list on the right allows for selecting between showing VLAN memberships as configured by an administrator (Admin) or as configured by one of these internal software modules.<br/>
+    The "Combined" entry will show a combination of the administrator and internal software modules configuration, and basically reflects what is actually configured in hardware.<br/>
+    If a given software modules hasn't overridden any of the port settings, the text "No data exists for the selected user" is shown in the table.
+  </dd>
+
+  <dt>Port</dt>
+  <dd>
+    The logical port for the settings contained in the same row.
+  </dd>
+
+  <dt>Port Type</dt>
+  <dd>
+    Shows the port type (Unaware, C-Port<span class="has_vlan_v2">, S-Port, S-Custom-Port.</span>) that a given user wants to configure on the port.<br/>
+    The field is empty if not overridden by the selected user.
+  </dd>
+
+  <dt class="has_vlan_ingress_filtering">Ingress Filtering</dt>
+  <dd class="has_vlan_ingress_filtering">
+    Shows whether a given user wants ingress filtering enabled or not.<br/>
+    The field is empty if not overridden by the selected user.
+  </dd>
+
+  <dt>Frame Type</dt>
+  <dd>
+    Shows the acceptable frame types (All, Taged, Untagged) that a given user wants to configure on the port.<br/>
+    The field is empty if not overridden by the selected user.
+  </dd>
+
+  <dt>Port VLAN ID</dt>
+  <dd>
+    Shows the Port VLAN ID (PVID) that a given user wants the port to have.<br/>
+    The field is empty if not overridden by the selected user.
+  </dd>
+
+  <dt>Tx Tag</dt>
+  <dd>
+    Shows the Tx Tag requirements (Tag All, Tag PVID, Tag UVID, Untag All, Untag PVID, Untag UVID) that a given user has on a port.<br/>
+    The field is empty if not overridden by the selected user.
+  </dd>
+
+  <dt>Untagged VLAN ID</dt>
+  <dd>
+     If Tx Tag is overridden by the selected user and is set to Tag or Untag UVID, then this field will show the VLAN ID the user wants to tag or untag on egress.<br/>
+     The field is empty if not overridden by the selected user.
+  </dd>
+
+  <dt>Conflicts</dt>
+  <dd>
+    Two users may have conflicting requirements to a port's configuration. For instance, one user may require all frames to be tagged on egress while another requires all frames to be untagged on egress.<br/>
+    Since both users cannot win, this gives rise to a conflict, which is solved in a prioritized way. The Administrator has the least priority. Other software modules are prioritized according to their position in the drop-down list: The higher in the list, the higher priority.<br/>
+    If conflicts exist, it will be displayed as "Yes" for the "Combined" user and the offending software module.<br/>
+    The "Combined" user reflects what is actually configured in hardware.
+  </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>
+  <select>
+    <option value="0">Combined</option>
+    <option value="1">Admin</option>
+    <option value="2">Various users</option>
+  </select>: Select VLAN Users from this drop down list.
+</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+</body>
+</html>
+

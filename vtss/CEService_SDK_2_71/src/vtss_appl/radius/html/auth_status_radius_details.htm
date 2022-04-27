@@ -1,0 +1,440 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RADIUS Statistics</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Refresh timer
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_auth_status_radius_details.htm";
+
+var ServerStateTyp  = Array("Disabled", "Not Ready", "Ready", "Dead");
+
+var selectedServer = 1;
+
+// This piece of code makes sure that a specific server can be selected
+// directly, when navigating from a hyperlink on a different page.
+var arg_idx = document.URL.indexOf('?');
+if(arg_idx != -1) {
+  var args = document.URL.substring(arg_idx+1, document.URL.length);
+  var tups = args.split('&');
+  var i;
+  for(i = 0; i < tups.length; i++) {
+    var tup = tups[i].split('=');
+    if(tup.length == 2) {
+      if(tup[0] == 'server') {
+          selectedServer = parseInt(tup[1], 10);
+      }
+    }
+  }
+}
+
+// Indices of data returned from Web Server.
+// These numbers correspond to the AUTH_x and ACCT_x IDs of the
+// table (see HTML at the bottom of this file).
+var PARM_IDX_SERVER                        =  0;
+var PARM_IDX_IP_ADDR                       =  1;
+var PARM_IDX_UDP_PORT                      =  2;
+var PARM_IDX_STATE                         =  3;
+var PARM_IDX_DEAD_TIME_LEFT_SECS           =  4;
+// var PARM_IDX_RoundTripTime                 =  5;
+
+// The indices for authenticaion:
+// var PARM_IDX_AUTH_AccessRequests           =  6;
+// var PARM_IDX_AUTH_AccessRetransmissions    =  7;
+// var PARM_IDX_AUTH_AccessAccepts            =  8;
+// var PARM_IDX_AUTH_AccessRejects            =  9;
+// var PARM_IDX_AUTH_AccessChallenges         = 10;
+// var PARM_IDX_AUTH_MalformedAccessResponses = 11;
+// var PARM_IDX_AUTH_BadAuthenticators        = 12;
+// var PARM_IDX_AUTH_PendingRequests          = 13;
+// var PARM_IDX_AUTH_Timeouts                 = 14;
+// var PARM_IDX_AUTH_UnknownTypes             = 15;
+// var PARM_IDX_AUTH_PacketsDropped           = 16;
+var PARM_IDX_AUTH_CounterDiscontinuity     = 17;
+var PARM_AUTH_CNT                          = PARM_IDX_AUTH_CounterDiscontinuity + 1;
+
+// The indices for accounting:
+// var PARM_IDX_ACCT_Requests                 =  6;
+// var PARM_IDX_ACCT_Retransmissions          =  7;
+// var PARM_IDX_ACCT_Responses                =  8;
+// var PARM_IDX_ACCT_MalformedAccessResponses =  9;
+// var PARM_IDX_ACCT_BadAuthenticators        = 10;
+// var PARM_IDX_ACCT_PendingRequests          = 11;
+// var PARM_IDX_ACCT_Timeouts                 = 12;
+// var PARM_IDX_ACCT_UnknownTypes             = 13;
+// var PARM_IDX_ACCT_PacketsDropped           = 14;
+var PARM_IDX_ACCT_CounterDiscontinuity     = 15;
+var PARM_ACCT_CNT                          = PARM_IDX_ACCT_CounterDiscontinuity + 1;
+
+//****************************************
+//****************************************
+function contentUpdate(req, ref)
+{
+  // Format: <auth_status>|<acct_status>
+  // Format <auth_status>: server#ip_addr#port#state#DeadTimeLeftSecs#RoundTripTime#AccessRequests#AccessRetransmissions#AccessAccepts#AccessRejects#AccessChallenges#MalformedAccessResponses#BadAuthenticators#PendingRequests#Timeouts#UnknownTypes#PacketsDropped#CounterDiscontinuity
+  // Format <acct_status>: server#ip_addr#port#state#DeadTimeLeftSecs#RoundTripTime#Requests#Retransmissions#Responses#MalformedResponses#BadAuthenticators#PendingRequests#Timeouts#UnknownTypes#PacketsDropped#CounterDiscontinuity
+  var values = req.responseText.split("|");
+  var values_auth = values[0].split("#");
+  var values_acct = values[1].split("#");
+  var fld, id, state, i, autorefresh;
+
+  document.getElementById("update").style.visibility = "hidden";
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  if (values_auth.length != PARM_AUTH_CNT) {
+    return;
+  }
+
+  // Insert the values in the table
+  for (i = 0; i < PARM_AUTH_CNT; i++) {
+    id = "AUTH_" + i;
+    fld = document.getElementById(id);
+    if (fld) {
+      UpdateId(id, values_auth[i]);
+    }
+  }
+
+  // Update the IP Address and UDP port
+  document.getElementById("AUTH_ip_addr").innerHTML = values_auth[PARM_IDX_IP_ADDR] + ":" + values_auth[PARM_IDX_UDP_PORT];
+
+  // Update the State cell.
+  // Server State (0 = Disabled, 1 = Active, 2 = Dead)
+  state = values_auth[PARM_IDX_STATE];
+  fld = document.getElementById("AUTH_state");
+  if(state != 3) {
+    fld.innerHTML = ServerStateTyp[state];
+  } else {
+    fld.innerHTML = ServerStateTyp[state] + " (" + values_auth[PARM_IDX_DEAD_TIME_LEFT_SECS] + " seconds left)";
+  }
+
+  // Update the "Server #X" part of "Server Status Details for server #X".
+  document.getElementById("AUTH_server").innerHTML = values_auth[PARM_IDX_SERVER];
+
+  // Now update the accounting part (if any)
+  if (values_acct.length == PARM_ACCT_CNT) {
+    // Insert the values in the table
+    for (i = 0; i < PARM_ACCT_CNT; i++) {
+      id = "ACCT_" + i;
+      fld = document.getElementById(id);
+      if (fld) {
+        UpdateId(id, values_acct[i]);
+      }
+    }
+
+    // Update the IP Address and UDP port
+    document.getElementById("ACCT_ip_addr").innerHTML = values_acct[PARM_IDX_IP_ADDR] + ":" + values_acct[PARM_IDX_UDP_PORT];
+
+    // Update the State cell.
+    // Server State (0 = Disabled, 1 = Active, 2 = Dead)
+    state = values_acct[PARM_IDX_STATE];
+    fld = document.getElementById("ACCT_state");
+    if (state != 3) {
+      fld.innerHTML = ServerStateTyp[state];
+    } else {
+      fld.innerHTML = ServerStateTyp[state] + " (" + values_acct[PARM_IDX_DEAD_TIME_LEFT_SECS] + " seconds left)";
+    }
+
+    // Update the "Server #X" part of "Server Status Details for server #X".
+    document.getElementById("ACCT_server").innerHTML = values_acct[PARM_IDX_SERVER];
+    SetVisible("div_radius_acct", 1);
+  }
+  else {
+    SetVisible("div_radius_acct", 0);
+  }
+
+  // Update the timer
+  autorefresh = document.getElementById('autorefresh');
+  if(autorefresh.checked) {
+    if(timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+  }
+}
+
+//****************************************
+//****************************************
+function doRequestUpdate(params) {
+  document.getElementById("update").style.visibility = "visible";
+  loadXMLDoc("/stat/auth_status_radius_details?" + params, contentUpdate, null);
+}
+
+//****************************************
+//****************************************
+function requestUpdate() {
+  doRequestUpdate("server=" + selectedServer);
+}
+
+//****************************************
+//****************************************
+function requestClear()
+{
+  doRequestUpdate("clear=1&server=" + selectedServer);
+}
+
+//****************************************
+//****************************************
+function ServerSelect(sel)
+{
+  selectedServer = sel.options[sel.selectedIndex].value; 
+  requestUpdate();
+}
+
+//****************************************
+//****************************************
+function chkRefresh(fld)
+{
+  if (!fld.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = null;
+  } else {
+    requestUpdate();
+  }
+}
+
+//****************************************
+//****************************************
+function requestTimerUpdate()
+{
+  // When this function is called, the user clicked the refresh button or a timeout occurred.
+  doRequestUpdate(url_params);
+}
+
+//****************************************
+// Called only once. Used to fill in the server selector
+//****************************************
+function docLoad()
+{
+  var sel = document.getElementById("serverselect");
+  clearChildNodes(sel);
+  var frag = document.createDocumentFragment();
+  for(var i = 1; i <= configAuthServerCnt; i++) {
+    var opt = document.createElement("option");
+    opt.appendChild(document.createTextNode("Server #" + i));
+    opt.setAttribute("value", i);
+    if(selectedServer == i) {
+      opt.setAttribute("selected", true);
+    }
+    frag.appendChild(opt);
+  }
+  sel.appendChild(frag);
+  requestUpdate();
+}
+
+ </script>
+</head>
+
+  <body class="content" onload="docLoad();">
+
+    <h1>RADIUS Authentication Statistics for Server #<span id="AUTH_server"></span></h1>
+
+    <div class="refreshbar">
+      <form action="#">
+        <select id="serverselect" onchange="ServerSelect(this);">
+          <option value="1">Server 1</option>
+          <option value="99">Server 99</option>
+        </select>
+        <label for="autorefresh">Auto-refresh</label>
+        <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+        <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+        <input type="button" value="Clear"   onClick="requestClear();  this.blur();">
+        <img id="update" alt="" src="images/updating.gif">
+     </form>
+    </div>
+
+    <table summary="RADIUS Authentication Server Status Details" class="display">
+      <tbody>
+        <tr class="display_header">
+          <th colspan="2" class="hdrc" style="width: 18em;">Receive Packets</th>
+          <th colspan="2" class="hdrc" style="width: 18em;">Transmit Packets</th>
+        </tr>
+
+        <tr class="display_even">
+          <td class="displaytext">Access Accepts</td>
+          <td class="cr" id="AUTH_8">0</td>
+          <td class="displaytext">Access Requests</td>
+          <td class="cr" id="AUTH_6">0</td>
+        </tr>
+
+        <tr class="display_odd">
+          <td class="displaytext">Access Rejects</td>
+          <td class="cr" id="AUTH_9">0</td>
+          <td class="displaytext">Access Retransmissions</td>
+          <td class="cr" id="AUTH_7">0</td>
+        </tr>
+
+        <tr class="display_even">
+          <td class="displaytext">Access Challenges</td>
+          <td class="cr" id="AUTH_10">0</td>
+          <td class="displaytext">Pending Requests</td>
+          <td class="cr" id="AUTH_13">0</td>
+        </tr>
+
+        <tr class="display_odd">
+          <td class="displaytext">Malformed Access Responses</td>
+          <td class="cr" id="AUTH_11">0</td>
+          <td class="displaytext">Timeouts</td>
+          <td class="cr" id="AUTH_14">0</td>
+        </tr>
+
+        <tr class="display_even">
+          <td class="displaytext">Bad Authenticators</td>
+          <td class="cr" id="AUTH_12">0</td>
+          <td class="cr">&nbsp;</td>
+          <td class="cr">&nbsp;</td>
+        </tr>
+
+        <tr class="display_odd">
+          <td class="displaytext">Unknown Types</td>
+          <td class="cr" id="AUTH_15">0</td>
+          <td class="cr">&nbsp;</td>
+          <td class="cr">&nbsp;</td>
+        </tr>
+
+        <tr class="display_even">
+          <td class="displaytext">Packets Dropped</td>
+          <td class="cr" id="AUTH_16">0</td>
+          <td class="cr">&nbsp;</td>
+          <td class="cr">&nbsp;</td>
+        </tr>
+
+        <tr class="display_header">
+          <th colspan="4" class="hdrc">Other Info</th>
+        </tr>
+
+        <tr class="display_even">
+          <td class="displaytext">IP Address</td>
+          <td colspan="3" class="cr" id="AUTH_ip_addr"></td>
+        </tr>
+
+        <tr class="display_odd">
+          <td class="displaytext">State</td>
+          <td colspan="3" class="cr" id="AUTH_state">Active</td>
+        </tr>
+
+        <tr class="display_even">
+          <td class="displaytext">Round-Trip Time</td>
+          <td colspan="3" class="cr" id="AUTH_5">10 ms</td>
+        </tr>
+      </tbody>
+    </table>
+
+
+    <div id="div_radius_acct" style="display:none">
+     <h1>RADIUS Accounting Statistics for Server #<span id="ACCT_server"></span></h1>
+
+     <table summary="RADIUS Accounting Server Status Details" class="display">
+      <tbody>
+        <tr class="display_header">
+          <th colspan="2" class="hdrc" style="width: 18em;">Receive Packets</th>
+          <th colspan="2" class="hdrc" style="width: 18em;">Transmit Packets</th>
+        </tr>
+
+        <tr class="display_even">
+          <td class="displaytext">Responses</td>
+          <td class="cr" id="ACCT_8">0</td>
+          <td class="displaytext">Requests</td>
+          <td class="cr" id="ACCT_6">0</td>
+        </tr>
+
+        <tr class="display_odd">
+          <td class="displaytext">Malformed Responses</td>
+          <td class="cr" id="ACCT_9">0</td>
+          <td class="displaytext">Retransmissions</td>
+          <td class="cr" id="ACCT_7">0</td>
+        </tr>
+
+        <tr class="display_even">
+          <td class="displaytext">Bad Authenticators</td>
+          <td class="cr" id="ACCT_10">0</td>
+          <td class="displaytext">Pending Requests</td>
+          <td class="cr" id="ACCT_11">0</td>
+        </tr>
+
+        <tr class="display_odd">
+          <td class="displaytext">Unknown Types</td>
+          <td class="cr" id="ACCT_13">0</td>
+          <td class="displaytext">Timeouts</td>
+          <td class="cr" id="ACCT_12">0</td>
+        </tr>
+
+        <tr class="display_even">
+          <td class="displaytext">Packets Dropped</td>
+          <td class="cr" id="ACCT_14">0</td>
+          <td class="cr">&nbsp;</td>
+          <td class="cr">&nbsp;</td>
+        </tr>
+
+        <tr class="display_header">
+          <th colspan="4" class="hdrc">Other Info</th>
+        </tr>
+
+        <tr class="display_even">
+          <td class="displaytext">IP Address</td>
+          <td colspan="3" class="cr" id="ACCT_ip_addr"></td>
+        </tr>
+
+        <tr class="display_odd">
+          <td class="displaytext">State</td>
+          <td colspan="3" class="cr" id="ACCT_state">Active</td>
+        </tr>
+
+        <tr class="display_even">
+          <td class="displaytext">Round-Trip Time</td>
+          <td colspan="3" class="cr" id="ACCT_5">10 ms</td>
+        </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+  </body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

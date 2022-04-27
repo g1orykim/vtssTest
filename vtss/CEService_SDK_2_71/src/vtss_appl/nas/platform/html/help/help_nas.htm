@@ -1,0 +1,453 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <title>Network Access Server Configuration Help</title>
+    <link href="/lib/help.css"   rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="../lib/config.js"></script>
+    <script type="text/javascript" language="JavaScript">
+    function FillInQoSMax()
+    {
+      var i = 1;
+      while(1) {
+        var fld = document.getElementById("qm_" + i++);
+        if(fld) {
+          fld.innerHTML = configQosClassMax - 1;
+        } else {
+          break;
+        }
+      }
+    }
+    </script>
+  </head>
+
+  <body onload="FillInQoSMax();">
+    <h1><a href="glossary.htm#nas" class="glossary">NAS</a> Configuration Help</h1>
+    <p>
+      This page allows you to configure the <a href="glossary.htm#dot1x" class="glossary">IEEE 802.1X</a> <span class="has_nas_mac_based">
+      and MAC-based authentication</span> system and port settings.<br/><br/>
+      The IEEE 802.1X standard defines a port-based access control procedure that prevents unauthorized access to a network by
+      requiring users to first submit credentials for authentication. One or more central servers, the backend servers, determine whether
+      the user is allowed access to the network. These backend (RADIUS) servers are configured on the "Configuration&rarr;Security&rarr;AAA" page.
+      <span class="NAS_SINGLE_OR_MULTI">
+      The IEEE802.1X standard defines port-based operation, but non-standard variants overcome security limitations as shall be explored below.
+      </span>
+      <span class="has_nas_mac_based"><br/><br/>
+      MAC-based authentication allows for authentication of more than one user on the same port, and doesn't require the
+      user to have special 802.1X supplicant software installed on his system. The switch uses the user's MAC address to authenticate
+      against the backend server. Intruders can create counterfeit MAC addresses, which makes MAC-based authentication less
+      secure than 802.1X authentication.
+      </span>
+    </p>
+
+    <p>
+      The NAS configuration consists of two sections, a system- and a port-wide.
+    </p>
+
+    <h2>System Configuration</h2>
+    <dl>
+      <dt><a name="Enabled">Mode</a></dt>
+      <dd>
+        Indicates if NAS is globally enabled or disabled on the <span class="Standalone_only">switch</span><span class="SPOM_only">stack</span>.
+        If globally disabled, all ports are allowed forwarding of frames.
+      </dd>
+
+      <dt><a name="ReauthEnabled">Reauthentication Enabled</a></dt>
+      <dd>
+        If checked, successfully authenticated supplicants<span class="has_nas_mac_based">/clients</span> are reauthenticated after the
+        interval specified by the Reauthentication Period. Reauthentication <span class="has_nas_mac_based">for 802.1X-enabled ports </span>
+        can be used to detect if a new device is plugged into a switch port or if a supplicant is no longer attached.
+      </dd>
+      <dd class="has_nas_mac_based">
+        For MAC-based ports, reauthentication is only useful if the RADIUS server configuration has changed.
+        It does not involve communication between the switch and the client, and therefore doesn't imply that
+        a client is still present on a port (see <a href="#AgingPeriod">Aging Period</a> below).
+      </dd>
+
+      <dt>Reauthentication Period</dt>
+      <dd>Determines the period, in seconds, after which a connected client must be reauthenticated. This is only active
+          if the Reauthentication Enabled checkbox is checked. Valid values are in the range 1 to 3600 seconds.</dd>
+
+      <dt><a name="eapol_timeout">EAPOL Timeout</a></dt>
+      <dd>
+        Determines the time for retransmission of Request Identity EAPOL frames.<br/>
+        Valid values are in the range 1 to 65535 seconds.
+        <span class="has_nas_mac_based">This has no effect for MAC-based ports.</span>
+      </dd>
+
+      <dt class="NAS_USES_PSEC"><a name="AgingPeriod">Aging Period</a></dt>
+      <dd class="NAS_USES_PSEC">
+        This setting applies to the following modes, i.e. modes using the Port Security functionality to secure MAC addresses:<br/>
+          <span class="has_nas_dot1x_single">&bull; Single 802.1X<br/></span>
+          <span class="has_nas_dot1x_multi">&bull; Multi 802.1X<br/></span>
+          <span class="has_nas_mac_based">&bull; MAC-Based Auth.<br/></span>
+        When the NAS module uses the Port Security module to secure MAC addresses, the Port Security module needs to check for activity
+        on the MAC address in question at regular intervals and free resources if no activity is seen within a given period of time.
+        This parameter controls exactly this period and can be set to a number between 10 and 1000000 seconds.
+        <span class="NAS_SINGLE_OR_MULTI">
+          <br/>If <a href="#ReauthEnabled">reauthentication</a> is enabled<span class="has_nas_mac_based"> and the port is in an 802.1X-based mode</span>, this
+          is not so critical, since supplicants that are no longer attached to the port will get removed upon the next reauthentication, which will
+          fail. But if reauthentication is not enabled, the only way to free resources is by aging the entries.
+        </span>
+        <span class="has_nas_mac_based">
+          <br/>For ports in MAC-based Auth. mode, <a href="#ReauthEnabled">reauthentication</a> doesn't cause direct communication between
+          the switch and the client, so this will not detect whether the client is still attached or not, and the only way to free
+          any resources is to age the entry.
+        </span>
+      </dd>
+
+      <dt class="NAS_USES_PSEC"><a name="hold_time">Hold Time</a></dt>
+      <dd class="NAS_USES_PSEC">
+        This setting applies to the following modes, i.e. modes using the Port Security functionality to secure MAC addresses:<br/>
+          <span class="has_nas_dot1x_single">&bull; Single 802.1X<br/></span>
+          <span class="has_nas_dot1x_multi">&bull; Multi 802.1X<br/></span>
+          <span class="has_nas_mac_based">&bull; MAC-Based Auth.<br/></span>
+        If a client is denied access - either because the RADIUS server denies the client access or because the RADIUS server request
+        times out (according to the timeout specified on the "Configuration&rarr;Security&rarr;AAA" page) - the client is put on
+        hold in the Unauthorized state. The hold timer does not count during an on-going authentication.<br/>
+        <span class="has_nas_mac_based">
+          <span class="NAS_SINGLE_OR_MULTI">In MAC-based Auth. mode, the</span>
+          <span class="NAS_NO_SINGLE_NO_MULTI">The </span>
+          switch will ignore new frames coming from the client during the hold time.<br/>
+        </span>
+        The Hold Time can be set to a number between 10 and 1000000 seconds.
+      </dd>
+
+      <dt class="NAS_BACKEND_QOS"><a name="backend_qos_glbl">RADIUS-Assigned QoS Enabled</a></dt>
+      <dd class="NAS_BACKEND_QOS">
+        RADIUS-assigned QoS provides a means to centrally control the traffic class to which traffic
+        coming from a successfully authenticated supplicant is assigned on the switch.
+        The RADIUS server must be configured to transmit special RADIUS attributes to take advantage of this feature
+        (see <a href="#backend_qos_port">RADIUS-Assigned QoS Enabled</a> below for a detailed description).<br/><br/>
+
+        The "RADIUS-Assigned QoS Enabled" checkbox provides a quick way to globally enable/disable RADIUS-server
+        assigned QoS Class functionality. When checked, the individual ports' ditto setting determine whether
+        RADIUS-assigned QoS Class is enabled on that port. When unchecked, RADIUS-server assigned
+        QoS Class is disabled on all ports.
+      </dd>
+
+      <dt class="NAS_BACKEND_VLAN"><a name="backend_vlan_glbl">RADIUS-Assigned VLAN Enabled</a></dt>
+      <dd class="NAS_BACKEND_VLAN">
+        RADIUS-assigned VLAN provides a means to centrally control the VLAN on which a successfully authenticated
+        supplicant is placed on the switch. Incoming traffic will be classified to and switched on the
+        RADIUS-assigned VLAN.
+        The RADIUS server must be configured to transmit special RADIUS attributes to take advantage of this feature
+        (see <a href="#backend_vlan_port">RADIUS-Assigned VLAN Enabled</a> below for a detailed description).<br/><br/>
+
+        The "RADIUS-Assigned VLAN Enabled" checkbox provides a quick way to globally enable/disable RADIUS-server
+        assigned VLAN functionality. When checked, the individual ports' ditto setting determine whether
+        RADIUS-assigned VLAN is enabled on that port. When unchecked, RADIUS-server assigned VLAN is
+        disabled on all ports.
+      </dd>
+
+      <dt class="NAS_GUEST_VLAN"><a name="guest_vlan_glbl">Guest VLAN Enabled</a></dt>
+      <dd class="NAS_GUEST_VLAN">
+        A Guest VLAN is a special VLAN - typically with limited network access - on which 802.1X-unaware
+        clients are placed after a network administrator-defined timeout. The switch follows a set of
+        rules for entering and leaving the Guest VLAN as listed <a href="#guest_vlan_port">below</a>.<br/><br/>
+
+        The "Guest VLAN Enabled" checkbox provides a quick way to globally enable/disable Guest VLAN functionality.
+        When checked, the individual ports' ditto setting determines whether the port can be moved into Guest VLAN.
+        When unchecked, the ability to move to the Guest VLAN is disabled on all ports.
+      </dd>
+
+      <dt class="NAS_GUEST_VLAN"><a name="guest_vlan_id">Guest VLAN ID</a></dt>
+      <dd class="NAS_GUEST_VLAN">
+        This is the value that a port's Port VLAN ID is set to if a port is moved into the Guest VLAN.
+        It is only changeable if the Guest VLAN option is <a href="#guest_vlan_glbl">globally</a> enabled.<br/>
+        Valid values are in the range [1; 4095].
+      </dd>
+
+      <dt class="NAS_GUEST_VLAN"><a name="max_reauth_cnt">Max. Reauth. Count</a></dt>
+      <dd class="NAS_GUEST_VLAN">
+        The number of times the switch transmits an EAPOL Request Identity frame without response before
+        considering entering the Guest VLAN is adjusted with this setting. The value can only be changed
+        if the Guest VLAN option is <a href="#guest_vlan_glbl">globally</a> enabled.<br/>
+        Valid values are in the range [1; 255].
+      </dd>
+
+      <dt class="NAS_GUEST_VLAN"><a name="guest_vlan_allow_eapol">Allow Guest VLAN if EAPOL Seen</a></dt>
+      <dd class="NAS_GUEST_VLAN">
+        The switch remembers if an EAPOL frame has been received on the port for the life-time of the port.
+        Once the switch considers whether to enter the Guest VLAN, it will first check if this option
+        is enabled or disabled. If disabled (unchecked; default), the switch will only enter the Guest VLAN
+        if an EAPOL frame has not been received on the port for the life-time of the port.
+        If enabled (checked), the switch will consider entering the Guest VLAN even if an EAPOL frame has
+        been received on the port for the life-time of the port.<br/>
+        The value can only be changed if the Guest VLAN option is <a href="#guest_vlan_glbl">globally</a> enabled.
+      </dd>
+    </dl>
+
+    <h2>Port Configuration</h2>
+    The table has one row for each port on the <span class="SPOM_only">selected </span>switch<span class="SPOM_only"> in the stack</span>
+    and a number of columns, which are:
+    <dl>
+      <dt>Port</dt>
+      <dd>The port number for which the configuration below applies.</dd>
+
+      <dt><a name="admin_state">Admin State</a></dt>
+      <dd>
+        If NAS is <a href="#Enabled">globally</a> enabled, this selection controls the port's authentication mode.
+        The following modes are available:<br/>
+
+        <h2><a name="force_auth">Force Authorized</a></h2>
+          In this mode, the switch will send one EAPOL Success frame when the port link comes up, and any client on the port
+          will be allowed network access without authentication.
+
+        <h2><a name="force_unauth">Force Unauthorized</a></h2>
+          In this mode, the switch will send one EAPOL Failure frame when the port link comes up, and any client on the port
+          will be disallowed network access.
+
+        <h2><a name="auto"><span class="NAS_SINGLE_OR_MULTI">Port-based </span>802.1X</a></h2>
+          In the 802.1X-world, the user is called the supplicant, the switch is the authenticator, and the RADIUS server is
+          the authentication server. The authenticator acts as the man-in-the-middle, forwarding requests and responses between the
+          supplicant and the authentication server. Frames sent between the supplicant and the switch are special 802.1X frames,
+          known as EAPOL (EAP Over LANs) frames. EAPOL frames encapsulate EAP PDUs (<a href="http://www.ietf.org/rfc/rfc3748">RFC3748</a>).
+          Frames sent between the switch and the RADIUS server are <a href="http://www.ietf.org/rfc/rfc2865.txt">RADIUS</a> packets. RADIUS packets also encapsulate EAP PDUs
+          together with other attributes like the switch's IP address, name, and the supplicant's port number on the switch.
+          EAP is very flexible, in that it allows for different authentication methods, like
+          <a href="http://www.ietf.org/rfc/rfc3748">MD5-Challenge</a>,
+          <a href="http://tools.ietf.org/html/draft-josefsson-pppext-eap-tls-eap-01">PEAP</a>, and
+          <a href="http://www.ietf.org/rfc/rfc2716.txt">TLS</a>. The important thing is that the authenticator (the switch)
+          doesn't need to know which authentication method the supplicant and the authentication server are using, or how many
+          information exchange frames are needed for a particular method. The switch simply encapsulates the EAP part of
+          the frame into the relevant type (EAPOL or RADIUS) and forwards it.<br/>
+          When authentication is complete, the RADIUS server sends a special packet containing a success or failure indication.
+          Besides forwarding this decision to the supplicant, the switch uses it to open up or block traffic on the switch
+          port connected to the supplicant.<br/>
+          <b>Note: </b>Suppose two backend servers are enabled and that the server timeout is configured to X seconds
+          (using the AAA configuration page), and suppose that the first server in the list is currently down (but not considered dead).
+          Now, if the supplicant retransmits EAPOL Start frames at a rate faster than X seconds, then it will never get authenticated,
+          because the switch will cancel on-going backend authentication server requests whenever it receives a new EAPOL Start frame
+          from the supplicant. And since the server hasn't yet failed (because the X seconds haven't expired), the same server
+          will be contacted upon the next backend authentication server request from the switch. This scenario will loop forever.
+          Therefore, the server timeout should be smaller than the supplicant's EAPOL Start frame retransmission rate.
+
+        <h2 class="has_nas_dot1x_single"><a name="single">Single 802.1X</a></h2>
+        <span class="has_nas_dot1x_single">
+          In port-based 802.1X authentication, once a supplicant is successfully authenticated on a port, the whole port is opened
+          for network traffic. This allows other clients connected to the port (for instance through a hub) to piggy-back on the
+          successfully authenticated client and get network access even though they really aren't authenticated. To overcome
+          this security breach, use the Single 802.1X variant.<br/>
+          Single 802.1X is really not an IEEE standard, but features many of the same characteristics as does port-based 802.1X.
+          In Single 802.1X, at most one supplicant can get authenticated on the port at a time. Normal EAPOL frames are used
+          in the communication between the supplicant and the switch. If more than one supplicant is connected to a port, the
+          one that comes first when the port's link comes up will be the first one considered. If that supplicant doesn't
+          provide valid credentials within a certain amount of time, another supplicant will get a chance. Once a supplicant
+          is successfully authenticated, only that supplicant will be allowed access. This is the most secure of all the
+          supported modes. In this mode, the <a href="help_psec_status_switch.htm">Port Security</a> module is used to secure
+          a supplicant's MAC address once successfully authenticated.
+        </span>
+
+        <h2 class="has_nas_dot1x_multi"><a name="multi">Multi 802.1X</a></h2>
+        <span class="has_nas_dot1x_multi">
+          <span class="NAS_SINGLE_DIS">
+            In port-based 802.1X authentication, once a supplicant is successfully authenticated on a port, the whole port is opened
+            for network traffic. This allows other clients connected to the port (for instance through a hub) to piggy-back on the
+            successfully authenticated client and get network access even though they really aren't authenticated. To overcome this
+            security breach, use the Multi 802.1X variant.<br/>
+            Multi 802.1X is really not an IEEE standard, but features many of the same characteristics as does port-based 802.1X.
+          </span>
+          <span class="has_nas_dot1x_single">
+            Multi 802.1X is - like Single 802.1X - not an IEEE standard, but a variant that features many of the same characteristics.
+          </span>
+          In Multi 802.1X, one or more supplicants can get authenticated on the same port at the same time. Each supplicant is
+          authenticated individually and secured in the MAC table using the <a href="help_psec_status_switch.htm">Port Security</a>
+          module.<br/>
+          In Multi 802.1X it is not possible to use the multicast BPDU MAC address as destination MAC address for EAPOL frames sent
+          from the switch towards the supplicant, since that would cause all supplicants attached to the port to reply to requests
+          sent from the switch. Instead, the switch uses the supplicant's MAC address, which is obtained from the first EAPOL Start
+          or EAPOL Response Identity frame sent by the supplicant. An exception to this is when no supplicants are attached. In this
+          case, the switch sends EAPOL Request Identity frames using the BPDU multicast MAC address as destination - to wake up
+          any supplicants that might be on the port.<br/>
+          <span class="PSEC_LIMIT_ENA">
+            The maximum number of supplicants that can be attached to a port can be limited using the
+            <a href="help_psec_limit.htm">Port Security Limit Control</a> functionality.
+          </span>
+        </span>
+
+        <h2 class="has_nas_mac_based"><a name="mac_based">MAC-based Auth.</a></h2>
+        <span class="has_nas_mac_based">
+          Unlike <span class="NAS_SINGLE_OR_MULTI">port-based </span>802.1X, MAC-based authentication is not a standard, but merely a
+          best-practices method adopted by the industry.
+          In MAC-based authentication, users are called clients, and the switch acts as the supplicant on behalf of clients.
+          The initial frame (any kind of frame) sent by a client is snooped by the switch, which in turn uses the client's
+          MAC address as both username and password in the subsequent EAP exchange with the RADIUS server. The 6-byte MAC address
+          is converted to a string on the following form "xx-xx-xx-xx-xx-xx", that is, a dash (-) is used as separator between
+          the lower-cased hexadecimal digits. The switch only supports the <a href="http://www.ietf.org/rfc/rfc3748">MD5-Challenge</a>
+          authentication method, so the RADIUS server must be configured accordingly.<br/>
+          When authentication is complete, the RADIUS server sends a success or failure indication, which in turn causes the switch
+          to open up or block traffic for that particular client, using the <a href="help_psec_status_switch.htm">Port Security</a>
+          module. Only then will frames from the client be forwarded on the switch. There are no EAPOL frames involved in this authentication,
+          and therefore, MAC-based Authentication has nothing to do with the 802.1X standard.<br/>
+          <span class="NAS_NO_SINGLE_NO_MULTI">
+            The advantage of MAC-based authentication over port-based 802.1X is that several clients can be connected to the same port (e.g.
+            through a 3rd party switch or a hub) and still require individual authentication, and that the clients don't need
+            special supplicant software to authenticate.
+          </span>
+          <span class="NAS_SINGLE_OR_MULTI">
+            The advantage of MAC-based authentication over 802.1X-based authentication is that the clients don't need special
+            supplicant software to authenticate.
+          </span>
+          The disadvantage is that MAC addresses can be spoofed by malicious users - equipment whose MAC address is a valid
+          RADIUS user can be used by anyone. Also, only the MD5-Challenge method is supported.
+          The maximum number of clients that can be attached to a port can be limited using the
+          <a href="help_psec_limit.htm">Port Security Limit Control</a> functionality.
+        </span>
+      </dd>
+
+      <dt class="NAS_BACKEND_QOS"><a name="backend_qos_port">RADIUS-Assigned QoS Enabled</a></dt>
+      <dd class="NAS_BACKEND_QOS">
+        When RADIUS-Assigned QoS is both <a href="#backend_qos_glbl">globally</a> enabled and enabled (checked)
+        on a given port, the switch reacts to QoS Class information carried in the RADIUS Access-Accept packet
+        transmitted by the RADIUS server when a supplicant is successfully authenticated. If present and valid,
+        traffic received on the supplicant's port will be classified to the given QoS Class.
+        If (re-)authentication fails or the RADIUS Access-Accept packet no longer carries a QoS Class or
+        it's invalid, or the supplicant is otherwise no longer present on the port, the port's QoS Class is immediately
+        reverted to the original QoS Class (which may be changed by the administrator in the meanwhile without
+        affecting the RADIUS-assigned).<br/>
+        This option is only available for single-client modes, i.e.<br/>
+          &bull;<span class="NAS_SINGLE_OR_MULTI"> Port-based</span> 802.1X<br/>
+          <span class="has_nas_dot1x_single">&bull; Single 802.1X<br/></span><br/>
+
+        <u>RADIUS attributes used in identifying a QoS Class:</u><br/>
+        <span class="NAS_BACKEND_QOS_CUSTOM">
+          <!-- Varies with customer definitions -->
+          Refer to the written documentation for a description of the RADIUS attributes needed
+          in order to successfully identify a QoS Class.
+        </span>
+
+        <span class="NAS_BACKEND_QOS_RFC4675">
+          The <code>User-Priority-Table</code> attribute defined in <a href="http://www.ietf.org/rfc/rfc4675">RFC4675</a>
+          forms the basis for identifying the QoS Class in an Access-Accept packet.<br/>
+          Only the first occurrence of the attribute in the packet will be considered, and to be valid, it must follow this rule:<br/>
+          &nbsp;&bull; All 8 octets in the attribute's value must be identical and consist of ASCII characters in
+          the range '0' - '<span id="qm_1">7</span>', which translates into the desired QoS Class in the range [0; <span id="qm_2">7</span>].
+        </span>
+      </dd>
+
+      <dt class="NAS_BACKEND_VLAN"><a name="backend_vlan_port">RADIUS-Assigned VLAN Enabled</a></dt>
+      <dd class="NAS_BACKEND_VLAN">
+        When RADIUS-Assigned VLAN is both <a href="#backend_vlan_glbl">globally</a> enabled and enabled (checked)
+        for a given port, the switch reacts to VLAN ID information carried in the RADIUS Access-Accept packet
+        transmitted by the RADIUS server when a supplicant is successfully authenticated. If present and valid,
+        the port's Port VLAN ID will be changed to this VLAN ID, the port will be set to be a member of that
+        VLAN ID, and the port will be forced into VLAN unaware mode. Once assigned, all traffic arriving on
+        the port will be classified and switched on the RADIUS-assigned VLAN ID.<br/>
+        If (re-)authentication fails or the RADIUS Access-Accept packet no longer carries a VLAN ID or
+        it's invalid, or the supplicant is otherwise no longer present on the port, the port's VLAN ID is immediately
+        reverted to the original VLAN ID (which may be changed by the administrator in the meanwhile without
+        affecting the RADIUS-assigned).<br/>
+        This option is only available for single-client modes, i.e.<br/>
+          &bull;<span class="NAS_SINGLE_OR_MULTI"> Port-based</span> 802.1X<br/>
+          <span class="has_nas_dot1x_single">&bull; Single 802.1X<br/></span>
+        For trouble-shooting VLAN assignments, use the "Monitor&rarr;VLANs&rarr;VLAN Membership and VLAN Port" pages.
+        These pages show which modules have (temporarily) overridden the current Port VLAN configuration.<br/><br/>
+
+        <u>RADIUS attributes used in identifying a VLAN ID:</u><br/>
+        <a href="http://www.ietf.org/rfc/rfc2868">RFC2868</a> and <a href="http://www.ietf.org/rfc/rfc3580">RFC3580</a> form
+        the basis for the attributes used in identifying a VLAN ID in an Access-Accept packet. The following criteria
+        are used:<br/>
+        &nbsp;&bull; The <code>Tunnel-Medium-Type</code>, <code>Tunnel-Type</code>, and <code>Tunnel-Private-Group-ID</code>
+        attributes must all be present at least once in the Access-Accept packet.<br/>
+        &nbsp;&bull; The switch looks for the first set of these attributes that have the same <code>Tag</code> value and
+        fulfil the following requirements (if <code>Tag</code> == 0 is used, the <code>Tunnel-Private-Group-ID</code>
+        does not need to include a <code>Tag</code>):<br/>
+        &nbsp;&nbsp; - Value of <code>Tunnel-Medium-Type</code> must be set to "IEEE-802" (ordinal 6).<br/>
+        &nbsp;&nbsp; - Value of <code>Tunnel-Type</code> must be set to "VLAN" (ordinal 13).<br/>
+        &nbsp;&nbsp; - Value of <code>Tunnel-Private-Group-ID</code> must be a string of ASCII chars in the
+        range '0' - '9', which is interpreted as a decimal string representing the VLAN ID. Leading '0's are
+        discarded. The final value must be in the range [1; 4095].
+      </dd>
+
+      <dt class="NAS_GUEST_VLAN"><a name="guest_vlan_port">Guest VLAN Enabled</a></dt>
+      <dd class="NAS_GUEST_VLAN">
+        When Guest VLAN is both <a href="#guest_vlan_glbl">globally</a> enabled and enabled (checked)
+        for a given port, the switch considers moving the port into the Guest VLAN according to the rules
+        outlined below.<br/>
+        This option is only available for EAPOL-based modes, i.e.:<br/>
+          &bull;<span class="NAS_SINGLE_OR_MULTI"> Port-based</span> 802.1X<br/>
+          <span class="has_nas_dot1x_single">&bull; Single 802.1X<br/></span>
+          <span class="has_nas_dot1x_multi">&bull; Multi 802.1X<br/></span>
+        For trouble-shooting VLAN assignments, use the "Monitor&rarr;VLANs&rarr;VLAN Membership and VLAN Port" pages.
+        These pages show which modules have (temporarily) overridden the current Port VLAN configuration.<br/><br/>
+
+        <u>Guest VLAN Operation:</u><br/>
+        When a Guest VLAN enabled port's link comes up, the switch starts transmitting
+        EAPOL Request Identity frames. If the number of transmissions of such frames exceeds
+        <a href="#max_reauth_cnt">Max. Reauth. Count</a> and no EAPOL frames have been received in the meanwhile,
+        the switch considers entering the Guest VLAN. The interval between transmission of EAPOL Request Identity
+        frames is configured with <a href="#eapol_timeout">EAPOL Timeout</a>.
+        If <a href="#guest_vlan_allow_eapol">Allow Guest VLAN if EAPOL Seen</a> is enabled, the port will now
+        be placed in the Guest VLAN. If disabled, the switch will first check its history to see if an EAPOL
+        frame has previously been received on the port (this history is cleared if the port link goes down or the
+        port's <a href="#admin_state">Admin State</a> is changed), and if not, the port will be placed in the Guest VLAN.
+        Otherwise it will not move to the Guest VLAN, but continue transmitting EAPOL Request Identity frames
+        at the rate given by EAPOL Timeout.<br/>
+        Once in the Guest VLAN, the port is considered authenticated, and all attached clients on the port
+        are allowed access on this VLAN. The switch will not transmit an EAPOL Success frame when entering
+        the Guest VLAN.<br/>
+        While in the Guest VLAN, the switch monitors the link for EAPOL frames, and if one such frame is
+        received, the switch immediately takes the port out of the Guest VLAN and starts authenticating
+        the supplicant according to the port mode. If an EAPOL frame is received, the port will never be able to go
+        back into the Guest VLAN if the "Allow Guest VLAN if EAPOL Seen" is disabled.
+      </dd>
+
+      <dt><a name="port_state">Port State</a></dt>
+      <dd>
+        The current state of the port. It can undertake one of the following values:<br/>
+        <b>Globally Disabled:</b> NAS is <a href="#Enabled">globally</a> disabled.<br/>
+        <b>Link Down:</b> NAS is globally enabled, but there is no link on the port.<br/>
+        <b>Authorized:</b> The port is in <a href="#force_auth">Force Authorized</a> or a single-supplicant mode and the supplicant is authorized.<br/>
+        <b>Unauthorized:</b> The port is in <a href="#force_unauth">Force Unauthorized</a> or a single-supplicant mode and the supplicant is not successfully authorized by the RADIUS server.<br/>
+        <span class="NAS_MULTI_OR_MAC_BASED">
+        <b>X Auth/Y Unauth:</b> The port is in a multi-supplicant mode. Currently X clients are authorized and Y are unauthorized.
+        </span>
+      </dd>
+
+      <dt>Restart</dt>
+      <dd>
+        Two buttons are available for each row. The buttons are only enabled when authentication is <a href="#Enabled">globally enabled</a>
+        and the port's <a href="#admin_state">Admin State</a> is in an EAPOL-based <span class="has_nas_mac_based"> or <a href="#mac_based">MAC-based</a></span> mode.<br/>
+        Clicking these buttons will not cause settings changed on the page to take effect.<br/>
+        <b>Reauthenticate:</b> Schedules a reauthentication whenever the quiet-period of the port runs out
+          <span class="has_nas_mac_based">(EAPOL-based authentication)</span>.
+          <span class="has_nas_mac_based">For MAC-based authentication, reauthentication will be attempted immediately.<br/></span>
+          The button only has effect for successfully authenticated clients on the port and will not
+          cause the clients to get temporarily unauthorized.<br/>
+        <b>Reinitialize:</b> Forces a reinitialization of the clients on the port and thereby a reauthentication immediately.
+        The clients will transfer to the unauthorized state while the reauthentication is in progress.
+      </dd>
+    </dl>
+
+    <h2>Buttons</h2>
+    <p><input type="button" value=" Refresh ">:Click to refresh the page.</p>
+    <p><input type="button" value=" Save ">: Click to save changes.</p>
+    <p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+  </body>
+</html>

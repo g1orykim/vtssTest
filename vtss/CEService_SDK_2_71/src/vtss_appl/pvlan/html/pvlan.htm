@@ -1,0 +1,406 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Private VLAN Membership Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_pvlan.htm";
+
+var timerID;
+var reqObject;
+var entryIdxArray = Array();
+var pvlanconfig = Array();
+var vidArray = Array();
+var originalEntriesNum, newEntriesNum;
+var maxEntriesNum = configPvlanIdMax - configPvlanIdMin + 1;
+
+function resetForm()
+{
+    processUpdate(reqObject, "pvlanData");
+}
+
+function CreateTableHeader(frag)
+{
+    var tr;
+    var hasPVLAN;
+    var portcount = SpomCurrentPorts();
+    for(var j = 0; j < SpomCurrentPorts(); j++) {
+        if (isStackPort(j + 1)) {
+            portcount--;
+        }
+    }
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "", "hdrc", 2);
+    addTextHeaderCell(tr, "Port Members", "hdrc", portcount);
+    frag.appendChild(tr);       // Add row to fragment
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"Delete","hdrc");
+    addTextHeaderCell(tr,"PVLAN ID","hdrc");
+    for (var i = 0; i < SpomCurrentPorts(); i++ ) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        /* Grocx WAN port has not the properties of a PVLAN */
+        if(typeof(configHasPVLAN) == "function") {
+            hasPVLAN = configHasPVLAN(i + 1);
+        } else {
+            hasPVLAN = 1;
+        }
+
+        if (hasPVLAN)
+            addTextHeaderCell(tr, configPortName(i + 1, 0), "portno");
+    }
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRow(index, frag, vid, values)
+{
+    vidArray[originalEntriesNum] = vid;
+    originalEntriesNum++;
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    addCheckBoxCell(tr, 0, "c", "delete_" + vid);
+    addTextCell(tr, vid, "cr");
+
+    for(var i = 0; i < values.length; i++) {
+        if(values[i] != "")
+            addCheckBoxCell(tr, parseInt(values[i]), "c", "mask_" + vid + "_" + (i+1));
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format:
+    // <vid>,<en>/<en>/..../<en>/|....
+    // 17,1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1|....
+
+    if(redirectOnError(req))
+        return;
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    originalEntriesNum = newEntriesNum = 0;
+    if (reqObject != req)
+        reqObject = req;
+    if (req.responseText) {
+        pvlanconfig = req.responseText.split("|");
+        for(var i = 0; i < pvlanconfig.length; i++) {
+            if(pvlanconfig[i]) {
+                var pvlanval = pvlanconfig[i].split(",");
+                addRow(i, frag, pvlanval[0], pvlanval[1].split("/"));
+            }
+        }
+    } else {
+        // No PVLANs. That's fine. The communication to the CPU is not affected.
+        // SpomHandleError();
+    }
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    updateFuncBar(1);
+}
+
+function chkRefresh(fld) {
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate(0);
+    }
+}
+
+function requestUpdate()
+{
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+
+    updateFuncBar(0);
+    loadXMLDoc(SpomAddSidArg("/config/pvlan"), processUpdate, 'pvlanData');
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm(form)
+{
+
+    // Check that there is at least one VLAN.
+
+    var fld1, fld2;
+    var port_count = 0, ii = 0;
+    var fld4;
+    var wan_port = 0;
+
+    //check number of max entries
+    if (newEntriesNum) {
+        var deleteEntriesNum = 0;
+
+        //counter delete entries number
+        for (var i = 0; i < originalEntriesNum; i++) {
+            fld1 = document.getElementById("delete_" + vidArray[i]);
+            if (fld1.checked)
+                deleteEntriesNum++;
+        }
+
+        if ((originalEntriesNum - deleteEntriesNum + newEntriesNum) > maxEntriesNum) {
+            alert("The maximum number of entries is " + maxEntriesNum);
+            return false;
+        }
+    }
+    for(ii = 0; ii < SpomCurrentPorts(); ii++) {
+        if (isStackPort(ii + 1)) {
+            continue;
+        }
+        if(typeof(configHasPVLAN) == "function") {
+            if (!configHasPVLAN(ii + 1))
+                wan_port++;
+        }
+    }
+    //check new entries's
+    for (var i = 0; i < newEntriesNum; i++) {
+        fld2 = document.getElementById("privatevid_new_"+ entryIdxArray[i]);
+
+        //Check whether the vid added is an integer.
+        if (!isInt(fld2.value)) {
+            GiveAlert("Invalid PVLAN ID " + fld2.value);
+            return false;
+        }
+
+        //vid
+        if(!isWithinRange("privatevid_new_"+ entryIdxArray[i], configPvlanIdMin, configNormalPortMax, "'Private VLAN ID'")) {
+            return false;
+        }
+
+        //check the entry exist in original entries
+        for (var j = 0; j < originalEntriesNum; j++) {
+            if (fld2.value == vidArray[j]) {
+                GiveAlert("Private VLAN ID " + fld2.value + " is already in use.", fld2);
+                return false;
+            }
+        }
+
+        //check the entry exist in new entries
+        for (var j = i + 1; j < newEntriesNum; j++) {
+            if (fld2.value == document.getElementById("privatevid_new_"+ entryIdxArray[j]).value) {
+                GiveAlert("Private VLAN ID " + fld2.value + " is already in use.", fld2);
+                return false;
+            }
+        }
+		port_count = 0;
+        for(ii = 0; ii < (SpomCurrentPorts() - wan_port); ii++) {
+            if (isStackPort(ii + 1)) {
+                continue;
+            }
+            fld4 = document.getElementById("mask_new_"+ entryIdxArray[i] + "_" + (ii + 1));
+            if (!fld4.checked) {
+                port_count++;
+            }
+        }
+        if (port_count == (SpomCurrentPorts() - wan_port)) {
+            GiveAlert("At least one port must be selected to add an entry");
+            return false;
+        }
+    }
+
+    return true; // Feed the chickens and go home
+}
+
+function addEntryIdx()
+{
+    var fld;
+
+    for (var i = 1; i <= maxEntriesNum; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newEntriesNum++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1]);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById('pvlanData').deleteRow(tr.rowIndex);
+}
+
+function AddNewRow()
+{
+    if ((originalEntriesNum + newEntriesNum) >= maxEntriesNum) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return false;
+    }
+    var entryIdx = addEntryIdx();
+    if (entryIdx == 0) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return false;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalEntriesNum + entryIdx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+    var wan_port = 0;
+    var edit_ctrl = addInputCell(tr, 0, "cr", "privatevid_new_" + entryIdx, 5);
+    edit_ctrl.setAttribute("maxLength", 2);
+
+
+    for(var i = 0; i < SpomCurrentPorts(); i++) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        if(typeof(configHasPVLAN) == "function") {
+            if (!configHasPVLAN(i + 1))
+                wan_port++;
+        }
+    }
+
+     /* Grocx WAN port has not the properties of a PVLAN */
+    for(var i = 0; i < (SpomCurrentPorts() - wan_port); i++) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        addCheckBoxCell(tr, 0, "c", "mask_new_" + entryIdx + "_" + (i + 1));
+    }
+
+    frag.appendChild(tr);       // Add row to fragment
+
+    var tbody = document.getElementById("pvlanData");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+    return true;
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function updateFuncBar(enable)
+{
+    if (enable) {
+        document.getElementById("refresh").style.visibility = "visible";
+        document.getElementById("update").style.visibility = "hidden";
+    } else {
+        document.getElementById("refresh").style.visibility = "hidden";
+        document.getElementById("update").style.visibility = "visible";
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" id="refresh" value="Refresh" onClick="requestUpdate(); this.blur(); " style="visibility:hidden">
+  <span id="update">&nbsp;Updating...</span>
+ </form>
+</div>
+
+<h1>Private VLAN Membership Configuration <span id="display_sid"></span></h1>
+
+<form method="POST" action="/config/pvlan" onsubmit="return checkForm(this);">
+
+<table id="pvlanConfig" summary="Switch Private VLAN Configuration" cellspacing="0" class="config">
+ <tbody id="pvlanData">
+ </tbody>
+</table>
+
+<p>
+<input type="button" id="addNewEntry" value="Add New Private VLAN" onclick="AddNewRow()">
+</p>
+
+<p>
+  <input type="hidden" id="submit_sid" name="sid">
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

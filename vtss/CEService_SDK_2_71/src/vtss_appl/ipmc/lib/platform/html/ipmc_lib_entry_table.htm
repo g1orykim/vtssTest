@@ -1,0 +1,548 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IPMC Profile Address Entry Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+var pageSelectDisplayNum = 0;
+var pageSelectChannelGrp = 0;
+var pageArgsName;
+var pageArgs = searchArgs(window.location.search);
+
+pageArgsName = 'DynDisplayNum';
+if (pageArgs[pageArgsName]) {
+    pageSelectDisplayNum = parseInt(pageArgs[pageArgsName], 10);
+} else {
+    pageSelectDisplayNum = 20;
+}
+pageArgsName = 'DynChannelGrp';
+if (pageArgs[pageArgsName]) {
+    pageSelectChannelGrp = unescape(pageArgs[pageArgsName]);
+} else {
+    pageSelectChannelGrp = "";
+}
+
+var reqObject;
+var NewChannelArray = Array();
+var oldEntriesNum, newEntriesNum;
+var firstIdxChannel, lastIdxChannel;
+//  var cfgIpmcLibPfeMax = 128;
+//  var cfgIpmcLibChrAscMin = 33;
+//  var cfgIpmcLibChrAscMax = 126;
+
+
+// Help page magic
+var help_page = "/help/help_ipmc_lib_entry_table.htm";
+
+function checkName(sText)
+{
+    var idx, nmx;
+
+    for (idx = 0; idx < sText.length; idx++) {
+        nmx = sText.charAt(idx);
+        if(isNaN(parseInt(nmx, 10))) {
+            if ((nmx < cfgIpmcLibChrAscMin) || (nmx > cfgIpmcLibChrAscMax)) {
+                return -1;
+            }
+        }
+    }
+
+    return 1;
+}
+
+function CreateTableHeaderChannel(fragEntry)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Delete", "hdrc");
+    addTextHeaderCell(tr, "Entry Name", "hdrc");
+    addTextHeaderCell(tr, "Start Address", "hdrc");
+    addTextHeaderCell(tr, "End Address", "hdrc");
+    fragEntry.appendChild(tr);  // Add row to fragment
+}
+
+function addRowChannel(idx, frag, channelVal)
+{
+    var td, tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+    var grpsEntry = channelVal.split("/");
+
+    td = addHiddenInputCell(tr, oldEntriesNum, "cr", "old_ipmcpf_entry_" + oldEntriesNum);
+    td.readOnly = true;
+    td = addHiddenInputCell(tr, unescape(grpsEntry[0]), "cr", "idx_ipmcpf_entry_" + oldEntriesNum);
+    td.readOnly = true;
+    if (grpsEntry[0]) {
+        td = addHiddenInputCell(tr, grpsEntry[1], "cr", "ref_ipmcpf_entry_" + oldEntriesNum);
+    } else {
+        td = addHiddenInputCell(tr, "-", "c", "ref_ipmcpf_entry_" + oldEntriesNum);
+    }
+    td.readOnly = true;
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+
+    addCheckBoxCell(tr, 0, "c", "delete_ipmcpf_entry_" + oldEntriesNum);
+
+    /* [channel_name]/[start_addr]/[end_addr] */
+    if (grpsEntry[0]) {
+        addTextCell(tr, unescape(grpsEntry[0]), "r");
+    } else {
+        addTextCell(tr, "-", "r");
+    }
+    if (grpsEntry[1]) {
+        td = addInputCell(tr, grpsEntry[1], "r", "bgn_ipmcpf_entry_" + oldEntriesNum, 40, 40);
+    } else {
+        td = addInputCell(tr, "", "r", "bgn_ipmcpf_entry_" + oldEntriesNum, 40, 40);
+    }
+    if (grpsEntry[2]) {
+        td = addInputCell(tr, grpsEntry[2], "r", "end_ipmcpf_entry_" + oldEntriesNum, 40, 40);
+    } else {
+        td = addInputCell(tr, "", "r", "end_ipmcpf_entry_" + oldEntriesNum, 40, 40);
+    }
+
+    oldEntriesNum++;
+    frag.appendChild(tr);
+}
+
+function processUpdateChannel(req, ref)
+{
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeaderChannel(frag);
+
+    oldEntriesNum = newEntriesNum = 0;
+    firstIdxChannel = lastIdxChannel = "";
+    if (reqObject !== req) {
+        reqObject = req;
+    }
+    /*
+        Format:
+        [channel_name]/[start_addr]/[end_addr]|...|
+    */
+    if (req.responseText) {
+    //if (req) {
+        var values = req.responseText.split("|");
+        //var values = req.split("|");
+
+        if (values[0] !== "NoEntries") {
+            var idx, grpsEntry;
+
+            grpsEntry = values[0].split("/");
+            if (grpsEntry[0]) {
+                firstIdxChannel = unescape(grpsEntry[0]);
+                var prev = firstIdxChannel.charCodeAt(parseInt(firstIdxChannel.length - 1, 10));
+                if (parseInt(prev - 1, 10) < 0) {
+                    prev = 0;
+                } else {
+                    prev = prev - 1;
+                }
+                firstIdxChannel = firstIdxChannel.substring(0, parseInt(firstIdxChannel.length - 1, 10));
+                firstIdxChannel = firstIdxChannel + String.fromCharCode(parseInt(prev, 10));
+            }
+            grpsEntry = values[values.length - 2].split("/");
+            if (grpsEntry[0]) {
+                lastIdxChannel = unescape(grpsEntry[0]);
+            }
+
+            for (idx = 0; idx < values.length - 1; idx++) {
+                addRowChannel(idx, frag, values[idx]);
+            }
+        }
+    }
+
+    document.getElementById("update").style.visibility = "hidden";
+    document.getElementById("Refresh").disabled = false;
+    document.getElementById("getFirst").disabled = false;
+    document.getElementById("getNext").disabled = false;
+
+    // create holder for accumulated tbody elements and text nodes
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    processUpdateChannel(reqObject, "channelData");
+}
+
+function addEntryIdx()
+{
+    var i, fld, cnt, idx;
+
+    cnt = idx = 0;
+    for (i = 1; i <= cfgIpmcLibPfeMax; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            if (idx === 0) {
+                idx = i;
+            }
+        } else {
+            cnt++;
+        }
+    }
+
+    if (idx) {
+        if ((oldEntriesNum + cnt + 1) > cfgIpmcLibPfeMax) {
+            idx = 0;
+        } else {
+            NewChannelArray[newEntriesNum++] = idx;
+        }
+    }
+
+    return idx;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == NewChannelArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                NewChannelArray[j] = NewChannelArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById("channelData").removeChild(tr);
+}
+
+function AddNewRow()
+{
+    var entryIdx = addEntryIdx();
+    if (entryIdx === 0) {
+        alert("The maximum number of entries is " + cfgIpmcLibPfeMax);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var newRowIndex = oldEntriesNum + entryIdx + 1;    //+1: Header is the first row
+    var frag = document.createDocumentFragment();
+    var td, tr = CreateStyledElement("tr", newRowIndex % 2 ? "config_odd" : "config_even");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    td = CreateTd("c");
+    addCell(tr, td, button);
+
+    addInputCell(tr, "", "r", "new_idx_ipmcpf_entry_" + entryIdx, 16, 16);
+    addInputCell(tr, "", "r", "new_bgn_ipmcpf_entry_" + entryIdx, 40, 40);
+    addInputCell(tr, "", "r", "new_end_ipmcpf_entry_" + entryIdx, 40, 40);
+    frag.appendChild(tr);
+
+    var tbody = document.getElementById("channelData");
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function checkForm(form)
+{
+    var idx, i, j, ver, fld, chk, matchCnt, entryName;
+
+    matchCnt = 0;
+    for (i = 0; i < oldEntriesNum; i++) {
+        fld = document.getElementById("delete_ipmcpf_entry_" + i);
+        if (!fld || fld.checked) {
+            continue;
+        }
+
+        entryName = document.getElementById("idx_ipmcpf_entry_" + i);
+
+        /* Address Syntax Check (Start) */
+        fld = document.getElementById("bgn_ipmcpf_entry_" + i);
+        if (fld && (String(fld.value) === "")) {
+            alert("Please input valid IPv4/IPv6 multicast address for Entry " + entryName.value + ".");
+            return false;
+        }
+        if (!isIpv6Str("bgn_ipmcpf_entry_" + i, "'Start Address'", 2, true) &&
+            !isIpStr("bgn_ipmcpf_entry_" + i, false, "'Start Address'", 3, true)) {
+            alert("Please input valid IPv4/IPv6 multicast start address for Entry " + entryName.value + ".");
+            return false;
+        }
+
+        /* Address Syntax Check (End) */
+        fld = document.getElementById("end_ipmcpf_entry_" + i);
+        if (fld && (String(fld.value) === "")) {
+            alert("Please input valid IPv4/IPv6 multicast address for Entry " + entryName.value + ".");
+            return false;
+        }
+        if (!isIpv6Str("end_ipmcpf_entry_" + i, "'End Address'", 2, true) &&
+            !isIpStr("end_ipmcpf_entry_" + i, false, "'End Address'", 3, true)) {
+            alert("Please input valid IPv4/IPv6 multicast end address for Entry " + entryName.value + ".");
+            return false;
+        }
+
+        ver = 0;
+        /* Version Consistency Check */
+        if (isIpv6Str("bgn_ipmcpf_entry_" + i, "'Start Address'", 2, true)) {
+            if (isIpStr("end_ipmcpf_entry_" + i, false, "'End Address'", 3, true)) {
+                alert("Please input valid End IPv6 multicast address for Entry " + entryName.value + ".");
+                return false;
+            }
+
+            ver = 2;
+        } else {
+            if (isIpv6Str("end_ipmcpf_entry_" + i, "'End Address'", 2, true)) {
+                alert("Please input valid End IPv4 multicast address for Entry " + entryName.value + ".");
+                return false;
+            }
+
+            ver = 1;
+        }
+
+        /* Start <= End Check */
+        chk = document.getElementById("bgn_ipmcpf_entry_" + i);
+        if (ver > 1) {
+            if (Ip6Larger(chk.value, fld.value)) {
+                alert("End address is not allowed to be less than start address in Entry " + entryName.value + ".");
+                return false;
+            }
+        } else {
+            if (IpLarger(chk.value, fld.value)) {
+                alert("End address is not allowed to be less than start address in Entry " + entryName.value + ".");
+                return false;
+            }
+        }
+
+        matchCnt++;
+    }
+
+    for (i = 0; i < newEntriesNum; i++) {
+        idx = NewChannelArray[i];
+        fld = document.getElementById("new_idx_ipmcpf_entry_" + idx);
+        if (!fld) {
+            continue;
+        } else {
+            entryName = fld;
+        }
+
+        if (String(fld.value) !== "") {
+            j = parseInt(checkName(fld.value), 10);
+
+            if (j < 0) {
+                alert(fld.value + " is not a valid profile entry name.");
+                return false;
+            }
+        }
+
+        for (j = 0; j < oldEntriesNum; j++) {
+            chk = document.getElementById("delete_ipmcpf_entry_" + j);
+            if (!chk || chk.checked) {
+                continue;
+            }
+
+            chk = document.getElementById("idx_ipmcpf_entry_" + j);
+            if (fld && chk) {
+                if (String(fld.value) == String(chk.value)) {
+                    alert("Duplicated entry name: " + entryName.value);
+                    return false;
+                }
+            }
+        }
+
+        /* Address Syntax Check (Start) */
+        fld = document.getElementById("new_bgn_ipmcpf_entry_" + idx);
+        if (fld && (String(fld.value) === "")) {
+            alert("Please input valid IPv4/IPv6 multicast address for Entry " + entryName.value + ".");
+            return false;
+        }
+        if (!isIpv6Str("new_bgn_ipmcpf_entry_" + idx, "'Start Address'", 2, true) &&
+            !isIpStr("new_bgn_ipmcpf_entry_" + idx, false, "'Start Address'", 3, true)) {
+            alert("Please input valid IPv4/IPv6 multicast start address for Entry " + entryName.value + ".");
+            return false;
+        }
+
+        /* Address Syntax Check (End) */
+        fld = document.getElementById("new_end_ipmcpf_entry_" + idx);
+        if (fld && (String(fld.value) === "")) {
+            alert("Please input valid IPv4/IPv6 multicast address for Entry " + entryName.value + ".");
+            return false;
+        }
+        if (!isIpv6Str("new_end_ipmcpf_entry_" + idx, "'End Address'", 2, true) &&
+            !isIpStr("new_end_ipmcpf_entry_" + idx, false, "'End Address'", 3, true)) {
+            alert("Please input valid IPv4/IPv6 multicast end address for Entry " + entryName.value + ".");
+            return false;
+        }
+
+        ver = 0;
+        /* Version Consistency Check */
+        if (isIpv6Str("new_bgn_ipmcpf_entry_" + idx, "'Start Address'", 2, true)) {
+            if (isIpStr("new_end_ipmcpf_entry_" + idx, false, "'End Address'", 3, true)) {
+                alert("Please input valid End IPv6 multicast address for Entry " + entryName.value + ".");
+                return false;
+            }
+
+            ver = 2;
+        } else {
+            if (isIpv6Str("new_end_ipmcpf_entry_" + idx, "'End Address'", 2, true)) {
+                alert("Please input valid End IPv4 multicast address for Entry " + entryName.value + ".");
+                return false;
+            }
+
+            ver = 1;
+        }
+
+        /* Start <= End Check */
+        chk = document.getElementById("new_bgn_ipmcpf_entry_" + idx);
+        if (ver > 1) {
+            if (Ip6Larger(chk.value, fld.value)) {
+                alert("End address is not allowed to be less than start address in Entry " + entryName.value + ".");
+                return false;
+            }
+        } else {
+            if (IpLarger(chk.value, fld.value)) {
+                alert("End address is not allowed to be less than start address in Entry " + entryName.value + ".");
+                return false;
+            }
+        }
+
+        if (matchCnt < cfgIpmcLibPfeMax) {
+            matchCnt++;
+        } else {
+            alert("The maximum number of entries is " + cfgIpmcLibPfeMax);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function requestUpdate()
+{
+    if (SpomNavigationLoading()) {
+        return;    // Bail out, navigation will trigger update
+    }
+
+    document.getElementById("update").style.visibility = "visible";
+    document.getElementById("Refresh").disabled = true;
+    document.getElementById("getFirst").disabled = true;
+    document.getElementById("getNext").disabled = true;
+
+    /*
+        Format:
+        [channel_name]/[start_addr]/[end_addr]|...|
+    */
+    document.getElementById("NumberOfEntries").value = pageSelectDisplayNum;
+    loadXMLDoc(SpomAddSidArg("/config/ipmclib_entry?&DynDisplayNum=" + pageSelectDisplayNum +
+                             "&DynChannelGrp=" + pageSelectChannelGrp),
+                             processUpdateChannel,
+                             'channelData');
+
+    SpomUpdateFormSid("submit_sid");
+}
+
+function clickCtrlButton(type)
+{
+    pageSelectDisplayNum = document.getElementById("NumberOfEntries").value;
+
+    if (type == "GetFirstEntry") {
+        pageSelectChannelGrp = "";
+    } else if (type == "NextEntries") {
+        pageSelectChannelGrp = lastIdxChannel;
+    } else {
+        pageSelectChannelGrp = firstIdxChannel;
+    }
+
+    requestUpdate();
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/ipmclib_entry" onsubmit="return checkForm(this);">
+
+<h1>IPMC Profile Address Configuration</h1>
+
+<div class="refreshbar">
+  <input type="button" id="Refresh" value="Refresh" onclick="clickCtrlButton('Refresh');">
+  <input type="button" id="getFirst" value=" |<< " title="First page" onclick="clickCtrlButton('GetFirstEntry');">
+  <input type="button" id="getNext" value=" >> " title="Next page" onclick="clickCtrlButton('NextEntries');">
+  <img id="update" alt="" src="images/updating.gif">
+</div>
+
+<p class="config">
+  <span class="displaytext">Navigate Address Entry Setting in IPMC Profile by</span>
+  <input type="text" id="NumberOfEntries" name="NumberOfEntries" maxlength="3" value="20" size="3">
+  <span class="displaytext"> entries per page.</span>
+</p>
+
+<table id="channelConfig" summary="IPMC Profile Address Entry Setting" cellspacing="0" class="config">
+ <tbody id="channelData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="button" id="addNewEntry" value="Add New Address (Range) Entry" onclick="AddNewRow();">
+</p>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

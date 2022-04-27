@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Loop Protection Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Loop Protection Configuration Help</h1>
+
+<p>This page allows the user to inspect the current Loop Protection
+configurations, and possibly change them as well.</p>
+
+<fieldset>
+<legend>General Settings</legend>
+
+<dl>
+ <dt>Enable Loop Protection</dt>
+ <dd>
+   Controls whether loop protections is enabled (as a whole).
+ </dd>
+
+ <dt>Transmission Time</dt>
+ <dd>
+   The interval between each loop protection PDU sent on each port.
+   valid values are 1 to 10 seconds.
+ </dd>
+
+ <dt>Shutdown Time</dt>
+ <dd>
+   The period (in seconds) for which a port will be kept disabled in
+   the event of a loop is detected (and the port action 
+   shuts down the port). Valid values are 0 to 604800 seconds
+   (7 days). A value of zero will keep a port disabled (until next
+   device restart).
+ </dd>
+
+</dl>
+
+</fieldset>
+
+<fieldset>
+<legend>Port Configuration <span id="display_sid"></span></legend>
+
+<dl>
+ <dt>Port</dt>
+ <dd>
+   The switch port number of the port.
+ </dd>
+
+ <dt>Enable</dt>
+ <dd>
+   Controls whether loop protection is enabled on this switch port.
+ </dd>
+
+ <dt>Action</dt>
+ <dd>
+   Configures the action performed when a loop is detected on a port.
+   Valid values are <samp>Shutdown Port</samp>, <samp>Shutdown Port and
+   Log</samp> or <samp>Log Only</samp>.
+ </dd>
+
+ <dt>Tx Mode</dt>
+ <dd>
+   Controls whether the port is actively generating loop protection
+   PDU's, or whether it is just passively looking for looped PDU's.
+ </dd>
+
+</dl>
+
+</fieldset>
+
+<h2>Buttons</h2>
+
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Upload Configuration</title>
+ <link href="/lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var help_page = "/help/help_maintenance_icfg_conf.htm#upload";
+
+function EnableSubmit(enb)
+{
+    var elem = document.getElementById("submit_button");
+    elem.disabled = !enb;
+}
+
+function addRow(index, frag, filename)
+{
+    var tr    = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+    var radio = addRadioCell(tr, false, "cl", "file_name_radio", null, filename);
+    var td    = CreateTd("cl");
+    var r;
+    radio.setAttribute("value", filename);
+    radio.setAttribute("onclick", "radioClicked();");
+    if (filename === "running-config") {
+        r = addRadioCell(td, true,  "cl", "merge_mode_radio", "merge_mode_radio_r", "Replace");
+        r.disabled = true;
+        r = addRadioCell(td, false, "cl", "merge_mode_radio", "merge_mode_radio_m", "Merge");
+        r.disabled = true;
+    }
+    tr.appendChild(td);
+    frag.appendChild(tr);
+}
+
+function addNewFileRow(index, frag)
+{
+    var tr    = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+    var radio = addRadioCell(tr, false, "cl", "file_name_radio", null, "Create new file");
+    var input = addInputCellWithText(tr, "", "cl", "new_file_name", null, null, 30, null, null, "text");
+    radio.setAttribute("value", "");
+    radio.setAttribute("onclick", "radioClicked();");
+    input.disabled = true;
+    frag.appendChild(tr);
+}
+
+function radioClicked()
+{
+    var new_file = document.getElementById("new_file_name");
+    var mode_r   = document.getElementById("merge_mode_radio_r");
+    var mode_m   = document.getElementById("merge_mode_radio_m");
+    var radioObj = document.getElementsByName("file_name_radio");
+    var new_file_enabled = false;
+    var mode_enabled     = false;
+    var i;
+    for(i=0; i<radioObj.length; i++) {
+        if (radioObj[i].checked) {
+            if (radioObj[i].value === "") { // new file name
+                new_file_enabled = true;
+                mode_enabled     = false;
+            } else if (radioObj[i].value === "running-config") {
+                new_file_enabled = false;
+                mode_enabled     = true;
+            } else {                        // ordinary file
+                new_file_enabled = false;
+                mode_enabled     = false;
+            }
+            if (new_file) {
+                new_file.disabled = !new_file_enabled;
+            }
+            if (mode_r && mode_m) {
+                mode_r.disabled = !mode_enabled;
+                mode_m.disabled = !mode_enabled;
+            }
+        }
+    }
+}
+
+function processUpdate(req, ref)
+{
+	var frag           = document.createDocumentFragment();
+    var tbody          = document.getElementById("file_list_rows");
+    var visible_inputs = document.getElementById("visible_inputs");
+    var message        = document.getElementById("message");
+    var fields         = req.responseText.split("*");
+    var status         = fields[0];
+    var files          = fields.slice(1);
+    var running        = false;
+    var i;
+
+    if (status === "OK") {
+        for(i = 0; i < files.length - 1; i++) {
+            running = (files[i] === "running-config") || running;
+            addRow(i, frag, files[i]);
+        }
+
+        if (files.length - 1 >= (4 + (running ? 1 : 0))) {
+            message.innerHTML = "Note: File system is full; either delete a file to make room, or select an existing file.";
+        } else {
+            addNewFileRow(i++, frag);
+        }
+
+        EnableSubmit(true);
+
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) {
+            alert("This browser doesn't support dynamic tables.");
+        }
+    } else if (status === "ERR_LOCK") {
+        message.innerHTML = "Another I/O operation is in progress. Please try again later.";
+        visible_inputs.style.display = "none";
+    } else if (status === "ERR") {
+        message.innerHTML = "Could not retrieve file list from switch. Please try again later.";
+        visible_inputs.style.display = "none";
+    }
+}
+
+function requestUpdate()
+{
+    EnableSubmit(false);
+    loadXMLDoc("/config/icfg_conf_get_file_list?op=upload", processUpdate, "file_list_rows");
+}
+
+function cleanNames()
+{
+    var obj = document.getElementsByName("file_name_radio");
+    for(var i=0; i<obj.length; i++) {
+        obj[i].name = '';
+    }
+    document.getElementByName("new_file_name").name = '';
+    document.getElementById("merge_mode_radio_r").name = '';
+    document.getElementById("merge_mode_radio_m").name = '';
+}
+
+function onSubmit()
+{
+    var source_file   = document.getElementById("source_file");
+    var radioObj      = document.getElementsByName("file_name_radio");
+    var new_file_name = document.getElementById("new_file_name");
+    var file_name     = document.getElementById("file_name");
+    var mode_m        = document.getElementById("merge_mode_radio_m");
+    var merge         = document.getElementById("merge");
+    var i;
+
+    if (source_file.value.length === 0) {
+        alert("Please select a source file.");
+        return false;
+    }
+
+    merge.value = mode_m.checked ? "true" : "false";
+
+    for(i=0; i<radioObj.length; i++) {
+        if (radioObj[i].checked) {
+            var fn = radioObj[i].value;
+            if (fn === "") {
+                fn = new_file_name.value;
+            } else {
+                fn = radioObj[i].value;
+            }
+            file_name.value = fn;
+            document.file_form.submit();
+            return true;
+        }
+    }
+    alert("Please select a destination file name.");
+    return false;
+}
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+    <h1>Upload Configuration</h1>
+    <form name ="file_form" id ="file_form" method="POST" action="/config/icfg_conf_upload" enctype="multipart/form-data" onsubmit="return onSubmit();">
+        <input type="hidden" id="file_name"  name="file_name" value="">
+        <input type="hidden" id="merge"      name="merge"     value="false">
+        <div id="visible_inputs">
+            <h2>File To Upload</h2>
+            <input type="file" id ="source_file" name="source_file" size="30">
+            <h2>Destination File</h2>
+            <table id="file_list_table" summary="Available Files" cellspacing="0" class="display">
+                <thead>
+                    <tr class="display_header">
+                        <th>File Name</th>
+                        <th>Parameters</th>
+                    </tr>
+                </thead>
+                <tbody id="file_list_rows">
+                    <tr class="display_odd">
+                        <td>(Please wait)</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p id="message"></p>
+        <p><input type="submit" id="submit_button" value="Upload Configuration" onclick="return true;"></p>
+    </form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

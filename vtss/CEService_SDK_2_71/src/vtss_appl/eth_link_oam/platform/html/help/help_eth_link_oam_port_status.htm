@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>Detailed Link OAM Port Configuration Status Help</title>
+<link href="/lib/help.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="/lib/dynforms.js"></script>
+<script type="text/javascript" src="/lib/mootools-core.js"></script>
+<script type="text/javascript" language="JavaScript">
+window.addEvent('domready', function() {
+        $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+        });
+</script>
+</head>
+
+<body>
+<h1>Link OAM Port Configuration Status Help</h1>
+
+<p>This page provides Link OAM configuration operational status.</p>
+
+<p>The displayed fields shows the active configuration status for the selected port.
+</p>
+
+<h2>Local and Peer</h2>
+
+<dl>
+ <dt>Mode</dt>
+ <dd>
+ The Mode in which the Link OAM is operating, Active or Passive.
+ </dd>
+
+ <dt>Unidirectional Operation Support</dt>
+ <dd>
+    This feature is not available to be configured by the user. The status of this configuration is retrieved from the PHY. 
+ </dd>
+
+ <dt>Remote Loopback Support</dt>
+ <dd>
+     If status is enabled, DTE is capable of OAM remote loopback mode.
+ </dd>
+
+ <dt>Link Monitoring Support</dt>
+ <dd>
+     If status is enabled, DTE supports interpreting Link Events.
+ </dd>
+
+ <dt>MIB Retrieval Support</dt>
+ <dd>
+     If status ie enabled DTE supports sending Variable Response OAMPDUs.
+ </dd>
+
+ <dt>MTU Size</dt>
+ <dd>
+     It represents the largest OAMPDU, in octets, supported by the DTE. This value is compared to the remotes
+     Maximum PDU Size and the smaller of the two is used.
+ </dd>
+
+ <dt>Multiplexer State</dt>
+ <dd>
+     When in forwarding state, the Device is forwarding non-OAMPDUs to the lower sublayer. Incase of discarding, the device discards all the 
+     non-OAMPDU's. 
+ </dd>
+
+<dt>Parser State </dt>
+<dd>
+     When in forwarding state, Device is forwarding non-OAMPDUs to higher sublayer. When in loopback, Device is looping back non-OAMPDUs to the lower sublayer.
+     When in discarding state, Device is discarding non-OAMPDUs.
+</dd>
+
+<dt>Organizational Unique Identification </dt>
+<dd> 
+    24-bit Organizationally Unique Identifier of the vendor. 
+</dd>
+<dt>PDU Revision </dt>
+<dd>
+     It indicates the current revision of the Information TLV. The value of this field shall start at zero and be incremented each time something in the Information TLV
+     changes. Upon reception of an Information TLV from a peer, an OAM client may use this field to decide if it needs to be processed (an Information TLV that is identical to the previous Information
+     TLV doesn't need to be parsed as nothing in it has changed).
+</dd>
+<dt>PDU Permission</dt>
+<dd>
+    This field is available only for the Local DTE. It displays the current permission rules set for the local DTE. Possible values are 
+    "Link fault","Receive only", "Information exchange only","ANY".  
+</dd>
+<dt>Discovery State </dt>
+<dd>Displays the current state of the discovery process. Possible states are Fault state, Active state, Passive state,
+    SEND_LOCAL_REMOTE_STATE, SEND_LOCAL_REMOTE_OK_STATE, SEND_ANY_STATE. </dd>
+</dl>
+<h2>Buttons</h2>
+<p><i>The port select box determines which port is affected by clicking the buttons.</i></p>
+<p><input type="button" value=" Refresh " disabled >: Click to refresh the page immediately.</p>
+<p>Auto-refresh<input type="checkbox" disabled>: Check this box to enable an automatic refresh. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+</body>
+</html>

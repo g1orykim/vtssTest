@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RMON Alarm Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>RMON Alarm Configuration Help</h1>
+
+<h2>RMON Alarm Configuration</h2>
+
+<p>Configure RMON Alarm table on this page. The entry index key is <samp>ID</samp>.</p>
+
+<dl>
+ <dt>Delete</dt>
+ <dd>
+ Check to delete the entry. It will be deleted during the next save.
+ </dd>
+
+ <dt>ID</dt>
+ <dd>
+ Indicates the index of the entry.
+ The range is from 1 to 65535.
+ </dd>
+  <dt>Interval</dt>
+ <dd>
+ Indicates the interval in seconds for sampling and comparing the rising and falling threshold.
+ The range is from 1 to 2^31-1.
+ </dd>
+
+ <dt>Variable</dt>
+ <dd>
+ Indicates the particular variable to be sampled, the possible variables are:<br>
+ <samp>InOctets</samp>: The total number of octets received on the interface, including framing characters.<br>
+ <samp>InUcastPkts:</samp> The number of uni-cast packets delivered to a higher-layer protocol.<br>
+ <samp>InNUcastPkts</samp>: The number of broad-cast and multi-cast packets delivered to a higher-layer protocol.<br>
+ <samp>InDiscards</samp>: The number of inbound packets that are discarded even the packets are normal.<br>
+ <samp>InErrors</samp>: The number of inbound packets that contained errors preventing them from being deliverable to a higher-layer protocol.<br>
+ <samp>InUnknownProtos</samp>: the number of the inbound packets that were discarded because of the unknown or un-support protocol.<br>
+ <samp>OutOctets</samp>: The number of octets transmitted out of the interface , including framing characters.<br>
+ <samp>OutUcastPkts</samp>: The number of uni-cast packets that request to transmit. <br>
+ <samp>OutNUcastPkts</samp>: The number of broad-cast and multi-cast packets that request to transmit.<br>
+ <samp>OutDiscards</samp>: The number of outbound packets that are discarded event the packets is normal.<br>
+ <samp>OutErrors</samp>: The The number of outbound packets that could not be transmitted because of errors. <br>
+ <samp>OutQLen</samp>: The length of the output packet queue (in packets).
+ </dd>
+
+ <dt>Sample Type</dt>
+ <dd>
+ The method of sampling the selected variable and calculating the value to be compared against the thresholds, possible sample types are:<br>
+ <samp>Absolute</samp>: Get the sample directly.<br> 
+ <samp>Delta</samp>: Calculate the difference between samples (default).
+ </dd>
+
+ <dt>Value</dt>
+ <dd>
+ The value of the statistic during the last sampling period.<br>
+ </dd>
+
+ <dt>Startup Alarm</dt>
+ <dd>
+ The method of sampling the selected variable and calculating the value to be compared against the thresholds, possible sample types are:<br>
+ <samp>Rising</samp>Trigger alarm when the first value is larger than the rising threshold.<br> 
+ <samp>Falling</samp>Trigger alarm when the first value is less than the falling threshold.<br>
+ <samp>RisingOrFalling</samp>Trigger alarm when the first value is larger than the rising threshold or less than the falling threshold (default).
+ </dd>
+
+ <dt>Rising Threshold</dt>
+ <dd>
+ Rising threshold value (-2147483648-2147483647).
+ </dd>
+ <dt>Rising Index</dt>
+ <dd>
+ Rising event index (1-65535).
+ </dd>
+ <dt>Falling Threshold</dt>
+ <dd>
+ Falling threshold value (-2147483648-2147483647)
+ </dd>
+ <dt>Falling Index</dt>
+ <dd>
+ Falling event index (1-65535).
+ </dd>
+
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Add New Entry ">: Click to add a new community entry.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

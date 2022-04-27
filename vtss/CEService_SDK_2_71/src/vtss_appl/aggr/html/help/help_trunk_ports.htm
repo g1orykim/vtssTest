@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Trunk Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Trunk Configuration Help</h1>
+<p>This page is used to configure Hash Code Contributors and Trunk Membership.</p>
+
+<p class="SPOM_only">The Hash Code Contributors settings are global,
+whereas the Trunk Membership relates to the currently selected stack
+unit, as reflected by the page header.</p>
+
+<h2>Hash Code Contributors</h2>
+
+<dl>
+ <dt>Source MAC Address</dt>
+ <dd>
+ The Source MAC Address can be used to calculate the destination port for the frame. Check to enable the use of the Source MAC Address, or uncheck to disable. By default, Source MAC Address is enabled.
+ </dd>
+ <dt>Destination MAC Address</dt>
+ <dd>
+ The Destination MAC Address can be used to calculate the destination port for the frame. Check to enable the use of the Destination MAC Address, or uncheck to disable. By default, Destination MAC Address is disabled.
+ </dd>
+ <dt><a href="glossary.htm#ip" class="glossary">IP</a> Address</dt>
+ <dd>
+ The IP address can be used to calculate the destination port for the frame. Check to enable the use of the IP Address, or uncheck to disable. By default, IP Address is enabled.
+ </dd>
+ <dt><a href="glossary.htm#tcp" class="glossary">TCP</a>/<a href="glossary.htm#udp" class="glossary">UDP</a> Port Number</dt>
+ <dd>
+ The TCP/UDP port number can be used to calculate the destination port for the frame. Check to enable the use of the TCP/UDP Port Number, or uncheck to disable. By default, TCP/UDP Port Number is enabled.
+ </dd>
+</dl>
+
+
+<h2>Trunk Membership</h2>
+
+<dl>
+ <dt>Trunk</dt>
+ <dd>
+ Indicates the trunk ID for the settings contained in the same row. Trunk ID "Normal" indicates port that are not part of any trunk.
+ </dd>
+ <dt class="SPOM_only">Locality</dt>
+ <dd class="SPOM_only">
+ Indicates the trunk type. This field is only valid for stackable switches.
+<br><b>Global</b>: The trunk members may reside on different units in the stack. The device supports two 8-port global trunks.
+<br><b>Local</b>: The trunk members reside on the same unit. Each local trunk may consist of up to 16 members.
+ </dd>
+ <dt>Name</dt>
+ <dd>
+ An optional trunk name. Valid characters are a-z, A-Z, 0-9, space, underscore and dash.
+ </dd>
+ <dt>Mode</dt>
+ <dd>
+ Indicates the trunk mode.
+<br><b>Disabled</b>: Trunk is disabled, no traffic will flow and LACPDUs will be dropped. But the ports that are members of the trunk will not be released.
+<br><b>Static</b>: Select to enable a trunk to operate in static mode. A static trunk does not require a partner system to be able to aggregate its member ports. In this mode, it does not transmit or process received LACPDUs i.e. the member ports do not transmit LACPDUs and all the LACPDUs they may receive are dropped.
+<br><b>LACP Active</b>: Trunk will be initiated and maintained by the periodic exchanges of LACPDUs.
+<br><b>LACP Passive</b>: Trunk will only participate if the other end sends LACPDUs (other end is active).
+ </dd>
+ <dt>Port Members</dt>
+ <dd>
+ Each switch port is listed for each trunk.  Select a radio button to change the trunk membership for a specific port. By default, no ports belongs to any trunk.  Only full duplex ports can join a trunk and ports must be in the same speed in each trunk.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

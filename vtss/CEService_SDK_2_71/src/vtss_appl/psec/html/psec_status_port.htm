@@ -1,0 +1,238 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Security Port Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Refresh timer
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_psec_status_port.htm";
+
+// Entry indices
+var PARM_IDX_MAC_ADDRESS        = 0;
+var PARM_IDX_VID                = 1;
+var PARM_IDX_FORWARDING         = 2;
+var PARM_IDX_ADDED_TIME         = 3;
+var PARM_IDX_AGE_HOLD_TIME_LEFT = 4;
+var PARM_CNT                    = PARM_IDX_AGE_HOLD_TIME_LEFT + 1; // A multiple of this number
+
+var selectedPort = configPortMin;
+// This piece of code makes sure that a specific port can be selected
+// directly, when navigating from a hyperlink on a different page.
+var arg_idx = document.URL.indexOf('?');
+if (arg_idx != -1) {
+  var args = document.URL.substring(arg_idx+1, document.URL.length);
+  var tups = args.split('&');
+  var i;
+  for (i = 0; i < tups.length; i++) {
+    var tup = tups[i].split('=');
+    if (tup.length == 2) {
+      if (tup[0] == 'port') {
+        selectedPort = parseInt(tup[1], 10);
+      }
+    }
+  }
+}
+
+//****************************************
+//****************************************
+function add_mac_row(row, frag, vals)
+{
+  var tr = CreateStyledElement("tr", (row % 2) ? "display_even" : "display_odd");
+
+  addTextCell(tr, vals[PARM_IDX_MAC_ADDRESS], "c mac");
+  addTextCell(tr, vals[PARM_IDX_VID], "cr");
+  if (parseInt(vals[PARM_IDX_FORWARDING], 10)) {
+    addTextCell(tr, "Forwarding", "cl");
+  } else {
+    addTextCell(tr, "Blocked", "cl");
+  }
+  addTextCell(tr, vals[PARM_IDX_ADDED_TIME], "cl");
+  if (parseInt(vals[PARM_IDX_AGE_HOLD_TIME_LEFT], 10) === 0) {
+    addTextCell(tr, "-", "cr");
+  } else {
+    addTextCell(tr, vals[PARM_IDX_AGE_HOLD_TIME_LEFT], "cr");
+  }
+  frag.appendChild(tr);
+}
+
+//****************************************
+//****************************************
+function processUpdate(req, ref)
+{
+  // Format: port#[MACs]
+  // [MACs]: [MAC_1]#[MAC_2]#...#[MAC_N]
+  // [MAC_x]: mac_address_x/vid_x/state_x/added_time_x/age_hold_time_left_x
+  var values = req.responseText.split("#");
+
+  document.getElementById("update").style.visibility = "hidden";
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  // Update the "Port Y" part of "Port Security Port Status for Switch X Port Y".
+  document.getElementById("port").innerHTML = "Port " + values[0];
+
+  var frag = document.createDocumentFragment();
+  if (values.length == 1) {
+    // Add an empty row saying "No MAC addresses attached"
+    tr = CreateStyledElement("tr", "notice");
+    addTextCell(tr, "No MAC addresses attached", "cl", PARM_CNT);
+    frag.appendChild(tr);
+  } else {
+    // Build the MAC table
+    for (var i = 1; i < values.length; i++) {
+      var mac_values = values[i].split("/");
+      if (mac_values.length != PARM_CNT) {
+        return;
+      }
+      add_mac_row(i, frag, mac_values);
+    }
+  }
+
+  var tbody = document.getElementById('mac_tbody');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag);
+
+  // Update the timer
+  var autorefresh = document.getElementById('autorefresh');
+  if (autorefresh.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+  }
+}
+
+//****************************************
+//****************************************
+function requestUpdate()
+{
+  if (SpomNavigationLoading()) {
+    return; // Bail out, navigation will trigger update
+  }
+
+  document.getElementById("update").style.visibility = "visible";
+  loadXMLDoc(SpomAddSidArg("/stat/psec_status_port?port=" + selectedPort), processUpdate, null);
+  SpomUpdateDisplaySid("sid_display");
+}
+
+//****************************************
+//****************************************
+function PortSelect(sel)
+{
+  selectedPort = sel.options[sel.selectedIndex].value; 
+  requestUpdate();
+}
+
+//****************************************
+//****************************************
+function chkRefresh(fld)
+{
+  if (!fld.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = null;
+  } else {
+    requestUpdate();
+  }
+}
+
+//****************************************
+//****************************************
+function SpomSidSelectorUpdate(sid, max_port_cnt)
+{
+  SpomSetCurrentSid(sid); // Save current SID
+  selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+  requestUpdate();        // Update page to reflect selector
+}
+
+//****************************************
+// Called only once. Used to fill in the port selector
+//****************************************
+function docLoad()
+{
+  selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+  requestUpdate();
+}
+
+ </script>
+</head>
+
+  <body class="content" onload="docLoad();">
+
+    <h1>Port Security Port Status<span>&nbsp;</span><span id="sid_display"></span><span>&nbsp;</span><span id="port"></span></h1>
+
+    <div class="refreshbar">
+      <form action="#">
+        <select id="portselect" onchange="PortSelect(this);">
+          <option value="1">Port 1</option>
+          <option value="99">Port 99</option>
+        </select>
+        <label for="autorefresh">Auto-refresh</label>
+        <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+        <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+        <img id="update" alt="" src="images/updating.gif">
+     </form>
+    </div>
+
+    <table summary="MAC Addresses" class="display">
+      <thead>
+        <tr class="display_header">
+          <th>MAC Address</th>
+          <th>VLAN ID</th>
+          <th>State</th>
+          <th>Time of Addition</th>
+          <th>Age/Hold</th>
+        </tr>
+      </thead>
+      <tbody id="mac_tbody"></tbody>
+    </table>
+
+  </body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>UPNP Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_upnp.htm";
+var values;
+
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = Array(0, 1);
+
+var upnpMaxLength = 3;
+var upnpIntervalMaxLength = 5;
+
+function checkForm() {
+    //ttl
+    if (!isWithinRange("ttl", 1, 255, "'TTL'"))
+        return false;
+
+    //interval
+    if (!isWithinRange("interval", 100, 86400, "'Advertising Duration'"))
+        return false;
+
+    return true;
+}
+
+function addRow(frag, values) {
+    //Mode
+    tr = document.createElement("tr");
+    addTextCell(tr, "Mode", "param_label");
+    var td = addSelectCell(tr, oTMode, oVMode, values[0], "cl", "mode");
+    td.style.width = "10em";
+    frag.appendChild(tr);
+
+    //TTL
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "TTL", "param_label", "ttl");
+    var td = addInputCell(tr, unescape(values[1]), "cl", "ttl", 10);
+    td.setAttribute("maxLength", upnpMaxLength);
+    td.style.width = "10em";
+    frag.appendChild(tr);
+
+    //Advertising Duration
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Advertising Duration", "param_label", "interval");
+    var td = addInputCell(tr, unescape(values[2]), "cl", "interval", 10);
+    td.setAttribute("maxLength", upnpIntervalMaxLength);
+    td.style.width = "10em";
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref) {
+    //Format: [mode]/[ttl]/[interval]
+
+    values = req.responseText.split("/");
+    //var values = req.split("/");
+
+    //UpdateIdSelect("mode", oTMode, oVMode, parseInt(values[0]));
+    //UpdateIdValue('ttl', values[1]);
+    //UpdateIdValue('interval', values[2]);
+
+    var frag = document.createDocumentFragment();
+    addRow(frag, values);
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function requestUpdate() {
+    //var req = "0/4/100";
+    //processUpdate(req, null);
+    loadXMLDoc("/config/upnp", processUpdate, 'upnpData');
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>UPnP Configuration</h1>
+
+<form method="POST" action="/config/upnp" onsubmit="return checkForm();">
+
+<!--
+<table summary="UPNP Configuration" cellspacing="0" class="config">
+ <tr class="config">
+  <td class="param_label">Mode</td>
+  <td class="cl"><select id="mode" name="mode"><option value=0>Disabled</option><option value=1>Enabled</option></select></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label">TTL</td>
+  <td class="cl"><input type="text" id="ttl" name="ttl" value="4" size="10" maxlength="3"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label">Advertising Duration</td>
+  <td class="cl"><input type="text" id="interval" name="interval" value="100" size="10" maxlength="5"></td>
+ </tr>
+</table>
+-->
+
+<table summary="UPNP Configuration" cellspacing="0" class="config">
+ <tbody id="upnpData">
+ </tbody>
+</table>
+
+<p>
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,36 @@
+2012-01-10  Rene Schipp von Branitz Nielsen <rbn@vitesse.com>
+
+	* threadload_update() now only takes one argument, which is the ID
+	  of the next thread. The previous thread's ID is cached within the
+	  the thread module. ID == 0 (which is otherwise invalid) is now
+	  used for DSR context load (this has only caused changes in sched.cxx).
+
+2011-12-16  Rene Schipp von Branitz Nielsen <rbn@vitesse.com>
+
+	* Created a new package for measuring per-thread CPU loads.
+	  This has impact on the scheduler's task-switching time, so
+	  use with care.
+
+//===========================================================================
+// ####GPLCOPYRIGHTBEGIN####                                                
+// -------------------------------------------                              
+// This file is part of eCos, the Embedded Configurable Operating System.   
+// Copyright (C) 2002 Free Software Foundation, Inc.                        
+//
+// This program is free software; you can redistribute it and/or modify     
+// it under the terms of the GNU General Public License as published by     
+// the Free Software Foundation; either version 2 or (at your option) any   
+// later version.                                                           
+//
+// This program is distributed in the hope that it will be useful, but      
+// WITHOUT ANY WARRANTY; without even the implied warranty of               
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU        
+// General Public License for more details.                                 
+//
+// You should have received a copy of the GNU General Public License        
+// along with this program; if not, write to the                            
+// Free Software Foundation, Inc., 51 Franklin Street,                      
+// Fifth Floor, Boston, MA  02110-1301, USA.                                
+// -------------------------------------------                              
+// ####GPLCOPYRIGHTEND####                                                  
+//===========================================================================

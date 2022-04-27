@@ -1,0 +1,1097 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG =
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "topo_api.h"
+#include "msg_api.h"
+#include "port_api.h"
+#include "misc_api.h"
+#include "icli_porting_util.h"
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+
+#define VTSS_ALLOC_MODULE_ID VTSS_MODULE_ID_TOPO
+
+#define _STACK_CONFIGURABLE()                                  \
+    if (!vtss_stacking_enabled()) {                            \
+        ICLI_PRINTF("%% Error - stacking is not enabled\n");   \
+        return ICLI_RC_OK;                                     \
+    }                                                          \
+    if (!msg_switch_is_master()) {                             \
+        ICLI_PRINTF("%% Error - this is not master switch\n"); \
+        return ICLI_RC_OK;                                     \
+    }
+
+static i32 _stacking_enable(u32 session_id, BOOL b_enable)
+{
+    vtss_isid_t    isid;
+    stack_config_t conf;
+    BOOL           dirty;
+    u32            mask;
+    u32            count = 0;
+
+    /* am I master? */
+    if (!msg_switch_is_master()) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return ICLI_RC_OK;
+    }
+
+    mask = msg_existing_switches();
+    for (isid = VTSS_ISID_START; isid < VTSS_ISID_END; isid++) {
+        if (mask & (1 << isid)) {
+            count++;
+        }
+    }
+
+    if (b_enable == FALSE) {
+        if (count > 1) {
+            ICLI_PRINTF("%% Error - Stacking can only be disabled if the stack consists of one switch\n");
+            return ICLI_RC_OK;
+        }
+    }
+
+    /* get isid */
+    for (isid = VTSS_ISID_START; isid < VTSS_ISID_END; isid++) {
+        if (mask & (1 << isid)) {
+            ICLI_RC_CHECK(topo_stack_config_get(isid, &conf, &dirty),"% Failed to get stack config.\n");
+
+            /* enable stacking */
+            conf.stacking = b_enable;
+
+            ICLI_RC_CHECK(topo_stack_config_set(isid, &conf), "% Failed to set stack config.\n");
+            ICLI_PRINTF("Change will take effect upon next reboot\n");
+        }
+    }
+    return ICLI_RC_OK;
+}
+
+static BOOL _help_stacking_port(
+    IN  vtss_isid_t         isid,
+    IN  icli_port_type_t    port_type,
+    IN  BOOL                *iport_list_1,
+    IN  BOOL                *iport_list_2,
+    OUT char                *str
+)
+{
+    vtss_port_no_t              iport1;
+    vtss_port_no_t              iport2;
+    icli_switch_port_range_t    spr1;
+    icli_switch_port_range_t    spr2;
+    u32                         cnt;
+    char                        *c;
+
+    if ( icli_str_len(str) ) {
+        cnt = 1;
+    } else {
+        cnt = 0;
+        sprintf(str, "Possible stack ports are ");
+    }
+
+    if ( iport_list_2 ) {
+        for ( iport1 = 0; iport1 < VTSS_PORTS; iport1++ ) {
+            if ( iport_list_1[iport1] == FALSE ) {
+                continue;
+            }
+
+            spr1.isid        = isid;
+            spr1.begin_iport = iport1;
+            spr1.port_cnt    = 1;
+            if ( icli_port_from_isid_iport(&spr1) == FALSE ) {
+                T_E("Failed to get switch ID and port from %u/%u\n", isid, iport1);
+                return FALSE;
+            }
+
+            if ( port_type != ICLI_PORT_TYPE_ALL ) {
+                if ( spr1.port_type != port_type ) {
+                    continue;
+                }
+            }
+
+            for ( iport2 = 0; iport2 < VTSS_PORTS; iport2++ ) {
+                if ( iport_list_2[iport2] == FALSE ) {
+                    continue;
+                }
+
+                spr2.isid        = isid;
+                spr2.begin_iport = iport2;
+                spr2.port_cnt    = 1;
+                if ( icli_port_from_isid_iport(&spr2) == FALSE ) {
+                    T_E("Failed to get switch ID and port from %u/%u\n", isid, iport2);
+                    return FALSE;
+                }
+
+                if ( port_type != ICLI_PORT_TYPE_ALL ) {
+                    if ( spr2.port_type != port_type ) {
+                        continue;
+                    }
+                }
+
+                if ( spr1.port_type != spr2.port_type ) {
+                    T_E("Oort type mismatch, %u and %u\n", spr1.port_type, spr2.port_type);
+                    return FALSE;
+                }
+
+                if ( spr1.switch_id != spr2.switch_id ) {
+                    T_E("Switch ID mismatch, %u and %u\n", spr1.switch_id, spr2.switch_id);
+                    return FALSE;
+                }
+
+                c = str + icli_str_len( str );
+                if (cnt) {
+                    sprintf(c, ", ");
+                }
+
+                c = str + icli_str_len( str );
+                if ( port_type == ICLI_PORT_TYPE_ALL ) {
+                    sprintf(c, "\"%s %u/%u,%u\"", icli_port_type_get_name(spr1.port_type), spr1.switch_id, spr1.begin_port, spr2.begin_port);
+                } else {
+                    sprintf(c, "\"%u/%u,%u\"", spr1.switch_id, spr1.begin_port, spr2.begin_port);
+                }
+                cnt++;
+            }
+        }
+    } else {
+        for ( iport1 = 0; iport1 < VTSS_PORTS; iport1++ ) {
+            if ( iport_list_1[iport1] == FALSE ) {
+                continue;
+            }
+
+            spr1.isid        = isid;
+            spr1.begin_iport = iport1;
+            spr1.port_cnt    = 1;
+            if ( icli_port_from_isid_iport(&spr1) == FALSE ) {
+                T_E("Failed to get switch ID and port from %u/%u\n", isid, iport1);
+                return FALSE;
+            }
+
+            if ( port_type != ICLI_PORT_TYPE_ALL ) {
+                if ( spr1.port_type != port_type ) {
+                    continue;
+                }
+            }
+
+            for ( iport2 = iport1 + 1; iport2 < VTSS_PORTS; iport2++ ) {
+                if ( iport_list_1[iport2] == FALSE ) {
+                    continue;
+                }
+
+                spr2.isid        = isid;
+                spr2.begin_iport = iport2;
+                spr2.port_cnt    = 1;
+                if ( icli_port_from_isid_iport(&spr2) == FALSE ) {
+                    T_E("Failed to get switch ID and port from %u/%u\n", isid, iport2);
+                    return FALSE;
+                }
+
+                if ( port_type != ICLI_PORT_TYPE_ALL ) {
+                    if ( spr2.port_type != port_type ) {
+                        continue;
+                    }
+                }
+
+                if ( spr1.port_type != spr2.port_type ) {
+                    T_E("port type mismatch, %u and %u\n", spr1.port_type, spr2.port_type);
+                    return FALSE;
+                }
+
+                if ( spr1.switch_id != spr2.switch_id ) {
+                    T_E("switch ID mismatch, %u and %u\n", spr1.switch_id, spr2.switch_id);
+                    return FALSE;
+                }
+
+                c = str + icli_str_len( str );
+                if ( cnt ) {
+                    sprintf(c, ", ");
+                }
+
+                c = str + icli_str_len( str );
+                if ( port_type == ICLI_PORT_TYPE_ALL ) {
+                    sprintf(c, "\"%s %u/%u,%u\"", icli_port_type_get_name(spr1.port_type), spr1.switch_id, spr1.begin_port, spr2.begin_port);
+                } else {
+                    sprintf(c, "\"%u/%u,%u\"", spr1.switch_id, spr1.begin_port, spr2.begin_port);
+                }
+                cnt++;
+            }
+        }
+    }
+    return TRUE;
+}
+
+static BOOL _runtime_stacking_port(
+    IN  u32                   session_id,
+    IN  icli_runtime_ask_t    ask,
+    OUT icli_runtime_t        *runtime
+)
+{
+    vtss_usid_t                 usid;
+    vtss_isid_t                 isid;
+    u32                         port_count;
+    vtss_port_no_t              iport;
+    BOOL                        iport_list_a[VTSS_PORTS];
+    BOOL                        iport_list_b[VTSS_PORTS];
+    BOOL                        list_a_valid;
+    BOOL                        list_b_valid;
+    BOOL                        list_b_first;
+    port_isid_port_info_t       info;
+    stack_config_t              conf;
+    BOOL                        dirty;
+    icli_switch_port_range_t    *spr;
+    icli_variable_value_t       *v;
+    icli_port_type_t            port_type;
+
+    v = (icli_variable_value_t *)VTSS_MALLOC(sizeof(icli_variable_value_t));
+    if ( v == NULL ) {
+        return FALSE;
+    }
+
+    if ( icli_session_cmd_value_get(session_id, 3, v) == ICLI_RC_OK ) {
+        port_type = v->u.u_port_type;
+    } else {
+        port_type = ICLI_PORT_TYPE_NONE;
+    }
+    VTSS_FREE(v);
+
+    switch ( ask ) {
+    case ICLI_ASK_HELP:
+
+        if ( port_type == ICLI_PORT_TYPE_NONE ) {
+            return FALSE;
+        }
+
+        memset(runtime->help, 0, sizeof(runtime->help));
+
+        for ( usid = VTSS_USID_START; usid < VTSS_USID_END; usid++ ) {
+
+            isid = topo_usid2isid( usid );
+            if ( topo_stack_config_get(isid, &conf, &dirty) != VTSS_RC_OK ) {
+                continue;
+            }
+
+            /* Build stack capable port list (one for each chip) */
+            port_count   = port_isid_port_count( isid );
+            list_a_valid = FALSE;
+            list_b_valid = FALSE;
+            list_b_first = FALSE;
+            for ( iport = 0; iport < VTSS_PORTS; iport++ ) {
+                iport_list_a[iport] = FALSE;
+                iport_list_b[iport] = FALSE;
+                if ( iport < port_count &&
+                     port_isid_port_info_get(isid, iport, &info) == VTSS_RC_OK &&
+                     (info.cap & PORT_CAP_STACKING) ) {
+                    if ( info.chip_no == 1 ) {
+                        /* Stack port on second chip found */
+                        iport_list_b[iport] = TRUE;
+                        list_b_valid = TRUE;
+                        if ( ! list_a_valid ) {
+                            list_b_first = TRUE;
+                        }
+                    } else {
+                        /* Stack port on first chip found */
+                        iport_list_a[iport] = TRUE;
+                        list_a_valid = TRUE;
+                    }
+                }
+            }
+
+            /* Combine the two lists into one string */
+            if ( list_a_valid ) {
+                if ( list_b_first ) {
+                    if ( _help_stacking_port(isid, port_type, iport_list_b, iport_list_a, runtime->help) == FALSE ) {
+                        return FALSE;
+                    }
+                } else {
+                    if ( _help_stacking_port(isid, port_type, iport_list_a, list_b_valid?iport_list_b:NULL, runtime->help) == FALSE ) {
+                        return FALSE;
+                    }
+                }
+            } else {
+                if ( _help_stacking_port(isid, port_type, iport_list_b, NULL, runtime->help) == FALSE ) {
+                    return FALSE;
+                }
+            }
+        }
+        return TRUE;
+
+    case ICLI_ASK_PORT_RANGE:
+
+        memset(&(runtime->port_range), 0, sizeof(runtime->port_range));
+
+        for ( usid = VTSS_USID_START; usid < VTSS_USID_END; usid++ ) {
+
+            isid = topo_usid2isid( usid );
+            if ( topo_stack_config_get(isid, &conf, &dirty) != VTSS_RC_OK ) {
+                continue;
+            }
+
+            /* Build stack capable port list (one for each chip) */
+            port_count = port_isid_port_count( isid );
+            for ( iport = 0; iport < VTSS_PORTS; iport++ ) {
+                if ( (iport < port_count) &&
+                     (port_isid_port_info_get(isid, iport, &info) == VTSS_RC_OK) &&
+                     (info.cap & PORT_CAP_STACKING) ) {
+
+                    spr = &(runtime->port_range.switch_range[runtime->port_range.cnt]);
+
+                    spr->isid        = isid;
+                    spr->begin_iport = iport;
+                    spr->port_cnt    = 1;
+
+                    if ( icli_port_from_isid_iport(spr) == FALSE ) {
+                        T_E("Failed to get switch ID and port from %u/%u\n", isid, iport);
+                        return FALSE;
+                    }
+
+                    switch ( port_type ) {
+                    case ICLI_PORT_TYPE_NONE:
+                    case ICLI_PORT_TYPE_ALL:
+                        break;
+
+                    default:
+                        if ( spr->port_type != port_type ) {
+                            continue;
+                        }
+                    }
+                    (runtime->port_range.cnt)++;
+                }
+            }
+        }
+        return TRUE;
+
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static void icli_stack_stat(u32 session_id, BOOL link, char *name, uint ca, uint cb)
+{
+    char buf[40];
+
+    sprintf(buf, "%s:", name);
+    ICLI_PRINTF("%-23s  ", buf);
+    if (link)
+        ICLI_PRINTF("%-10s  %-10s", ca ? "Up" : "Down", cb ? "Up" : "Down");
+    else
+        ICLI_PRINTF("%-10u  %-10u", ca, cb);
+    ICLI_PRINTF("\n");
+}
+
+static char *icli_sid_txt(vtss_usid_t sid, char *buf)
+{
+    if (sid == 0)
+        strcpy(buf, "-");
+    else
+        sprintf(buf, "%d", sid);
+    return buf;
+}
+
+static void icli_stack_intf_print(u32 session_id, int sp_idx[2], char *buf)
+{
+    // #buf is passed to this function only for re-use.
+    if (msg_switch_is_master()) {
+        vtss_usid_t usid = topo_isid2usid(msg_master_isid());
+        ICLI_PRINTF("Stack Interface A   : %s\n", icli_port_info_txt(usid, iport2uport(port_no_stack(sp_idx[0])), buf));
+        ICLI_PRINTF("Stack Interface B   : %s\n\n", icli_port_info_txt(usid, iport2uport(port_no_stack(sp_idx[1])), buf));
+    } else {
+        // Can't print Switch ID on slaves, and due to the missing usid, the ICLI function for printing the port type
+        // is also not available, so let's just print the uport number. This is OK, since printing of this status
+        // on a slave is just for debug.
+        ICLI_PRINTF("Stack Port A        : %u\n", iport2uport(port_no_stack(sp_idx[0])));
+        ICLI_PRINTF("Stack Port B        : %u\n\n", iport2uport(port_no_stack(sp_idx[1])));
+    }
+}
+
+const char *icli_time_txt(time_t time_val)
+{
+    const char *s;
+
+    s = misc_time2interval(time_val);
+    while (*s == ' ') {
+        s++;
+    }
+    if (!strncmp(s, "0d ", 3)) {
+        s += 3;
+    }
+
+    return s;
+}
+
+static icli_rc_t icli_cmd_stack_list(u32 session_id, BOOL details, BOOL debug)
+{
+    topo_switch_stat_t            stat;
+    topo_topology_type_t          type;
+    topo_switch_list_t            *tsl_p = NULL;
+    topo_switch_t                 *ts_p;
+    vtss_isid_t                   isid;
+    int                           len, i, chip_idx, sp_idx[2];
+    char                          buf[200], *p;
+    const char                    *s;
+    port_info_t                   info;
+    BOOL                          link_up_a, link_up_b;
+    vtss_sprout_stack_port_stat_t *stat_0, *stat_1;
+    BOOL                          stack_intf_printed = FALSE;
+
+    if (!vtss_stacking_enabled()) {
+        ICLI_PRINTF("Stacking is currently disabled\n");
+        return ICLI_RC_OK;
+    }
+
+    if (topo_switch_stat_get(VTSS_ISID_LOCAL, &stat) != VTSS_RC_OK) {
+        ICLI_PRINTF("%% Failed to get switch state\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if ((tsl_p = VTSS_MALLOC(sizeof(topo_switch_list_t))) == NULL) {
+        T_W("VTSS_MALLOC() failed, size=%zu", sizeof(topo_switch_list_t));
+        return ICLI_RC_ERROR;
+    }
+
+    ICLI_PRINTF("\n");
+
+    if (details) {
+        type = stat.topology_type;
+        ICLI_PRINTF("Stack topology      : %s\n",
+                    type == TopoBack2Back ? "Back-to-Back" :
+                    type == TopoClosedLoop ? "Ring" :
+                    (type == TopoOpenLoop && stat.switch_cnt > 1) ? "Chain" :
+                    (type == TopoOpenLoop && stat.switch_cnt == 1) ? "Standalone" : "?");
+        ICLI_PRINTF("Stack Member Count  : %u\n", stat.switch_cnt);
+        ICLI_PRINTF("Last Topology Change: %s\n", misc_time2str(stat.topology_change_time));
+    }
+
+    // Map stack port indices such that stack ports are shown in rising order
+    if (port_no_stack(0) < port_no_stack(1)) {
+        sp_idx[0] = 0;
+        sp_idx[1] = 1;
+    } else {
+        sp_idx[0] = 1;
+        sp_idx[1] = 0;
+    }
+
+    if (topo_switch_list_get(tsl_p) == VTSS_RC_OK) {
+        if (details) {
+            ICLI_PRINTF("Master Switch       : %s\n", misc_mac_txt(tsl_p->mst_switch_mac_addr, buf));
+            ICLI_PRINTF("Last Master Change  : %s\n", misc_time2str(tsl_p->mst_change_time));
+        }
+
+        icli_stack_intf_print(session_id, sp_idx, buf);
+        stack_intf_printed = TRUE;
+
+        // Build header
+        p = &buf[0];
+        p += sprintf(p, " %-17s  ", "Stack Member"); // MAC address
+        p += sprintf(p, "%s  ", debug ? "USID  ISID  UPSIDs" : "SID");
+        len = strlen(buf);
+        for (i = 0; i < len; i++) {
+            ICLI_PRINTF(" ");
+        }
+
+        ICLI_PRINTF(    "Forwarding        ");
+        p += sprintf(p, "Intf A   Intf B   ");
+
+        ICLI_PRINTF(    "Master               ");
+        p += sprintf(p, "Prio  Time           ");
+
+        ICLI_PRINTF("\n");
+        if (details) {
+            p += sprintf(p, "Reelect");
+        }
+
+        icli_table_header(session_id, buf);
+
+        for (i = 0; i < ARRSZ(tsl_p->ts); i++) {
+            if (!tsl_p->ts[i].vld) {
+                break;
+            }
+
+            ts_p = &tsl_p->ts[i];
+
+            // Print one line for each chip in switch
+            for (chip_idx = 0; chip_idx < ts_p->chip_cnt; chip_idx++) {
+                p = &buf[0];
+
+                // MAC address
+                if (chip_idx == 0) {
+                    p += sprintf(p, "%s%s  ",
+                                 ts_p->me ? "*" : " ",
+                                 misc_mac_txt(ts_p->mac_addr, &buf[100]));
+                } else {
+                    p += sprintf(p, " ");
+                    p += sprintf(p, "%*s  ", sizeof("11-22-33-44-55-66")-1, "");
+                }
+
+                // SID
+                isid = (ts_p->usid == 0 ? 0 : topo_usid2isid(ts_p->usid));
+                if (debug) {
+                    if (chip_idx == 0) {
+                        p += sprintf(p, "%-4s  %-4s  ",
+                                     icli_sid_txt(ts_p->usid, &buf[100]),
+                                     icli_sid_txt(isid, &buf[150]));
+                    } else {
+                        p += sprintf(p, "%-4s  %-4s  ", "", "");
+                    }
+                } else {
+                    if (chip_idx == 0) {
+                        p += sprintf(p, "%-3s  ", icli_sid_txt(ts_p->usid, &buf[150]));
+                    } else {
+                        p += sprintf(p, "%*s  ", 3, "");
+                    }
+                }
+
+                if (!ts_p->present) {
+                    sprintf(p, "Currently not present in stack\n");
+                    ICLI_PRINTF(buf);
+                    continue;
+                }
+
+                if (debug) {
+                    if (ts_p->chip[chip_idx].ups_cnt == 2) {
+                        p += sprintf(p, "%-2d, %2d  ",
+                                     ts_p->chip[chip_idx].upsid[0],
+                                     ts_p->chip[chip_idx].upsid[1]);
+                    } else {
+                        // Only one UPS in chip
+                        p += sprintf(p, "%-2d      ", ts_p->chip[chip_idx].upsid[0]);
+                    }
+                }
+
+                // Stack port forwarding mode
+                p += sprintf(p, "%-7s  %-7s  ",
+                             topo_stack_port_fwd_mode_to_str(ts_p->chip[chip_idx].stack_port_fwd_mode[sp_idx[0]]),
+                             topo_stack_port_fwd_mode_to_str(ts_p->chip[chip_idx].stack_port_fwd_mode[sp_idx[1]]));
+
+                // Master information
+                if (chip_idx == 0) {
+                    if (ts_p->mst_capable)
+                        p += sprintf(p, "%-4d", ts_p->mst_elect_prio);
+                    else
+                        p += sprintf(p, "%-4s", "-");
+
+                    s = (ts_p->mst_time > 0 ? icli_time_txt(ts_p->mst_time) : "-");
+                    p += sprintf(p, "  %-13s", s);
+
+                    if (details) {
+                        p += sprintf(p, "  %d", ts_p->mst_time_ignore);
+                    }
+                } else {
+                    p += sprintf(p, "%*s", 4 + 2+13 + 2+1, "");
+                }
+                p += sprintf(p, "\n");
+                ICLI_PRINTF(buf);
+            }
+        }
+    }
+
+    if (details) {
+        if (!stack_intf_printed) {
+            icli_stack_intf_print(session_id, sp_idx, buf);
+        }
+
+        stat_0 = &stat.stack_port[sp_idx[0]];
+        stat_1 = &stat.stack_port[sp_idx[1]];
+
+        link_up_a = (port_info_get(port_no_stack(sp_idx[0]), &info) == VTSS_OK ? info.link : 0);
+        link_up_b = (port_info_get(port_no_stack(sp_idx[1]), &info) == VTSS_OK ? info.link : 0);
+
+        ICLI_PRINTF("\n");
+        sprintf(buf, "%-23s  Intf A      Intf B    ", "");
+        icli_table_header(session_id, buf);
+
+        icli_stack_stat(session_id, 1, "Link State",          link_up_a,                                 link_up_b);
+        icli_stack_stat(session_id, 1, "SPROUT State",        stat_0->proto_up,                          stat_1->proto_up);
+        ICLI_PRINTF("SPROUT Update Counters:\n");
+        icli_stack_stat(session_id, 0, "  Rx PDUs",           stat_0->sprout_update_rx_cnt,              stat_1->sprout_update_rx_cnt);
+        icli_stack_stat(session_id, 0, "  Tx Periodic PDUs",  stat_0->sprout_update_periodic_tx_cnt,     stat_1->sprout_update_periodic_tx_cnt);
+        icli_stack_stat(session_id, 0, "  Tx Triggered PDUs", stat_0->sprout_update_triggered_tx_cnt,    stat_1->sprout_update_triggered_tx_cnt);
+        icli_stack_stat(session_id, 0, "  Tx Policer Drops",  stat_0->sprout_update_tx_policer_drop_cnt, stat_1->sprout_update_tx_policer_drop_cnt);
+        icli_stack_stat(session_id, 0, "  Rx Errors",         stat_0->sprout_update_rx_err_cnt,          stat_1->sprout_update_rx_err_cnt);
+        icli_stack_stat(session_id, 0, "  Tx Errors",         stat_0->sprout_update_tx_err_cnt,          stat_1->sprout_update_tx_err_cnt);
+#if defined(VTSS_SPROUT_V2)
+        ICLI_PRINTF("SPROUT Alert Counters:\n");
+        icli_stack_stat(session_id, 0, "  Rx PDUs",           stat_0->sprout_alert_rx_cnt,               stat_1->sprout_alert_rx_cnt);
+        icli_stack_stat(session_id, 0, "  Tx PDUs",           stat_0->sprout_alert_tx_cnt,               stat_1->sprout_alert_tx_cnt);
+        icli_stack_stat(session_id, 0, "  Tx Policer Drops",  stat_0->sprout_alert_tx_policer_drop_cnt,  stat_1->sprout_alert_tx_policer_drop_cnt);
+        icli_stack_stat(session_id, 0, "  Rx Errors",         stat_0->sprout_alert_rx_err_cnt,           stat_1->sprout_alert_rx_err_cnt);
+        icli_stack_stat(session_id, 0, "  Tx Errors",         stat_0->sprout_alert_tx_err_cnt,           stat_1->sprout_alert_tx_err_cnt);
+#endif
+    }
+
+    VTSS_FREE(tsl_p);
+    return ICLI_RC_OK;
+}
+
+FUNCTION_END
+
+HELP_SWITCH     = Config commands for the switches in the stack
+HELP_STACK      = Stack configuration
+HELP_SWITCH_ID  = Switch ID
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = switch stack re-elect
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+IF_FLAG   =
+
+HELP      = ##HELP_SWITCH
+HELP      = ##HELP_STACK
+HELP      = Force to re-elect master switch
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!vtss_stacking_enabled()) {
+        ICLI_PRINTF("%% Error - stacking is not enabled\n");
+        return ICLI_RC_ERROR;
+    }
+
+    ICLI_RC_CHECK(topo_parm_set(0, TOPO_PARM_MST_TIME_IGNORE, 1), "% Failed to force the master re-election.\n");
+    ICLI_PRINTF("Master re-election active for the next %d seconds.\n", VTSS_SPROUT_MST_TIME_IGNORE_PERIOD);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = switch stack priority {local | <1-16>} <1-4>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = local
+CMD_VAR   = usid
+CMD_VAR   = priority
+
+HELP      = ##HELP_SWITCH
+HELP      = ##HELP_STACK
+HELP      = Configure master election priority
+HELP      = Priority of this switch
+HELP      = ##HELP_SWITCH_ID
+HELP      = Master election priority
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    vtss_isid_t isid = VTSS_ISID_LOCAL;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!vtss_stacking_enabled()) {
+        ICLI_PRINTF("%% Error - stacking is not enabled\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if (!local) {
+        if (!msg_switch_is_master()) {
+            ICLI_PRINTF("%% Error - priority change is only allowed on local switch (use 'local' keyword)");
+            return ICLI_RC_ERROR;
+        }
+
+        isid = topo_usid2isid(usid);
+    }
+
+    ICLI_RC_CHECK(topo_parm_set(isid, TOPO_PARM_MST_ELECT_PRIO, priority), "% Failed to set master election priority.\n");
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = switch stack swap <1-16> <1-16>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = usid1
+CMD_VAR   = usid2
+
+HELP      = ##HELP_SWITCH
+HELP      = ##HELP_STACK
+HELP      = Swap switch ID
+HELP      = ##HELP_SWITCH_ID
+HELP      = ##HELP_SWITCH_ID
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _STACK_CONFIGURABLE();
+
+    if (usid1 == usid2) {
+        return ICLI_RC_OK;
+    }
+
+    ICLI_RC_CHECK(topo_usid_swap(usid1, usid2), "% Failed to swap switch IDs.\n");
+CODE_END
+
+CMD_END
+
+HELP_MAC = MAC configuration of the switch
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no switch stack <1-16>
+
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = usid
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_SWITCH
+HELP      = ##HELP_STACK
+HELP      = ##HELP_SWITCH_ID
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    vtss_isid_t     isid;
+VARIABLE_END
+
+CODE_BEGIN
+    _STACK_CONFIGURABLE();
+
+    isid = topo_usid2isid(usid);
+
+    if (msg_switch_is_local(isid)) {
+        ICLI_PRINTF("%% Error - master SID can not be deleted\n");
+        return ICLI_RC_OK;
+    }
+
+    ICLI_RC_CHECK(topo_isid_delete(isid), "% Failed to delete the switch ID.\n");
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = switch stack <1-16> mac <mac_ucast>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = usid
+CMD_VAR   =
+CMD_VAR   = mac
+
+HELP      = ##HELP_SWITCH
+HELP      = ##HELP_STACK
+HELP      = ##HELP_SWITCH_ID
+HELP      = ##HELP_MAC
+HELP      = MAC address of the switch
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    vtss_isid_t isid;
+VARIABLE_END
+
+CODE_BEGIN
+    _STACK_CONFIGURABLE();
+
+    /* get isid */
+    isid = topo_usid2isid(usid);
+
+    ICLI_RC_CHECK(topo_isid_assign(isid, mac.addr), "% Failed to assign switch ID with the mac.\n");
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = switch stack { enable | disable }
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_enable
+
+HELP      = ##HELP_SWITCH
+HELP      = ##HELP_STACK
+HELP      = enable stacking 
+HELP      = disable stacking 
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CODE_BEGIN
+    (void)_stacking_enable( session_id, b_enable );
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = switch stack interface <port_type_list>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = list
+
+RUNTIME   =
+RUNTIME   =
+RUNTIME   =
+RUNTIME   = _runtime_stacking_port
+
+HELP      = ##HELP_SWITCH
+HELP      = ##HELP_STACK
+HELP      = Configure stacking interface
+HELP      = Port list for stacking
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    vtss_isid_t         isid = 0;
+    vtss_port_no_t      iport[2] = {0, 0};
+    stack_config_t      conf;
+    u32                 i;
+    u32                 j;
+    u32                 k;
+    u32                 iport_cnt;
+    u32                 switch_id = 0;
+    BOOL                dirty;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!msg_switch_is_master()) {
+        ICLI_PRINTF("%% Error - this is not master switch\n");
+        return ICLI_RC_OK;
+    }
+
+    /* retrieve iport */
+    iport_cnt = 0;
+    for (i = 0; i < list->cnt; i++) {
+        if (list->switch_range[i].port_cnt > 2) {
+            ICLI_PRINTF("%% Error - too many stacking ports for switch %u\n", list->switch_range[i].switch_id);
+            return ICLI_RC_OK;
+        }
+
+        if (iport_cnt == 0) {
+            isid = list->switch_range[i].isid;
+            switch_id = list->switch_range[i].switch_id;
+        }
+
+        if (list->switch_range[i].isid == isid) {
+            for (j = 0; j < list->switch_range[i].port_cnt; j++) {
+                if (iport_cnt >= 2) {
+                    ICLI_PRINTF("%% Error - too many stacking ports for switch %u\n", switch_id);
+                    return ICLI_RC_OK;
+                }
+                iport[iport_cnt] = list->switch_range[i].begin_iport + j;
+                iport_cnt++;
+            }
+
+            if (iport_cnt < 2) {
+                continue;
+            }
+        } else {
+            for (k = i + 1; k < list->cnt; k++) {
+                if (list->switch_range[k].port_cnt > 2) {
+                    ICLI_PRINTF("%% Error - too many stacking ports for switch %u\n", list->switch_range[k].switch_id);
+                    return ICLI_RC_OK;
+                }
+
+                if (list->switch_range[k].isid == isid) {
+                    for (j = 0; j < list->switch_range[k].port_cnt; j++) {
+                        if (iport_cnt >= 2) {
+                            ICLI_PRINTF("%% Error - too many stacking ports for switch %u\n", list->switch_range[k].switch_id);
+                            return ICLI_RC_OK;
+                        }
+                        iport[iport_cnt] = list->switch_range[k].begin_iport + j;
+                        iport_cnt++;
+                    }
+                }
+            }
+        }
+
+        if (iport_cnt != 2) {
+            ICLI_PRINTF("%% Error - too few stacking ports for switch %u\n", switch_id);
+            return ICLI_RC_OK;
+        }
+
+        /* set */
+        ICLI_RC_CHECK(topo_stack_config_get(isid, &conf, &dirty), "% Failed to get stack config from switch\n");
+
+        /* configure stacking ports */
+        conf.port_0 = iport[0];
+        conf.port_1 = iport[1];
+
+        ICLI_RC_CHECK(topo_stack_config_set(isid, &conf), "% Failed to set stack config on switch\n");
+        ICLI_PRINTF("Change will take effect upon next reboot\n");
+
+        // restart
+        iport_cnt = 0;
+    }
+
+    if (iport_cnt != 0) {
+        ICLI_PRINTF("%% Error - too few stacking ports for switch %u\n", switch_id);
+        return ICLI_RC_OK;
+    }
+CODE_END
+
+CMD_END
+
+HELP_SHOW_SWITCH = show information about the switch
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show switch stack [details]
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_0
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = details
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##HELP_SHOW_SWITCH
+HELP      = ##HELP_STACK
+HELP      = Detail information
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    icli_rc_t icli_rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if ((icli_rc = icli_cmd_stack_list(session_id, details, FALSE)) != ICLI_RC_OK) {
+        return icli_rc;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show switch stack debug
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##HELP_SHOW_SWITCH
+HELP      = ##HELP_STACK
+HELP      = Debug information
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    icli_rc_t icli_rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if ((icli_rc = icli_cmd_stack_list(session_id, TRUE, TRUE)) != ICLI_RC_OK) {
+        return icli_rc;
+    }
+CODE_END
+
+CMD_END

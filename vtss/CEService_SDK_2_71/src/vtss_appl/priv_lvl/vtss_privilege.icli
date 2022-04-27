@@ -1,0 +1,381 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_PRIV_LVL)
+
+INCLUDE_BEGIN
+#include "vtss_privilege_api.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+static BOOL VTSS_PRIVILEGE_ICLI_group_name_list(u32                session_id,
+                                                icli_runtime_ask_t ask,
+                                                icli_runtime_t     *runtime)
+{
+    if (ask == ICLI_ASK_CWORD) {
+        vtss_privilege_group_name_list_get(ICLI_CWORD_MAX_CNT, (const char **)runtime->cword);
+        return TRUE;
+    }
+    return FALSE;
+}
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_WEB        = Web
+HELP_PRIVILEGE  = Web privilege
+HELP_GROUP      = Web privilege group
+HELP_GROUP_NAME = Web privilege group name
+HELP_LEVEL      = Web privilege group level
+HELP_CRO        = Configuration Read-only level
+HELP_CRW        = Configuration Read-write level
+HELP_SRO        = Status/Statistics Read-only level
+HELP_SRW        = Status/Statistics Read-write level
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show web privilege group [ <cword> ] level
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_web_privilege_show
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: web
+! 3: privilege
+! 4: group
+! 5: <cword>
+! 6: level
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = group_name
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = VTSS_PRIVILEGE_ICLI_group_name_list
+RUNTIME = 
+
+HELP = 
+HELP = ##HELP_WEB
+HELP = ##HELP_PRIVILEGE
+HELP = ##HELP_GROUP
+HELP = ##HELP_GROUP_NAME
+HELP = ##HELP_LEVEL
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_priv_conf_t    conf;
+    int                 cnt = 0;
+    char                priv_group_name[VTSS_PRIV_LVL_NAME_LEN_MAX] = "";
+    vtss_module_id_t    module_id;
+VARIABLE_END
+
+CODE_BEGIN
+    if (vtss_priv_mgmt_conf_get(&conf) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+
+    if (group_name) { // specific group name
+        if (vtss_privilege_group_name_get(group_name, &module_id, FALSE) == FALSE) {
+            return ICLI_RC_ERROR;
+        }
+        ICLI_PRINTF("Group Name                       Privilege Level\n");
+        ICLI_PRINTF("                                 CRO CRW SRO SRW\n");
+        ICLI_PRINTF("-------------------------------- --- --- --- ---\n");
+        ICLI_PRINTF("%-32s %3d %3d %3d %3d\n",
+                    group_name,
+                    conf.privilege_level[module_id].cro,
+                    conf.privilege_level[module_id].crw,
+                    conf.privilege_level[module_id].sro,
+                    conf.privilege_level[module_id].srw);
+    } else { // all group name
+        while (vtss_privilege_group_name_get(priv_group_name, &module_id, TRUE)) {
+            if (++cnt == 1) {
+                ICLI_PRINTF("Group Name                       Privilege Level\n");
+                ICLI_PRINTF("                                 CRO CRW SRO SRW\n");
+                ICLI_PRINTF("-------------------------------- --- --- --- ---\n");
+            }
+            ICLI_PRINTF("%-32s %3d %3d %3d %3d\n",
+                        priv_group_name,
+                        conf.privilege_level[module_id].cro,
+                        conf.privilege_level[module_id].crw,
+                        conf.privilege_level[module_id].sro,
+                        conf.privilege_level[module_id].srw);
+        };
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = web privilege group <cword> level { [ cro <0-15> ] [ crw <0-15> ] [ sro <0-15> ] [ srw <0-15> ] }*1
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_web_privilege_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: web
+! 2: privilege
+! 3: group
+! 4: <cword>
+! 5: level
+! 6: cro
+! 7: <0-15>
+! 8: crw
+! 9: <0-15>
+! 10: sro
+! 11: <0-15>
+! 12: srw
+! 13: <0-15>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = group_name
+CMD_VAR = 
+CMD_VAR = has_cro
+CMD_VAR = cro
+CMD_VAR = has_crw
+CMD_VAR = crw
+CMD_VAR = has_sro
+CMD_VAR = sro
+CMD_VAR = has_srw
+CMD_VAR = srw
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = VTSS_PRIVILEGE_ICLI_group_name_list
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##HELP_WEB
+HELP = ##HELP_PRIVILEGE
+HELP = ##HELP_GROUP
+HELP = ##HELP_GROUP_NAME
+HELP = ##HELP_LEVEL
+HELP = ##HELP_CRO
+HELP = 
+HELP = ##HELP_CRW
+HELP = 
+HELP = ##HELP_SRO
+HELP = 
+HELP = ##HELP_SRW
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = cro : Option
+BYWORD = <Cro : 0-15>
+BYWORD = crw : Option
+BYWORD = <Crw : 0-15>
+BYWORD = sro : Option
+BYWORD = <Sro : 0-15>
+BYWORD = srw : Option
+BYWORD = <Srw : 0-15>
+
+VARIABLE_BEGIN
+    vtss_priv_conf_t    priv_conf;
+    vtss_module_id_t    module_id;
+    int                 changed = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    if (vtss_priv_mgmt_conf_get(&priv_conf) != VTSS_OK ||
+        group_name == NULL ||
+        vtss_privilege_group_name_get(group_name, &module_id, FALSE) == FALSE) {
+        return FALSE;
+    }
+
+    if (has_cro && priv_conf.privilege_level[module_id].cro != cro) {
+        priv_conf.privilege_level[module_id].cro = cro;
+        changed = 1;
+    }
+    if (has_crw && priv_conf.privilege_level[module_id].crw != crw) {
+        priv_conf.privilege_level[module_id].crw = crw;
+        changed = 1;
+    }
+    if (has_sro && priv_conf.privilege_level[module_id].sro != sro) {
+        priv_conf.privilege_level[module_id].sro = sro;
+        changed = 1;
+    }
+    if (has_srw && priv_conf.privilege_level[module_id].srw != srw) {
+        priv_conf.privilege_level[module_id].srw = srw;
+        changed = 1;
+    }
+    if (changed) {
+        if (priv_conf.privilege_level[module_id].cro > priv_conf.privilege_level[module_id].crw) {
+            ICLI_PRINTF("The privilege level of 'Configuration Read-only' should be less than or equal to 'Configuration Read-write'\n");
+            return ICLI_RC_ERROR;
+        }
+        if (priv_conf.privilege_level[module_id].sro > priv_conf.privilege_level[module_id].srw) {
+            ICLI_PRINTF("The privilege level of 'Status/Statistics Read-only' should be less than or equal to 'Status/Statistics Read-write'\n");
+            return ICLI_RC_ERROR;
+        }
+        if (priv_conf.privilege_level[module_id].crw < priv_conf.privilege_level[module_id].sro) {
+            ICLI_PRINTF("The privilege level of 'Configuration/Execute Read-write' should be greater than or equal to 'Status/Statistics Read-only'\n");
+            return ICLI_RC_ERROR;
+        }
+        if (vtss_priv_mgmt_conf_set(&priv_conf) != VTSS_OK) {
+            return ICLI_RC_ERROR;
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no web privilege group [ <cword> ] level
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_web_privilege_restore
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: web
+! 3: privilege
+! 4: group
+! 5: <cword>
+! 6: level
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = group_name
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = VTSS_PRIVILEGE_ICLI_group_name_list
+RUNTIME = 
+
+HELP = 
+HELP = ##HELP_WEB
+HELP = ##HELP_PRIVILEGE
+HELP = ##HELP_GROUP
+HELP = ##HELP_GROUP_NAME
+HELP = ##HELP_LEVEL
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_priv_conf_t    priv_conf, priv_def_conf;
+    vtss_module_id_t    module_id;
+VARIABLE_END
+
+CODE_BEGIN
+    if (group_name) {
+        if (vtss_priv_mgmt_conf_get(&priv_conf) != VTSS_OK ||
+            vtss_privilege_group_name_get(group_name, &module_id, FALSE) == FALSE) {
+            return ICLI_RC_ERROR;
+        }
+        VTSS_PRIVILEGE_default_get(&priv_def_conf);
+        priv_conf.privilege_level[module_id] =  priv_def_conf.privilege_level[module_id];
+    } else {
+        VTSS_PRIVILEGE_default_get(&priv_conf);
+        return ICLI_RC_ERROR;
+    }
+
+    if (vtss_priv_mgmt_conf_set(&priv_conf) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+

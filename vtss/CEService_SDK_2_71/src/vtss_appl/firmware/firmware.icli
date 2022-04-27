@@ -1,0 +1,176 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "firmware_icli_functions.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = 0
+
+COMMAND = show version
+
+DOC_CMD_DESC    = Use show version to display firmware information.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Use to display firmware information.
+DOC_CMD_EXAMPLE = show version.
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: version
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = Display firmware information.
+HELP = Display firmware inforamtion.
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    firmware_icli_show_version(session_id);   
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = firmware upgrade <word> 
+
+DOC_CMD_DESC    = Use firmware upgrade to load new firmware image to the switch.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Use to load new firmware image to the switch.
+DOC_CMD_EXAMPLE = firmware upgrade tftp://10.10.10.10/new_image_path/new_image.dat
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: firmware
+! 2: upgrade
+! 3: <tftpserver_path_file:word>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = tftpserver_path_file
+
+HELP = Firmware upgrade/swap
+HELP = Firmware upgrade
+HELP = TFTP Server IP address, path and file name for the server containing the new image.
+
+BYWORD = 
+BYWORD = 
+BYWORD = <TFTPServer_path_file : word>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    firmware_icli_upgrade(session_id, tftpserver_path_file);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = VTSS_SWITCH_STANDALONE
+
+COMMAND = firmware swap
+
+DOC_CMD_DESC    = Use firmware swap to swap the active and alternative firmware images.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Use to swap the active and alternative firmware images.
+DOC_CMD_EXAMPLE = firmware swap
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: firmware
+! 2: upgrade
+! 3: swap
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = Firmware upgrade/swap
+HELP = Swap between Active and Alternate firmware image. 
+
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    firmware_icli_swap(session_id);
+CODE_END
+
+CMD_END
+

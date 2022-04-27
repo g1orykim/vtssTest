@@ -1,0 +1,287 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>VLAN Membership Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_erps_vlan.htm";
+var selectedERPS = 1;
+var pageArgs = searchArgs(window.location.search);
+if (pageArgs['erps']) {
+    selectedERPS = parseInt(pageArgs['erps'], 10);
+}
+var reqObject;
+var entryIdxArray = Array();
+var vlanconfig = Array();
+var portcount = configNormalPortMax - configPortMin + 1;
+var LastVlanVal = 0;
+var vidArray = Array();
+var originalEntriesNum, newEntriesNum;
+var maxEntriesNum = configVlanEntryCnt;
+
+function resetForm()
+{
+    processUpdate(reqObject, "vlanData");
+}
+
+
+function appendFrag(frag, ref, clear)
+{
+    var tbody = document.getElementById(ref);
+    if (clear) {
+        clearChildNodes(tbody);
+    }
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function addRow(index, frag, vid)
+{
+    vidArray[originalEntriesNum] = vid;
+    originalEntriesNum++;
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addCheckBoxCell(tr, 0, "c", "delete_" + vid);
+    addTextCell(tr, vid, "cr");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format:
+    // <startvid>|<NumberOfEntries>|<vid>,<en>/<en>/..../<en>/|....
+    // 17,1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1|....
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    originalEntriesNum = newEntriesNum = 0;
+    UpdateIdValue("erps_id_hidden", selectedERPS);
+
+    if (reqObject != req) {
+        reqObject = req;
+    }
+
+    if (req.responseText)
+    {
+        var values = req.responseText.split("|");
+        var frag = document.createDocumentFragment();
+        for (var i = 0; i < values.length; i++)
+        {
+            if (values[i]) {
+                addRow(i, frag, values[i]);
+            }
+        }
+        newEntriesNum = 0;
+        appendFrag(frag, ref, 1);
+    }
+}
+
+
+
+
+function requestUpdate(type)
+{
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    document.getElementById("display_sid").innerHTML=selectedERPS;
+    loadXMLDoc(SpomAddSidArg("/config/erpsVlanConfig?erps=" + selectedERPS), processUpdate, 'vlanData');
+}
+
+function checkForm(form)
+{
+    // Check that there is at least one VLAN.
+    var fld1, fld2;
+    var deleteEntriesNum = 0;
+
+    //counter delete entries number
+    for (var i = 0; i < originalEntriesNum; i++) {
+        fld1 = document.getElementById("delete_" + vidArray[i]);
+        if (fld1.checked) {
+            deleteEntriesNum++;
+        }
+    }
+
+    if ((originalEntriesNum - deleteEntriesNum + newEntriesNum) > maxEntriesNum) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return false;
+    }
+    //check new entries
+     for (i = 0; i < newEntriesNum; i++) {
+        fld2 = document.getElementById("vid_new_"+ entryIdxArray[i]);
+        if(!isWithinRange("vid_new_"+ entryIdxArray[i], 1, 4095, "'VLAN ID'")) {
+            return false;
+        }
+        //check the entry exist in original entries
+        for (var j = 0; j < originalEntriesNum; j++) {
+            if (fld2.value == vidArray[j]) {
+                GiveAlert("VLAN ID " + fld2.value + " is already in use.", fld2);
+                return false;
+            }
+        }
+
+        //check the entry exist in new entries
+        for (j = i + 1; j < newEntriesNum; j++) {
+            if (fld2.value == document.getElementById("vid_new_"+ entryIdxArray[j]).value) {
+            GiveAlert("VLAN ID " + fld2.value + " is already in use.", fld2);
+            return false;
+           }
+        }
+    }
+    return true; // Feed the chickens and go home
+}
+
+function addEntryIdx()
+{
+    var fld;
+
+    for (var i = 1; i <= maxEntriesNum; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newEntriesNum++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById("vlanData").removeChild(tr);
+}
+
+function AddNewRow()
+{
+    var entryIdx = addEntryIdx();
+    if (entryIdx === 0) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalEntriesNum + entryIdx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+    var edit_ctrl = addInputCell(tr, 0, "cr", "vid_new_" + entryIdx, 5);
+    edit_ctrl.setAttribute("maxLength", 4); // 'camelCase' required for maxLength for this to work with IE.
+
+    frag.appendChild(tr);       // Add row to fragment
+
+    var tbody = document.getElementById("vlanData");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate('Refresh');            // Update page to reflect selector
+}
+
+function backFunc() {
+    document.location.href="erps_config.htm?erps=" + selectedERPS;
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+<h1>ERPS VLAN Configuration <span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <input type="button" value="Refresh" onClick="requestUpdate('Refresh'); this.blur();">
+ </form>
+</div>
+
+<form method="POST" action="/config/erpsVlanConfig" onsubmit="return checkForm(this);">
+<table summary="Ethernet Ring Protection Switching VLAN config" cellspacing="0" class="config">
+<thead>
+<tr class="config_header">
+<th>Delete</th>
+<th>VLAN ID</th>
+</tr>
+</thead>
+ <tbody id="vlanData">
+ </tbody>
+</table>
+<p>
+<input type="button" id="addNewEntry" value="Add New Entry" onclick="AddNewRow()">
+<input type="button" id="Back" value="Back" onclick="backFunc()">&nbsp;&nbsp;&nbsp;&nbsp;
+</p>
+
+<p>
+  <input type="hidden" id="erps_id_hidden" name="erps_id_hidden">
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

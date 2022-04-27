@@ -1,0 +1,285 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Performance Monitor Measurement Interval Information</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_perf_mon_interval_info.htm";
+
+var pageTransfer = 0;
+var pageInfoType = 4;
+var pageStartId = 1;
+var pageEntriesNum = 20;
+var pageArgs = searchArgs(window.location.search);
+var pageArgsName = 'page_info_type';
+if (pageArgs[pageArgsName]) {
+    pageInfoType = parseInt(pageArgs[pageArgsName], 10);
+    pageTransfer = 1;
+}
+pageArgsName = 'page_start_id';
+if (pageArgs[pageArgsName]) {
+    pageStartId = parseInt(pageArgs[pageArgsName], 10);
+}
+pageArgsName = 'page_entries_num';
+if (pageArgs[pageArgsName]) {
+    pageEntriesNum = parseInt(pageArgs[pageArgsName], 10);
+}
+
+var timerID;
+var pageLastEntryId = 1;
+var oTInfoType = Array("LM", "DM", "EVC", "ECE");
+
+function CreateTableHeader(frag)
+{
+    var tr, td, i;
+
+    tr = CreateStyledElement("tr", "display_header");
+    td = addTextHeaderCell(tr, "Information", "hdrc");
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("Type"));
+    td = addTextHeaderCell(tr, "Measurement", "hdrc");
+    td.appendChild(document.createElement("br"));
+    td.appendChild(document.createTextNode("Interval ID"));
+    addTextHeaderCell(tr, "Interval Start Time", "hdrc");
+    addTextHeaderCell(tr, "Interval End Time", "hdrc");
+    addTextHeaderCell(tr, "Elapsed Time", "hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addTextCell(tr, oTInfoType[parseInt(values[0], 10)], "c");
+    pageLastEntryId = values[1];
+    for (var idx = 1; idx < values.length; idx++) {
+        addTextCell(tr, values[idx], "cr");
+    }
+    frag.appendChild(tr);   // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format: [page_info_type];[page_start_id];[page_entries_num];
+    //         [info_type]/[interval_id]/[start_time]/[end_time]/[elspsed_time]|...
+
+    var tbl = document.createElement("table");
+    var tbl_body = document.createElement("tbody");
+    tbl.className = "display";
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    if (req.responseText) {
+        var displayData = req.responseText.split(";");
+        // Update pageInfoType
+        UpdateIdSetSelect("pageInfoType", displayData[0]);
+
+        // Update pageStartId
+        var fld = document.getElementById("pageStartId");
+        pageStartId = fld.value = displayData[1];
+
+        // Update pageEntriesNum
+        fld = document.getElementById("pageEntriesNum");
+        pageEntriesNum = fld.value = displayData[2];
+
+        // Update entry row
+        if (displayData[3]) {
+            var counterData = displayData[3].split("|");
+            for (var i = 0, j = 0; i < counterData.length; i++) {
+                if (counterData[i]) {
+                    addRow(j++, frag, counterData[i].split("/"));
+                }
+            }
+        } else {
+            tr = CreateStyledElement("tr", "notice");
+            addTextCell(tr, "No more entries", "cl", 5);
+            frag.appendChild(tr);
+        }
+    }
+
+    tbl_body.appendChild(frag);   // Add row to fragment
+    tbl.appendChild(tbl_body);
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(tbl)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh && autorefresh.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout("requestUpdate('refresh')", settingsRefreshInterval());
+    }
+}
+
+
+function checkForm()
+{
+    if (!isWithinRange("pageStartId", 1, 0xFFFFFFFF, "'Measurement Interval ID'")) {
+        return false;
+    }
+
+    // syslogEntryNum
+    if (!isWithinRange("pageEntriesNum", 1, 99, "'entries per page'")) {
+        return false;
+    }
+    return true;
+}
+
+function requestUpdate(ctrl_flag)
+{
+    // Format: [ctrl_flag]
+    // 0:init 1:refresh 2:firstPage 3:previousPage 4:nextPage 5:lastPage
+
+    if (!checkForm()) {
+        return false;
+    }
+
+    var ctrl_flag_value = 0;
+    switch(ctrl_flag) {
+        case 'refresh':
+            ctrl_flag_value = 1;
+            break;
+        case 'firstPage':
+            ctrl_flag_value = 2;
+            break;
+        case 'previousPage':
+            ctrl_flag_value = 3;
+            break;
+        case 'nextPage':
+            ctrl_flag_value = 4;
+            break;
+        case 'lastPage':
+            ctrl_flag_value = 5;
+            break;
+        case 'init':
+        default:
+            if (pageTransfer) {
+                pageTransfer = 0;
+                ctrl_flag_value = 1; // act as 'refresh'
+            } else {
+                ctrl_flag_value = 0;
+            }
+            document.getElementById("pageInfoType").value = pageInfoType;
+            document.getElementById("pageStartId").value = pageStartId;
+            document.getElementById("pageEntriesNum").value = pageEntriesNum;
+            break;
+    }
+
+    var url = "/stat/perf_mon_interval_info?ctrl_flag=" + ctrl_flag_value;
+    url += "&page_info_type=" + document.getElementById("pageInfoType").value;
+    url += "&page_start_id=";
+    if (ctrl_flag_value == 4) {
+        url += pageLastEntryId;
+    } else {
+        url += document.getElementById("pageStartId").value;
+    }
+    url += "&page_entries_num=" + document.getElementById("pageEntriesNum").value;
+    loadXMLDoc(url, processUpdate, 'displayTable');
+    return true;
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate('refresh');
+    }
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate('init');">
+
+<h1>Performance Monitor Measurement Interval Information</h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh"  onclick="chkRefresh(this);">
+  <input type="button"   value="Refresh"    id="refresh"      onclick="requestUpdate('refresh');      this.blur();">
+  <input type="button"   value=" |<< "      id="firstPage"    onclick="requestUpdate('firstPage');    this.blur();" title="First Interval ID">
+  <input type="button"   value=" << "       id="previousPage" onclick="requestUpdate('previousPage'); this.blur();" title="Previous Interval ID">
+  <input type="button"   value=" >> "       id="nextPage"     onclick="requestUpdate('nextPage');     this.blur();" title="Next Interval ID">
+  <input type="button"   value=" >>| "      id="lastPage"     onclick="requestUpdate('lastPage');     this.blur();" title="Last Interval ID">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<div>
+  <span class="displaytext">Information Type</span> 
+    <select id="pageInfoType" name="pageInfoType" onchange="requestUpdate('refresh');">
+      <option value="0" selected>LM</option>
+      <option value="1">DM</option>
+      <option value="2">EVC</option>
+      <option value="3">ECE</option>
+    </select>
+  <span class="displaytext">, Measurement Interval ID</span>
+  <input type="text" id="pageStartId" name="pageStartId" maxlength="10" size="10" value="1">
+  <span class="displaytext"> with </span>
+  <input type="text" id="pageEntriesNum" name="pageEntriesNum" maxlength="3" size="3" value="20">
+  <span class="displaytext"> entries per page.</span>
+</div>
+&nbsp;
+  
+<div id="displayTable">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

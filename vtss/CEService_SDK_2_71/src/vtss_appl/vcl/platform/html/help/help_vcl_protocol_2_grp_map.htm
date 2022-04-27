@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Protocol to Group Mapping Table Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/ajax.js"></script>
+ <script type="text/javascript" src="/lib/spom.js"></script>
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript"></script>
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+    $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+</script>
+</head>
+
+<body>
+<h1>Protocol to Group Mapping Table Help</h1>
+
+<p>This page allows you to add new protocols to Group Name (unique for each Group) mapping entries as well as allow you to see and delete already mapped entries for the <span class="SPOM_only"> selected stack switch unit </span><span class="Standalone_only"> switch </span>.</p>
+
+<p>The displayed settings are:</p>
+
+<dl>
+ <dt>Delete</dt>
+ <dd>To delete a Protocol to Group Name map entry, check this box. The entry will be deleted on the switch during the next Save.</dd>
+ <dt >Frame Type</dt>
+ <dd>Frame Type can have one of the following values: <br />
+ <ol>
+  <li> <samp>Ethernet</samp> </li>
+  <li> <samp>LLC</samp> </li>
+  <li> <samp>SNAP</samp> </li>
+ </ol>
+ Note: On changing the Frame type field, valid value of the following text field will vary depending on the new frame type you selected.
+ </dd>
+ <dt>Value</dt>
+ <dd>Valid value that can be entered in this text field depends on the option selected from the preceding Frame Type selection menu. <br />
+ Below is the criteria for three different Frame Types: <br />
+ <ol>
+	 <li> <samp>For Ethernet:</samp> Values in the text field when Ethernet is selected as a Frame Type is called etype. Valid values for etype ranges from 0x0600-0xffff </li>
+	 <li> <samp>For LLC:</samp>  Valid value in this case is comprised of two different sub-values. <br />
+	 a. <samp>DSAP:</samp> 1-byte long string (0x00-0xff) <br /> b. <samp>SSAP:</samp> 1-byte long string (0x00-0xff)</li>
+	 <li> <samp>For SNAP:</samp> Valid value in this case also is comprised of two different sub-values. <br />
+	 a. <samp>OUI:</samp> OUI (Organizationally Unique Identifier) is value in format of xx-xx-xx where each pair (xx) in string is a hexadecimal value ranges from 0x00-0xff. <br />
+	 b. <samp>PID:</samp> If the OUI is hexadecimal 000000, the protocol ID is the
+Ethernet type (EtherType) field value for the protocol running on top of SNAP;
+if the OUI is an OUI for a particular organization, the protocol ID is a value
+assigned by that organization to the protocol running on top of SNAP.
+<br />
+In other words, if value of OUI field is 00-00-00 then value of PID will be etype (0x0600-0xffff) and if value of OUI is other than 00-00-00 then valid value of PID will be any value from 0x0000 to 0xffff.
+	 </li>
+ </ol>
+ </dd>
+ <dt>Group Name</dt>
+ <dd>A valid Group Name is a unique 16-character long string for every entry which consists of a combination of alphabets (a-z or A-Z) and integers(0-9). <br />
+ <samp> Note:</samp> special character and underscore(_) are not allowed.
+ </dd>
+ <dt>Adding a New Group to VLAN mapping entry</dt>
+ <dd>
+   Click <input type="button" value=" Add New Entry "> to add a new entry in mapping table. An empty row is added
+   to the table; Frame Type, Value and the Group Name can be configured as needed.
+   <br/>
+   The <input type="button" value=" Delete "> button can be used to undo the addition of new entry.
+   The maximum possible Protocol to Group mappings are limited to 128.
+ </dd>  
+ </dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value="Save">: Click to save changes.</p>
+<p><input type="button" value="Reset">: Click to undo any changes made locally and revert to previously saved values.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value="Refresh">: Click to refresh the page immediately.</p>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>ERPS Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>ERPS Help</h1>
+
+<p>The Ethernet Ring Protection Switch instances are configured here.</p>
+<dl>
+ <dt>Delete</dt>
+ <dd>
+ This box is used to mark an ERPS for deletion in next Save operation.
+ </dd>
+ <dt>Protection group ID</dt>
+ <dd>
+ The ID of the created Protection group. Click on the ID of an Protection group to enter the configuration page.
+ </dd>
+ <dt>Port 0</dt>
+ <dd>
+ <p> This will create a Port 0 of the switch in the ring.</p> 
+ </dd>
+ <dt>Port 1</dt>
+ <dd>
+ <p> This will create "Port 1" of the switch in the Ring. As interconnected sub-ring will have only one ring port, "Port 1" is configured as "0" for interconnected sub-ring. "0" in this field indicates that no "Port 1" is associated with this instance</p> 
+ </dd>
+ <dt>Port 0 SF MEP</dt>
+ <dd>
+ The Port 0 Signal Fail reporting MEP.
+ </dd>
+ <dt>Port 1 SF MEP</dt>
+ <dd>
+ The Port 1 Signal Fail reporting MEP. As only one SF MEP is associated with interconnected sub-ring without virtual channel, it is configured as "0" for such ring instances. "0" in this field indicates that no Port 1 SF MEP is associated with this instance.
+ </dd>
+ <dt>Port 0 APS MEP</dt>
+ <dd> 
+ The Port 0 APS PDU handling MEP.
+ </dd>
+ <dt>Port 1 APS MEP</dt>
+ <dd>
+ The Port 1 APS PDU handling MEP. As only one APS MEP is associated with interconnected sub-ring without virtual channel, it is configured as "0" for such ring instances. "0" in this field indicates that no Port 1 APS MEP is associated with this instance.
+ </dd>
+ <dt>Ring Type</dt>
+ <dd>
+ Type of Protecting ring. It can be either major ring or sub-ring.
+ </dd>
+ <dt>Interconnected Node</dt>
+ <dd>
+ Interconnected Node indicates that the ring instance is interconnected. Click on the checkbox to configure this. "Yes" indicates it is an interconnected node for this instance. "No" indicates that the configured instance is not interconnected.
+ </dd>
+ <dt>Virtual Channel</dt>
+ <dd>
+ Sub-rings can either have virtual channel or not on the interconnected node. This is configured using "Virtual Channel" checkbox. "Yes" indicates it is a sub-ring with virtual channel. "No" indicates, sub-ring doesn't have virtual channel.
+ </dd>
+ <dt>Major Ring ID</dt>
+ <dd>
+ Major ring group ID for the interconnected sub-ring. It is used to send topology change updates on major ring. If ring is major, this value is same as the protection group ID of this ring.
+ </dd>
+  <dt>Alarm</dt>
+ <dd>
+ There is an active alarm on the ERPS.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+
+<p><input type="button" value=" Add New Protection Group ">: Click to add a new Protection group entry.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

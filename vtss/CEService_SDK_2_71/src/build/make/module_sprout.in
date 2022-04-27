@@ -1,0 +1,75 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_sprout := $(DIR_APPL)/sprout
+DIR_sprout_platform := $(DIR_sprout)/platform
+DIR_sprout_core := $(DIR_sprout)/base
+
+ifeq ($(VTSS_PRODUCT_STACKABLE),STACKABLE)
+  OBJECTS_sprout_platform := topo.o       \
+    $(if $(MODULE_VCLI),sprout_cli.o)     \
+    $(if $(MODULE_WEB),sprout_web.o)      \
+    $(if $(MODULE_CONF_XML),sprout_xml.o)
+
+  OBJECTS_sprout_core := vtss_sprout.o vtss_sprout_types.o vtss_sprout_util.o vtss_sprout_xit.o vtss_sprout_crit.o
+
+  $(eval $(call add_icli,$(DIR_sprout_platform)/sprout.icli))
+else
+  OBJECTS_sprout_platform := standalone.o
+  OBJECTS_sprout_core :=
+endif
+
+OBJECTS_sprout := $(OBJECTS_sprout_platform) $(OBJECTS_sprout_core)
+
+DEFINES_sprout_core := -DVTSS_SPROUT_CRIT_CHK=1
+
+# Multi thread is needed for Sprout thread protection.
+DEFINES_sprout_core += -DVTSS_SPROUT_MULTI_THREAD=1
+DEFINES_sprout_core += -DVTSS_SPROUT_UNMGD=0
+
+$(OBJECTS_sprout_platform): %.o: $(DIR_sprout_platform)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_sprout_core): %.o: $(DIR_sprout_core)/%.c
+	$(call compile_c, $@, $<, $(DEFINES_sprout_core))
+
+INCLUDES += -I$(DIR_sprout_platform) -I$(DIR_sprout_core)
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_sprout_platform)/html
+
+# Tidy files
+TIDY_FILES_sprout += $(DIR_sprout_platform)/html/*.htm $(DIR_sprout_platform)/html/help/*.htm
+
+# JSlint files
+JSLINT_FILES_sprout += $(TIDY_FILES_sprout)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_sprout := $(DIR_sprout_platform)/*.[ch] $(DIR_sprout_core)/*.[ch]
+
+# For quick check of Lint of ICLI file
+# LINT_FILES_sprout = $(OBJ)/sprout_icli.c
+

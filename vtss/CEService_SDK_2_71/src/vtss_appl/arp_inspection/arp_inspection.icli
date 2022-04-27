@@ -1,0 +1,1778 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_ARP_INSPECTION)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "arp_inspection_api.h"
+#include "mgmt_api.h"
+#include "misc_api.h"
+#include "port_api.h"
+#include "msg_api.h"    //msg_switch_configurable()
+#include "topo_api.h"   //topo_usid2isid(), topo_isid2usid()
+#include "vlan_api.h"
+
+#define ARP_INSPECTION_PORT_MODE_TRUSTED        FALSE
+#define ARP_INSPECTION_PORT_MODE_UNTRUSTED      TRUE
+INCLUDE_END
+
+// ############################################################################
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+
+static void ARP_INSPECTION_ICLI_global_mode_set(u32 session_id, BOOL mode)
+{
+    vtss_rc     rc = ICLI_RC_OK;
+    ulong       tmp_mode;
+    BOOL        original_mode;
+
+    //get global configuration
+    if ((rc = arp_inspection_mgmt_conf_mode_get(&tmp_mode)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+        return;
+    }
+
+    //set global configuration
+    original_mode = tmp_mode ? TRUE : FALSE;
+
+    if (mode) {
+        tmp_mode = TRUE;
+        //ICLI_PRINTF("arp inspection enable\n");
+    } else {
+        tmp_mode = FALSE;
+        //ICLI_PRINTF("arp inspection disable\n");
+    }
+
+    if (mode != original_mode && (rc = arp_inspection_mgmt_conf_mode_set(&tmp_mode)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+        return;
+    }
+
+    return;
+}
+
+static void ARP_INSPECTION_ICLI_global_mode_set_vlan(u32 session_id, icli_unsigned_range_t *vlan_list_p, BOOL mode)
+{
+    vtss_rc                         rc;
+    u32                             i, idx;
+    arp_inspection_vlan_mode_conf_t vlan_mode_conf;
+
+    //ICLI_PRINTF("VLAN LIST:");
+    //ICLI_PRINTF("  CNT = %u\n", vlan_list_p->cnt);
+    //ICLI_PRINTF("  ");
+    for ( i = 0; i < vlan_list_p->cnt; i++ ) {
+        //ICLI_PRINTF("(%u, %u) ", vlan_list_p->range[i].min, vlan_list_p->range[i].max);
+        for ( idx = vlan_list_p->range[i].min; idx <= vlan_list_p->range[i].max; idx++ ) {
+
+            if (arp_inspection_mgmt_conf_vlan_mode_get(idx, &vlan_mode_conf, FALSE) != VTSS_OK) {
+                continue;
+            }
+
+            if (mode) {
+                vlan_mode_conf.flags |= ARP_INSPECTION_VLAN_MODE;
+            } else {
+                vlan_mode_conf.flags &= ~ARP_INSPECTION_VLAN_MODE;
+            }
+
+            if ((rc = arp_inspection_mgmt_conf_vlan_mode_set(idx, &vlan_mode_conf)) != VTSS_OK) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+
+        }
+    }
+    //ICLI_PRINTF("\n\n");
+
+    return;
+}
+
+static void ARP_INSPECTION_ICLI_global_mode_set_vlan_log(u32 session_id, icli_unsigned_range_t *vlan_list_p, arp_inspection_log_type_t mode)
+{
+    vtss_rc                         rc;
+    u32                             i, idx;
+    arp_inspection_vlan_mode_conf_t vlan_mode_conf;
+
+    //ICLI_PRINTF("VLAN LIST:");
+    //ICLI_PRINTF("  CNT = %u\n", vlan_list_p->cnt);
+    //ICLI_PRINTF("  ");
+    for ( i = 0; i < vlan_list_p->cnt; i++ ) {
+        //ICLI_PRINTF("(%u, %u) ", vlan_list_p->range[i].min, vlan_list_p->range[i].max);
+        for ( idx = vlan_list_p->range[i].min; idx <= vlan_list_p->range[i].max; idx++ ) {
+
+            if (arp_inspection_mgmt_conf_vlan_mode_get(idx, &vlan_mode_conf, FALSE) != VTSS_OK) {
+                continue;
+            }
+
+            switch (mode) {
+            case ARP_INSPECTION_LOG_NONE:
+                vlan_mode_conf.flags &= ~ARP_INSPECTION_VLAN_LOG_DENY;
+                vlan_mode_conf.flags &= ~ARP_INSPECTION_VLAN_LOG_PERMIT;
+                break;
+            case ARP_INSPECTION_LOG_DENY:
+                vlan_mode_conf.flags |= ARP_INSPECTION_VLAN_LOG_DENY;
+                vlan_mode_conf.flags &= ~ARP_INSPECTION_VLAN_LOG_PERMIT;
+                break;
+            case ARP_INSPECTION_LOG_PERMIT:
+                vlan_mode_conf.flags &= ~ARP_INSPECTION_VLAN_LOG_DENY;
+                vlan_mode_conf.flags |= ARP_INSPECTION_VLAN_LOG_PERMIT;
+                break;
+            case ARP_INSPECTION_LOG_ALL:
+                vlan_mode_conf.flags |= ARP_INSPECTION_VLAN_LOG_DENY;
+                vlan_mode_conf.flags |= ARP_INSPECTION_VLAN_LOG_PERMIT;
+                break;
+            }
+
+            if ((rc = arp_inspection_mgmt_conf_vlan_mode_set(idx, &vlan_mode_conf)) != VTSS_OK) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+
+        }
+    }
+    //ICLI_PRINTF("\n\n");
+
+    return;
+}
+
+static void ARP_INSPECTION_ICLI_port_mode_set(u32 session_id, icli_port_type_t port_type, icli_stack_port_range_t *port_list_p, BOOL mode)
+{
+    vtss_rc                             rc;
+    u32                                 range_idx, cnt_idx;
+    vtss_usid_t                         usid;
+    vtss_port_no_t                      uport;
+    arp_inspection_port_mode_conf_t     port_conf, new_port_conf;
+
+    for (range_idx = 0; range_idx < port_list_p->cnt; range_idx++) {
+        usid = port_list_p->switch_range[range_idx].usid;
+        if ((rc = arp_inspection_mgmt_conf_port_mode_get(topo_usid2isid(usid), &port_conf)) != VTSS_OK) {
+            ICLI_PRINTF("%s\n", error_txt(rc));
+            return;
+        }
+        new_port_conf = port_conf;
+
+        for (cnt_idx = 0; cnt_idx < port_list_p->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = port_list_p->switch_range[range_idx].begin_uport + cnt_idx;
+            new_port_conf.mode[uport2iport(uport)] = mode ? TRUE : FALSE;
+            T_D("Setting ARP inspection conf: range %u: usid=%d uport=%u port=%u\n", range_idx, usid, uport, port_list_p->switch_range[range_idx].begin_port + cnt_idx);
+        }
+
+        if (memcmp(&port_conf, &new_port_conf, sizeof(port_conf)) &&
+            (rc = arp_inspection_mgmt_conf_port_mode_set(topo_usid2isid(usid), &new_port_conf)) != VTSS_OK) {
+            ICLI_PRINTF("%s\n", error_txt(rc));
+            return;
+        }
+    }
+}
+
+static void ARP_INSPECTION_ICLI_port_mode_set_vlan(u32 session_id, icli_port_type_t port_type, icli_stack_port_range_t *port_list_p, BOOL mode)
+{
+    vtss_rc                             rc;
+    u32                                 range_idx, cnt_idx;
+    vtss_usid_t                         usid;
+    vtss_port_no_t                      uport;
+    arp_inspection_port_mode_conf_t     port_conf, new_port_conf;
+
+    for (range_idx = 0; range_idx < port_list_p->cnt; range_idx++) {
+        usid = port_list_p->switch_range[range_idx].usid;
+        if ((rc = arp_inspection_mgmt_conf_port_mode_get(topo_usid2isid(usid), &port_conf)) != VTSS_OK) {
+            ICLI_PRINTF("%s\n", error_txt(rc));
+            return;
+        }
+        new_port_conf = port_conf;
+
+        for (cnt_idx = 0; cnt_idx < port_list_p->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = port_list_p->switch_range[range_idx].begin_uport + cnt_idx;
+            new_port_conf.check_VLAN[uport2iport(uport)] = mode ? TRUE : FALSE;
+            T_D("Setting ARP inspection vlan conf: range %u: usid=%d uport=%u port=%u\n", range_idx, usid, uport, port_list_p->switch_range[range_idx].begin_port + cnt_idx);
+        }
+
+        if (memcmp(&port_conf, &new_port_conf, sizeof(port_conf)) &&
+            (rc = arp_inspection_mgmt_conf_port_mode_set(topo_usid2isid(usid), &new_port_conf)) != VTSS_OK) {
+            ICLI_PRINTF("%s\n", error_txt(rc));
+            return;
+        }
+    }
+}
+
+static void ARP_INSPECTION_ICLI_port_mode_set_logging(u32 session_id, icli_port_type_t port_type, icli_stack_port_range_t *port_list_p, arp_inspection_log_type_t mode)
+{
+    vtss_rc                             rc;
+    u32                                 range_idx, cnt_idx;
+    vtss_usid_t                         usid;
+    vtss_port_no_t                      uport;
+    arp_inspection_port_mode_conf_t     port_conf, new_port_conf;
+
+    for (range_idx = 0; range_idx < port_list_p->cnt; range_idx++) {
+        usid = port_list_p->switch_range[range_idx].usid;
+        if ((rc = arp_inspection_mgmt_conf_port_mode_get(topo_usid2isid(usid), &port_conf)) != VTSS_OK) {
+            ICLI_PRINTF("%s\n", error_txt(rc));
+            return;
+        }
+        new_port_conf = port_conf;
+
+        for (cnt_idx = 0; cnt_idx < port_list_p->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = port_list_p->switch_range[range_idx].begin_uport + cnt_idx;
+            new_port_conf.log_type[uport2iport(uport)] = mode;
+            T_D("Setting ARP inspection vlan conf: range %u: usid=%d uport=%u port=%u\n", range_idx, usid, uport, port_list_p->switch_range[range_idx].begin_port + cnt_idx);
+        }
+
+        if (memcmp(&port_conf, &new_port_conf, sizeof(port_conf)) &&
+            (rc = arp_inspection_mgmt_conf_port_mode_set(topo_usid2isid(usid), &new_port_conf)) != VTSS_OK) {
+            ICLI_PRINTF("%s\n", error_txt(rc));
+            return;
+        }
+    }
+}
+
+static char *cli_cmd_arp_inspection_log_txt(arp_inspection_log_type_t type)
+{
+    switch (type) {
+    case ARP_INSPECTION_LOG_NONE:
+        return "NONE";
+    case ARP_INSPECTION_LOG_DENY:
+        return "DENY";
+    case ARP_INSPECTION_LOG_PERMIT:
+        return "PERMIT";
+    case ARP_INSPECTION_LOG_ALL:
+        return "ALL";
+    }
+
+    return "NONE";
+}
+
+static char *cli_cmd_arp_inspection_vlan_log_txt(u8 flags)
+{
+    if ((flags & ARP_INSPECTION_VLAN_LOG_DENY) && (flags & ARP_INSPECTION_VLAN_LOG_PERMIT)) {
+        return "ALL";
+    } else if (flags & ARP_INSPECTION_VLAN_LOG_DENY) {
+        return "DENY";
+    } else if (flags & ARP_INSPECTION_VLAN_LOG_PERMIT) {
+        return "PERMIT";
+    } else {
+        return "NONE";
+    }
+}
+
+static void ARP_INSPECTION_ICLI_single_entry_info_show(u32 session_id, BOOL *show_header_p, BOOL is_static, arp_inspection_entry_t *entry_p, icli_switch_port_range_t *switch_range_p)
+{
+    char buf[80], buf1[80], buf2[80], *p;
+
+    if (*show_header_p) {
+        *show_header_p = FALSE;
+        p = &buf[0];
+        p += sprintf(p, "\nType     ");
+        p += sprintf(p, "Port                    ");
+        p += sprintf(p, "VLAN  ");
+        p += sprintf(p, "MAC Address        ");
+        p += sprintf(p, "IP Address     ");
+        icli_parm_header(session_id, buf);
+    }
+
+    ICLI_PRINTF("%s   %-22s  %4d  %17s  %-15s\n",
+                is_static ? "Static" : "Dynamic",
+                icli_port_info_txt(switch_range_p->usid, switch_range_p->begin_uport, buf),
+                entry_p->vid,
+                misc_mac_txt(entry_p->mac, buf1),
+                misc_ipv4_txt(entry_p->assigned_ip, buf2));
+}
+
+static void ARP_INSPECTION_ICLI_entry_info_show(u32 session_id, BOOL *show_header_p, BOOL is_static, arp_inspection_entry_t *entry_p, icli_switch_port_range_t *switch_range_p)
+{
+    if (is_static) {
+        if (arp_inspection_mgmt_conf_static_entry_get(entry_p, FALSE) == VTSS_OK) { //getfirst
+            if (entry_p->isid == switch_range_p->isid &&
+                entry_p->port_no == switch_range_p->begin_iport) {
+                ARP_INSPECTION_ICLI_single_entry_info_show(session_id, show_header_p, is_static, entry_p, switch_range_p);
+            }
+            while (arp_inspection_mgmt_conf_static_entry_get(entry_p, TRUE) == VTSS_OK) {
+                if (entry_p->isid == switch_range_p->isid &&
+                    entry_p->port_no == switch_range_p->begin_iport) {
+                    ARP_INSPECTION_ICLI_single_entry_info_show(session_id, show_header_p, is_static, entry_p, switch_range_p);
+                }
+            }
+        }
+    } else if (arp_inspection_mgmt_conf_dynamic_entry_get(entry_p, FALSE) == VTSS_OK) { //getfirst
+        if (entry_p->isid == switch_range_p->isid &&
+            entry_p->port_no == switch_range_p->begin_iport) {
+            ARP_INSPECTION_ICLI_single_entry_info_show(session_id, show_header_p, is_static, entry_p, switch_range_p);
+        }
+        while (arp_inspection_mgmt_conf_dynamic_entry_get(entry_p, TRUE) == VTSS_OK) {
+            if (entry_p->isid == switch_range_p->isid &&
+                entry_p->port_no == switch_range_p->begin_iport) {
+                ARP_INSPECTION_ICLI_single_entry_info_show(session_id, show_header_p, is_static, entry_p, switch_range_p);
+            }
+        }
+    }
+}
+
+FUNCTION_END
+
+// ############################################################################
+
+//
+// Export Segment
+//   This segment contains the API declarations of the global functions in
+//   Function Segment. This will be pasted exactly to the generated H file.
+//   So, others can include the H file to use the global functions.
+//
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_SHOW       = Show running system information
+HELP_CLEAR      = Clear
+HELP_IP         = Internet Protocol
+HELP_ARP        = Address Resolution Protocol
+HELP_INSPECTION = ARP inspection
+HELP_INTERFACE  = Interface
+HELP_PORT_TYPE  = Interface port type
+HELP_PORT_LIST  = Interface port list
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip arp inspection
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the ip arp inspection global configuration command to \
+                  globally enable ARP inspection. Use the no form of this \
+                  command to globally disable ARP inspection.
+DOC_CMD_DEFAULT = ARP inspection is disabled.
+DOC_CMD_USAGE   = Enable ARP inspection global mode.
+DOC_CMD_EXAMPLE = This example shows how to enable ARP inspection:
+DOC_CMD_EXAMPLE = Switch(config)# ip arp inspection
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip arp inspection privileged EXEC command.
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = arp_inspection_mode
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+# /* ---------------------------------------------------------------------------
+NO_FORM_DOC_CMD_DESC    = Use the no ip arp inspection global configuration command to \
+                          globally disable ARP inspection.
+NO_FORM_DOC_CMD_DEFAULT = ARP inspection is disabled.
+NO_FORM_DOC_CMD_USAGE   = Disable ARP inspection global mode.
+NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable ARP inspection:
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# no ip arp inspection
+NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip arp inspection privileged EXEC command.
+# ----------------------------------------------------------------------------*/
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = arp_var
+CMD_VAR   =
+//CMD_VAR   = inspection_var
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* enable global mode */
+    ARP_INSPECTION_ICLI_global_mode_set(session_id, TRUE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    /* disable global mode */
+    ARP_INSPECTION_ICLI_global_mode_set(session_id, FALSE);
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip arp inspection vlan <vlan_list>
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the ip arp inspection global configuration command to \
+                  globally enable ARP inspection. Use the no form of this \
+                  command to globally disable ARP inspection.
+DOC_CMD_DEFAULT = ARP inspection is disabled.
+DOC_CMD_USAGE   = Enable ARP inspection global mode.
+DOC_CMD_EXAMPLE = This example shows how to enable ARP inspection:
+DOC_CMD_EXAMPLE = Switch(config)# ip arp inspection
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip arp inspection privileged EXEC command.
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = arp_inspection_mode_vlan
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+# /* ---------------------------------------------------------------------------
+NO_FORM_DOC_CMD_DESC    = Use the no ip arp inspection global configuration command to \
+                          globally disable ARP inspection.
+NO_FORM_DOC_CMD_DEFAULT = ARP inspection is disabled.
+NO_FORM_DOC_CMD_USAGE   = Disable ARP inspection global mode.
+NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable ARP inspection:
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# no ip arp inspection
+NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip arp inspection privileged EXEC command.
+# ----------------------------------------------------------------------------*/
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = arp_var
+CMD_VAR   =
+//CMD_VAR   = inspection_var
+CMD_VAR   =
+//CMD_VAR   = vlan_var
+CMD_VAR   =
+CMD_VAR   = in_vlan_list
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+HELP = arp inspection vlan setting
+HELP = arp inspection vlan list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* enable global mode */
+    ARP_INSPECTION_ICLI_global_mode_set_vlan(session_id, in_vlan_list, TRUE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    /* disable global mode */
+    ARP_INSPECTION_ICLI_global_mode_set_vlan(session_id, in_vlan_list, FALSE);
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip arp inspection vlan <vlan_list> logging { deny | permit | all }
+
+FUNC_NAME = arp_inspection_mode_vlan_log
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = arp_var
+CMD_VAR   =
+//CMD_VAR   = inspection_var
+CMD_VAR   =
+//CMD_VAR   = vlan_var
+CMD_VAR   =
+CMD_VAR   = in_vlan_list
+//CMD_VAR   = logging_var
+CMD_VAR   =
+CMD_VAR   = deny_var
+CMD_VAR   = permit_var
+CMD_VAR   = all_var
+
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+HELP = arp inspection vlan setting
+HELP = arp inspection vlan list
+HELP = ARP inspection vlan logging mode config
+HELP = log denied entries
+HELP = log permitted entries
+HELP = log all entries
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (deny_var) {
+        ARP_INSPECTION_ICLI_global_mode_set_vlan_log(session_id, in_vlan_list, ARP_INSPECTION_LOG_DENY);
+        //ICLI_PRINTF("arp inspection deny\n");
+    } else if (permit_var) {
+        ARP_INSPECTION_ICLI_global_mode_set_vlan_log(session_id, in_vlan_list, ARP_INSPECTION_LOG_PERMIT);
+        //ICLI_PRINTF("arp inspection permit\n");
+    } else if (all_var) {
+        ARP_INSPECTION_ICLI_global_mode_set_vlan_log(session_id, in_vlan_list, ARP_INSPECTION_LOG_ALL);
+        //ICLI_PRINTF("arp inspection all\n");
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+// NO_FORM_VARIABLE_BEGIN
+// NO_FORM_VARIABLE_END
+
+// NO_FORM_CODE_BEGIN
+// NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND   = no ip arp inspection vlan <vlan_list> logging
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+FUNC_NAME = no_arp_inspection_mode_vlan_log
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = no_var
+CMD_VAR   =
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = arp_var
+CMD_VAR   =
+//CMD_VAR   = inspection_var
+CMD_VAR   =
+//CMD_VAR   = vlan_var
+CMD_VAR   =
+CMD_VAR   = in_vlan_list
+//CMD_VAR   = logging_var
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+HELP = arp inspection vlan setting
+HELP = arp inspection vlan list
+HELP = ARP inspection vlan logging mode config
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    /* set vlan as logging none */
+    ARP_INSPECTION_ICLI_global_mode_set_vlan_log(session_id, in_vlan_list, ARP_INSPECTION_LOG_NONE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip arp inspection entry interface <port_type_id> <vlan_id> <mac_ucast> <ipv4_ucast>
+
+FUNC_NAME = arp_inspection_entry
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = arp_var
+CMD_VAR   =
+//CMD_VAR   = inspection_var
+CMD_VAR   =
+//CMD_VAR   = entry_var
+CMD_VAR   =
+//CMD_VAR   = interface_var
+CMD_VAR   =
+CMD_VAR   = in_port_type_id
+CMD_VAR   = vlan_var
+CMD_VAR   = mac_var
+CMD_VAR   = ipv4_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+HELP = arp inspection entry
+HELP = arp inspection entry interface config
+HELP = Select a port id to configure
+HELP = Select a VLAN id to configure
+HELP = Select a MAC address to configure
+HELP = Select an IP Address to configure
+
+VARIABLE_BEGIN
+    vtss_rc                         rc;
+    arp_inspection_entry_t          entry;
+    int                             i;
+VARIABLE_END
+
+CODE_BEGIN
+
+    for (i = 0; i < 6; i++) {
+        entry.mac[i] = mac_var.addr[i];
+    }
+    entry.vid = vlan_var;
+    entry.assigned_ip = ipv4_var;
+    entry.isid = in_port_type_id.isid;
+    entry.port_no = in_port_type_id.begin_iport;
+    entry.type = ARP_INSPECTION_STATIC_TYPE;
+    entry.valid = TRUE;
+
+    if ((rc = arp_inspection_mgmt_conf_static_entry_set(&entry)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+    }
+
+    //ICLI_PRINTF("Port: %u, %d\n", in_port_type_id.isid, in_port_type_id.begin_iport);
+    //ICLI_PRINTF("VLAN: %u\n", vlan_var);
+    //ICLI_PRINTF("MAC: %d.%d.%d.%d.%d.%d\n", mac_var.addr[0], mac_var.addr[1], mac_var.addr[2], mac_var.addr[3], mac_var.addr[4], mac_var.addr[5]);
+    //ICLI_PRINTF("IP: %u\n", ipv4_var);
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+    vtss_rc                         rc;
+    arp_inspection_entry_t          entry;
+    int                             i;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+
+    for (i = 0; i < 6; i++) {
+        entry.mac[i] = mac_var.addr[i];
+    }
+    entry.vid = vlan_var;
+    entry.assigned_ip = ipv4_var;
+    entry.isid = in_port_type_id.isid;
+    entry.port_no = in_port_type_id.begin_iport;
+    entry.type = ARP_INSPECTION_STATIC_TYPE;
+    entry.valid = TRUE;
+
+    if ((rc = arp_inspection_mgmt_conf_static_entry_del(&entry)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+    }
+
+    //ICLI_PRINTF("Port: %u, %d\n", in_port_type_id.isid, in_port_type_id.begin_iport);
+    //ICLI_PRINTF("VLAN: %u\n", vlan_var);
+    //ICLI_PRINTF("MAC: %d.%d.%d.%d.%d.%d\n", mac_var.addr[0], mac_var.addr[1], mac_var.addr[2], mac_var.addr[3], mac_var.addr[4], mac_var.addr[5]);
+    //ICLI_PRINTF("IP: %u\n", ipv4_var);
+
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip arp inspection translate [ interface <port_type_id> <vlan_id> <mac_ucast> <ipv4_ucast> ]
+
+FUNC_NAME = arp_inspection_translate
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = arp_var
+CMD_VAR   =
+//CMD_VAR   = inspection_var
+CMD_VAR   =
+//CMD_VAR   = translate_var
+CMD_VAR   =
+CMD_VAR   = interface_var
+CMD_VAR   = in_port_type_id
+CMD_VAR   = vlan_var
+CMD_VAR   = mac_var
+CMD_VAR   = ipv4_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+HELP = arp inspection translate all entries
+HELP = arp inspection entry interface config
+HELP = Select a port id to configure
+HELP = Select a VLAN id to configure
+HELP = Select a MAC address to configure
+HELP = Select an IP Address to configure
+
+VARIABLE_BEGIN
+    vtss_rc                         rc;
+    arp_inspection_entry_t          entry;
+    int                             i;
+VARIABLE_END
+
+CODE_BEGIN
+
+    if (!interface_var) {
+
+        if ((rc = arp_inspection_mgmt_conf_translate_dynamic_into_static()) >= VTSS_OK) {
+            ICLI_PRINTF("ARP Inspection:\n\tTranslate %d dynamic entries into static entries.\n", rc);
+        } else {
+            ICLI_PRINTF("%s\n", error_txt(rc));
+        }
+
+    } else {
+
+        for (i = 0; i < 6; i++) {
+            entry.mac[i] = mac_var.addr[i];
+        }
+        entry.vid = vlan_var;
+        entry.assigned_ip = ipv4_var;
+        entry.isid = in_port_type_id.isid;
+        entry.port_no = in_port_type_id.begin_iport;
+        entry.type = ARP_INSPECTION_DYNAMIC_TYPE;
+        entry.valid = TRUE;
+
+        // Get static entries
+        if (arp_inspection_mgmt_conf_dynamic_entry_check(&entry) == VTSS_OK) {
+            if ((rc = arp_inspection_mgmt_conf_translate_dynamic_entry_into_static_entry(&entry)) < VTSS_OK) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            } else {
+                ICLI_PRINTF("ARP Inspection:\n\tTranslate %d dynamic entries into static entries.\n", rc);
+            }
+        } else {
+            ICLI_PRINTF("ARP Inspection:\n\tDon't find the dynamic entry.\n");
+        }
+
+        //ICLI_PRINTF("Port: %u, %d\n", in_port_type_id.isid, in_port_type_id.begin_iport);
+        //ICLI_PRINTF("VLAN: %u\n", vlan_var);
+        //ICLI_PRINTF("MAC: %d.%d.%d.%d.%d.%d\n", mac_var.addr[0], mac_var.addr[1], mac_var.addr[2], mac_var.addr[3], mac_var.addr[4], mac_var.addr[5]);
+        //ICLI_PRINTF("IP: %u\n", ipv4_var);
+    }
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip arp inspection trust
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the ip arp inspection trust interface configuration command \
+                  to configure a port as trusted for ARP inspection purposes. Use \
+                  the no form of this command to configure a port as untrusted.
+DOC_CMD_DEFAULT = ARP inspection trust is enabled.
+DOC_CMD_USAGE   = Configure ports as trusted.
+DOC_CMD_EXAMPLE = This example shows how to enable ARP inspection trust on a port:
+DOC_CMD_EXAMPLE = Switch(if-port)# ip arp inspection trust
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip arp inspection privileged EXEC command.
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = arp_inspection_port_mode
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+//MODE_VAR  = mode_port_type
+MODE_VAR  = mode_port_list
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+# /* ---------------------------------------------------------------------------
+NO_FORM_DOC_CMD_DESC    = Use the no ip arp inspection trust interface configuration command \
+                          to configure a port as untrusted for ARP inspection purposes.
+NO_FORM_DOC_CMD_DEFAULT = ARP inspection trust is enabled.
+NO_FORM_DOC_CMD_USAGE   = Configure ports as untrusted.
+NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable ARP inspection trust on a port:
+NO_FORM_DOC_CMD_EXAMPLE = Switch(if-port)# no ip arp inspection trust
+NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip arp inspection privileged EXEC command.
+# /* ---------------------------------------------------------------------------
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+// CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+HELP = ARP inspection trust config
+
+// VARIABLE_BEGIN
+// VARIABLE_END
+
+CODE_BEGIN
+    /* set port mode trust */
+    ARP_INSPECTION_ICLI_port_mode_set(session_id, 0, mode_port_list, FALSE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_CODE_BEGIN
+    /* set port mode untrust */
+    ARP_INSPECTION_ICLI_port_mode_set(session_id, 0, mode_port_list, TRUE);
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip arp inspection check-vlan
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the ip arp inspection check-vlan interface configuration command \
+                  to configure a port as VLAN mode for ARP inspection purposes. Use \
+                  the no form of this command to configure a port as default.
+DOC_CMD_DEFAULT = ARP inspection VLAN mode is disabled.
+DOC_CMD_USAGE   = Configure ports as VLAN mode.
+DOC_CMD_EXAMPLE = This example shows how to enable ARP inspection VLAN mode on a port:
+DOC_CMD_EXAMPLE = Switch(if-port)# ip arp inspection check-vlan
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip arp inspection privileged EXEC command.
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = arp_inspection_port_check_vlan
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+//MODE_VAR  = mode_port_type
+MODE_VAR  = mode_port_list
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+# /* ---------------------------------------------------------------------------
+NO_FORM_DOC_CMD_DESC    = Use the no ip arp inspection check-vlan interface configuration command \
+                          to configure a port as default port mode for ARP inspection purposes.
+NO_FORM_DOC_CMD_DEFAULT = ARP inspection VLAN mode is disabled.
+NO_FORM_DOC_CMD_USAGE   = Configure ports as default port mode.
+NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable ARP inspection VLAN mode on a port:
+NO_FORM_DOC_CMD_EXAMPLE = Switch(if-port)# no ip arp inspection check-vlan
+NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip arp inspection privileged EXEC command.
+# /* ---------------------------------------------------------------------------
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+// CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+HELP = ARP inspection VLAN mode config
+
+// VARIABLE_BEGIN
+// VARIABLE_END
+
+CODE_BEGIN
+    /* set port mode check vlan enable */
+    ARP_INSPECTION_ICLI_port_mode_set_vlan(session_id, 0, mode_port_list, TRUE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_CODE_BEGIN
+    /* set port mode check vlan disable */
+    ARP_INSPECTION_ICLI_port_mode_set_vlan(session_id, 0, mode_port_list, FALSE);
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = ip arp inspection logging { deny | permit | all }
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the ip arp inspection logging interface configuration command \
+                  to configure a port as some logging mode for ARP inspection purposes. Use \
+                  the no form of this command to configure a port as logging none.
+DOC_CMD_DEFAULT = ARP inspection default is logging none.
+DOC_CMD_USAGE   = Configure ports as logging mode.
+DOC_CMD_EXAMPLE = This example shows how to enable ARP inspection logging mode on a port:
+DOC_CMD_EXAMPLE = Switch(if-port)# ip arp inspection logging [ deny | permit | all ]
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip arp inspection privileged EXEC command.
+# ----------------------------------------------------------------------------*/
+
+FUNC_NAME = arp_inspection_port_logging
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+//MODE_VAR  = mode_port_type
+MODE_VAR  = mode_port_list
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+# /* ---------------------------------------------------------------------------
+//NO_FORM_DOC_CMD_DESC    = Use the no ip arp inspection logging interface configuration command \
+//                          to configure a port as default logging mode for ARP inspection purposes.
+//NO_FORM_DOC_CMD_DEFAULT = ARP inspection default is logging none.
+//NO_FORM_DOC_CMD_USAGE   = Configure ports as logging mode.
+//NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable ARP inspection logging mode on a port:
+//NO_FORM_DOC_CMD_EXAMPLE = Switch(if-port)# no ip arp inspection logging
+//NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip arp inspection privileged EXEC command.
+# /* ---------------------------------------------------------------------------
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = arp_var
+CMD_VAR   =
+//CMD_VAR   = inspection_var
+CMD_VAR   =
+//CMD_VAR   = logging_var
+CMD_VAR   =
+CMD_VAR   = deny_var
+CMD_VAR   = permit_var
+CMD_VAR   = all_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+HELP = ARP inspection logging mode config
+HELP = log denied entries
+HELP = log permitted entries
+HELP = log all entries
+
+// VARIABLE_BEGIN
+// VARIABLE_END
+
+CODE_BEGIN
+    if (deny_var) {
+        ARP_INSPECTION_ICLI_port_mode_set_logging(session_id, 0, mode_port_list, ARP_INSPECTION_LOG_DENY);
+        //ICLI_PRINTF("arp inspection deny\n");
+    } else if (permit_var) {
+        ARP_INSPECTION_ICLI_port_mode_set_logging(session_id, 0, mode_port_list, ARP_INSPECTION_LOG_PERMIT);
+        //ICLI_PRINTF("arp inspection permit\n");
+    } else if (all_var) {
+        ARP_INSPECTION_ICLI_port_mode_set_logging(session_id, 0, mode_port_list, ARP_INSPECTION_LOG_ALL);
+        //ICLI_PRINTF("arp inspection all\n");
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = no ip arp inspection logging
+# /* ---------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the no ip arp inspection logging interface configuration command \
+                  to configure a port as default logging mode for ARP inspection purposes.
+DOC_CMD_DEFAULT = ARP inspection default is logging none.
+DOC_CMD_USAGE   = Configure ports as logging mode.
+DOC_CMD_EXAMPLE = This example shows how to disable ARP inspection logging mode on a port:
+DOC_CMD_EXAMPLE = Switch(if-port)# no ip arp inspection logging
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip arp inspection privileged EXEC command.
+# ----------------------------------------------------------------------------*/
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+FUNC_NAME = no_arp_inspection_port_logging
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+//MODE_VAR  = mode_port_type
+MODE_VAR  = mode_port_list
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+// IF_FLAG   =
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = no_var
+CMD_VAR   =
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = arp_var
+CMD_VAR   =
+//CMD_VAR   = inspection_var
+CMD_VAR   =
+//CMD_VAR   = logging_var
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP =
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+HELP = ARP inspection logging mode config
+
+// VARIABLE_BEGIN
+// VARIABLE_END
+
+CODE_BEGIN
+    /* set port as logging none */
+    ARP_INSPECTION_ICLI_port_mode_set_logging(session_id, 0, mode_port_list, ARP_INSPECTION_LOG_NONE);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = show ip arp inspection [ interface <port_type_list> | vlan <vlan_list> ]
+
+FUNC_NAME = arp_inspection_show
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = show_var
+CMD_VAR   =
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = arp_var
+CMD_VAR   =
+//CMD_VAR   = inspection_var
+CMD_VAR   =
+CMD_VAR   = interface_var
+CMD_VAR   = in_port_type_list
+CMD_VAR   = vlan_var
+CMD_VAR   = in_vlan_list
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_SHOW
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+HELP = arp inspection entry interface config
+HELP = Select a port list to configure
+HELP = VLAN configuration
+HELP = Select a VLAN id to configure
+
+VARIABLE_BEGIN
+    int                             cnt_idx;
+    u32                             i, idx, mode, range_idx;
+    icli_switch_port_range_t        switch_range;
+    arp_inspection_port_mode_conf_t port_mode_conf;
+    arp_inspection_vlan_mode_conf_t vlan_mode_conf;
+    char                            buf[80], *p;
+    BOOL                            show_header = TRUE;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!interface_var && !vlan_var) {
+        if (arp_inspection_mgmt_conf_mode_get(&mode) != VTSS_OK) {
+            return ICLI_RC_ERROR;
+        }
+
+        ICLI_PRINTF("ARP Inspection Mode : %s\n", icli_bool_txt(mode));
+
+        memset(&switch_range, 0, sizeof(switch_range));
+        while (icli_switch_get_next(&switch_range)) {
+            if (arp_inspection_mgmt_conf_port_mode_get(switch_range.isid, &port_mode_conf) != VTSS_OK ) {
+                continue;
+            }
+
+            show_header = TRUE;
+            while (icli_switch_port_get_next(&switch_range)) {
+                if (show_header) {
+                    show_header = FALSE;
+                    p = &buf[0];
+                    p += sprintf(p, "\nPort                      ");
+                    p += sprintf(p, "Port Mode   ");
+                    p += sprintf(p, "Check VLAN  ");
+                    p += sprintf(p, "Log Type  ");
+                    icli_parm_header(session_id, buf);
+                }
+                //ICLI_PRINTF("%u/%-2lu    ", usid, uport);
+                ICLI_PRINTF("%-22s    ", icli_port_info_txt(switch_range.usid, switch_range.begin_uport, buf));
+                ICLI_PRINTF("%s    ", icli_bool_txt(port_mode_conf.mode[switch_range.begin_iport]));
+                ICLI_PRINTF("%s    ", icli_bool_txt(port_mode_conf.check_VLAN[switch_range.begin_iport]));
+                ICLI_PRINTF("%s    ", cli_cmd_arp_inspection_log_txt(port_mode_conf.log_type[switch_range.begin_iport]));
+                ICLI_PRINTF("\n");
+            }
+        }
+
+        show_header = TRUE;
+        for (idx = VLAN_ID_MIN; idx <= VLAN_ID_MAX; idx++) {
+            // get configuration
+            if (arp_inspection_mgmt_conf_vlan_mode_get(idx, &vlan_mode_conf, FALSE) != VTSS_OK) {
+                continue;
+            }
+
+            if (vlan_mode_conf.flags & ARP_INSPECTION_VLAN_MODE) {
+                if (show_header) {
+                    show_header = FALSE;
+                    p = &buf[0];
+                    p += sprintf(p, "VLAN    ");
+                    p += sprintf(p, "VLAN mode  ");
+                    p += sprintf(p, "VLAN Log Type  ");
+                    icli_parm_header(session_id, buf);
+                }
+                ICLI_PRINTF("%-4u    ", idx);
+                ICLI_PRINTF("%s    ", icli_bool_txt(vlan_mode_conf.flags & ARP_INSPECTION_VLAN_MODE));
+                ICLI_PRINTF("%s    ", cli_cmd_arp_inspection_vlan_log_txt(vlan_mode_conf.flags));
+                ICLI_PRINTF("\n");
+            }
+        }
+
+    } else if (interface_var) {
+        for (range_idx = 0; range_idx < in_port_type_list->cnt; range_idx++) {
+            if (arp_inspection_mgmt_conf_port_mode_get(in_port_type_list->switch_range[range_idx].isid, &port_mode_conf) != VTSS_OK ) {
+                continue;
+            }
+
+            show_header = TRUE;
+            for (cnt_idx = 0; cnt_idx < in_port_type_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                switch_range = in_port_type_list->switch_range[range_idx];
+                switch_range.begin_uport = in_port_type_list->switch_range[range_idx].begin_uport + cnt_idx;
+                switch_range.begin_iport = uport2iport(switch_range.begin_uport);
+                if (show_header) {
+                    show_header = FALSE;
+                    p = &buf[0];
+                    p += sprintf(p, "\nPort                      ");
+                    p += sprintf(p, "Port Mode   ");
+                    p += sprintf(p, "Check VLAN  ");
+                    p += sprintf(p, "Log Type  ");
+                    icli_parm_header(session_id, buf);
+                }
+                //ICLI_PRINTF("%u/%-2u    ", usid, uport);
+                ICLI_PRINTF("%-22s    ", icli_port_info_txt(switch_range.usid, switch_range.begin_uport, buf));
+                ICLI_PRINTF("%s    ", icli_bool_txt(port_mode_conf.mode[switch_range.begin_iport]));
+                ICLI_PRINTF("%s    ", icli_bool_txt(port_mode_conf.check_VLAN[switch_range.begin_iport]));
+                ICLI_PRINTF("%s    ", cli_cmd_arp_inspection_log_txt(port_mode_conf.log_type[switch_range.begin_iport]));
+                ICLI_PRINTF("\n");
+            }
+        }
+
+    } else if (vlan_var) {
+        for (i = 0; i < in_vlan_list->cnt; i++ ) {
+            for (idx = in_vlan_list->range[i].min; idx <= in_vlan_list->range[i].max; idx++) {
+                // get configuration
+                if (arp_inspection_mgmt_conf_vlan_mode_get(idx, &vlan_mode_conf, FALSE) != VTSS_OK) {
+                    continue;
+                }
+
+                if (show_header) {
+                    show_header = FALSE;
+                    p = &buf[0];
+                    p += sprintf(p, "VLAN    ");
+                    p += sprintf(p, "VLAN mode  ");
+                    p += sprintf(p, "VLAN Log Type  ");
+                    icli_parm_header(session_id, buf);
+                }
+                ICLI_PRINTF("%-4u    ", idx);
+                ICLI_PRINTF("%s    ", icli_bool_txt(vlan_mode_conf.flags & ARP_INSPECTION_VLAN_MODE));
+                ICLI_PRINTF("%s    ", cli_cmd_arp_inspection_vlan_log_txt(vlan_mode_conf.flags));
+                ICLI_PRINTF("\n");
+            }
+        }
+    }
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = show ip arp inspection entry [ dhcp-snooping | static ] [ interface <port_type_list> ]
+
+FUNC_NAME = arp_inspection_show_entry
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = show_var
+CMD_VAR   =
+//CMD_VAR   = ip_var
+CMD_VAR   =
+//CMD_VAR   = arp_var
+CMD_VAR   =
+//CMD_VAR   = inspection_var
+CMD_VAR   =
+//CMD_VAR   = entry_var
+CMD_VAR   =
+CMD_VAR   = dhcp_var
+CMD_VAR   = static_var
+CMD_VAR   = interface_var
+CMD_VAR   = in_port_type_list
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+
+HELP = ##HELP_SHOW
+HELP = ##HELP_IP
+HELP = ##HELP_ARP
+HELP = ##HELP_INSPECTION
+HELP = arp inspection entries
+HELP = learn from dhcp snooping
+HELP = setting from static entries
+HELP = arp inspection entry interface config
+HELP = Select an interface to configure
+HELP = Select a port list to configure
+
+VARIABLE_BEGIN
+    int                             cnt_idx;
+    u32                             range_idx;
+    icli_switch_port_range_t        switch_range;
+    arp_inspection_entry_t          entry;
+    BOOL                            show_header = TRUE;
+VARIABLE_END
+
+CODE_BEGIN
+
+    if (!interface_var) {
+        memset(&switch_range, 0, sizeof(switch_range));
+    }
+
+    if (!dhcp_var && !static_var && !interface_var) {
+        while (icli_switch_get_next(&switch_range)) {
+            show_header = TRUE;
+            while (icli_switch_port_get_next(&switch_range)) {
+                // Get static entries
+                ARP_INSPECTION_ICLI_entry_info_show(session_id, &show_header, TRUE, &entry, &switch_range);
+
+                // Get dynamic entries
+                ARP_INSPECTION_ICLI_entry_info_show(session_id, &show_header, FALSE, &entry, &switch_range);
+            }
+        }
+
+    } else if (interface_var && dhcp_var) {
+        for (range_idx = 0; range_idx < in_port_type_list->cnt; range_idx++) {
+            for (cnt_idx = 0; cnt_idx < in_port_type_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                switch_range = in_port_type_list->switch_range[range_idx];
+                switch_range.begin_uport = in_port_type_list->switch_range[range_idx].begin_uport + cnt_idx;
+                switch_range.begin_iport = uport2iport(switch_range.begin_uport);
+
+                // Get dynamic entries
+                ARP_INSPECTION_ICLI_entry_info_show(session_id, &show_header, FALSE, &entry, &switch_range);
+            }
+        }
+
+
+    } else if (interface_var && static_var) {
+        for (range_idx = 0; range_idx < in_port_type_list->cnt; range_idx++) {
+            for (cnt_idx = 0; cnt_idx < in_port_type_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                switch_range = in_port_type_list->switch_range[range_idx];
+                switch_range.begin_uport = in_port_type_list->switch_range[range_idx].begin_uport + cnt_idx;
+                switch_range.begin_iport = uport2iport(switch_range.begin_uport);
+
+                // Get static entries
+                ARP_INSPECTION_ICLI_entry_info_show(session_id, &show_header, TRUE, &entry, &switch_range);
+            }
+        }
+
+    } else if (interface_var) {
+        for (range_idx = 0; range_idx < in_port_type_list->cnt; range_idx++) {
+            for (cnt_idx = 0; cnt_idx < in_port_type_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+               switch_range = in_port_type_list->switch_range[range_idx];
+                switch_range.begin_uport = in_port_type_list->switch_range[range_idx].begin_uport + cnt_idx;
+                switch_range.begin_iport = uport2iport(switch_range.begin_uport);
+
+                // Get static entries
+                ARP_INSPECTION_ICLI_entry_info_show(session_id, &show_header, TRUE, &entry, &switch_range);
+
+                // Get dynamic entries
+                ARP_INSPECTION_ICLI_entry_info_show(session_id, &show_header, FALSE, &entry, &switch_range);
+            }
+        }
+
+    } else if (dhcp_var) {
+        while (icli_switch_get_next(&switch_range)) {
+            show_header = TRUE;
+            while (icli_switch_port_get_next(&switch_range)) {
+                // Get dynamic entries
+                ARP_INSPECTION_ICLI_entry_info_show(session_id, &show_header, FALSE, &entry, &switch_range);
+            }
+        }
+
+    } else if (static_var) {
+        while (icli_switch_get_next(&switch_range)) {
+            show_header = TRUE;
+            while (icli_switch_port_get_next(&switch_range)) {
+                // Get static entries
+                ARP_INSPECTION_ICLI_entry_info_show(session_id, &show_header, TRUE, &entry, &switch_range);
+            }
+        }
+    }
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################

@@ -1,0 +1,31 @@
+no snmp-server 
+no snmp-server access <group_name> model { v1 | v2c | v3 | any } level { auth | noauth | priv } 
+no snmp-server community v2c 
+no snmp-server community v3 <community> 
+no snmp-server contact 
+no snmp-server engined-id local 
+no snmp-server location 
+no snmp-server security-to-group model { v1 | v2c | v3 } name <security_name> 
+no snmp-server user <username> engine-id <engineID> 
+no snmp-server version 
+no snmp-server view <view_name> <oid_subtree> 
+show snmp 
+show snmp access [ <group_name> { v1 | v2c | v3 | any } { auth | noauth | priv } ] 
+show snmp community v3 [ <community> ] 
+show snmp mib context 
+show snmp mib ifmib ifIndex 
+show snmp mib redefine 
+show snmp security-to-group [ { v1 | v2c | v3 } <security_name> ] 
+show snmp user [ <username> <engineID> ] 
+show snmp view [ <view_name> <oid_subtree> ] 
+snmp-server 
+snmp-server access <group_name> model { v1 | v2c | v3 | any } level { auth | noauth | priv } [ read <view_name> ] [ write <write_name> ] 
+snmp-server community v2c <comm> [ ro | rw ] 
+snmp-server community v3 <v3_comm> [ <v_ipv4_addr> <v_ipv4_netmask> ] 
+snmp-server contact <v_line255> 
+snmp-server engine-id local <engineID> 
+snmp-server location <v_line255> 
+snmp-server security-to-group model { v1 | v2c | v3 } name <security_name> group <group_name> 
+snmp-server user <username> engine-id <engineID> [ { md5 <md5_passwd> | sha <sha_passwd> } [ priv { des | aes } <priv_passwd> ] ] 
+snmp-server version { v1 | v2c | v3 } 
+snmp-server view <view_name> <oid_subtree> { include | exclude } 

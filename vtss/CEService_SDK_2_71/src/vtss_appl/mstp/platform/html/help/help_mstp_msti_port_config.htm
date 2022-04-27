@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>STP MSTI Port Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>STP MSTI Port Configuration Help</h1>
+
+<p>This page allows the user to inspect the
+current <a href="glossary.htm#rstp" class="glossary">STP</a> MSTI port
+configurations, and possibly change them as well.</p>
+
+<p>
+ An MSTI port is a virtual port, which is instantiated separately for
+ each active CIST (physical) port for each MSTI instance configured
+ on and applicable to the port. The MSTI instance must be selected
+ before displaying actual MSTI port configuration options.
+</p>
+
+<p class="haveAggregations">This page contains MSTI port settings for
+   physical and
+ <a href="glossary.htm#aggregation" class="glossary">aggregated</a> ports.
+ <span class="SPOM_only">The aggregation settings are stack global.</span>
+</p>
+
+<p class="SPOM_only">Apart from the selected MSTI, the STP MSTI port
+settings also relate to the currently selected stack unit, as
+reflected by the page header.</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>
+   The switch port number of the corresponding STP CIST (and MSTI) port.
+ </dd>
+
+ <dt>Path Cost</dt>
+ <dd>
+   Controls the path cost incurred by the port. The <samp>Auto</samp>
+   setting will set the path cost as appropriate by the physical link
+   speed, using the 802.1D recommended values. Using
+   the <samp>Specific</samp> setting, a user-defined value can be
+   entered. The path cost is used when establishing the active topology of
+   the network. Lower path cost ports are chosen as forwarding ports in favour
+   of higher path cost ports.
+   Valid values are in the range 1 to 200000000.
+ </dd>
+
+ <dt>Priority</dt>
+ <dd>
+   Controls the port priority. This can be used to control priority of ports
+   having identical port cost. (See above).
+ </dd>
+
+</dl>
+
+<h2>Buttons</h2>
+
+<p><input type="button" value=" Get ">: Click to retrieve settings for a specific MSTI.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

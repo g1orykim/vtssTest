@@ -1,0 +1,841 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_DAYLIGHT_SAVING)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "daylight_saving_api.h"
+#include "mgmt_api.h"
+#include "misc_api.h"
+#include "port_api.h"
+#include "topo_api.h"
+INCLUDE_END
+
+// ############################################################################
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+
+FUNCTION_END
+
+// ############################################################################
+
+//
+// Export Segment
+//   This segment contains the API declarations of the global functions in
+//   Function Segment. This will be pasted exactly to the generated H file.
+//   So, others can include the H file to use the global functions.
+//
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_SHOW       = Show running system information
+HELP_CLEAR      = Clear
+HELP_IP         = Internet Protocol
+HELP_INTERFACE  = Interface
+HELP_PORT_TYPE  = Interface port type
+HELP_PORT_LIST  = Interface port list
+HELP_NO         = Negate a command or set its defaults
+
+HELP_CLOCK      = Configure time-of-day clock
+
+// ############################################################################
+
+CMD_BEGIN
+//COMMAND         = clock summer-time <word16> recurring [<1-5> {Sun|Mon|Tue|Wed|Thu|Fri|Sat} {Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec} <time> <1-5> {Sun|Mon|Tue|Wed|Thu|Fri|Sat} {Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec} <time> [<1-1440>]]
+COMMAND         = clock summer-time <word16> recurring [<1-5> <1-7> <1-12> <hhmm> <1-5> <1-7> <1-12> <hhmm> [<1-1440>]]
+
+FUNC_NAME = clock_summer_time_recurring
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = clock_var
+CMD_VAR   =
+//CMD_VAR   = summer_time_var
+CMD_VAR   =
+//CMD_VAR   = zone_var
+CMD_VAR   =
+//CMD_VAR   = recurring_var
+CMD_VAR   =
+CMD_VAR   = start_week_var
+CMD_VAR   = start_day_var
+CMD_VAR   = start_month_var
+CMD_VAR   = start_hour_var
+CMD_VAR   = end_week_var
+CMD_VAR   = end_day_var
+CMD_VAR   = end_month_var
+CMD_VAR   = end_hour_var
+CMD_VAR   = offset_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = WORD
+BYWORD    =
+BYWORD    =
+//BYWORD    = DAY
+BYWORD    =
+//BYWORD    = MONTH
+BYWORD    =
+BYWORD    = hh:mm
+BYWORD    =
+//BYWORD    = DAY
+BYWORD    =
+//BYWORD    = MONTH
+BYWORD    =
+BYWORD    = hh:mm
+BYWORD    =
+
+HELP = ##HELP_CLOCK
+HELP = Configure summer (daylight savings) time
+HELP = name of time zone in summer
+HELP = Configure recurring summer time
+HELP = Week number to start
+HELP = Weekday to start
+HELP = Month to start
+HELP = Time to start (hh:mm)
+HELP = Week number to end
+HELP = Weekday to end
+HELP = Month to end
+HELP = Time to end (hh:mm)
+HELP = Offset to add in minutes
+
+VARIABLE_BEGIN
+    time_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+
+    if (time_dst_get_config(&conf) != VTSS_OK) {
+        return ICLI_RC_OK;
+    }
+
+    conf.dst_mode = TIME_DST_RECURRING;
+
+    //ICLI_PRINTF("zone: %s\n", zone_var);
+    //ICLI_PRINTF("start week: %d\n", start_week_var);
+    //ICLI_PRINTF("start day: %d\n", start_day_var);
+    //ICLI_PRINTF("start month: %d\n", start_month_var);
+    //ICLI_PRINTF("start hour: %u:%u\n", start_hour_var.hour, start_hour_var.min);
+
+    if (start_week_var) {
+        conf.dst_start_time.week = start_week_var;
+        conf.dst_start_time.day = start_day_var;
+        conf.dst_start_time.month = start_month_var;
+        conf.dst_start_time.date = 0;
+        conf.dst_start_time.year = 0;
+        conf.dst_start_time.hour = start_hour_var.hour;
+        conf.dst_start_time.minute = start_hour_var.min;
+    }
+
+    //ICLI_PRINTF("end week: %d\n", end_week_var);
+    //ICLI_PRINTF("end day: %d\n", end_day_var);
+    //ICLI_PRINTF("end month: %d\n", end_month_var);
+    //ICLI_PRINTF("end hour: %u:%u\n", end_hour_var.hour, end_hour_var.min);
+
+    if (end_week_var) {
+        conf.dst_end_time.week = end_week_var;
+        conf.dst_end_time.day = end_day_var;
+        conf.dst_end_time.month = end_month_var;
+        conf.dst_end_time.date = 0;
+        conf.dst_end_time.year = 0;
+        conf.dst_end_time.hour = end_hour_var.hour;
+        conf.dst_end_time.minute = end_hour_var.min;
+    }
+
+    //ICLI_PRINTF("offset: %d\n", offset_var);
+
+    if (offset_var) {
+        conf.dst_offset = offset_var;
+    }
+
+    (void) time_dst_set_config(&conf);
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = clock summer-time <word16> date [<1-12> <1-31> <2000-2097> <hhmm> <1-12> <1-31> <2000-2097> <hhmm> [<1-1440>]]
+
+FUNC_NAME = clock_summer_time_date
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = clock_var
+CMD_VAR   =
+//CMD_VAR   = summer_time_var
+CMD_VAR   =
+//CMD_VAR   = zone_var
+CMD_VAR   =
+//CMD_VAR   = date_var
+CMD_VAR   =
+CMD_VAR   = start_month_var
+CMD_VAR   = start_date_var
+CMD_VAR   = start_year_var
+CMD_VAR   = start_hour_var
+CMD_VAR   = end_month_var
+CMD_VAR   = end_date_var
+CMD_VAR   = end_year_var
+CMD_VAR   = end_hour_var
+CMD_VAR   = offset_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = WORD
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = hh:mm
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = hh:mm
+BYWORD    =
+
+HELP = ##HELP_CLOCK
+HELP = Configure summer (daylight savings) time
+HELP = name of time zone in summer
+HELP = Configure absolute summer time
+HELP = Month to start
+HELP = Date to start
+HELP = Year to start
+HELP = Time to start (hh:mm)
+HELP = Month to end
+HELP = Date to end
+HELP = Year to end
+HELP = Time to end (hh:mm)
+HELP = Offset to add in minutes
+
+VARIABLE_BEGIN
+    time_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+
+    if (time_dst_get_config(&conf) != VTSS_OK) {
+        return ICLI_RC_OK;
+    }
+
+    conf.dst_mode = TIME_DST_NON_RECURRING;
+
+    //ICLI_PRINTF("zone: %s\n", zone_var);
+    //ICLI_PRINTF("start month: %d\n", start_month_var);
+    //ICLI_PRINTF("start date: %d\n", start_date_var);
+    //ICLI_PRINTF("start year: %d\n", start_year_var);
+    //ICLI_PRINTF("start hour: %u:%u\n", start_hour_var.hour, start_hour_var.min);
+
+    if (start_month_var) {
+        conf.dst_start_time.week = 0;
+        conf.dst_start_time.day = 0;
+        conf.dst_start_time.month = start_month_var;
+        conf.dst_start_time.date = start_date_var;
+        conf.dst_start_time.year = start_year_var;
+        conf.dst_start_time.hour = start_hour_var.hour;
+        conf.dst_start_time.minute = start_hour_var.min;
+    }
+
+    //ICLI_PRINTF("end month: %d\n", end_month_var);
+    //ICLI_PRINTF("end date: %d\n", end_date_var);
+    //ICLI_PRINTF("end year: %d\n", end_year_var);
+    //ICLI_PRINTF("end hour: %u:%u\n", end_hour_var.hour, end_hour_var.min);
+
+    if (end_month_var) {
+        conf.dst_end_time.week = 0;
+        conf.dst_end_time.day = 0;
+        conf.dst_end_time.month = end_month_var;
+        conf.dst_end_time.date = end_date_var;
+        conf.dst_end_time.year = end_year_var;
+        conf.dst_end_time.hour = end_hour_var.hour;
+        conf.dst_end_time.minute = end_hour_var.min;
+    }
+
+    //ICLI_PRINTF("offset: %d\n", offset_var);
+
+    if (offset_var) {
+        conf.dst_offset = offset_var;
+    }
+
+    (void) time_dst_set_config(&conf);
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = no clock summer-time
+
+FUNC_NAME = no_clock_summer_time
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = no_var
+CMD_VAR   =
+//CMD_VAR   = clock_var
+CMD_VAR   =
+//CMD_VAR   = summer_time_var
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+
+HELP = ##HELP_NO
+HELP = ##HELP_CLOCK
+HELP = Configure summer (daylight savings) time
+
+VARIABLE_BEGIN
+    time_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+
+    if (time_dst_get_config(&conf) != VTSS_OK) {
+        return ICLI_RC_OK;
+    }
+
+    conf.dst_mode = TIME_DST_DISABLED;
+
+    (void) time_dst_set_config(&conf);
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = clock timezone <word16> <-23-23> [<0-59>]
+
+FUNC_NAME = clock_timezone
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = word_var
+CMD_VAR   = hour_var
+CMD_VAR   = minute_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = WORD
+BYWORD    =
+BYWORD    =
+
+HELP = ##HELP_CLOCK
+HELP = Configure time zone
+HELP = name of time zone
+HELP = Hours offset from UTC
+HELP = Minutes offset from UTC
+
+VARIABLE_BEGIN
+    time_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+
+    if (time_dst_get_config(&conf) != VTSS_OK) {
+        return ICLI_RC_OK;
+    }
+
+    if (hour_var) {
+        conf.tz = (hour_var * 60 * 10);
+        conf.tz_offset = hour_var * 60;
+    }
+
+    if (minute_var) {
+        conf.tz += (minute_var * 10);
+        conf.tz_offset += minute_var;
+    }
+
+    if (word_var) {
+        strcpy(conf.tz_acronym, word_var);
+    }
+
+    (void) time_dst_set_config(&conf);
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = no clock timezone
+
+FUNC_NAME = no_clock_timezone
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+
+HELP = ##HELP_NO
+HELP = ##HELP_CLOCK
+HELP = Configure time zone
+
+VARIABLE_BEGIN
+    time_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+
+    if (time_dst_get_config(&conf) != VTSS_OK) {
+        return ICLI_RC_OK;
+    }
+
+    conf.tz = 0;
+    conf.tz_offset = 0;
+    strcpy(conf.tz_acronym, "");
+
+    (void) time_dst_set_config(&conf);
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+// ############################################################################
+
+CMD_BEGIN
+COMMAND         = show clock detail
+
+FUNC_NAME = show_clock
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+// (Optional)
+// C variable for the variable in the mode entry command
+// It is needed when CMD_MODE: ICLI_CMD_MODE_CONFIG_VLAN,
+//                             ICLI_CMD_MODE_INTERFACE_PORT_LIST,
+//                             ICLI_CMD_MODE_INTERFACE_VLAN
+// MODE_VAR  =
+
+// (Optional)
+// Name of reused execution function of another command
+// FUNC_REUSE =
+
+// (Optional)
+// Property of the command, ICLI_CMD_PROP_XXXX, defined in icli_types.h.
+// Acceptable use | to combine them.
+// PROPERTY  =
+
+// (Optional)
+// This is for #if conditional flag to enclose the command.
+IF_FLAG   =
+
+// (Optional)
+// The no form of this command
+// The C code need enclosed by [NO_FORM_CODE_BEGIN, NO_FORM_CODE_END]
+
+// (Optional)
+// Declare the variable name that one-to-one mapping to each word of command string (COMMAND)
+// To get the variable type, please refer to AN1047-ICLI_Command_Generation_Guide.doc Appendix A: Variable Types
+// or \vtss_appl\icli\doc\variable_type.txt
+// The variable type is declared in \vtss_appl\icli\base\icli_types.h
+//CMD_VAR   = show_var
+CMD_VAR   =
+//CMD_VAR   = clock_var
+CMD_VAR   =
+CMD_VAR   = detail_var
+
+// (Optional)
+// Declare the static local sub-function that one-to-one mapping to each word of command string (COMMAND)
+// The function is used for runtime callback check on the corresponding word of command string
+// RUNTIME   =
+
+// (Optional)
+// If there isn't exact matched definition in CCLI variable types (ccli_variable.c/g_variable_name[])
+// Given an alternative word that one-to-one mapping to each word of command string (COMMAND)
+// BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+
+HELP = ##HELP_SHOW
+HELP = ##HELP_CLOCK
+HELP = Display detailed information
+
+VARIABLE_BEGIN
+    time_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+
+    if (time_dst_get_config(&conf) != VTSS_OK) {
+        return ICLI_RC_OK;
+    }
+
+    ICLI_PRINTF("System Time     : %s\n\n", misc_time2str(time(NULL)));
+
+    if (detail_var) {
+        ICLI_PRINTF("Timezone : ");
+
+        ICLI_PRINTF("Timezone Offset : %d ( %d minutes)\n", conf.tz, conf.tz_offset);
+        ICLI_PRINTF("Timezone Acronym : %s\n\n", conf.tz_acronym);
+
+        ICLI_PRINTF("Daylight Saving Time Mode : ");
+
+        switch (conf.dst_mode) {
+        case TIME_DST_DISABLED:
+            ICLI_PRINTF("Disabled.\n");
+            break;
+        case TIME_DST_RECURRING:
+            ICLI_PRINTF("Recurring.\n");
+            break;
+        case TIME_DST_NON_RECURRING:
+            ICLI_PRINTF("Non-Recurring.\n");
+            break;
+        }
+
+        switch (conf.dst_mode) {
+        case TIME_DST_DISABLED:
+            ICLI_PRINTF("Daylight Saving Time Start Time Settings : \n");
+            ICLI_PRINTF("        Week: %d\n", conf.dst_start_time.week);
+            ICLI_PRINTF("        Day: %d\n", conf.dst_start_time.day);
+            ICLI_PRINTF("        Month: %d\n", conf.dst_start_time.month);
+            ICLI_PRINTF("        Date: %d\n", conf.dst_start_time.date);
+            ICLI_PRINTF("        Year: %d\n", conf.dst_start_time.year);
+            ICLI_PRINTF("        Hour: %d\n", conf.dst_start_time.hour);
+            ICLI_PRINTF("        Minute: %d\n", conf.dst_start_time.minute);
+            ICLI_PRINTF("Daylight Saving Time End Time Settings : \n");
+            ICLI_PRINTF("        Week: %d\n", conf.dst_end_time.week);
+            ICLI_PRINTF("        Day: %d\n", conf.dst_end_time.day);
+            ICLI_PRINTF("        Month: %d\n", conf.dst_end_time.month);
+            ICLI_PRINTF("        Date: %d\n", conf.dst_end_time.date);
+            ICLI_PRINTF("        Year: %d\n", conf.dst_end_time.year);
+            ICLI_PRINTF("        Hour: %d\n", conf.dst_end_time.hour);
+            ICLI_PRINTF("        Minute: %d\n", conf.dst_end_time.minute);
+            break;
+        case TIME_DST_RECURRING:
+            ICLI_PRINTF("Daylight Saving Time Start Time Settings : \n");
+            ICLI_PRINTF("      * Week: %d\n", conf.dst_start_time.week);
+            ICLI_PRINTF("      * Day: %d\n", conf.dst_start_time.day);
+            ICLI_PRINTF("      * Month: %d\n", conf.dst_start_time.month);
+            ICLI_PRINTF("        Date: %d\n", conf.dst_start_time.date);
+            ICLI_PRINTF("        Year: %d\n", conf.dst_start_time.year);
+            ICLI_PRINTF("      * Hour: %d\n", conf.dst_start_time.hour);
+            ICLI_PRINTF("      * Minute: %d\n", conf.dst_start_time.minute);
+            ICLI_PRINTF("Daylight Saving Time End Time Settings : \n");
+            ICLI_PRINTF("      * Week: %d\n", conf.dst_end_time.week);
+            ICLI_PRINTF("      * Day: %d\n", conf.dst_end_time.day);
+            ICLI_PRINTF("      * Month: %d\n", conf.dst_end_time.month);
+            ICLI_PRINTF("        Date: %d\n", conf.dst_end_time.date);
+            ICLI_PRINTF("        Year: %d\n", conf.dst_end_time.year);
+            ICLI_PRINTF("      * Hour: %d\n", conf.dst_end_time.hour);
+            ICLI_PRINTF("      * Minute: %d\n", conf.dst_end_time.minute);
+            break;
+        case TIME_DST_NON_RECURRING:
+            ICLI_PRINTF("Daylight Saving Time Start Time Settings : \n");
+            ICLI_PRINTF("        Week: %d\n", conf.dst_start_time.week);
+            ICLI_PRINTF("        Day: %d\n", conf.dst_start_time.day);
+            ICLI_PRINTF("      * Month: %d\n", conf.dst_start_time.month);
+            ICLI_PRINTF("      * Date: %d\n", conf.dst_start_time.date);
+            ICLI_PRINTF("      * Year: %d\n", conf.dst_start_time.year);
+            ICLI_PRINTF("      * Hour: %d\n", conf.dst_start_time.hour);
+            ICLI_PRINTF("      * Minute: %d\n", conf.dst_start_time.minute);
+            ICLI_PRINTF("Daylight Saving Time End Time Settings : \n");
+            ICLI_PRINTF("        Week: %d\n", conf.dst_end_time.week);
+            ICLI_PRINTF("        Day: %d\n", conf.dst_end_time.day);
+            ICLI_PRINTF("      * Month: %d\n", conf.dst_end_time.month);
+            ICLI_PRINTF("      * Date: %d\n", conf.dst_end_time.date);
+            ICLI_PRINTF("      * Year: %d\n", conf.dst_end_time.year);
+            ICLI_PRINTF("      * Hour: %d\n", conf.dst_end_time.hour);
+            ICLI_PRINTF("      * Minute: %d\n", conf.dst_end_time.minute);
+            break;
+        }
+
+        ICLI_PRINTF("Daylight Saving Time Offset : %u (minutes)\n", conf.dst_offset);
+    }
+
+
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END

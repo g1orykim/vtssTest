@@ -1,0 +1,319 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Maintenance Entity End Point</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_mep.htm";
+
+var oTMode = new Array ("Mep","Mip");
+var oVMode = new Array(0, 1);
+var oTDirection = new Array ("Down","Up");
+var oVDirection = new Array(0, 1);
+var reqObject;
+var oTEvcDomain = new Array ("Port","Evc","Vlan");
+var oVEvcDomain = new Array(0, 1, 2);
+var oTDomain = new Array ("Port");
+var oVDomain = new Array(0);
+var entry_name = new Array();
+var add_cnt = 0;
+var evc;
+var originalCnt = 0;
+var configMepMax=0;
+
+function resetForm()
+{
+    processUpdate(reqObject, "mepData");
+}
+
+function appendFrag(frag, ref, clear)
+{
+    var tbody = document.getElementById(ref);
+    if (clear)
+        clearChildNodes(tbody);
+    if (!tbody.appendChild(frag))
+        // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+}
+
+function addNewRow()
+{
+    var mep_id = 1;
+    var td;
+
+    // Check if entry already added
+    if (add_cnt)
+    {
+        alert("Only one MEP can be added for each Save operation");
+        return;
+    }
+    add_cnt++;
+
+    // Search for first available MEP ID
+    for (var idx = 0; idx < entry_name.length; idx++)
+    {
+        if (entry_name[idx] == mep_id)
+            mep_id++;
+        else
+            break;
+    }
+
+    // Create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalCnt + add_cnt) % 2 ? "config_even" : "config_odd");
+    var button = document.createElement('input');
+
+    button.onclick = function() {processUpdate(reqObject, "mepData");};
+    button.type = "button";
+    button.value = " Delete ";
+    td = CreateTd("c");
+    addCell(tr, td, button);
+
+    td = addInputCell(tr, mep_id, "c", "new_mep", 3);
+    td.setAttribute("maxLength", 3);
+    if (evc)
+        addSelectCell(tr, oTEvcDomain, oVEvcDomain, 0, "c", "dom");
+    else
+        addSelectCell(tr, oTDomain, oVDomain, 0, "c", "dom");
+    addSelectCell(tr, oTMode, oVMode, 0, "c", "mode");
+    addSelectCell(tr, oTDirection, oVDirection, 0, "c", "direct");
+    td = addInputCell(tr, 1, "c", "port", 2);
+    td.setAttribute("maxLength", 2);
+    td = addInputCell(tr, 0, "c", "level", 1);
+    td.setAttribute("maxLength", 1);
+    td = addInputCell(tr, 1, "c", "flow", 4);
+    td.setAttribute("maxLength", 4);
+    td = addInputCell(tr, 0, "c", "vid", 4);
+    td.setAttribute("maxLength", 4);
+    addTextCell(tr, "", "c");
+    addTextCell(tr, "", "c");
+
+    frag.appendChild(tr);       // Add row to fragment
+    appendFrag(frag, "mepData", 0);
+}
+
+function checkForm(form)
+{
+    var id = "flow";
+    var fld = document.getElementById(id);
+
+    if (fld)
+    {
+        if (fld.value == 0)
+        {
+            alert("Flow instance must not be zero");
+            return false;
+        }
+    }
+
+    id = "level";
+    fld = document.getElementById(id);
+
+    if (fld)
+    {
+        // Check that level in within range
+        if(!isWithinRange(id, 0, 7, "'Level'"))
+            return false;
+    }
+
+    id = "vid";
+    fld = document.getElementById(id);
+    if (fld)
+    {
+        if (fld.value > 4095)
+        {
+            alert ("Tagged VID is not valid");
+            return false;
+        }
+    }
+
+    id = "new_mep";
+    fld = document.getElementById(id);
+    var del_cnt = 0;
+    var idx;
+
+    if (fld)
+    {
+        // Check that new MEP ID in within range
+        if(!isWithinRange(id, 1, configMepMax, "'MEP ID'"))
+            return false;
+
+        // Check that new MEP ID is not already used
+        for (idx = 0; idx < entry_name.length; idx++)
+        {
+            if (entry_name[idx] == fld.value)
+            {
+                GiveAlert("MEP ID " + fld.value + " is already in use", fld);
+                return false;
+            }
+        }
+    }
+    else
+    {
+        /* Check if anything must be deleted */
+        for (idx = 0; idx < entry_name.length; idx++)
+        {
+            if (document.getElementById("del_" + entry_name[idx]).checked)
+                del_cnt++;
+        }
+        if (del_cnt == 0)
+            return false;
+    }
+    return true;
+}
+
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    originalCnt++;
+
+    entry_name[index] = values[0];
+    addCheckBoxCell(tr, 0, "c", "del_" + values[0]);
+    if (oTMode[parseInt(values[2])] == "Mep")
+        addLink(tr, "c", "mep_config.htm?mep=" + values[0], values[0]);
+    else
+        addTextCell(tr, values[0], "c");
+    addTextCell(tr, oTEvcDomain[parseInt(values[1])], "c");
+    addTextCell(tr, oTMode[parseInt(values[2])], "c");
+    addTextCell(tr, oTDirection[parseInt(values[3])], "c");
+    addTextCell(tr, values[4], "c");
+    addTextCell(tr, values[5], "c");
+    addTextCell(tr, values[6], "c");
+    if ((oTEvcDomain[parseInt(values[1])] == "Port") || (oTMode[parseInt(values[2])] == "Mip"))
+        addTextCell(tr, values[7], "c");
+    else
+        addTextCell(tr, "", "c");
+    addTextCell(tr, values[8], "c");
+    link = values[9];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    frag.appendChild(tr);
+}
+
+
+function processUpdate(req, ref)
+{
+    var reset=0;
+
+    if (reqObject != req)   reqObject = req;
+    else                    reset = 1;
+
+    if (req.responseText)
+    {
+        var values = req.responseText.split("|");
+        var frag = document.createDocumentFragment();
+        originalCnt = 0;
+
+        evc = parseInt(values[0]);
+        configMepMax = parseInt(values[1]);
+        for (var i = 0; i < (values.length-3); i++)
+        {
+            if (values[i+2])
+                addRow(i, frag, values[i+2].split("/"));
+        }
+        add_cnt = 0;
+        appendFrag(frag, ref, 1);
+
+        if (values[i+2] && (reset == 0))
+        {
+            alert(values[i+2]);
+            addNewRow();
+        }
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+
+function requestUpdate()
+{
+    //Format: <mep_id>/<domain>/<flow>,...
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc("/config/mepCreate", processUpdate, "mepData");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Maintenance Entity Point</h1>
+
+<div class="refreshbar">
+<form action="#">
+ <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+ <img id="update" alt="" src="images/updating.gif">
+</form>
+</div>
+
+<form method="POST" action="/config/mepCreate" onsubmit="return checkForm(this);">
+
+<table summary="Maintenance Entity End Point Create" cellspacing="0" class="config">
+  <thead>
+    <tr class="config_header">
+      <th>Delete</th>
+      <th>Instance</th>
+      <th>Domain</th>
+      <th>Mode</th>
+      <th>Direction</th>
+      <th>Residence Port</th>
+      <th>Level</th>
+      <th>Flow Instance</th>
+      <th>Tagged VID</th>
+      <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This MAC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>
+      <th>Alarm</th>
+    </tr>
+  </thead>
+  <tbody id="mepData">
+  </tbody>
+</table>
+
+<p>
+  <input type="button" id="addNewEntry" value="Add New MEP" onclick="addNewRow()">&nbsp;&nbsp;&nbsp;&nbsp;
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

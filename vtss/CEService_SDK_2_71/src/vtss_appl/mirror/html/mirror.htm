@@ -1,0 +1,371 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_mirroring.htm";
+
+var last_mirror_port = -1;
+var modes = Array();
+var PortList = Array(); // Array going to contain a list of ports for each switch in a stack
+var MirrorPort;         // Variable going to hold the current mirror port
+
+
+function addRow(index, frag, values) {
+    var portno          = values[0];
+    var rx_mirror_ena  = values[1];
+    var tx_mirror_ena  = values[2];
+    
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    
+    addTextCell(tr, configPortName(portno, 0), "cr");
+
+    var oT = Array("Disabled","Rx only","Tx only", "Enabled"); // Text
+    var oV = Array("0","1","2","3"); // Disabled, enabled,rx only,tx only
+
+    // Determine the mode 
+    val = 0;
+    if (parseInt(rx_mirror_ena, 10)) {
+	val = val + 1;
+    }
+    if (parseInt(tx_mirror_ena, 10)) {
+	val = val + 2;
+    }
+
+    // Add the drop down list
+    addSelectCell(tr, oT, oV, val, "cr", "mode_" + portno);
+    modes[portno] = val; // Remember configuration. May be needed for updating the SelectCell
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+
+// Function that can update the mode slect boxes to support all modes or only "disable and "tx only"
+function UpdateRow(id ,all,value)
+{
+    var oT;
+    var oV;
+    if (all) {
+	oT = Array("Disabled","Rx only","Tx only", "Enabled"); // Text
+	oV = Array("0","1","2", "3"); // Disabled, enabled,rx only,tx only
+    } else {
+	oT = Array("Disabled","Rx only"); // Text
+	oV = Array("0", "1"); // Disabled, enabled,rx only,tx only
+	if (value === 0 || value === 2) {
+	    value = 0; // Convert "Disable" and "Tx only" to "Disable" 
+	} else {
+	    value = 1; // Convert "Enable" and "Rx only" to "Rx Only" 
+	}
+    }
+    UpdateIdSelect("mode_"+ id, oT, oV, value);
+}
+
+// When the mastercontrol is changed we need to limit the source to either disable or rx_only for the port corresponding to the mirror port.
+function MasterControlChange(name) {
+    var val = this.get('value'); // Get master control value
+
+    // Loop through all elements and assign them to the master controls value (Done with Mootools).
+    $$('select[id^="' + name + '"]:enabled').each(function(item) {
+      item.selectedIndex = val;
+    });
+
+    // Filter out enable and tx_only for the mirror port.
+    switch_id   = document.getElementById("switchselect").value;
+    mirror_port = document.getElementById("portselect").value;
+    var isid    = document.getElementById("submit_sid").value;
+    if (isid == -1 ||  isid == switch_id) {  
+	UpdateRow(mirror_port, false, parseInt(val, 10)); // Update new mirror port to only support "disable" and "tx only"
+    } 
+}
+
+
+function UpdateTable (ref, mirrorconfig) {
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+
+    for(var i = 0; i < mirrorconfig.length; i++) {
+        if(mirrorconfig[i].length) {
+            var pval = mirrorconfig[i].split("/");
+            addRow(i, frag, pval);
+        }
+    }
+
+    FinishTable(frag, ref);
+
+    var cBar = new MasterControlBar([{text: "*", className: "cr"},
+    {name: "mode_", onchange: MasterControlChange}]);
+    
+    cBar.construct('mirrorconfig', 'config_odd');
+}
+
+ 
+
+function PortSelect()
+{
+    switch_id = document.getElementById("switchselect").value;
+    mirror_port = document.getElementById("portselect").value;
+    
+    // If the customer want to disable mirroring completly for the mirror port
+    // change the this var to "true"
+    var disable_mirror_port_mode = false;
+    
+    var isid = document.getElementById("submit_sid").value;
+
+
+    if (disable_mirror_port_mode) {
+	// Disable mode for the mirror port
+	if (isid == -1 || isid == switch_id) {  
+	    document.getElementById("mode_"+mirror_port).disabled = true;
+	}
+    } else {
+	// Filter out enable and tx_only since they don' t make sense for the mirror port.
+	// We need to remember which port that was last selected as mirror port
+	// in order to reset the mode value for that port.
+	UpdateRow(last_mirror_port, true, modes[last_mirror_port]);  // Reset mode for last selected mirror port
+	if (isid == -1 ||  isid == switch_id) {  
+	    UpdateRow(mirror_port, false, modes[mirror_port]); // Update new mirror port to only support "disable" and "tx only"
+	} else {
+	    UpdateRow(mirror_port, true, modes[mirror_port]);  // Reset mode for mirror port because this is not the "mirror" switch
+	}
+	last_mirror_port = mirror_port;   // Remember this mirror port. 
+    }
+}
+
+// Function for updating the Port Drop down box.
+function UpdatePortDropDown ()
+{
+    // Get the number of port for the destination switch currently selected.
+    var SidPorts =  PortList.split("?");
+    var PortsList;
+    if (SpomIsStack()) {
+	PortsList = SidPorts[document.getElementById("switchselect").selectedIndex].split("#");	
+    } else {
+	PortsList = SidPorts[0].split("#");
+    }
+
+    // Get the drop down box and delete the current context.
+    var port_sel = document.getElementById("portselect");
+    clearChildNodes(port_sel);
+
+    // Add the disabled option
+    var opt = document.createElement("option");
+    opt.appendChild(document.createTextNode("Disabled"));
+    opt.setAttribute("value", 0);
+    port_sel.appendChild(opt);
+
+    // Add the ports options - Start from 1 (0 is disabled)
+    for(var i = 1; i < PortsList.length; i++) {
+	// Build the Mirror port select list. Skipping the stacking ports
+	opt = document.createElement("option");
+	opt.appendChild(document.createTextNode(PortsList[i -1]));
+	opt.setAttribute("value", i);
+	port_sel.appendChild(opt);
+    }
+    
+  
+    // Selelect the current destination port.
+    port_sel = document.getElementById("portselect");
+    for(i = 0; i < PortsList.length; i++) {
+	opt = port_sel.options[i];
+	var sel = (parseInt(opt.value, 10) == MirrorPort);
+        opt.selected = sel;
+        opt.defaultSelected = sel;
+        if (sel) {
+            port_sel.selectedIndex = i;
+	}
+    }
+    PortSelect();
+}
+
+// Because we disables some of the element in "runtime", we need to
+// do take special care of the reset.
+function ResetUpdate() {
+    document.MirrorForm.reset();
+    UpdatePortDropDown(); // Reset the drop down box
+    PortSelect();
+}
+
+function UpdateSwitchDropDown (SwitchList, SwitchInTable, MirrorDisabled) 
+{
+    var switch_sel = document.getElementById("switchselect");
+    clearChildNodes(switch_sel);
+    var sel = 0;
+    for (var i = 0; i < SwitchList.length; i++) {
+	if(SwitchList[i].length) {
+            var sid = SwitchList[i];
+            var opt = document.createElement("option");
+            opt.appendChild(document.createTextNode("Switch " + sid));
+            opt.setAttribute("value", sid);
+            switch_sel.appendChild(opt);
+            if (sid == SwitchInTable) {
+                opt.setAttribute("selected", true);
+                opt.setAttribute("defaultSelected", true);
+                sel = i;
+            }
+        }
+    }
+    switch_sel.selectedIndex = sel;
+}
+
+function processUpdate(req, ref)
+{
+    // Format: 
+    //  <mirror_switch>,<mirror_port>,<sid#sid#..>|<source enable>/<destination enable>,<source enable>/<destination enable>,.....
+    
+    if(redirectOnError(req)) {
+        return;
+    }
+
+    if(req.responseText) {
+        
+        // Get portstart and port max
+        var config = req.responseText.split("|");
+        var pval = config[0].split(",");
+        var ErrMsg       = pval[0];
+        var MirrorSwitch = parseInt(pval[1], 10);
+        MirrorPort       = parseInt(pval[2], 10);
+        var SwitchList   = pval[3];
+        PortList         = config[1];
+
+	if (String(ErrMsg) !== "") {
+	    alert(ErrMsg);
+	}
+
+        // Create the "switch ot mirror to" drop down list
+        if (SpomIsStack()) {
+            UpdateSwitchDropDown(SwitchList.split('#'),
+                                 MirrorSwitch, MirrorPort === 0);
+	}
+
+        // Create the table
+        UpdateTable(ref, config[2].split(","));
+
+        // Create the "port to mirror to" drop down list
+        UpdatePortDropDown();
+
+    } else {
+        SpomHandleError();   
+    }
+}
+
+function checkForm(form)
+{
+     return true;                // Feed the chickens and go home
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    loadXMLDoc(SpomAddSidArg("/config/mirroring"), processUpdate, 'MirrorData');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function DocLoad()
+{
+    requestUpdate();
+}
+
+ </script>
+</head>
+
+<body class="content" onload="DocLoad();">
+
+<h1>Mirror Configuration</h1>
+
+<form name="MirrorForm" method="POST" action="/config/mirroring" onsubmit="return checkForm(this);">
+
+<table id="qconfig" summary="Switch Default Class Configuration" class="config">
+ <tbody>
+  <tr class="config">
+   <td class="param_label"><label accesskey="P" for="portselect">Port to mirror to</label></td>
+   <td>
+    <select id="portselect" name="portselect" style="width: 7em;" onchange="PortSelect(this);">
+    </select>
+   </td>
+  </tr>
+  <tr class="config SPOM_only">
+   <td class="param_label"><label accesskey="S" for="switchselect">Switch to mirror to</label></td>
+   <td>
+    <select id="switchselect" name="switchselect" style="width: 7em;" onchange="UpdatePortDropDown();">
+    </select>
+   </td>
+  </tr>
+ </tbody>
+</table>
+
+<h2>Mirror Port Configuration<span id="display_sid"></span></h2>
+
+<table id="mirrorconfig" summary="Switch Port Configuration" class="config">
+
+ <thead>
+  <tr class="config_header">
+   <th>Port</th>
+   <th>Mode</th>
+  </tr>
+ </thead>
+ <tbody id="MirrorData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset" onclick="ResetUpdate();">
+</p>
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,133 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>System Log Information Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+
+<body>
+<h1>System Log Information Help</h1>
+<p>The switch system log information is provided here.</p>
+
+<!-- *********************************************************************** -->
+<h2>Navigating the System Log Information Table</h2>
+<p>Each page shows up to 999 table entries, selected through the "entries per page"
+input field. When first visited, the web page will show the beginning entries of
+this table.
+</p>
+
+<p>The "Level" input field is used to filter the display system log entries.
+<br>The "Clear Level" input field is used to specify which system log entries
+will be cleared.
+<br>To clear specific system log entries, select the clear level first then
+click the <input type="button" value="Clear"/> button.
+</p>
+
+<p>The "Start from ID" input field allow the user to change the starting point
+in this table. Clicking the <input type="button" value="Refresh"/> button will
+update the displayed table starting from that or the closest next entry match.
+<br>In addition, these input fields will upon a
+<input type="button" value="Refresh"/> button click - assume the value of the
+first displayed entry, allowing for continuous refresh with the same start input
+field. 
+</p>
+
+<p>The <input type="button" value=" >>"/> will use the last entry of the
+currently displayed table as a basis for the next lookup.
+<br>When the end is reached the text "No more entries" is shown in the
+displayed table. Use the <input type="button" value=" |<<"/> button to start over.
+</p>
+
+<!-- *********************************************************************** -->
+<h2>System Log Information Entry Columns</h2>
+<dl>
+ <dt>ID</dt>
+ <dd>
+ The identification of the system log entry.
+ </dd>
+
+ <dt>Level</dt>
+ <dd>
+ The level of the system log entry.
+ <samp>Info</samp>: The system log entry is belonged information level.
+ <br><samp>Warning</samp>: The system log entry is belonged warning level.
+ <br><samp>Error</samp>: The system log entry is belonged error level.
+ </dd>
+
+ <dt>Time</dt>
+ <dd>
+ The occurred time of the system log entry.
+ </dd>
+
+ <dt>Message</dt>
+ <dd>
+ The detail message of the system log entry.
+ </dd>
+</dl>
+
+<!-- *********************************************************************** -->
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">:
+Check this box to refresh the page automatically. Automatic refresh occurs every
+<span class="refreshInterval">3</span> seconds.
+</p>
+
+<p><input type="button" value=" Refresh ">:
+Updates the table entries, starting from the current entry.
+</p>
+
+<p><input type="button" value=" Clear ">:
+Flushes the selected entries.
+</p>
+
+<p><input type="button" value="|<<">:
+Updates the table entries, starting from the first available entry.
+</p>
+
+<p><input type="button" value="<<">:
+Updates the table entries, ending at the last entry currently displayed.
+</p>
+
+<p><input type="button" value=">>">:
+Updates the table entries, starting from the last entry currently displayed.
+</p>
+
+<p><input type="button" value=">>|">:
+Updates the table entries, ending at the last available entry.
+</p>
+
+</body>
+</html>

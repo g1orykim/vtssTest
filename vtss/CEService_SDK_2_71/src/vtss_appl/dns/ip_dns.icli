@@ -1,0 +1,399 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_DNS)
+
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "mgmt_api.h"
+#include "ip_dns_api.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+static BOOL _icli_ip_dns_proxy_state_set(u32 session_id, BOOL state)
+{
+    return (ip_dns_mgmt_set_proxy_status(&state) == VTSS_OK);
+}
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ip name-server { <ipv4_ucast> | dhcp [ interface vlan <vlan_id> ] }
+
+DOC_CMD_DESC    = Set the DNS server for resolving domain names
+DOC_CMD_DEFAULT = None
+DOC_CMD_USAGE   = When the DNS is required by system, add or update the \
+                  server's IP address for access
+DOC_CMD_EXAMPLE = Switch# configure terminal
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config all-defaults
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = no ip name-server
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = Switch(config)# ip name-server 168.95.1.1
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = ip name-server 168.95.1.1
+DOC_CMD_EXAMPLE = ...
+
+FUNC_NAME = icli_ip_dns_server_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ip
+! 2: name-server
+! 3: <ipv4_ucast>
+! 4: dhcp
+! 5: interface
+! 6: vlan
+! 7: <vlan_id>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_ipv4_ucast
+CMD_VAR = has_dhcp
+CMD_VAR = has_interface
+CMD_VAR = 
+CMD_VAR = v_vlan_id
+
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DNS
+HELP = A valid IPv4 unicast address
+HELP = ##ICLI_HELP_DHCP
+HELP = ##ICLI_HELP_INTERFACE
+HELP = VLAN Interface
+HELP = VLAN identifier(s): VID
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Dhcp : option>
+BYWORD = <Interface : option>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_dns_srv_conf_t dns_srv;
+VARIABLE_END
+
+CODE_BEGIN
+    if (vtss_dns_mgmt_get_server(DNS_DEF_SRV_IDX, &dns_srv) == VTSS_OK) {
+        if (has_dhcp) {
+            if (has_interface) {
+                VTSS_DNS_TYPE_SET(&dns_srv, VTSS_DNS_SRV_TYPE_DHCP_VLAN);
+                VTSS_DNS_VLAN_SET(&dns_srv, v_vlan_id);
+            } else {
+                VTSS_DNS_TYPE_SET(&dns_srv, VTSS_DNS_SRV_TYPE_DHCP_ANY);
+                VTSS_DNS_VLAN_SET(&dns_srv, VTSS_VID_NULL);
+            }
+        } else if (v_ipv4_ucast) {
+            VTSS_DNS_TYPE_SET(&dns_srv, VTSS_DNS_SRV_TYPE_STATIC);
+            VTSS_DNS_ADDR4_SET(&dns_srv, v_ipv4_ucast);
+        } else {
+            ICLI_PRINTF("%% Invalid operation.\n\n");
+            return ICLI_RC_ERROR;
+        }
+
+        if (vtss_dns_mgmt_set_server(DNS_DEF_SRV_IDX, &dns_srv) != VTSS_OK) {
+            if (v_ipv4_ucast) {
+                i8  adrString[40];
+
+                (void) icli_ipv4_to_str(v_ipv4_ucast, adrString);
+                ICLI_PRINTF("%% Failed to set DNS server %s.\n\n", adrString);
+            } else {
+                if (has_interface && v_vlan_id) {
+                    ICLI_PRINTF("%% Failed to set DNS server via DHCP VLAN %u.\n\n", v_vlan_id);
+                } else {
+                    ICLI_PRINTF("%% Failed to set DNS server via DHCP.\n\n");
+                }
+            }
+
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ip name-server
+
+DOC_CMD_DESC    = Stop resolving domain names by accessing DNS server
+DOC_CMD_DEFAULT = None
+DOC_CMD_USAGE   = When the DNS is no longer required by system, use this \
+                  command to stop accessing DNS
+DOC_CMD_EXAMPLE = Switch# configure terminal
+DOC_CMD_EXAMPLE = Switch(config)# ip name-server 168.95.1.1
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = ip name-server 168.95.1.1
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = Switch(config)# no ip name-server 168.95.1.1
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config all-defaults
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = no ip name-server
+DOC_CMD_EXAMPLE = ...
+
+FUNC_NAME = icli_ip_dns_server_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: ip
+! 3: name-server
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DNS
+
+BYWORD = <HasNo : option>
+BYWORD = <HasIp : option>
+BYWORD = <HasNameServer : option>
+
+VARIABLE_BEGIN
+    vtss_dns_srv_conf_t dns_srv;
+VARIABLE_END
+
+CODE_BEGIN
+    if (vtss_dns_mgmt_get_server(DNS_DEF_SRV_IDX, &dns_srv) == VTSS_OK) {
+        memset(&dns_srv, 0x0, sizeof(vtss_dns_srv_conf_t));
+        dns_srv.dns_type = VTSS_DNS_SRV_TYPE_NONE;
+        if (vtss_dns_mgmt_set_server(DNS_DEF_SRV_IDX, &dns_srv) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to clear DNS server.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = show ip name-server
+
+DOC_CMD_DESC    = Display the active domain name server information
+DOC_CMD_DEFAULT = None
+DOC_CMD_USAGE   = Use this command to see the current DNS server address
+DOC_CMD_EXAMPLE = Switch# configure terminal
+DOC_CMD_EXAMPLE = Switch(config)# ip name-server 168.95.1.1
+DOC_CMD_EXAMPLE = Switch(config)# exit
+DOC_CMD_EXAMPLE = Switch# show ip name
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = Current DNS server is 168.95.1.1 set by STATIC.
+DOC_CMD_EXAMPLE = Switch#
+
+FUNC_NAME = icli_ip_dns_server_display
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: ip
+! 3: name-server
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DNS
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+vtss_dns_srv_conf_t dns_srv;
+vtss_ipv4_t         srv_ipa;
+VARIABLE_END
+
+CODE_BEGIN
+    if ((vtss_dns_mgmt_get_server(DNS_DEF_SRV_IDX, &dns_srv) == VTSS_OK) &&
+        (vtss_dns_mgmt_get_server4(&srv_ipa) == VTSS_OK)) {
+        i8  adrString[40];
+
+        memset(adrString, 0x0, sizeof(adrString));
+        (void) icli_ipv4_to_str(srv_ipa, adrString);
+
+        switch ( VTSS_DNS_TYPE_GET(&dns_srv) ) {
+        case VTSS_DNS_SRV_TYPE_STATIC:
+            ICLI_PRINTF("\n\rCurrent DNS server is %s set by STATIC.\n",
+                        adrString);
+            break;
+        case VTSS_DNS_SRV_TYPE_DHCP_ANY:
+            ICLI_PRINTF("\n\rCurrent DNS server is %s set by DHCP.\n",
+                        adrString);
+            break;
+        case VTSS_DNS_SRV_TYPE_DHCP_VLAN:
+            ICLI_PRINTF("\n\rCurrent DNS server is %s set by DHCP (VLAN %u).\n",
+                        adrString,
+                        VTSS_DNS_VLAN_GET(&dns_srv));
+            break;
+        case VTSS_DNS_SRV_TYPE_NONE:
+        default:
+            ICLI_PRINTF("\n\rCurrent DNS server is not set.\n");
+            break;
+        }
+    } else {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ip dns proxy
+
+DOC_CMD_DESC    = Enable DNS proxy service
+DOC_CMD_DEFAULT = DNS proxy is disabled by default
+DOC_CMD_USAGE   = When the DNS proxy is required, use this command to \
+                  enable the DNS proxy service.
+DOC_CMD_EXAMPLE = Switch# configure terminal
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config all-defaults
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = no ip dns proxy
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = Switch(config)# ip dns proxy
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = ip dns proxy
+DOC_CMD_EXAMPLE = ...
+
+NO_FORM_DOC_CMD_DESC    = Disable DNS proxy service
+NO_FORM_DOC_CMD_DEFAULT = DNS proxy is disabled by default
+NO_FORM_DOC_CMD_DEFAULT = When the DNS proxy is no longer required, use \
+                          this command to disable the DNS proxy service.
+NO_FORM_DOC_CMD_EXAMPLE = Switch# configure terminal
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# ip dns proxy
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# do show running-config
+NO_FORM_DOC_CMD_EXAMPLE = ...
+NO_FORM_DOC_CMD_EXAMPLE = ip dns proxy
+NO_FORM_DOC_CMD_EXAMPLE = ...
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# no ip dns proxy
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# do show running-config all-defaults
+NO_FORM_DOC_CMD_EXAMPLE = ...
+NO_FORM_DOC_CMD_EXAMPLE = no ip dns proxy
+NO_FORM_DOC_CMD_EXAMPLE = ...
+
+FUNC_NAME = icli_ip_dns_proxy_state_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ip
+! 2: dns
+! 3: proxy
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DNS
+HELP = DNS proxy service
+
+BYWORD = <HasIp : option>
+BYWORD = <HasDns : option>
+BYWORD = <HasProxy : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!_icli_ip_dns_proxy_state_set(session_id, TRUE)) {
+        ICLI_PRINTF("%% Failed to enable DNS proxy.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!_icli_ip_dns_proxy_state_set(session_id, FALSE)) {
+        ICLI_PRINTF("%% Failed to disable DNS proxy.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+

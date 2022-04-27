@@ -1,0 +1,339 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RADIUS Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+var reqObject, curServerCnt, newServerCnt;
+var hostSize = 32;
+var keySize  = 14;
+
+// Help page magic
+var help_page = "/help/help_auth_radius_config.htm";
+
+function addGlobalTable(timeout, retransmit, deadtime, key, nas_ip_address, nas_ipv6_address, nas_identifier)
+{
+    var tb = document.getElementById('global_tbody');
+    var frag = document.createDocumentFragment();
+    var tr;
+    var fld;
+
+    // Timeout
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "Timeout", "param_label");
+    fld = addInputCell(tr, timeout, "cl", "timeout", 4, 4);
+    fld.parentNode.appendChild(document.createTextNode(" seconds"));
+    frag.appendChild(tr);
+
+    // Retransmit
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "Retransmit", "param_label");
+    fld = addInputCell(tr, retransmit, "cl", "retransmit", 4, 4);
+    fld.parentNode.appendChild(document.createTextNode(" times"));
+    frag.appendChild(tr);
+
+    // Deadtime
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "Deadtime", "param_label");
+    fld = addInputCell(tr, deadtime, "cl", "deadtime", 4, 4);
+    fld.parentNode.appendChild(document.createTextNode(" minutes"));
+    frag.appendChild(tr);
+
+    // Key
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "Key", "param_label");
+    addInputCell(tr, unescape(key), "cl", "key", keySize, configAuthKeyLen);
+    frag.appendChild(tr);
+
+    // NAS-IP-Address
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "NAS-IP-Address", "param_label");
+    addInputCell(tr, unescape(nas_ip_address), "cl", "nas-ip-address", keySize, 15);
+    frag.appendChild(tr);
+
+    // NAS-IPv6-Address
+    tr = CreateStyledElement("tr", "config has_ipv6");
+    addTypedTextCell(tr, "td", "NAS-IPv6-Address", "param_label");
+    addInputCell(tr, unescape(nas_ipv6_address), "cl", "nas-ipv6-address", keySize, 39);
+    frag.appendChild(tr);
+
+    // NAS-Identifier
+    tr = CreateStyledElement("tr", "config");
+    addTypedTextCell(tr, "td", "NAS-Identifier", "param_label");
+    addInputCell(tr, unescape(nas_identifier), "cl", "nas-identifier", keySize, (253 < configAuthHostLen) ? 253 : configAuthHostLen);
+    frag.appendChild(tr);
+
+    // Create the table
+    clearChildNodes(tb);
+    tb.appendChild(frag);
+}
+
+function addHostRow(i, frag, host)
+{
+    var td, tr = CreateStyledElement("tr", i % 2 ? "config_odd" : "config_even");
+    var values = host.split("|");
+
+    if (curServerCnt < configAuthServerCnt) {
+        addCheckBoxCell(tr, 0, "c", "delete_" + i);
+        td = addInputCell(tr, unescape(values[0]), "c", "host_" + i, hostSize, configAuthHostLen);
+        td.readOnly = true;
+        td = addInputCell(tr, values[1], "c", "auth_port_" + i,  5, 5);
+        td.readOnly = true;
+        td = addInputCell(tr, values[2], "c", "acct_port_" + i,  5, 5);
+        td.readOnly = true;
+        addInputCell(tr, parseInt(values[3], 10) === 0 ? "" : values[3], "c", "timeout_" + i,    4, 4);
+        addInputCell(tr, parseInt(values[4], 10) === 0 ? "" : values[4], "c", "retransmit_" + i, 4, 4);
+        addInputCell(tr, unescape(values[5]), "c", "key_" + i, keySize, configAuthKeyLen);
+        frag.appendChild(tr);
+        curServerCnt++;
+    }
+}
+
+/*
+# Configuration format:
+#
+# <timeout>#<retransmit>#<deadtime>#<key>#<nas_ip_address>#<nas_ipv6_address>#<nas_identifier>#<host_config>
+#
+# timeout          :== unsigned int # global timeout
+# retransmit       :== unsigned int # global retransmit
+# deadtime         :== unsigned int # global deadtime
+# key              :== string       # global key
+# nas_ip_address   :== string       # global nas-ip-address (Attribute 4)
+# nas_ipv6_address :== string       # global nas-ipv6-address (Attribute 95)
+# nas_identifier   :== string       # global nas-ip-address (Attribute 32)
+#
+# host_config :== <host 0>/<host 1>/...<host n>
+#   host x := <hostname>|<auth_port>|<acct_port>|<timeout>|<retransmit>|<key>
+#     hostname   :== string
+#     auth_port  :== 0..0xffff
+#     acct_port  :== 0..0xffff
+#     timeout    :== unsigned int
+#     retransmit :== unsigned int
+#     key        :== string
+#
+*/
+function processUpdate(req, ref)
+{
+    var frag, values, host, i, tb;
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    curServerCnt = newServerCnt = 0;
+    if (reqObject !== req) {
+        reqObject = req;
+    }
+
+    if (req.responseText) {
+        frag = document.createDocumentFragment();
+        values = req.responseText.split("#");
+        addGlobalTable(values[0], values[1], values[2], values[3], values[4], values[5], values[6]);
+
+        if (values[7]) {
+            host = values[7].split("/");
+            for (i = 0; i < host.length; i++) {
+                addHostRow(i, frag, host[i]);
+            }
+        }
+        tb = document.getElementById('server_tbody');
+        clearChildNodes(tb);
+        tb.appendChild(frag);
+        document.getElementById('addNewButton').disabled = (curServerCnt >= configAuthServerCnt);
+    }
+}
+
+function addNewServer()
+{
+    var frag, tr, td, tb, del;
+
+    if (curServerCnt >= configAuthServerCnt) {
+        alert("The maximum number of hosts is " + configAuthServerCnt);
+        return;
+    }
+
+    document.getElementById('addNewButton').disabled = true; // Only add one server at a time
+    newServerCnt = 1;
+
+    frag = document.createDocumentFragment();
+    tr = CreateStyledElement("tr", curServerCnt % 2 ? "config_odd" : "config_even");
+
+    td = addButtonCell(tr, "Delete", "c", "delNewButton");
+    td.onclick = function() {
+        document.getElementById("server_tbody").removeChild(tr);
+        document.getElementById('addNewButton').disabled = false;
+        newServerCnt = 0;
+    };
+    addInputCell(tr, "", "c", "host_" + curServerCnt, hostSize, configAuthHostLen);
+    addInputCell(tr, configAuthRadiusAuthPortDef, "c", "auth_port_" + curServerCnt,  5, 5);
+    addInputCell(tr, configAuthRadiusAcctPortDef, "c", "acct_port_" + curServerCnt,  5, 5);
+    addInputCell(tr, "", "c", "timeout_" + curServerCnt,    4, 4);
+    addInputCell(tr, "", "c", "retransmit_" + curServerCnt, 4, 4);
+    addInputCell(tr, "", "c", "key_" + curServerCnt, keySize, configAuthKeyLen);
+    frag.appendChild(tr);
+
+    tb = document.getElementById('server_tbody');
+    tb.appendChild(frag);
+}
+
+function requestUpdate()
+{
+    loadXMLDoc("/config/auth_radius_config", processUpdate);
+}
+
+function checkForm(form)
+{
+    var i, newHost, newAuth, newAcct, host, auth, acct;
+
+    if (!isWithinRange("timeout", configAuthTimeoutMin, configAuthTimeoutMax, "'Timeout'", " seconds")) {
+        return false;
+    }
+    if (!isWithinRange("retransmit", configAuthRetransmitMin, configAuthRetransmitMax, "'Retransmit'", " times")) {
+        return false;
+    }
+    if (!isWithinRange("deadtime", configAuthDeadtimeMin, configAuthDeadtimeMax, "'Deadtime'", " minutes")) {
+        return false;
+    }
+    if (document.getElementById("nas-ip-address").value.length) {
+        if (!isIpStr("nas-ip-address", false, "NAS-IP-Address", 2)) {
+            return false;
+        }
+    }
+    if (document.getElementById("nas-ipv6-address").value.length) {
+        if (!isIpv6Str("nas-ipv6-address", "NAS-IPv6-Address", 0)) {
+            return false;
+        }
+    }
+
+    for (i = 0; i < (curServerCnt + newServerCnt); i++) {
+        if (document.getElementById("delete_" + i) && document.getElementById("delete_" + i).checked) {
+            continue; // Don't check if it is going to be deleted
+        }
+        trimInput("host_" + i);
+        if (!isValidHostOrIP("host_" + i, "Hostname")) {
+            return false;
+        }
+        if (!isWithinRange("auth_port_" + i, 0, 0xffff, "'Auth Port'", "")) {
+            return false;
+        }
+        if (!isWithinRange("acct_port_" + i, 0, 0xffff, "'Acct Port'", "")) {
+            return false;
+        }
+        if (document.getElementById("timeout_" + i).value.length) {
+            if (!isWithinRange("timeout_" + i, configAuthTimeoutMin, configAuthTimeoutMax, "'Timeout'", " seconds")) {
+                return false;
+            }
+        }
+        if (document.getElementById("retransmit_" + i).value.length) {
+            if (!isWithinRange("retransmit_" + i, configAuthRetransmitMin, configAuthRetransmitMax, "'Retransmit'", " seconds")) {
+                return false;
+            }
+        }
+    }
+    if (newServerCnt) {
+        // Check against existing entries
+        newHost = document.getElementById("host_" + curServerCnt).value;
+        newAuth = parseInt(document.getElementById("auth_port_" + curServerCnt).value, 10);
+        newAcct = parseInt(document.getElementById("acct_port_" + curServerCnt).value, 10);
+        for (i = 0; i < (curServerCnt); i++) {
+            host = document.getElementById("host_" + i).value;
+            auth = parseInt(document.getElementById("auth_port_" + i).value, 10);
+            acct = parseInt(document.getElementById("acct_port_" + i).value, 10);
+            if ((host == newHost) && ((auth == newAuth) || (acct == newAcct) || (auth == newAcct) || (acct == newAuth))) {
+                return GiveAlert("New hostname and auth port or acct port matches another entry",
+                                 document.getElementById("host_" + curServerCnt));
+            }
+        }
+    }
+    return true;
+}
+
+function resetForm()
+{
+    processUpdate(reqObject);
+}
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/auth_radius_config" onsubmit="return checkForm(this);">
+
+<h1>RADIUS Server Configuration</h1>
+
+<h2>Global Configuration</h2>
+<table summary="Global Configuration" class="config">
+ <tbody id="global_tbody">
+ </tbody>
+</table>
+
+<h2>Server Configuration</h2>
+<table summary="Server Configuration" class="config">
+ <thead>
+  <tr>
+   <th>Delete</th>
+   <th>Hostname</th>
+   <th>Auth Port</th>
+   <th>Acct Port</th>
+   <th>Timeout</th>
+   <th>Retransmit</th>
+   <th>Key</th>
+  </tr>
+ </thead>
+ <tbody id="server_tbody">
+ </tbody>
+</table>
+
+<p>
+<input type="button" id="addNewButton" value="Add New Server" onclick="addNewServer();">
+</p>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,1437 @@
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_VLAN)
+
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "vlan_api.h"
+#include "mgmt_api.h"
+#include "misc_api.h"   /* For uport2iport(), iport2uport()         */
+#include "port_api.h"   /* For switch_iter_init(), port_iter_init() */
+#include "msg_api.h"
+#include "topo_api.h"   /* For topo_usid2isid(), topo_isid2usid()   */
+#include "vlan_icli_functions.h"
+INCLUDE_END
+
+// Shared help
+VLAN_SWITCHPORT_HELP = Set switching mode characteristics
+
+FUNCTION_BEGIN
+
+#define VTSS_ALLOC_MODULE_ID VTSS_MODULE_ID_VLAN
+
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = switchport mode {access | trunk | hybrid}
+
+DOC_CMD_DESC    = Use the switchport mode command to define the type of the port.
+DOC_CMD_DEFAULT = Use the no form of this command to return to the default mode that is access mode.
+DOC_CMD_USAGE   = To configure a switch port as access port select the mode to access else to trunk or hybrid.
+DOC_CMD_EXAMPLE = This example shows to configure a switch port as trunk port.
+DOC_CMD_EXAMPLE = Switch(config-if)#switchport mode trunk
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan privileged EXEC command.
+#
+
+FUNC_NAME = icli_vlan_port_mode_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = plist
+
+   HELP = ##VLAN_SWITCHPORT_HELP
+   HELP = Set mode of the interface
+   HELP = Set mode to ACCESS unconditionally
+   HELP = Set mode to TRUNK unconditionally
+   HELP = Set mode to HYBRID unconditionally
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_access
+   CMD_VAR   = has_trunk
+   CMD_VAR   = has_hybrid
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_access || has_trunk || has_hybrid) {
+        vlan_port_mode_t new_mode;
+
+        if (has_access) {
+            new_mode = VLAN_PORT_MODE_ACCESS;
+        } else if (has_trunk) {
+            new_mode = VLAN_PORT_MODE_TRUNK;
+        } else {
+            new_mode = VLAN_PORT_MODE_HYBRID;
+        }
+
+        VTSS_ICLI_ERR_PRINT(VLAN_ICLI_mode_set(plist, new_mode));
+    }
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND   = no switchport mode
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP =
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Set mode to default
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_mode_set(plist, VLAN_PORT_MODE_ACCESS));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = switchport access vlan <vlan_id>
+
+DOC_CMD_DESC    = Use the switchport access vlan command to configure a port to a VLAN. Valid VLAN IDs are 1 to 4095.
+DOC_CMD_DEFAULT = The no switchport access command resets the access mode VLAN to the appropriate default VLAN.
+DOC_CMD_USAGE   = This command configures the pvid of an access port.
+DOC_CMD_EXAMPLE = This example shows to configure a PVID of an access port.
+DOC_CMD_EXAMPLE = Switch(config-if)#switchport access vlan 2
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan privileged EXEC command.
+
+FUNC_NAME = icli_vlan_access_vlan_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+   HELP = ##VLAN_SWITCHPORT_HELP
+   HELP = Set access mode characteristics of the interface
+   HELP = Set VLAN when interface is in access mode
+   HELP = VLAN ID of the VLAN when this port is in access mode
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = pvid
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_pvid_set(plist, VLAN_PORT_MODE_ACCESS, pvid));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = no switchport access vlan
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = plist
+
+HELP =
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Set access mode characteristics of the interface
+HELP = Set VLAN to default
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_pvid_set(plist, VLAN_PORT_MODE_ACCESS, VLAN_ID_DEFAULT));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = switchport trunk native vlan <vlan_id>
+
+DOC_CMD_DESC    = Use the switchport native vlan command to configure a port VLAN ID for a trunk port.
+DOC_CMD_DEFAULT = The no switchport trunk command resets the trunk native VLAN to the appropriate default VLAN.
+DOC_CMD_USAGE   = This command configures the PVID of a trunk port.
+DOC_CMD_EXAMPLE = This example shows to configure a PVID of a trunk port.
+DOC_CMD_EXAMPLE = Switch(config-if)#switchport trunk native vlan 7
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan privileged EXEC command.
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = plist
+
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Change PVID for trunk port
+HELP = Set native VLAN
+HELP = Set native VLAN when interface is in trunk mode
+HELP = VLAN ID of the native VLAN when this port is in trunk mode
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = pvid
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_pvid_set(plist, VLAN_PORT_MODE_TRUNK, pvid));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = no switchport trunk native vlan
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = plist
+
+HELP =
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Set trunk mode characteristics of the interface
+HELP = Change native VLAN
+HELP = Set VLAN to default
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_pvid_set(plist, VLAN_PORT_MODE_TRUNK, VLAN_ID_DEFAULT));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = switchport hybrid native vlan <vlan_id>
+
+DOC_CMD_DESC    = Use the switchport native vlan command to configure a port VLAN ID for a hybrid port.
+DOC_CMD_DEFAULT = The no switchport hybrid command resets the hybrid native VLAN to the appropriate default VLAN.
+DOC_CMD_USAGE   = This command configures the PVID of a hybrid port.
+DOC_CMD_EXAMPLE = This example shows to configure a PVID of a hybrid port.
+DOC_CMD_EXAMPLE = Switch(config-if)#switchport hybrid native vlan 7
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan privileged EXEC command.
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = plist
+
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Change PVID for hybrid port
+HELP = Set native VLAN
+HELP = Set native VLAN when interface is in hybrid mode
+HELP = VLAN ID of the native VLAN when this port is in hybrid mode
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = pvid
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_pvid_set(plist, VLAN_PORT_MODE_HYBRID, pvid));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = no switchport hybrid native vlan
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = plist
+
+HELP =
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Set hybrid mode characteristics of the interface
+HELP = Change native VLAN
+HELP = Set VLAN to default
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_pvid_set(plist, VLAN_PORT_MODE_HYBRID, VLAN_ID_DEFAULT));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = switchport hybrid port-type { unaware | c-port | s-port | s-custom-port }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+#
+
+FUNC_NAME = icli_vlan_hybrid_port_type_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+   HELP = ##VLAN_SWITCHPORT_HELP
+   HELP = Set hybrid characteristics of the interface
+   HELP = Set port type
+   HELP = Port in not aware of VLAN tags.
+   HELP = Customer port
+   HELP = Provider port
+   HELP = Custom Provider port
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_unaware
+   CMD_VAR   = has_c_port
+   CMD_VAR   = has_s_port
+   CMD_VAR   = has_s_custom_port
+
+VARIABLE_BEGIN
+    vlan_port_composite_conf_t composite_conf;
+VARIABLE_END
+
+CODE_BEGIN
+    // Populate Port Type
+    if (has_unaware) {
+        composite_conf.hyb_port_conf.port_type = VLAN_PORT_TYPE_UNAWARE;
+    } else if (has_c_port) {
+        composite_conf.hyb_port_conf.port_type = VLAN_PORT_TYPE_C;
+    } else if (has_s_port) {
+#if defined(VTSS_FEATURE_VLAN_PORT_V2)
+        composite_conf.hyb_port_conf.port_type = VLAN_PORT_TYPE_S;
+#else
+        ICLI_PRINTF("This is not supported on this chip\n");
+        return ICLI_RC_ERROR;
+#endif
+    } else if (has_s_custom_port) {
+#if defined(VTSS_FEATURE_VLAN_PORT_V2)
+        composite_conf.hyb_port_conf.port_type = VLAN_PORT_TYPE_S_CUSTOM;
+#else
+        ICLI_PRINTF("This is not supported on this chip\n");
+        return ICLI_RC_ERROR;
+#endif
+    }
+
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_hybrid_port_conf(plist, &composite_conf, 0, 0, 1, 0));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = no switchport hybrid port-type
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+HELP =
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Set hybrid characteristics of the interface
+HELP = Set port type to default
+
+
+VARIABLE_BEGIN
+    vlan_port_composite_conf_t composite_conf, composite_conf_default;
+VARIABLE_END
+
+CODE_BEGIN
+    (void)vlan_mgmt_port_composite_conf_default_get(&composite_conf_default);
+    composite_conf.hyb_port_conf.port_type = composite_conf_default.hyb_port_conf.port_type;
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_hybrid_port_conf(plist, &composite_conf, 0, 0, 1, 0));
+CODE_END
+
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = switchport hybrid ingress-filtering
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME = icli_vlan_hybrid_ing_filter_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+IF_FLAG = defined(VTSS_SW_OPTION_VLAN_INGRESS_FILTERING)
+
+   HELP = ##VLAN_SWITCHPORT_HELP
+   HELP = Set hybrid characteristics of the interface
+   HELP = VLAN Ingress filter configuration
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+
+VARIABLE_BEGIN
+    vlan_port_composite_conf_t composite_conf;
+VARIABLE_END
+
+CODE_BEGIN
+    composite_conf.hyb_port_conf.ingress_filter = TRUE;
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_hybrid_port_conf(plist, &composite_conf, 0, 1, 0, 0));
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+    vlan_port_composite_conf_t composite_conf;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    composite_conf.hyb_port_conf.ingress_filter = FALSE;
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_hybrid_port_conf(plist, &composite_conf, 0, 1, 0, 0));
+NO_FORM_CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = switchport hybrid acceptable-frame-type { all | tagged | untagged }
+#
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+#
+
+FUNC_NAME = icli_vlan_hybrid_acceptable_frame_type_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+   HELP = ##VLAN_SWITCHPORT_HELP
+   HELP = Set hybrid characteristics of the interface
+   HELP = Set acceptable frame type on a port
+   HELP = Allow all frames
+   HELP = Allow only tagged frames
+   HELP = Allow only untagged frames
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_all
+   CMD_VAR   = has_tagged
+   CMD_VAR   = has_untagged
+
+VARIABLE_BEGIN
+    vlan_port_composite_conf_t composite_conf;
+VARIABLE_END
+
+CODE_BEGIN
+    // Populate Port Type
+    if (has_all) {
+        composite_conf.hyb_port_conf.frame_type = VTSS_VLAN_FRAME_ALL;
+    } else if (has_tagged) {
+        composite_conf.hyb_port_conf.frame_type = VTSS_VLAN_FRAME_TAGGED;
+    } else if (has_untagged) {
+#if defined(VTSS_FEATURE_VLAN_PORT_V2)
+        composite_conf.hyb_port_conf.frame_type = VTSS_VLAN_FRAME_UNTAGGED;
+#else
+        ICLI_PRINTF("This is not supported on this chip\n");
+        return ICLI_RC_ERROR;
+#endif
+    }
+
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_hybrid_port_conf(plist, &composite_conf, 1, 0, 0, 0));
+CODE_END
+
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = no switchport hybrid acceptable-frame-type
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+MODE_VAR  = plist
+
+HELP =
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Set hybrid characteristics of the interface
+HELP = Set acceptable frame type on a port to default
+
+VARIABLE_BEGIN
+    vlan_port_composite_conf_t composite_conf, composite_conf_default;
+VARIABLE_END
+
+CODE_BEGIN
+    (void)vlan_mgmt_port_composite_conf_default_get(&composite_conf_default);
+    composite_conf.hyb_port_conf.frame_type = composite_conf_default.hyb_port_conf.frame_type;
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_hybrid_port_conf(plist, &composite_conf, 1, 0, 0, 0));
+CODE_END
+
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = switchport hybrid egress-tag {none | all [except-native]}
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME = icli_vlan_egr_tag_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+   HELP = ##VLAN_SWITCHPORT_HELP
+   HELP = Set hybrid characteristics of the interface
+   HELP = Egress VLAN tagging configuration
+   HELP = No egress tagging
+   HELP = Tag all frames
+   HELP = Tag all frames except frames classified to native VLAN of the hybrid port
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_none
+   CMD_VAR   = has_all
+   CMD_VAR   = has_except_native
+
+VARIABLE_BEGIN
+    vlan_port_composite_conf_t composite_conf;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_none) {
+        composite_conf.hyb_port_conf.tx_tag_type = VLAN_TX_TAG_TYPE_UNTAG_ALL;
+    } else if (has_all) {
+        if (has_except_native) {
+            composite_conf.hyb_port_conf.tx_tag_type = VLAN_TX_TAG_TYPE_UNTAG_THIS;
+        } else {
+            composite_conf.hyb_port_conf.tx_tag_type = VLAN_TX_TAG_TYPE_TAG_ALL;
+        }
+    } else {
+        ICLI_PRINTF("Invalid option\n");
+        return ICLI_RC_ERROR;
+    }
+
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_hybrid_port_conf(plist, &composite_conf, 0, 0, 0, 1));
+CODE_END
+
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = no switchport hybrid egress-tag
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+HELP =
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Set hybrid characteristics of the interface
+HELP = Egress VLAN tagging configuration set to default
+
+VARIABLE_BEGIN
+    vlan_port_composite_conf_t composite_conf, composite_conf_default;
+VARIABLE_END
+
+CODE_BEGIN
+    (void)vlan_mgmt_port_composite_conf_default_get(&composite_conf_default);
+    composite_conf.hyb_port_conf.tx_tag_type = composite_conf_default.hyb_port_conf.tx_tag_type;
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_hybrid_port_conf(plist, &composite_conf, 0, 0, 0, 1));
+CODE_END
+
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = switchport trunk vlan tag native
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+#
+
+FUNC_NAME = icli_vlan_native_vlan_egr_tag_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+   HELP = ##VLAN_SWITCHPORT_HELP
+   HELP = Set trunk characteristics of the interface
+   HELP = Vlan commands
+   HELP = tag parameters
+   HELP = tag native vlan
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_tag_native_vlan_set(plist, TRUE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_tag_native_vlan_set(plist, FALSE));
+NO_FORM_CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = switchport trunk allowed vlan {all | none | [add | remove | except] <vlan_list>}
+#
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+#
+
+FUNC_NAME = icli_vlan_trunk_allowed_vids_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+   HELP = ##VLAN_SWITCHPORT_HELP
+   HELP = Set trunk mode characteristics of the interface
+   HELP = Set allowed VLAN characteristics when interface is in trunk mode
+   HELP = Set allowed VLANs when interface is in trunk mode
+   HELP = All VLANs
+   HELP = No VLANs
+   HELP = Add VLANs to the current list
+   HELP = Remove VLANs from the current list
+   HELP = All VLANs except the following
+   HELP = VLAN IDs of the allowed VLANs when this port is in trunk mode
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_all
+   CMD_VAR   = has_none
+   CMD_VAR   = has_add
+   CMD_VAR   = has_remove
+   CMD_VAR   = has_except
+   CMD_VAR   = vlan_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_allowed_vids_set(plist, VLAN_PORT_MODE_TRUNK, vlan_list, FALSE /* has_default */, has_all, has_none, has_add, has_remove, has_except));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND   = no switchport trunk allowed vlan
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP =
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Set trunk characteristics of the interface,
+HELP = Set allowed VLAN characteristics when interface is in trunk mode.
+HELP = Set allowed VLANs to default.
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_allowed_vids_set(plist, VLAN_PORT_MODE_TRUNK, NULL, TRUE /* has_default */, FALSE /* has_all */, FALSE /* has_none */, FALSE /* has_add */, FALSE /* has_remove */, FALSE /* has_except */));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = switchport hybrid allowed vlan {all | none | [add | remove | except] <vlan_list>}
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+
+
+FUNC_NAME = icli_vlan_hybrid_allowed_vids_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+   HELP = ##VLAN_SWITCHPORT_HELP
+   HELP = Set hybrid characteristics of the interface
+   HELP = Set allowed VLAN characteristics when interface is in hybrid mode
+   HELP = Set allowed VLANs when interface is in hybrid mode
+   HELP = All VLANs
+   HELP = No VLANs
+   HELP = Add VLANs to the current list
+   HELP = Remove VLANs from the current list
+   HELP = All VLANs except the following
+   HELP = VLAN IDs of the allowed VLANs when this port is in hybrid mode
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_all
+   CMD_VAR   = has_none
+   CMD_VAR   = has_add
+   CMD_VAR   = has_remove
+   CMD_VAR   = has_except
+   CMD_VAR   = vlan_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_allowed_vids_set(plist, VLAN_PORT_MODE_HYBRID, vlan_list, FALSE /* has_default */, has_all, has_none, has_add, has_remove, has_except));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = no switchport hybrid allowed vlan
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = plist
+
+HELP =
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Set hybrid characteristics of the interface
+HELP = Set hybrid characteristics of the interface
+HELP = Set allowed VLAN characteristics when interface is in hybrid mode
+HELP = Set allowed VLANs when interface is in hybrid mode
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_allowed_vids_set(plist, VLAN_PORT_MODE_HYBRID, NULL, TRUE /* has_default */, FALSE /* has_all */, FALSE /* has_none */, FALSE /* has_add */, FALSE /* has_remove */, FALSE /* has_except */));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = vlan ethertype s-custom-port <0x0600-0xffff>
+
+IF_FLAG = defined(VTSS_FEATURE_VLAN_PORT_V2)
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+#
+
+FUNC_NAME = icli_vlan_s_custom_port_etype_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+   HELP = Vlan commands
+   HELP = Ether type for Custom S-ports
+   HELP = Custom S-ports configuration
+   HELP = Ethertype (Range: 0x0600-0xffff)
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = etype
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (vlan_mgmt_s_custom_etype_set(etype) != VTSS_RC_OK) {
+        ICLI_PRINTF("%% Error: Unable to set Ethertype\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no vlan {{ethertype s-custom-port} | <vlan_list>}
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: no
+! 2: vlan
+! 3: ethertype
+! 4: s-custom-port
+! 5: <vlan_list>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_ethertype
+CMD_VAR =
+CMD_VAR = vlan_list
+
+HELP =
+HELP =
+HELP =
+HELP =
+HELP =
+
+BYWORD =
+BYWORD =
+BYWORD = <Ethertype : option>
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    vtss_rc rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_ethertype) {
+#if defined(VTSS_FEATURE_VLAN_PORT_V2)
+        if ((rc = vlan_mgmt_s_custom_etype_set(VLAN_CUSTOM_S_TAG_DEFAULT)) != VTSS_RC_OK) {
+             ICLI_PRINTF("%% Error: Unable to set Ethertype (%s)\n", error_txt(rc));
+             return ICLI_RC_ERROR;
+        }
+#endif
+    } else if (vlan_list) {
+        u32               idx;
+        vtss_vid_t        vid;
+        vlan_bulk_update_begin();
+        for (idx = 0; idx < vlan_list->cnt; idx++) {
+            for (vid = vlan_list->range[idx].min; vid <= vlan_list->range[idx].max; vid++) {
+                if ((rc = vlan_mgmt_vlan_del(VTSS_ISID_GLOBAL, vid, VLAN_USER_STATIC)) != VTSS_RC_OK) {
+                    ICLI_PRINTF("%% Error: Failed to delete VLAN %u (%s)\n", vid, error_txt(rc));
+                    vlan_bulk_update_end();
+                    return ICLI_RC_ERROR;
+                }
+            }
+        }
+        vlan_bulk_update_end();
+    }
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = show interface <port_type_list> switchport [access | trunk | hybrid]
+
+DOC_CMD_DESC    = Use the how interfaces command to display the administrative and operational status of all interfaces \
+                  or a specified interface.
+#DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use this command to display the switch port characteristics of all interfaces on that switch in the stack.
+DOC_CMD_EXAMPLE = This example shows viewing of output from the show interface command for an interface Gi1/0/1
+DOC_CMD_EXAMPLE = Switch(config-if)#show interface gigabitEthernet 1/1 switchport
+
+FUNC_NAME = icli_vlan_interfaces_show
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+   HELP = Show running system information
+   HELP = Interface status
+   HELP = ports list
+   HELP = Show interface switchport information
+   HELP = Show access ports status
+   HELP = Show trunk ports status
+   HELP = Show hybrid ports status
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = in_port_list
+   CMD_VAR   = has_switchport
+   CMD_VAR   = has_access
+   CMD_VAR   = has_trunk
+   CMD_VAR   = has_hybrid
+
+VARIABLE_BEGIN
+    u32                        range_idx, cnt_idx;
+    vtss_usid_t                usid;
+    vtss_port_no_t             uport;
+    i8                         buf[ICLI_PORTING_STR_BUF_SIZE], *vlan_buf;
+    vlan_port_composite_conf_t composite_conf;
+    vlan_port_mode_t           mode = VLAN_PORT_MODE_ACCESS;
+    u8                         vlan_mask[VLAN_BITMASK_LEN_BYTES];
+    vtss_rc                    rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_switchport) {
+        for (range_idx = 0; range_idx < in_port_list->cnt; range_idx++) {
+            usid = in_port_list->switch_range[range_idx].usid;
+            for (cnt_idx = 0; cnt_idx < in_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                uport = in_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+
+                if (has_access) {
+                    mode = VLAN_PORT_MODE_ACCESS;
+                } else if (has_trunk) {
+                    mode = VLAN_PORT_MODE_TRUNK;
+                } else if (has_hybrid) {
+                    mode = VLAN_PORT_MODE_HYBRID;
+                }
+
+                if ((rc = vlan_mgmt_port_composite_conf_get(topo_usid2isid(usid), uport2iport(uport), &composite_conf)) != VTSS_RC_OK) {
+                    ICLI_PRINTF("%% Error: Failed to get port information (%s)\n", error_txt(rc));
+                    return ICLI_RC_ERROR;
+                }
+
+                if (has_access || has_trunk || has_hybrid) {
+                    if (mode != composite_conf.mode) {
+                        continue;
+                    }
+                }
+
+                ICLI_PRINTF("Name: %s\n", icli_port_info_txt(usid, uport, buf));
+                ICLI_PRINTF("Administrative mode: %s\n", VLAN_ICLI_port_mode_txt(composite_conf.mode));
+                ICLI_PRINTF("Access Mode VLAN: %u\n", composite_conf.access_vid);
+                ICLI_PRINTF("Trunk Native Mode VLAN: %u\n", composite_conf.native_vid);
+                ICLI_PRINTF("Administrative Native VLAN tagging: %s\n", composite_conf.tag_native_vlan ? "enabled" : "disabled");
+
+                if ((vlan_buf = (i8 *)VTSS_MALLOC(VLAN_VID_LIST_AS_STRING_LEN_BYTES)) == NULL) {
+                    return FALSE;
+                }
+
+                if ((vlan_mgmt_port_composite_allowed_vids_get(topo_usid2isid(usid), uport2iport(uport), VLAN_PORT_MODE_TRUNK, vlan_mask)) == VTSS_RC_OK) {
+                    ICLI_PRINTF("Allowed VLANs: %s\n", vlan_mgmt_vid_bitmask_to_txt(vlan_mask, vlan_buf));
+                }
+
+                ICLI_PRINTF("Hybrid port configuration\n");
+                ICLI_PRINTF("-------------------------\n");
+                ICLI_PRINTF("Port Type: %s\n", vlan_mgmt_port_type_to_txt(composite_conf.hyb_port_conf.port_type));
+                ICLI_PRINTF("Acceptable Frame Type: %s\n", vlan_mgmt_frame_type_to_txt(composite_conf.hyb_port_conf.frame_type));
+                ICLI_PRINTF("Ingress filter: %s\n", ((composite_conf.hyb_port_conf.ingress_filter) ? "Enabled" : "Disabled"));
+                ICLI_PRINTF("Egress tagging: %s\n", VLAN_ICLI_tx_tag_type_to_txt(composite_conf.hyb_port_conf.tx_tag_type));
+                ICLI_PRINTF("Hybrid Native Mode VLAN: %u\n", composite_conf.hyb_port_conf.pvid);
+
+                if ((vlan_mgmt_port_composite_allowed_vids_get(topo_usid2isid(usid), uport2iport(uport), VLAN_PORT_MODE_HYBRID, vlan_mask)) == VTSS_RC_OK) {
+                    ICLI_PRINTF("Hybrid VLANs Enabled: %s\n", vlan_mgmt_vid_bitmask_to_txt(vlan_mask, vlan_buf));
+                }
+
+                ICLI_PRINTF("\n");
+                VTSS_FREE(vlan_buf);
+            }
+        }
+    }
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = show vlan [id <vlan_list> | name <vword32> | brief]
+
+DOC_CMD_DESC    = Use the show vlan command to view the VLAN configuration.
+#DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = To view the VLAN members by VLAN ID used id option. To view the VLAN members \
+                  by name use the name option.
+DOC_CMD_EXAMPLE = This example shows viewing of VLAN membership configuration by VLAN ID.
+DOC_CMD_EXAMPLE = Switch(config-if)#show vlan id 2
+
+FUNC_NAME = vlan_show
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+   HELP = Show running system information
+   HELP = VLAN status
+   HELP = VLAN status by VLAN id
+   HELP = VLAN IDs 1-4095
+   HELP = VLAN status by VLAN name
+   HELP = A VLAN name
+   HELP = VLAN summary information
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_id
+   CMD_VAR   = vlan_list
+   CMD_VAR   = has_name
+   CMD_VAR   = name
+   CMD_VAR   = has_brief
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    (void)has_brief; // Unused parameter
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_show_vlan(session_id, vlan_list, name, has_id, has_name));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = show vlan status [ interface <port_type_list> ] [combined|admin|nas|mvr|voice-vlan|mstp|erps|vcl|evc|gvrp|all|conflicts]
+
+DOC_CMD_DESC    = Use the show VLAN status command to view the VLANs configured for each interface.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+DOC_CMD_EXAMPLE =
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+HELP = Show running system information
+HELP = VLAN status
+HELP = Show the VLANs configured for each interface.
+HELP = Show the VLANs configured for a specific interface(s).
+HELP = The specific interface(s) to show the VLANs for.
+HELP = Show the VLANs configured by a combination.
+HELP = Show the VLANs configured by administrator.
+HELP = Show the VLANs configured by NAS.
+HELP = Show the VLANs configured by MVR.
+HELP = Show the VLANs configured by Voice VLAN.
+HELP = Show the VLANs configured by MSTP.
+HELP = Show the VLANs configured by ERPS.
+HELP = Show the VLANs configured by VCL.
+HELP = Show the VLANs configured by EVC.
+HELP = Show the VLANs configured by GVRP.
+HELP = Show all VLANs configured.
+HELP = Show VLANs configurations that has conflicts.
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = VLAN_ICLI_runtime_dot1x
+RUNTIME = VLAN_ICLI_runtime_mvr
+RUNTIME = VLAN_ICLI_runtime_voice_vlan
+RUNTIME = VLAN_ICLI_runtime_mstp
+RUNTIME = VLAN_ICLI_runtime_erps
+RUNTIME = VLAN_ICLI_runtime_vcl
+RUNTIME = VLAN_ICLI_runtime_evc
+RUNTIME = VLAN_ICLI_runtime_gvrp
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = has_interface
+CMD_VAR   = plist
+CMD_VAR   = has_combined
+CMD_VAR   = has_admin
+CMD_VAR   = has_nas
+CMD_VAR   = has_mvr
+CMD_VAR   = has_voice_vlan
+CMD_VAR   = has_mstp
+CMD_VAR   = has_erps
+CMD_VAR   = has_vcl
+CMD_VAR   = has_evc
+CMD_VAR   = has_gvrp
+CMD_VAR   = has_all
+CMD_VAR   = has_conflicts
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_show_status(session_id, has_interface, plist, has_combined, has_admin, has_nas, has_mvr, has_voice_vlan, has_mstp, has_vcl, has_erps, has_all, has_conflicts, has_evc, has_gvrp));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = name <vword32>
+
+DOC_CMD_DESC    = Use the name <vword32> command to configure VLAN name.
+DOC_CMD_DEFAULT = The no form of this command will delete the VLAN name to VLAN mapping.
+DOC_CMD_USAGE   = You can enter up to 32 alphanumeric characters to name the VLAN. First character must be a letter
+DOC_CMD_EXAMPLE = This example shows how to configure the VLAN name
+DOC_CMD_EXAMPLE = config-vlan# name guest
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan privileged EXEC command.
+
+FUNC_NAME = icli_vlan_name_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+MODE_VAR = vlist
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_VLAN
+
+   HELP = ASCII name of the VLAN
+   HELP = The ASCII name for the VLAN
+
+   CMD_VAR   =
+   CMD_VAR   = vlan_name
+
+CODE_BEGIN
+    if (vlist->cnt != 1 || vlist->range[0].max - vlist->range[0].min > 0) {
+        ICLI_PRINTF("%% Cannot modify name for multiple VLANs\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if (!vlan_name) {
+         ICLI_PRINTF("%% Que?\n");
+         return ICLI_RC_ERROR;
+    }
+
+    VTSS_ICLI_ERR_PRINT(vlan_mgmt_name_set(vlist->range[0].min, vlan_name));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+COMMAND         = no name
+
+DOC_CMD_DEFAULT = The no form of this command will restore the VLAN name to its default.
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE = This example shows to default the VLAN name for VLAN 7.
+DOC_CMD_EXAMPLE = # configure terminal; (config)# vlan 7; (config-vlan)# no name
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan privileged EXEC command.
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+MODE_VAR = vlist
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_VLAN
+
+HELP =
+HELP = ASCII name of the VLAN
+
+VARIABLE_BEGIN
+    u32        idx;
+    vtss_vid_t vid;
+    char       vlan_name[VLAN_NAME_MAX_LEN];
+VARIABLE_END
+
+CODE_BEGIN
+    vlan_name[0] = '\0'; // This will default the names
+
+    for (idx = 0; idx < vlist->cnt; idx++) {
+        for (vid = vlist->range[idx].min; vid <= vlist->range[idx].max; vid++) {
+            VTSS_ICLI_ERR_PRINT(vlan_mgmt_name_set(vid, vlan_name));
+        }
+    }
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+IF_FLAG =
+COMMAND = switchport forbidden vlan {add|remove} <vlan_list>
+VLAN_FORBIDDEN_HELP = Adds or removes forbidden VLANs from the current list of forbidden VLANs
+DOC_CMD_DESC    = ##VLAN_FORBIDDEN_HELP
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = ##VLAN_FORBIDDEN_HELP
+DOC_CMD_EXAMPLE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: switchport
+! 2: forbidden
+! 3: vlan
+! 4: add
+! 5: remove
+! 6: <vlan_list>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_add
+CMD_VAR =
+CMD_VAR = vlan_list
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = ##VLAN_FORBIDDEN_HELP
+HELP = Add or modify VLAN entry in forbidden table.
+HELP = Add to existing list.
+HELP = Remove from existing list.
+HELP = VLAN IDs
+
+BYWORD =
+BYWORD =
+BYWORD = add : Option
+BYWORD = remove : Option
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_add_remove_forbidden(plist, vlan_list, has_add));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+IF_FLAG =
+COMMAND = no switchport forbidden vlan
+DOC_CMD_DESC    = Allows for adding VLANs to an interface
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: no
+! 2: switchport
+! 3: forbidden
+! 4: vlan
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+
+HELP =
+HELP = ##VLAN_SWITCHPORT_HELP
+HELP = Forbidden VLANs
+HELP = VLANs
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    icli_unsigned_range_t vlan_list;
+VARIABLE_END
+
+CODE_BEGIN
+    // The no-form corresponds to removing all forbidden VLANs
+    vlan_list.cnt = 1;
+    vlan_list.range[0].min = VLAN_ID_MIN;
+    vlan_list.range[0].max = VLAN_ID_MAX;
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_add_remove_forbidden(plist, &vlan_list, FALSE));
+CODE_END
+CMD_END
+
+#==============================================================================
+#==============================================================================
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = show switchport forbidden [{vlan <vlan_id>} | {name <word>}]
+
+VLAN_FORBIDDEN_SHOW_HELP = Lookup VLAN Forbidden port entry.
+
+DOC_CMD_DESC    = ##VLAN_FORBIDDEN_SHOW_HELP
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = ##VLAN_FORBIDDEN_SHOW_HELP
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+! 1: show
+! 2: switchport
+! 3: forbidden
+! 4: id
+! 5: <vlan_id>
+! 6: name
+! 7: <word>
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = VLAN_ICLI_runtime_vlan_name
+RUNTIME = VLAN_ICLI_runtime_vlan_name
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_vid
+CMD_VAR = vid
+CMD_VAR = has_name
+CMD_VAR = name
+
+HELP =
+HELP = Display switching mode characteristics
+HELP = ##VLAN_FORBIDDEN_SHOW_HELP
+HELP = vid - Show forbidden access for specific VLAN id.
+HELP = VLAN id
+HELP = name - Show forbidden access for specific VLAN name.
+HELP = VLAN name
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = id : Option
+BYWORD =
+BYWORD = name : Option
+BYWORD =
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_ERR_PRINT(VLAN_ICLI_show_forbidden(session_id, has_vid, vid, has_name, name));
+CODE_END
+CMD_END
+

@@ -1,0 +1,628 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>VLAN Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_vlan.htm";
+
+var oTportmode        = Array("Access", "Trunk", "Hybrid");
+var oVportmode        = Array(0,        1,       2);
+var oTporttype_v1     = Array("Unaware", "C-Port");
+var oVporttype_v1     = Array(0,         1);
+var oTporttype_v2     = Array("Unaware", "C-Port", "S-Port", "S-Custom-Port");
+var oVporttype_v2     = Array(0,         1,        2,        3);
+var oTframetype_v1    = Array("Tagged and Untagged", "Tagged Only");
+var oVframetype_v1    = Array(0,                     1);
+var oTframetype_v2    = Array("Tagged and Untagged", "Tagged Only", "Untagged Only");
+var oVframetype_v2    = Array(0,                     1,             2);
+var oTporttxtag       = Array("Untag Port VLAN", "Tag All", "Untag All");
+var oVporttxtag       = Array(0,                 2,         3);
+var oTporttxtag_trunk = Array("Untag Port VLAN", "Tag All");
+var oVporttxtag_trunk = Array(0,                 2);
+
+// Indices into the port configurations
+var PIDX_PORT          =  0;
+var PIDX_MODE          =  1;
+var PIDX_ACC_PVID      =  2;
+var PIDX_NTV_PVID      =  3;
+var PIDX_TAG_NTV_PVID  =  4;
+var PIDX_HYB_AWARE     =  5;
+var PIDX_HYB_INGR_FILT =  6;
+var PIDX_HYB_ACCEPT    =  7;
+var PIDX_HYB_PVID      =  8;
+var PIDX_HYB_TX_TAG    =  9;
+var PIDX_TRK_ALW_VIDS  = 10;
+var PIDX_HYB_ALW_VIDS  = 11;
+var PIDX_FORB_VIDS     = 12;
+
+var MODE_ACCESS = 0;
+var MODE_TRUNK  = 1;
+var MODE_HYBRID = 2;
+
+var max_port_seen = 0;
+var port_confs    = Array();
+
+//------------------------------------------------------------------------------
+// my_select_update()
+//------------------------------------------------------------------------------
+function my_select_update(fld, value)
+{
+    for (var i = 0; i < fld.options.length; i++) {
+        var opt = fld.options[i];
+        var sel = (opt.value == value);
+        opt.selected = sel;
+        if (sel) {
+            fld.selectedIndex = i;
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+// pvid_changed()
+//------------------------------------------------------------------------------
+function pvid_changed(port)
+{
+    // Mode
+    var fld = $("mode_" + port);
+    mode = parseInt(fld.options[fld.selectedIndex].value, 10);
+
+    if (mode != MODE_ACCESS) {
+        return;
+    }
+
+    // Update Allowed VIDs
+    $("alw_vids_" + port).value = $("pvid_" + port).value;
+}
+
+//------------------------------------------------------------------------------
+// acceptable_frames_change_check()
+//------------------------------------------------------------------------------
+function acceptable_frames_change_check(port)
+{
+    // Mode
+    var fld = $("mode_" + port);
+    mode = parseInt(fld.options[fld.selectedIndex].value, 10);
+
+    if (mode != MODE_TRUNK) {
+        return;
+    }
+
+    // Tx Tagging
+    fld = $("tx_tag_trunk_" + port);
+    var untag_pvid = parseInt(fld.options[fld.selectedIndex].value, 10) === 0;
+
+    // Acceptable frame types
+    var acceptable_frame_types = untag_pvid ? 0 /* accept tagged and untagged */: 1 /* accept tagged only */;
+    for (var v = 1; v <= 2; v++) {
+        fld = $("frametypev" + v + "_" + port);
+        my_select_update(fld, acceptable_frame_types);
+    }
+}
+
+//------------------------------------------------------------------------------
+// enable_disable_or_populate()
+// If #tr is != null, we create new table elements and enable/disable accordingly
+// Otherwise, we just enable/disable according to configuration.
+//------------------------------------------------------------------------------
+function enable_disable_or_populate(port_no, tr)
+{
+    var v, port = port_no;
+
+    // Mode
+    var mode, fld;
+    if (tr) {
+        mode = parseInt(port_confs[port][PIDX_MODE], 10);
+
+        if (mode < MODE_ACCESS || mode > MODE_HYBRID) {
+            alert("Invalid mode: " + mode);
+            return;
+        }
+
+        fld = addSelectCell(tr, oTportmode, oVportmode, mode, "c", "mode_" + port);
+        fld.onchange = function() {enable_disable_or_populate(port, null);};
+    } else {
+        fld = $("mode_" + port);
+        if (!fld) {
+            alert("Say what: " + port);
+            return;
+        }
+
+        mode = parseInt(fld.options[fld.selectedIndex].value, 10);
+    }
+
+    // PVID
+    var pvid = mode == MODE_ACCESS ? parseInt(port_confs[port][PIDX_ACC_PVID], 10) : mode == MODE_TRUNK ? parseInt(port_confs[port][PIDX_NTV_PVID], 10) : parseInt(port_confs[port][PIDX_HYB_PVID], 10);
+    if (tr) {
+        fld = addInputCell(tr, pvid, "cr", "pvid_" + port, 4);
+        fld.setAttribute("maxLength", 4); // 'camelCase' required for maxLength for this to work with IE.
+        // In order to get allowed VIDs updated in Access mode when the user changes the field, we hook the onchange event
+        fld.onkeypress = function() {pvid_changed(port);};
+        fld.onkeyup    = function() {pvid_changed(port);};
+    } else {
+        fld = $("pvid_" + port);
+        fld.value = pvid;
+    }
+
+    // Port type
+    var port_type = mode == MODE_HYBRID ? parseInt(port_confs[port][PIDX_HYB_AWARE], 10) : 1 /* C-port */;
+    for (v = 1; v <= 2; v++) {
+        if (tr) {
+            fld = addSelectCell(tr, v == 1 ? oTporttype_v1 : oTporttype_v2, v == 1 ? oVporttype_v1 : oVporttype_v2, port_type, "c has_vlan_v" + v, "porttypev" + v + "_" + port);
+        } else {
+            fld = $("porttypev" + v + "_" + port);
+            my_select_update(fld, port_type);
+        }
+
+        fld.disabled = mode != MODE_HYBRID;
+    }
+
+    // Ingress filtering
+    var ingr_filt = mode == MODE_HYBRID ? parseInt(port_confs[port][PIDX_HYB_INGR_FILT], 10) : 1 /* enabled */;
+    if (tr) {
+        fld = addCheckBoxCell(tr, ingr_filt, "c has_vlan_ingress_filtering", "ingressflt_" + port);
+    } else {
+        fld = $("ingressflt_" + port);
+        fld.checked = ingr_filt;
+    }
+
+    fld.disabled = mode != MODE_HYBRID;
+
+    // Acceptable frame types (all, tagged, untagged)
+    var tag_native_vlan = parseInt(port_confs[port][PIDX_TAG_NTV_PVID], 10);
+    var tx_tagging, acceptable_frame_types;
+
+    if (mode == MODE_ACCESS) {
+        tx_tagging = 0;                 // Untag PVID
+        acceptable_frame_types = 0;     // Accept tagged and untagged
+    } else if (mode == MODE_TRUNK) {
+        if (tag_native_vlan) {
+            tx_tagging = 2;             // Tag all
+            acceptable_frame_types = 1; // Accept tagged only
+        } else {
+            tx_tagging = 0;             // Untag PVID
+            acceptable_frame_types = 0; // Accept tagged and untagged
+        }
+    } else {
+        tx_tagging = parseInt(port_confs[port][PIDX_HYB_TX_TAG], 10);
+        acceptable_frame_types = parseInt(port_confs[port][PIDX_HYB_ACCEPT], 10);
+    }
+
+    for (v = 1; v <= 2; v++) {
+        if (tr) {
+            fld = addSelectCell(tr, v == 1 ? oTframetype_v1 : oTframetype_v2, v == 1 ? oVframetype_v1 : oVframetype_v2, acceptable_frame_types, "c has_vlan_v" + v, "frametypev" + v + "_" + port);
+        } else {
+            fld = $("frametypev" + v + "_" + port);
+            my_select_update(fld, acceptable_frame_types);
+        }
+
+        fld.disabled = mode != MODE_HYBRID;
+    }
+
+    // Tx Tagging
+    for (v = 1; v <= 2; v++) {
+        if (tr) {
+            fld = addSelectCell(tr, v == 1 ? oTporttxtag : oTporttxtag_trunk, v == 1 ? oVporttxtag : oVporttxtag_trunk, tx_tagging, "c", "tx_tag_" + (v == 1 ? "" : "trunk_") + port);
+            // If Tx tagging is changed on a trunk port, we also change the underlying Acceptable Frames.
+            fld.onchange = function() {acceptable_frames_change_check(port);};
+        } else {
+            fld = $("tx_tag_" + (v == 1 ? "" : "trunk_") + port);
+            my_select_update(fld, tx_tagging);
+        }
+
+        var d = "";
+
+        if ((v == 1 && mode == MODE_TRUNK) || (v == 2 && mode != MODE_TRUNK)) {
+            // If we're adding the non-trunk-mode select box, don't display the trunk-mode select box and vice versa.
+            d = "none";
+        }
+
+        fld.parentNode.style.display = d;
+        fld.disabled = mode == MODE_ACCESS;
+    }
+
+    // Allowed VIDs
+    var allowed_vids = mode == MODE_ACCESS ? pvid : mode == MODE_TRUNK ? unescape(port_confs[port][PIDX_TRK_ALW_VIDS]) : unescape(port_confs[port][PIDX_HYB_ALW_VIDS]);
+    if (tr) {
+        fld = addInputCell(tr, allowed_vids, "cl", "alw_vids_" + port, 15, 9685);
+        fld.setAttribute("maxLength", 9685); // 'camelCase' required for maxLength for this to work with IE.
+    } else {
+        fld = $("alw_vids_" + port);
+        fld.value = allowed_vids;
+    }
+
+    fld.disabled = mode == MODE_ACCESS;
+
+    // Forbidden VIDs
+    var forbidden_vids = unescape(port_confs[port][PIDX_FORB_VIDS]);
+    if (tr) {
+        fld = addInputCell(tr, forbidden_vids, "cl", "forb_vids_" + port, 15, 9685);
+        fld.setAttribute("maxLength", 9685); // 'camelCase' required for maxLength for this to work with IE.
+    } else {
+        fld = $("forb_vids_" + port);
+        fld.value = forbidden_vids;
+    }
+}
+
+//------------------------------------------------------------------------------
+// add_row()
+//------------------------------------------------------------------------------
+function add_row(index, frag, v) {
+    var port_no = parseInt(v[PIDX_PORT], 10);
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    port_confs[port_no] = v;
+
+    // Port number
+    addTextCell(tr, configPortName(port_no, 0), "c");
+
+    // The following function can be used to both populate initially and enable/disable select/checkboxes at runtime depending on the value of #tr
+    enable_disable_or_populate(port_no, tr);
+
+    if (port_no > max_port_seen) {
+        max_port_seen = port_no;
+    }
+
+    frag.appendChild(tr);
+}
+
+//------------------------------------------------------------------------------
+// process_update()
+//------------------------------------------------------------------------------
+function process_update(req)
+{
+    // Format: <tpid>#<vlans>#<all_port_conf>
+    //         <all_port_conf>   = <port_conf_1>#<port_conf_2>#...#<port_conf_N>
+    //         <port_conf_x>     = port_no/port_mode/access_vid/native_vid/tag_native_vlan/hyb_port_type/hyb_ingress_filter/hyb_frame_type/hyb_pvid/hyb_tx_tag_type/trk_allowed_vids/hyb_allowed_vids/forbidden_vids
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (!req.responseText) {
+        SpomHandleError();
+        return;
+    }
+
+    var vlandata = req.responseText.split("#");
+
+    $("tpid").value  = $("tpid").defaultValue  = vlandata[0].toUpperCase();
+    $("vlans").value = $("vlans").defaultValue = unescape(vlandata[1]);
+
+    port_confs = Array();
+
+    // Create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    for (var i = 2; i < vlandata.length; i++) {
+        add_row(i, frag, vlandata[i].split("/"));
+    }
+
+    var tbody = $("vlan_port_body");
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    var cBar = new MasterControlBar([{text: "*", className: "cr"},
+                                    {name: "mode_"},
+                                    {name: "pvid_"},
+                                    {name: "porttypev1_"},
+                                    {name: "porttypev2_"},
+                                    {name: "ingressflt_"},
+                                    {name: "frametypev1_"},
+                                    {name: "frametypev2_"},
+                                    {name: "tx_tag_"},
+                                    {name: "alw_vids_"},
+                                    {name: "forb_vids_"}]);
+    cBar.construct('port_ctrl', 'config_odd');
+}
+
+function request_update() {
+    if(SpomNavigationLoading()) {
+      return;                 // Bail out, navigation will trigger update
+    }
+
+    loadXMLDoc(SpomAddSidArg("/config/vlan"), process_update);
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+//------------------------------------------------------------------------------
+// is_etype
+//------------------------------------------------------------------------------
+function is_etype(str)
+{
+    var my_regexp;
+    if (!str) {
+        return false;
+    }
+    my_regexp = /^[A-Fa-f0-9]{1,4}$/;
+
+    var result = my_regexp.test(str);
+    if (result) {
+        var int_format = parseInt("0x" + str, 16);
+        if (int_format < 0x600) {
+            return false;
+        }
+    }
+
+    return result;
+}
+
+//------------------------------------------------------------------------------
+// remove_ws()
+// Returns (in x.str) a string where all white space is removed.
+// If two consecutive numbers are only having white space between them,
+// the function returns false. Otherwise true.
+//------------------------------------------------------------------------------
+function remove_ws(x)
+{
+    var result = "", whitespace_seen = false;
+
+    while (x.idx < x.len) {
+        var c = x.str.charAt(x.idx);
+
+        if (c != ' ') {
+            if (whitespace_seen && result.length > 0 && result.charAt(result.length - 1) >= '0' && result.charAt(result.length - 1) <= '9') {
+                return false;
+            }
+            result += c;
+            whitespace_seen = false;
+        } else {
+            whitespace_seen = true;
+        }
+
+        x.idx++;
+    }
+
+    x.str = result;
+    x.idx = 0;
+    x.len = x.str.length;
+    return true;
+}
+
+//------------------------------------------------------------------------------
+// strtoul()
+//------------------------------------------------------------------------------
+function strtoul(x)
+{
+    var len = x.str.length;
+    var sub = "";
+
+    if (x.idx == x.len) {
+        // No more characters in string
+        return -1;
+    }
+
+    while (x.idx < x.len) {
+        var c = x.str.charAt(x.idx);
+
+        if (c < '0' || c > '9') {
+            break;
+        }
+
+        x.idx++;
+        sub += c;
+    }
+
+    if (sub.length === 0) {
+        return -1;
+    }
+
+    return parseInt(sub, 10);
+}
+
+//------------------------------------------------------------------------------
+// is_vlan_list()
+//------------------------------------------------------------------------------
+function is_vlan_list(id, print_warning_if_empty)
+{
+    var fld = $(id);
+
+    if (!fld) {
+        alert("Ehh: " + id);
+    }
+
+    var x = {str:fld.value};
+    x.idx = 0;
+    x.len = x.str.length;
+
+    if (!remove_ws(x)) {
+        GiveAlert("VLANs must be separated by commas, not spaces", fld);
+        return false;
+    }
+
+    if (x.idx == x.len) {
+        if (print_warning_if_empty) {
+            if (confirm("You are about to delete all VLANs on the switch, and will lose connectivity. Continue?")) {
+                return true; // Accept an empty string.
+            } else {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    var range = false, comma = false;
+    var start;
+
+    while (x.idx < x.len) {
+        var n = strtoul(x);
+
+        if (n < 0) {
+            GiveAlert("Invalid character ('" + x.str.charAt(x.idx) + "') found in VLAN list", fld);
+            return false;
+        }
+
+        if (n < configVlanIdMin || n > configVlanIdMax) {
+            GiveAlert("VLAN IDs must be integers between " + configVlanIdMin + " and " + configVlanIdMax, fld);
+            return false;
+        }
+
+        if (range) {
+            // End of range has been reached
+            range = 0;
+            if (n < start) {
+                GiveAlert("Invalid range detected in VLAN list", fld);
+                return false;
+            }
+        } else if (x.str.charAt(x.idx) == '-') {
+            // Start of range
+            start = n;
+            range = true;
+            x.idx++;
+        }
+
+        comma = false;
+        if (!range && x.str.charAt(x.idx) == ',') {
+            comma = true;
+            x.idx++;
+        }
+    }
+
+    // Check for trailing comma/dash
+    if (comma || range) {
+        GiveAlert("VLAN list cannot end with a comma or a dash", fld);
+        return false;
+    }
+
+    return true;
+}
+
+//------------------------------------------------------------------------------
+// check_form()
+//------------------------------------------------------------------------------
+function check_form(form)
+{
+    var port, fld;
+
+    // Check created VLANs
+    if (!is_vlan_list("vlans", true)) {
+        return false;
+    }
+
+    // Check S-Custom Ethertype
+    if (!is_etype($('tpid').value)) {
+        GiveAlert("The format of 'Ethernet Type' is restricted to 0x600-FFFF", document.getElementById("tpid"));
+        return false;
+    }
+
+    // Check PVIDs, allowed VIDs and forbidden VIDs
+    for (port = 1; port < max_port_seen; port++) {
+        fld = $("pvid_" + port);
+        if (!fld) {
+            continue;
+        }
+
+        if (!isWithinRange("pvid_" + port, configVlanIdMin, configVlanIdMax, "Port VLAN")) {
+            return false;
+        }
+
+        if (!is_vlan_list("alw_vids_" + port, false)) {
+            return false;
+        }
+
+        if (!is_vlan_list("forb_vids_" + port, false)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+//------------------------------------------------------------------------------
+// SpomSidSelectorUpdate()
+//------------------------------------------------------------------------------
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid); // Save current SID
+    request_update();        // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="request_update();">
+<form method="POST" action="/config/vlan" onsubmit="return check_form(this);">
+
+<h1>Global VLAN Configuration</h1>
+<table summary="Global VLAN Configuration" cellspacing="0" class="config">
+  <tbody>
+    <!-- The worst-case VLAN string length is 9685 -->
+    <tr class="config"><td class="param_label">Allowed Access VLANs</td><td class="cl"><input id="vlans" name="vlans" maxlength="9685" style="width: 300px" value="1"/></td></tr>
+    <tr class="config has_vlan_v2"><td class="param_label">Ethertype for Custom S-ports</td><td class="cl"><input id="tpid" name="tpid" style="width: 300px" maxlength="4" value="88A8"/></td></tr>
+  </tbody>
+</table>
+
+<h1>Port VLAN Configuration <span id="display_sid"></span></h1>
+<table summary="Per-port VLAN Configuration" cellspacing="0" class="config">
+  <thead>
+    <tr class="config_header">
+      <th>Port</th>
+      <th>Mode</th>
+      <th>Port<br/>VLAN</th>
+      <th>Port Type</th>
+      <th class="has_vlan_ingress_filtering">Ingress<br/>Filtering</th>
+      <th>Ingress<br/>Acceptance</th>
+      <th>Egress<br/>Tagging</th>
+      <th>Allowed<br/>VLANs</th>
+      <th>Forbidden<br/>VLANs</th>
+    </tr>
+  </thead>
+  <tbody id="port_ctrl"></tbody>
+  <tbody id="vlan_port_body"></tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

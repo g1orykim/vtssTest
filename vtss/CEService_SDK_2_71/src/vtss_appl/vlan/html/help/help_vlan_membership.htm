@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+Vitesse Switch Software.
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>VLAN Membership Status</title>
+<link href="/lib/help.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="/lib/dynforms.js"></script>
+<script type="text/javascript" src="/lib/mootools-core.js"></script>
+<script type="text/javascript" language="JavaScript">
+  window.addEvent('domready', function() {
+   $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+  });
+</script>
+</head>
+<body>
+<h1>VLAN Membership Status Help</h1>
+<p>This page provides an overview of  membership status of VLAN users.</p>
+<p class="SPOM_only">The ports belong to the currently selected stack unit as reflected by the page header.</p>
+
+<dl>
+  <dt>VLAN User</dt>
+  <dd>
+    Various internal software modules may use VLAN services to configure VLAN memberships on the fly.<br/>
+    The drop-down list on the right allows for selecting between showing VLAN memberships as configured by an administrator (Admin) or as configured by one of these internal software modules.<br/>
+    The "Combined" entry will show a combination of the administrator and internal software modules configuration, and basically reflects what is actually configured in hardware.
+  </dd>
+
+  <dt>VLAN ID</dt>
+  <dd>
+    VLAN ID for which the Port members are displayed.
+  </dd>
+
+  <dt>Port Members</dt>
+  <dd>
+    A row of check boxes for each port is displayed for each VLAN ID.<br/>
+    If a port is included in a VLAN, the following image will be displayed: <img src="../../images/port.gif" alt="port" width=15 height =12 border = 1/>.<br/>
+    If a port is in the forbidden port list, the following image will be displayed: <img src = "../../images/forbid.gif" alt="forbid" width=15 height =12 border = 1/>.<br/>
+    If a port is in the forbidden port list and at the same time attempted included in the VLAN, the following image will be displayed: <img src = "../../images/conflict.gif" alt="conflict port" width=15 height =12 border = 1/>. The port will not be a member of the VLAN in this case.<br/>
+  </dd>
+</dl>
+
+<h2> Navigating the VLAN Membership Status page</h2>
+<p>
+Each page shows up to 99 entries from the VLAN table (default being 20), selected through the "entries per page" input field.
+When first visited, the web page will show the first 20 entries from the beginning of the VLAN Table. The first displayed will be the one with the lowest VLAN ID found in the VLAN Table.<br/>
+The "VLAN" input field allows the user to select the starting point in the VLAN Table.<br/>
+Clicking the <input type="button" value="Refresh"/> button will update the displayed table starting from that or the closest next VLAN Table match.<br/>
+The <input type="button" value=" >> "/> will use the last entry of the currently displayed VLAN entry as a basis for the next lookup.
+When the end is reached, the text "No data exists for the selected user" is shown in the table. Use the <input type="button" value=" |<<"/> button to start over.
+</p>
+
+<h2>Buttons</h2>
+<p><select>
+<option value="0">Combined</option>
+<option value="1">Admin</option>
+<option value="2">Various internal software modules</option>
+</select>: Select VLAN Users from this drop down list.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+</body>
+</html>
+
+

@@ -1,0 +1,359 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Static ARP Inspection Table Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_arp_inspection_static_table.htm";
+
+var reqObject;
+var entryIdxArray = Array();
+var portNoArray = Array();
+var vidArray = Array();
+var macAddrArray = Array();
+var ipAddrArray = Array();
+var originalEntriesNum = 0, newEntriesNum = 0;
+var maxEntriesNum = 64;
+var remainedEntriesNum = 64;
+
+function portIsFilter(portNo)
+{
+    if(configPortType >= 3 && (configPortName(portNo, 0) == "WAN" || configPortName(portNo, 0) == "WAN2" || configPortName(portNo, 0) == "EPON")) {
+        return true;
+    }
+    return false;
+}
+
+var oTPort = Array();
+var oVPort = Array();
+
+function SpomSelectCurrentPortUpdate()
+{
+    var i, currentMaxPort = SpomCurrentPorts();
+
+    while (oTPort.length) {
+        oTPort.pop();
+    }
+    while (oTPort.length) {
+        oVPort.pop();
+    }
+
+    for (i = configPortMin; i <= currentMaxPort; i++) {
+        if (portIsFilter(i)) {
+            continue;
+        }
+
+        oTPort.push(configPortName(i, 0));
+        oVPort.push(i);
+    }
+}
+
+function CreateTableHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Delete", "hdrc");
+    addTextHeaderCell(tr, "Port", "hdrc");
+    addTextHeaderCell(tr, "VLAN ID", "hdrc");
+    addTextHeaderCell(tr, "MAC Address", "hdrc");
+    addTextHeaderCell(tr, "IP Address", "hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRow(index, frag, values)
+{
+    portNoArray[originalEntriesNum] = parseInt(values[0], 10);
+    vidArray[originalEntriesNum] = values[1];
+    macAddrArray[originalEntriesNum] = values[2];
+    ipAddrArray[originalEntriesNum] = values[3];
+    originalEntriesNum++;
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addCheckBoxCell(tr, 0, "c", "delete_" + values[0] + "_" + values[1] + "_" + values[2] + "_" + values[3]);
+    addTextCell(tr, configPortName(values[0], 0), "cr");
+    addTextCell(tr, values[1], "cr");
+    addTextCell(tr, values[2], "cr");
+    addTextCell(tr, values[3], "cr");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    //Format: <max_entries_num>,<port_no>/<vid>/<mac_addr>/<ip_addr>|...,<remained_entries_in_sid>
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    originalEntriesNum = newEntriesNum = 0;
+    if (reqObject != req) {
+        reqObject = req;
+    }
+    if (req.responseText) {
+        var configData = req.responseText.split(",");
+        maxEntriesNum = configData[0];
+        var tableData = configData[1].split("|");
+        remainedEntriesNum = configData[2];
+
+        for(var i = 0, j = 0; i < tableData.length; i++) {
+            if(tableData[i]) {
+                addRow(j++, frag, tableData[i].split("/"));
+            }
+        }
+    }
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if(!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "inputData");
+}
+
+function requestUpdate()
+{
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    SpomSelectCurrentPortUpdate();
+    loadXMLDoc(SpomAddSidArg("/config/arp_inspection_static_table"), processUpdate, 'inputData');
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm(form)
+{
+    var fld1, fld2, fld3, fld4;
+    var i, j;
+
+    //check number of max entries
+    if(newEntriesNum) {
+        var deleteEntriesNum = 0;
+
+        //counter delete entries number
+        for(i = 0; i < originalEntriesNum; i++) {
+            fld1 = document.getElementById("delete_" + portNoArray[i] + "_" + vidArray[i] + "_" + macAddrArray[i] + "_" + ipAddrArray[i]);
+            if(fld1.checked) {
+                deleteEntriesNum++;
+            }
+        }
+
+        if((originalEntriesNum - deleteEntriesNum + newEntriesNum) > remainedEntriesNum) {
+            alert("The maximum number of entries is " + maxEntriesNum);
+            return false;
+        }
+    }
+
+    //check new entries's
+    for(i = 0; i < newEntriesNum; i++) {
+        fld1 = document.getElementById("new_port_no_"+ entryIdxArray[i]);
+        fld2 = document.getElementById("new_vid_"+ entryIdxArray[i]);
+        fld3 = document.getElementById("new_mac_addr_"+ entryIdxArray[i]);
+        fld4 = document.getElementById("new_ip_addr_"+ entryIdxArray[i]);
+
+        //vid
+        if (fld2) {
+            if(!isWithinRange("new_vid_"+ entryIdxArray[i], 1, 4095, "'VLAN ID'")) {
+                return false;
+            }
+        }
+
+        //mac_addr
+        if (fld3) {
+            if (!IsMacAddress(fld3.value, 1)) {
+                return false;
+            }
+        }
+
+        //ip_addr
+        if(fld4) {
+            if(!isIpStr("new_ip_addr_"+ entryIdxArray[i], false, "'IP Address'", 1)) {
+                return false;
+            }
+        }
+
+        //check the entry exist in original entries
+        for(j = 0; j < originalEntriesNum; j++) {
+            if(fld1.value == portNoArray[j] &&
+               fld2.value == vidArray[j] &&
+               toMacAddress(fld3.value, 0) == toMacAddress(macAddrArray[j], 0) &&
+               fld4.value == ipAddrArray[j]) {
+                alert("The same entry already exists.");
+                return false;
+            }
+        }
+
+        //check the entry exist in new entries
+        for(j = i + 1; j < newEntriesNum; j++) {
+            if(fld1.value == document.getElementById("new_port_no_"+ entryIdxArray[j]).value &&
+               fld2.value == document.getElementById("new_vid_"+ entryIdxArray[j]).value &&
+               toMacAddress(fld3.value, 0) == toMacAddress(document.getElementById("new_mac_addr_"+ entryIdxArray[j]).value, 0) &&
+               fld4.value == document.getElementById("new_ip_addr_"+ entryIdxArray[j]).value) {
+                alert("The same entry already exists.");
+                return false;
+            }
+        }
+    }
+
+    return true; // Feed the chickens and go home
+}
+
+function addEntryIdx()
+{
+    var i, fld, validEntriesNum = 0;
+
+    //counter delete entries number
+    for (i = 0; i < originalEntriesNum; i++) {
+        fld = document.getElementById("delete_" + portNoArray[i] + "_" + vidArray[i] + "_" + macAddrArray[i] + "_" + ipAddrArray[i]);
+        if (!fld.checked) {
+            validEntriesNum++;
+        }
+    }
+
+   //for (i = 1; i <= (maxEntriesNum - remainedEntriesNum) - validEntriesNum; i++) {
+   for (i = 1; i <= remainedEntriesNum - validEntriesNum; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newEntriesNum++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById("inputData").removeChild(tr);
+}
+
+function AddNewRow()
+{
+    var entryIdx = addEntryIdx();
+    if (parseInt(entryIdx, 10) === 0) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalEntriesNum + entryIdx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+    var wan_port = 0;
+    addSelectCell(tr, oTPort, oVPort, 0, "cr", "new_port_no_" + entryIdx);
+    var edit_ctrl;
+    edit_ctrl = addInputCell(tr, "", "cr", "new_vid_" + entryIdx, 4);
+    edit_ctrl.setAttribute("maxLength", 4);
+    edit_ctrl = addInputCell(tr, "", "cr", "new_mac_addr_" + entryIdx, 17);
+    edit_ctrl.setAttribute("maxLength", 17);
+    edit_ctrl = addInputCell(tr, "", "cr", "new_ip_addr_" + entryIdx, 15);
+    edit_ctrl.setAttribute("maxLength", 15);
+
+    frag.appendChild(tr);       // Add row to fragment
+
+    var tbody = document.getElementById("inputData");
+    if(!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/arp_inspection_static_table" onsubmit="return checkForm(this);">
+
+<h1>Static ARP Inspection Table <span id="display_sid"></span></h1>
+<table id="staticArpInspectionTable" summary="Static ARP Inspection Table" cellspacing="0" class="config">
+ <tbody id="inputData">
+ </tbody>
+</table>
+
+<p>
+<input type="button" id="addNewEntry" value="Add New Entry" onclick="AddNewRow();">
+</p>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

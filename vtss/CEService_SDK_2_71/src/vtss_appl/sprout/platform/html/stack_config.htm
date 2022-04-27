@@ -1,0 +1,352 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Stack Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_stack_config.htm";
+
+// Select options
+var Bool2Text = ["No", "Yes"];
+var oVmstPrio = genArrayInt(1, 4);
+var oTmstPrio = genArrayStr(1, 4);
+var oVallSid;
+var oTallSid;
+var oVfreeSid;
+var oTfreeSid;
+
+// State
+var orgSid;
+var sidCurHolder;
+
+function otherHas(sid, except)
+{
+    for(var i = configSidMin; i <= configSidMax; i++) {
+        var f = document.getElementById("sid_" + i);
+        var del = document.getElementById("del_" + i);
+        if(f && i != except) {
+            var fsid = f.options[f.selectedIndex].value;
+            if(del && (!del.checked) && fsid == sid) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+function sidDelete()
+{
+    var sid, prio;
+    var index = this.getAttribute("index");
+
+    if((sid = document.getElementById("sid_" + index))) {
+        sid.disabled = this.checked;
+    }
+
+    if((prio = document.getElementById("prio_" + index))) {
+        prio.disabled = this.checked;
+    }
+}
+
+function addHiddenInput(frag, value, name)
+{
+    var field = document.createElement("input");
+    field.type = "hidden";
+    field.id = field.name = name;
+    field.setAttribute("value", value);
+    frag.appendChild(field);         // Add cell to fragment
+    return field;
+}
+
+function addSidField(tr, sid, index)
+{
+    var ssid;
+    if (sid) {
+        ssid = addSelectCell(tr, oTallSid, oVallSid, sid, "c", "sid_" + index);
+    } else {
+        ssid = addSelectCell(tr, oTfreeSid, oVfreeSid, sid, "c", "sid_" + index);
+    }
+    ssid.setAttribute("index", index);
+}
+
+function addSidDelete(tr, index, disabled)
+{
+    var chk = addCheckBoxCell(tr, 0, "c", "del_" + index);
+    chk.onchange = sidDelete;
+    chk.setAttribute("index", index);
+    if (disabled) {
+        chk.disabled = true;
+    }
+}
+
+function addFormRow(index, cur_stack_enabled, conf_stack_enabled, frag, values)
+{
+    var tr       = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+    var present  = parseInt(values[0], 10);
+    var mac      = values[1];
+    var sid      = parseInt(values[2], 10);
+    var master   = parseInt(values[3], 10);
+    var mstcap   = parseInt(values[4], 10);
+    var mstpri   = parseInt(values[5], 10);
+    var prodname = unescape(values[6]);
+    var dirty    = parseInt(values[7], 10);
+    var count    = parseInt(values[8], 10);
+    var key      = parseInt(values[9], 10);
+    var oTPorts  = [];
+    var oVPorts  = [];
+    var i;
+
+    addSidDelete(tr, index, master);
+    addTextCell(tr, mac, master ? "cl mac emphasize" : "cl mac");
+    addHiddenInput(tr, mac, "mac_" + index);
+    if (present) {
+        if (cur_stack_enabled) {
+            addSidField(tr, sid, index); // SID
+        } else {
+            addTextCell(tr, sid ? sid : "-", "c"); // SID
+            addHiddenInput(tr, sid, "sid_" + index);
+        }
+        addTextCell(tr, a2s(Bool2Text, mstcap), "c");
+        if (mstcap && cur_stack_enabled) { // Master capable?
+            addSelectCell(tr, oTmstPrio, oVmstPrio, mstpri, "c", "prio_" + index);
+        } else {
+            addTextCell(tr, "-", "c");
+        }
+        if (count === 0) {
+            addTextCell(tr, "-", "c");
+            addTextCell(tr, "No Switch ID", "cl");
+        } else {
+            for (i = 0; i < count; i++) {
+                oVPorts[i] = i;
+                oTPorts[i] = (values[2*i + 10] + "," + values[2*i + 11]);
+            }
+            addSelectCell(tr, oTPorts, oVPorts, key, "c", "ports_" + index);
+            addTextCell(tr, ((dirty && cur_stack_enabled) || cur_stack_enabled != conf_stack_enabled) ? "Reboot Required" : "Active", "cl");
+        }
+        addTextCell(tr, prodname, "cl");
+    } else {
+        addTextCell(tr, sid ? sid : "-", "c"); // SID
+        addTextCell(tr, "-", "c");
+        addTextCell(tr, "-", "c");
+        addTextCell(tr, "-", "c");
+        addTextCell(tr, "Not Present", "cl");
+        addTextCell(tr, "", "cl");
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref) {
+    // Format         : cur_stack_enabled|conf_stack_enabled|<switch_conf_1>|<switch_conf_2>|...|<switch_conf_N>
+    // <switch_conf_n>: present/macaddr/usid/master/mst_capable/mst_elect_prio/prod_name/dirty/stack_capable_port_count/cur_stack_port_idx/<port_pair_1>/<port_pair_2>/.../<port_pair_M>
+    // <port_pair_m>  : port_0/port_1
+
+    if (!req.responseText) {
+        return;
+    }
+    var i, j;
+
+    // Process request data
+    var members = req.responseText.split("|");
+
+    // Create mask of SID's in use
+    var inUse = 0;
+    var data = Array();
+    var count = 0;
+    var cur_stack_enabled  = parseInt(members[0], 10);
+    var conf_stack_enabled = parseInt(members[1], 10);
+    for (i = 2; i < members.length; i++) {
+        if (members[i]) {
+            data[i] = members[i].split("/");
+            var present = parseInt(data[i][0], 10); // Present
+            var sid     = parseInt(data[i][2], 10); // SID
+            if (present) {
+                if (sid) {
+                    inUse |= (1 << sid);
+                }
+                count++;
+            }
+        }
+    }
+
+    UpdateIdChecked("conf_stack_enabled", conf_stack_enabled);
+    var fld = document.getElementById("cur_stack_enabled");
+    fld.innerHTML = cur_stack_enabled ? "Enabled" : "Disabled";
+    fld.disabled = 1;
+
+    // Master re-elect is disabled if either stacking is currently disabled or there's only one switch in the stack.
+    document.getElementById("reelect").disabled = count < 2;
+
+    // If there's more than one switch in the stack, stacking cannot be disabled
+    document.getElementById("conf_stack_enabled").disabled = count > 1;
+
+    // Option list of all valid SID's
+    oVallSid = genArrayInt(configSidMin, configSidMax);
+    oTallSid = genArrayStr(configSidMin, configSidMax);
+
+    // Option list of available (unused) SID's
+    oTfreeSid = Array("-");
+    oVfreeSid = Array("0");
+    for (i = configSidMin; i <= configSidMax; i++) {
+        if (!(inUse & (1 << i))) {
+            oVfreeSid[oVfreeSid.length] = i;
+            oTfreeSid[oTfreeSid.length] = String(i);
+        }
+    }
+
+    // Populate table
+    var lstbody = document.getElementById('stackList');
+    clearChildNodes(lstbody);
+    var lstfrag = document.createDocumentFragment();
+    for (i = 2, j = 1; i < members.length; i++) {
+        if (members[i]) {
+            addFormRow(j, cur_stack_enabled, conf_stack_enabled, lstfrag, data[i]);
+            j++;
+        }
+    }
+    lstbody.appendChild(lstfrag);
+}
+
+function checkForm(form)
+{
+    for (var i = configSidMin; i <= configSidMax; i++) {
+        var f = document.getElementById("sid_" + i);
+        var del = document.getElementById("del_" + i);
+        if (del && (!del.checked) && f && f.selectedIndex != undefined) {
+            var index = f.getAttribute("index");
+            var fsid = f.options[f.selectedIndex].value;
+            if (parseInt(fsid, 10) > 0 && otherHas(fsid, i)) {
+                alert("SID " + fsid + " is used by another switch!");
+                f.focus();
+                return false;
+            }
+        }
+    }
+    var nav = parent.contents;
+    if (nav && typeof(nav.DelayedStackRefresh) == "function") {
+        nav.DelayedStackRefresh();
+    }
+    return true;                // Feed the chickens and go home
+}
+
+function requestUpdate()
+{
+    loadXMLDoc("/config/stack", processUpdate, null);
+}
+
+function redirect()
+{
+    document.location.href = "stack_config.htm";
+}
+
+function saveConfig()
+{
+    if (!checkForm()) {
+        return false;
+    }
+    document.configForm.submit();
+    var fld = document.getElementById("reelect");
+    if (fld && fld.checked) {
+        /* Restart of master election may cause the HTTP session disconnect due to master change.
+           We request again if we don't get a response in three seconds. */
+        setTimeout('redirect()', 3 * 1000);
+    }
+    return true;
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Stack Configuration</h1>
+
+<form name="configForm" method="POST" action="/config/stack" onsubmit="return checkForm(this);">
+
+<table summary="Stack Configuration" class="config">
+ <tr class="config">
+  <td class="param_label"><label for="cur_stack_enabled">Stacking State</label></td>
+  <td class="cl" id="cur_stack_enabled"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label for="conf_stack_enabled">Stacking Enabled</label></td>
+  <td class="cl"><input type="checkbox" id="conf_stack_enabled" name="conf_stack_enabled"></td>
+ </tr>
+</table>
+
+<br>
+
+<table summary="Stack List Table" class="display">
+ <thead>
+  <tr class="display_header">
+   <th rowspan="2">Delete</th>
+   <th rowspan="2">Stack Member</th>
+   <th rowspan="2">Switch ID</th>
+   <th colspan="2">Master</th>
+   <th rowspan="2">Stack Ports</th>
+   <th rowspan="2">Switch Status</th>
+   <th rowspan="2">Switch Type</th>
+  </tr>
+  <tr class="display_header">
+   <th>Capable</th>
+   <th>Priority</th>
+  </tr>
+ </thead>
+ <tbody id="stackList">
+ </tbody>
+</table>
+
+<p>
+<input type="checkbox" id="reelect" name="reelect">
+<label for="reelect">Start Master Election</label>
+</p>
+<p>
+<input type="button" value="Save" onclick="saveConfig();">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

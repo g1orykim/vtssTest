@@ -1,0 +1,258 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Dynamic DHCP Snooping</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_dyn_dhcp_snooping_table.htm";
+
+var timerID = null;
+
+var dynaDhcpSnoopingData = Array();
+
+var LastMacAddr = "00-00-00-00-00-00";
+var LastVid = 0;
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+    if (values[0] == "NoEntries") {
+        addTextCell(tr, "No more entries", "c", 4);
+    } else {
+        // Store the last element shown, for being able to do a find next entry.
+        LastMacAddr = toMacAddress(values[0]);
+        addTextCell(tr, values[0], "cr");
+        LastVid = values[1];
+        addTextCell(tr, values[1], "cr");
+        if (configStackable) {
+            addTextCell(tr, "Switch " + parseInt(values[2], 0) + " : " + configPortName(values[3], 0), "cr");
+        } else { 
+            addTextCell(tr, configPortName(values[3], 0), "cr");
+        }
+        addTextCell(tr, values[4], "cr");
+        addTextCell(tr, values[5], "cr");
+        addTextCell(tr, values[6], "cr");
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function UpdateTable(ref, frag)
+{
+    for (var i = 1; i <= dynaDhcpSnoopingData.length - 1; i++) {
+        if (dynaDhcpSnoopingData[i]) {
+            var pval = dynaDhcpSnoopingData[i].split("/");
+            addRow(i - 1, frag, pval);
+        }
+    }
+
+    // Set start vid to the last VID showned in the table
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function CreateTableHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "display_header");
+    addTextHeaderCell(tr,"MAC Address","hdrc");
+    addTextHeaderCell(tr,"VLAN ID","hdrc");
+    addTextHeaderCell(tr,"Source Port","hdrc");
+    addTextHeaderCell(tr,"IP Address","hdrc");
+    addTextHeaderCell(tr,"IP Subnet Mask","hdrc");
+    addTextHeaderCell(tr,"DHCP Server","hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    //Format: <start_mac_addr>/<start_vid>/<num_of_entries>|<mac_addr>/<vid>/<sid>/<port_no>/<ip_addr>/<ip_mask>/<server_ip>|...
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        dynaDhcpSnoopingData = req.responseText.split("|");
+
+        // Get number of entries
+        var pval = dynaDhcpSnoopingData[0].split("/");
+        document.getElementById("StartMacAddr").value    = toMacAddress(pval[0]);
+        document.getElementById("StartVid").value    = pval[1];
+        document.getElementById("NumberOfEntries").value = pval[2];
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+
+        // Make table header
+        CreateTableHeader(frag);
+
+        // Create the table
+        UpdateTable(ref, frag);
+
+        // Update the timer
+        var autorefresh = document.getElementById('autoRefresh');
+        if (autorefresh.checked) {
+            if (timerID) {
+                clearTimeout(timerID);
+            }
+            timerID = setTimeout("requestUpdate('Refresh')", settingsRefreshInterval());
+        }
+    }
+
+    document.getElementById("update").style.visibility = "hidden";
+    document.getElementById("autoRefresh").disabled = false;
+    document.getElementById("refresh").disabled = false;
+    document.getElementById("getFirst").disabled = false;
+    document.getElementById("getNext").disabled = false;
+}
+
+function checkForm()
+{
+    //mac_addr
+    if (!IsMacAddress(document.getElementById("StartMacAddr").value, 0)) {
+        alert ("Start MAC address is not valid. The format is 'xx-xx-xx-xx-xx-xx' or 'xx.xx.xx.xx.xx.xx' or 'xxxxxxxxxxxx' (x is a hexadecimal digit)." + auto_refresh_string);
+        return false;
+    }
+    document.getElementById("StartMacAddr").value = toMacAddress(document.getElementById("StartMacAddr").value);
+
+    //vid
+    if (!isWithinRange("StartVid", 0, configVlanIdMax, "'VLAN'")) {
+        return false;
+    }
+
+    // Make sure that input box contains a correct value.
+    if (!isWithinRange("NumberOfEntries", 2, 99, "'entries per page'")) {
+        return false;
+    }
+
+    return true;                // Feed the chickens and go home
+}
+
+function requestUpdate(type)
+{
+    document.getElementById("update").style.visibility = "visible";
+    document.getElementById("autoRefresh").disabled = true;
+    document.getElementById("refresh").disabled = true;
+    document.getElementById("getFirst").disabled = true;
+    document.getElementById("getNext").disabled = true;
+
+    if (type == "NextEntries") {
+        loadXMLDoc("/stat/dynamic_dhcp_snooping?GetNextEntry=1" +
+                   "&DynGetNextAddr=" + LastMacAddr +
+                   "&DynGetNextVid=" + LastVid +
+                   "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value,
+                   processUpdate, 'inputData');
+    } else if (type == "Refresh") {
+        loadXMLDoc("/stat/dynamic_dhcp_snooping?GetNextEntry=0" +
+                   "&DynGetNextAddr=" + document.getElementById("StartMacAddr").value +
+                   "&DynGetNextVid=" + document.getElementById("StartVid").value +
+                   "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value,
+                   processUpdate, 'inputData');
+    } else {
+        loadXMLDoc("/stat/dynamic_dhcp_snooping?GetNextEntry=0&DynGetNextAddr=00-00-00-00-00-00&DynGetNextVid=0&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value,
+                   processUpdate, 'inputData');
+    }
+}
+
+function clickCtrlButton(type)
+{
+    if (checkForm()) {
+        requestUpdate(type);
+    } else if (document.getElementById('autoRefresh').checked) {
+        document.getElementById('autoRefresh').checked = false;
+    }
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate("Refresh");
+    }
+}
+</script>
+</head>
+
+<body class="content" onload="requestUpdate('GetFirstEntry');">
+
+<h1>Dynamic DHCP Snooping Table</h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" id="autoRefresh" onclick="chkRefresh(this);">
+  <input type="button"   id="refresh"  value="Refresh" onclick="clickCtrlButton('Refresh');">
+  <input type="button"   id="getFirst" value=" |<< "   title="First page" onclick="clickCtrlButton('GetFirstEntry');">
+  <input type="button"   id="getNext"  value=" >> "    title="Next page" onclick="clickCtrlButton('NextEntries');">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<form action="#">
+  <p>
+    <span class="displaytext">Start from </span>
+    <span class="displaytext">MAC address </span>
+    <input type="text" id="StartMacAddr" name="StartMacAddr" maxlength="17" value="00-00-00-00-00-00" size="17">
+    <span class="displaytext">, VLAN </span>
+    <input type="text" id="StartVid" name="StartVid" maxlength="4" value="1" size="4">
+    <span class="displaytext"> with </span>
+    <input type="text" id="NumberOfEntries" name="NumberOfEntries" maxlength="2" value="20" size="2">
+    <span class="displaytext"> entries per page. </span>
+  </p>
+</form>
+
+<table id="dynamicDhcpSnoopingTable" summary="Dynamic DHCP Snooping Table" cellspacing="0" class="display">
+  <tbody id="inputData"></tbody>
+</table>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

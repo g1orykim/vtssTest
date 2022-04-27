@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DHCP Relay Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>DHCP Relay Configuration Help</h1>
+
+<h2><a href="glossary.htm#dhcp_relay" class="glossary">DHCP Relay</a> Configuration</h2>
+
+<p>A DHCP relay agent is used to forward and to transfer DHCP messages between the clients and the server when they are not in the same subnet domain.
+   It stores the incoming interface IP address in the GIADDR field of the DHCP packet.
+   The DHCP server can use the value of GIADDR field to determine the assigned subnet.
+   For such condition, please make sure the switch configuration of VLAN interface IP address and PVID(Port VLAN ID) correctly.
+</p>
+<dl>
+ <dt>Relay Mode</dt>
+ <dd>
+ Indicates the DHCP relay mode operation.
+ <br>Possible modes are:
+ <br><samp>Enabled</samp>: Enable DHCP relay mode operation. When DHCP relay mode operation is enabled, the agent forwards and transfers DHCP messages between the clients and the server when they are not in the same subnet domain. And the DHCP broadcast message won't be flooded for security considerations. 
+ <br><samp>Disabled</samp>: Disable DHCP relay mode operation.
+ </dd>
+
+ <dt>Relay Server</dt>
+ <dd>
+ Indicates the DHCP relay server <a href="glossary.htm#ip" class="glossary">IP</a> address.
+ </dd>
+
+ <dt>Relay Information Mode</dt>
+ <dd>
+ Indicates the DHCP relay information mode option operation.
+ The option 82 circuit ID format as "[vlan_id][module_id][port_no]".
+ The first four characters represent the VLAN ID, the fifth and sixth
+ characters are the module ID(in standalone device it always equal 0, 
+ in stackable device it means switch ID), and the last two characters
+ are the port number. For example, "00030108" means the DHCP message 
+ receive form VLAN ID 3, switch ID 1, port No 8. And the option 82
+ remote ID value is equal the switch MAC address.
+ <br>Possible modes are:
+ <br><samp>Enabled</samp>: Enable DHCP relay information mode operation. When DHCP relay information mode operation is enabled, the agent inserts specific information (option 82) into a DHCP message when forwarding to DHCP server and removes it from a DHCP message when transferring to DHCP client. It only works when DHCP relay operation mode is enabled.
+ <br><samp>Disabled</samp>: Disable DHCP relay information mode operation.
+ </dd>
+
+ <dt>Relay Information Policy</dt>
+ <dd>
+ Indicates the DHCP relay information option policy.
+ When DHCP relay information mode operation is enabled, if the agent receives
+ a DHCP message that already contains relay agent information it will enforce
+ the policy. The 'Replace' policy is invalid when relay information mode is disabled.
+ Possible policies are:
+ <br><samp>Replace</samp>: Replace the original relay information when a DHCP message that already contains it is received. 
+ <br><samp>Keep</samp>: Keep the original relay information when a DHCP message that already contains it is received. 
+ <br><samp>Drop</samp>: Drop the package when a DHCP message that already contains relay information is received. 
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

@@ -1,0 +1,81 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_eth_link_oam := $(DIR_APPL)/eth_link_oam
+DIR_eth_link_oam_platform := $(DIR_eth_link_oam)/platform
+DIR_eth_link_oam_base := $(DIR_eth_link_oam)/base
+DIR_eth_link_oam_control := $(DIR_eth_link_oam)/base/control
+DIR_eth_link_oam_html := $(DIR_eth_link_oam_platform)/html
+
+OBJECTS_eth_link_oam_control := vtss_eth_link_oam_control.o
+OBJECTS_eth_link_oam_base := vtss_eth_link_oam_client.o vtss_eth_link_oam.o
+OBJECTS_eth_link_oam_platform := eth_link_oam.o \
+  $(if $(MODULE_VCLI),eth_link_oam_cli.o) \
+  $(if $(MODULE_ICLI),eth_link_oam_icfg.o) \
+  $(if $(MODULE_WEB),eth_link_oam_web.o)
+
+#Built-in ICLI
+$(eval $(call add_icli,$(DIR_eth_link_oam_platform)/eth_link_oam.icli))
+
+OBJECTS_eth_link_oam := $(OBJECTS_eth_link_oam_platform) $(OBJECTS_eth_link_oam_base) $(OBJECTS_eth_link_oam_control)
+
+$(OBJECTS_eth_link_oam_platform): %.o: $(DIR_eth_link_oam_platform)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_eth_link_oam_base): %.o: $(DIR_eth_link_oam_base)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_eth_link_oam_control): %.o: $(DIR_eth_link_oam_control)/%.c
+	$(call compile_c, $@, $<)
+
+
+DEFINES  += -DVTSS_SW_OPTION_ETH_LINK_OAM_CONTROL=0 # OAM Control SW implementation option
+
+INCLUDES += -I$(DIR_eth_link_oam_platform)/include -I$(DIR_eth_link_oam_base)/include
+INCLUDES += -I$(DIR_eth_link_oam_control)/include
+INCLUDES += -I$(DIR_eth_link_oam_base)/
+#INCLUDES += -I$(DIR_eth_link_oam) -I$(DIR_eth_link_oam_platform) -I$(DIR_eth_link_oam_base)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_eth_link_oam += $(DIR_eth_link_oam_base)/*.c $(DIR_eth_link_oam_platform)/*.c
+VTSS_CODE_STYLE_CHK_FILES_eth_link_oam += $(DIR_eth_link_oam_control)/*.c
+VTSS_CODE_STYLE_CHK_FILES_eth_link_oam += $(DIR_eth_link_oam_base)/include/*.h $(DIR_eth_link_oam_platform)/include/*.h
+VTSS_CODE_STYLE_CHK_FILES_eth_link_oam += $(DIR_eth_link_oam_control)/include/*.h $(DIR_eth_link_oam_base)/*.h
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_eth_link_oam_html)
+
+# Lint files
+LINT_FILES_eth_link_oam += $(DIR_eth_link_oam_control)/vtss_eth_link_oam_control.c
+LINT_FILES_eth_link_oam += $(DIR_eth_link_oam_base)/vtss_eth_link_oam_client.c
+LINT_FILES_eth_link_oam += $(DIR_eth_link_oam_base)/vtss_eth_link_oam.c
+LINT_FILES_eth_link_oam += $(DIR_eth_link_oam_platform)/eth_link_oam.c
+LINT_FILES_eth_link_oam += $(DIR_eth_link_oam_platform)/eth_link_oam_cli.c
+LINT_FILES_eth_link_oam += $(DIR_eth_link_oam_platform)/eth_link_oam_icfg.c
+
+# Tidy files
+TIDY_FILES_eth_link_oam += $(DIR_eth_link_oam_html)/*.htm $(DIR_eth_link_oam_html)/help/*.htm
+

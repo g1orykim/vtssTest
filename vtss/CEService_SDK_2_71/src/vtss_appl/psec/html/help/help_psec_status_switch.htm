@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <title>Port Security Status Help</title>
+    <link href="/lib/help.css"   rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="../lib/config.js"></script>
+    <script type="text/javascript" src="/lib/dynforms.js"></script>
+    <script type="text/javascript" src="/lib/mootools-core.js"></script>
+    <script type="text/javascript" language="JavaScript">
+      window.addEvent('domready', function() {
+        $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+      });
+    </script>
+  </head>
+
+  <body>
+    <h1>Port Security Switch Status</h1>
+    <p>
+      This page shows the Port Security status. Port Security is a module with no direct configuration. Configuration
+      comes indirectly from other modules - the user modules. When a user module has enabled port security on a port,
+      the port is set-up for software-based learning. In this mode, frames from unknown MAC addresses are passed on
+      to the port security module, which in turn asks all user modules whether to allow this new MAC address to forward
+      or block it. For a MAC address to be set in the forwarding state, all enabled user modules must unanimously agree
+      on allowing the MAC address to forward. If only one chooses to block it, it will be blocked until that user module
+      decides otherwise.<br/>
+      The status page is divided into two sections - one with a legend of user modules and one with the actual port status.
+    </p>
+
+    <h2>User Module Legend</h2>
+    The legend shows all user modules that may request Port Security services.
+    <dl>
+      <dt>User Module Name</dt>
+      <dd>
+        The full name of a module that may request Port Security services.
+      </dd>
+
+      <dt><a name="Abbr">Abbr</a></dt>
+      <dd>
+        A one-letter abbreviation of the user module. This is used in the <a href="#Users">Users</a> column in the port status table.
+      </dd>
+    </dl>
+
+    <h2>Port Status</h2>
+    The table has one row for each port on the <span class="SPOM_only">selected </span>switch<span class="SPOM_only"> in the stack</span>
+    and a number of columns, which are:
+    <dl>
+      <dt>Port</dt>
+      <dd>The port number for which the status applies. Click the port number to see the status for this particular port.</dd>
+
+      <dt><a name="Users">Users</a></dt>
+      <dd>
+        Each of the user modules has a column that shows whether that module has enabled Port Security or not. A '-' means that
+        the corresponding user module is not enabled, whereas a letter indicates that the user module abbreviated by that letter
+        (see <a href="#Abbr">Abbr</a>) has enabled port security.
+      </dd>
+      
+        <!-- If Port Security Limit Control is enabled, the status page is augmented with a State column
+             and a Limit column, and the MAC Count column is called "current -->
+      <dt class="PSEC_LIMIT_ENA">State</dt>
+      <dd class="PSEC_LIMIT_ENA">
+        Shows the current state of the port. It can take one of four values:<br/>
+        <samp>Disabled</samp>: No user modules are currently using the Port Security service.<br/>
+        <samp>Ready</samp>: The Port Security service is in use by at least one user module, and is awaiting frames from unknown MAC addresses to arrive.<br/>
+        <samp>Limit Reached</samp>: The Port Security service is enabled by at least the Limit Control user module, and that module has indicated that the limit is reached and no more MAC addresses should be taken in.<br/>
+        <samp>Shutdown</samp>: The Port Security service is enabled by at least the Limit Control user module, and that module has indicated that the limit is exceeded. No MAC addresses can be learned on the port until it is administratively re-opened on the Limit Control configuration Web-page.<br/>
+      </dd>
+
+      <dt>MAC Count<span class="PSEC_LIMIT_ENA"> (Current, Limit)</span></dt>
+      <dd class="PSEC_LIMIT_ENA">
+        The two columns indicate the number of currently learned MAC addresses (forwarding as well as blocked) and the maximum number of MAC addresses that can be learned on the port, respectively.<br/>
+        If no user modules are enabled on the port, the Current column will show a dash (-).<br/>
+        If the Limit Control user module is not enabled on the port, the Limit column will show a dash (-).
+      </dd>
+      <dd class="PSEC_LIMIT_DIS">
+        Indicates the number of currently learned MAC addresses (forwarding as well as blocked) on the port.
+        If no user modules are enabled on the port, a dash (-) will be shown.
+      </dd>
+    </dl>
+
+    <h2>Buttons</h2>
+    <p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+    <p><input type="button" value=" Refresh">: Click to refresh the page immediately.</p>
+  </body>
+</html>

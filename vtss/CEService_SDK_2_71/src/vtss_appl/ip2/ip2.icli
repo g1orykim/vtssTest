@@ -1,0 +1,1637 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_IP2)
+
+INCLUDE_BEGIN
+#include "mgmt_api.h"
+#include "misc_api.h"
+#include "msg_api.h"
+#include "ip2_api.h"
+#include "ip2_iterators.h"
+#include "ip2_utils.h"
+#include "ip2_icli_priv.h"
+#include "ip2_chip_api.h"
+#include "vlan_api.h"
+#include "icli_porting_util.h"
+#include "ping_api.h"
+#ifdef VTSS_SW_OPTION_SNMP
+#include "ip2_snmp.h"
+#endif
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+extern void show_network_routes(vtss_ip2_cli_pr *);
+#define PRINTF (void)icli_session_self_printf
+
+#define DO_VLAN(X, W)                                     \
+if (rc == VTSS_RC_OK) {                                   \
+    rc = (X);                                             \
+    if (rc != VTSS_RC_OK) {                               \
+        PRINTF("%s: VLAN=%u %s.\n", W, id, error_txt(rc)); \
+    }                                                     \
+}
+
+extern int cyg_net_log_mask;
+/*lint -sem(bsd_ip_log_level_set, thread_protected) */
+void bsd_ip_log_level_set(unsigned int mask) {
+    cyg_net_log_mask = mask;
+}
+#if defined(VTSS_SW_OPTION_L3RT) && defined(VTSS_ARCH_JAGUAR_1)
+void vtss_ip2_lpm_usage(u32 *lpm_entries, u32 *arp_entries);
+vtss_rc vtss_l3_debug_sticky_clear(const vtss_inst_t inst);
+static void cli_cmd_debug_lpm_stat_get_single(const vtss_vid_t vlan,
+                                              const BOOL ipv4)
+{
+    vtss_rc rc;
+    vtss_l3_counters_t c;
+
+    rc = vtss_ip2_chip_counters_vlan_get(vlan, &c);
+    if (rc != VTSS_RC_OK) {
+        PRINTF("%% Failed to get counters on VLAN %u.\n", vlan);
+        return;
+    }
+
+    if (ipv4) {
+        PRINTF("IPv4 %4u %12llu %15llu %12llu %15llu\n",
+                vlan,
+                c.ipv4uc_received_frames,
+                c.ipv4uc_received_octets,
+                c.ipv4uc_transmitted_frames,
+                c.ipv4uc_transmitted_octets);
+    } else {
+        PRINTF("IPv6 %4u %12llu %15llu %12llu %15llu\n",
+                vlan,
+                c.ipv6uc_received_frames,
+                c.ipv6uc_received_octets,
+                c.ipv6uc_transmitted_frames,
+                c.ipv6uc_transmitted_octets);
+    }
+}
+#endif  // defined(VTSS_SW_OPTION_L3RT) && defined(VTSS_ARCH_JAGUAR_1)
+
+INCLUDE_END
+
+FUNCTION_BEGIN
+
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_L3RT)
+COMMAND = ip routing
+
+DOC_CMD_DESC    = Enable routing for IPv4 and IPv6
+DOC_CMD_USAGE   = ip routing
+
+HELP =
+HELP = Enable routing for IPv4 and IPv6
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    vtss_rc rc;
+    vtss_ip2_global_param_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    if ((rc = vtss_ip2_global_param_get(&conf)) != VTSS_OK) {
+        PRINTF("%% Error getting IP configuration: %s.\n", error_txt(rc));
+        return ICLI_RC_ERROR;
+    }
+
+    conf.enable_routing = 1;
+    if ((rc = vtss_ip2_global_param_set(&conf)) != VTSS_OK) {
+        PRINTF("%% Error setting IP configuration: %s.\n", error_txt(rc));
+    }
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_L3RT)
+COMMAND = no ip routing
+
+DOC_CMD_DESC    = Disable routing for IPv4 and IPv6
+DOC_CMD_USAGE   = ip routing
+
+HELP =
+HELP =
+HELP = Disable routing for IPv4 and IPv6
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    vtss_rc rc;
+    vtss_ip2_global_param_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    if ((rc = vtss_ip2_global_param_get(&conf)) != VTSS_OK) {
+        PRINTF("%% Error getting IP configuration: %s.\n", error_txt(rc));
+        return ICLI_RC_ERROR;
+    }
+
+    conf.enable_routing = 0;
+    if ((rc = vtss_ip2_global_param_set(&conf)) != VTSS_OK) {
+        PRINTF("%% Error setting IP configuration: %s.\n", error_txt(rc));
+    }
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+COMMAND = ip address {{<ipv4_addr> <ipv4_netmask>} | {dhcp [fallback <ipv4_addr> <ipv4_netmask> [timeout <uint>]]}}
+DOC_CMD_DESC = IP address configuration
+PRIVILEGE = ICLI_PRIVILEGE_15
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = address
+CMD_VAR = netmask
+CMD_VAR = has_dhcp
+CMD_VAR = has_fallback
+CMD_VAR = fallback_address
+CMD_VAR = fallback_netmask
+CMD_VAR = has_fallback_timeout
+CMD_VAR = fallback_timeout
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = seconds
+HELP = IPv4 configuration
+HELP = Address configuraton
+HELP = IP address
+HELP = IP netmask
+HELP = Enable DHCP
+HELP = DHCP fallback settings
+HELP = DHCP fallback address
+HELP = DHCP fallback netmask
+HELP = DHCP fallback timeout
+HELP = DHCP fallback timeout in seconds
+
+VARIABLE_BEGIN
+    vtss_rc rc;
+    vtss_ip_conf_t ip_conf;
+
+    vtss_if_param_t     param;
+    BOOL                b_create = TRUE;
+VARIABLE_END
+
+CODE_BEGIN
+    rc = VTSS_RC_OK;
+    memset(&ip_conf, 0, sizeof(ip_conf));
+
+    if (has_dhcp) {
+        ip_conf.dhcpc = TRUE;
+        if (has_fallback) {
+            // dhcp with fallback configuration
+            rc = vtss_build_ipv4_network(&ip_conf.network, fallback_address,
+                                         fallback_netmask);
+            if (rc != VTSS_RC_OK) {
+                PRINTF("%% Could not construct a IPv4 fallback network from the given arguments.\n");
+                goto ERROR;
+            }
+
+            if (has_fallback_timeout) {
+                ip_conf.fallback_timeout = fallback_timeout;
+            }
+        }
+    } else {
+        // Normal address configuration
+        rc = vtss_build_ipv4_network(&ip_conf.network, address, netmask);
+        if (rc != VTSS_RC_OK) {
+            PRINTF("%% Could not construct a IPv4 network from the given arguments.\n");
+            goto ERROR;
+        }
+    }
+
+    VTSS_ICLI_RANGE_FOREACH (vlist, u32, vid) {
+        /* if the IP interface does not exist, then create a new one */
+        if (get_vlan_if(vid) != VTSS_RC_OK) {
+            if (b_create) { 
+                vtss_if_default_param(&param);
+                if (vtss_ip2_if_conf_set(vid, &param) != VTSS_OK) {
+                    b_create = FALSE;
+                    PRINTF("%% IP interfaces are full. VLAN %u is not configured\n", vid);
+                    continue;
+                }
+            } else {
+                PRINTF("%% IP interfaces are full. VLAN %u is not configured\n", vid);
+                continue;
+            }
+        }
+
+        if ( vtss_ip2_ipv4_conf_set(vid, &ip_conf) != VTSS_RC_OK ) {
+            PRINTF("%% Failed to set IPv4 address to VLAN %u.\n", vid);
+            continue;
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+
+    ERROR:
+CODE_END
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+COMMAND = ip dhcp retry interface vlan <vlan_id>
+DOC_CMD_DESC = Restart the dhcp client
+PRIVILEGE = ICLI_PRIVILEGE_15
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = vlan_id
+
+HELP = IPv4 commands
+HELP = Dhcp commands
+HELP = Restart the DHCP query process
+HELP = Interface
+HELP = Vlan interface
+HELP = Vlan ID
+
+CODE_BEGIN
+    if (vtss_ip2_ipv4_dhcp_restart(vlan_id) != VTSS_RC_OK) {
+        PRINTF("%% Failed to restart DHCP client on VLAN = %u.\n", vlan_id);
+    }
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+COMMAND = no ip address
+DOC_CMD_DESC = IP address configuration
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR = vlist
+
+HELP =
+HELP = IPv4 configuration
+HELP = Address configuraton
+
+VARIABLE_BEGIN
+    vtss_ip_conf_t  ip_conf;
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_ICLI_RANGE_FOREACH (vlist, u32, vid) {
+        if ( vtss_ip2_if_exists(vid) == FALSE ) {
+            continue;
+        }
+        /*
+            if there is valid ipv6 address, then do not delete IP interface 
+            but just to clear ipv4 address. otherwise, delete IP interface
+        */
+        if (vtss_ip2_ipv6_conf_get(vid, &ip_conf) == VTSS_RC_OK &&
+             (ip_conf.dhcpc || ip_conf.network.address.type == VTSS_IP_TYPE_IPV6)) {
+            ip_conf.network.address.type = VTSS_IP_TYPE_NONE;
+            (void)vtss_ip2_ipv4_conf_set(vid, &ip_conf);
+        } else {
+            (void)vtss_ip2_if_conf_del(vid);
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+COMMAND = ip route <ipv4_addr> <ipv4_netmask> <ipv4_addr>
+
+DOC_CMD_DESC    = Add new IP route
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_ipv4_addr
+CMD_VAR = v_ipv4_netmask
+CMD_VAR = v_ipv4_gw
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <ipv4_gateway>
+
+HELP = IPv4 configurations
+HELP = Add IP route
+HELP = Network
+HELP = Netmask
+HELP = Gateway
+
+VARIABLE_BEGIN
+    vtss_rc rc;
+    vtss_routing_entry_t r;
+    vtss_routing_params_t params = { .owner = VTSS_ROUTING_PARAM_OWNER_STATIC_USER };
+VARIABLE_END
+
+CODE_BEGIN
+    rc = vtss_build_ipv4_uc(&r, v_ipv4_addr, v_ipv4_netmask, v_ipv4_gw);
+
+    if (rc != VTSS_RC_OK) {
+        PRINTF("%% Could not construct an IPv4 unicast route from the given arguments.\n");
+        goto EXIT;
+    }
+
+    rc = vtss_ip2_route_add(&r, &params);
+
+    if (rc != VTSS_RC_OK && rc != IP2_ERROR_EXISTS) {
+        PRINTF("%% Failed to add route.\n");
+    }
+
+    EXIT:
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+COMMAND = no ip route <ipv4_addr> <ipv4_netmask> <ipv4_addr>
+
+DOC_CMD_DESC    = Delete an existing IP route
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_ipv4_addr
+CMD_VAR = v_ipv4_netmask
+CMD_VAR = v_ipv4_gw
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <ipv4_gateway>
+
+HELP = 
+HELP = 
+HELP = 
+HELP = Network
+HELP = Netmask
+HELP = Gateway
+
+VARIABLE_BEGIN
+    vtss_rc rc;
+    vtss_routing_entry_t r;
+    vtss_routing_params_t params = { .owner = VTSS_ROUTING_PARAM_OWNER_STATIC_USER };
+VARIABLE_END
+
+CODE_BEGIN
+    rc = vtss_build_ipv4_uc(&r, v_ipv4_addr, v_ipv4_netmask, v_ipv4_gw);
+
+    if (rc != VTSS_RC_OK) {
+        PRINTF("%% Could not construct an IPv4 unicast route from the given arguments.\n");
+        goto EXIT;
+    }
+
+    rc = vtss_ip2_route_del(&r, &params);
+
+    if (rc != VTSS_RC_OK) {
+        PRINTF("%% Failed to delete route.\n");
+        goto EXIT;
+    }
+
+    EXIT:
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+COMMAND = show interface vlan [<vlan_list>]
+
+DOC_CMD_DESC    = Vlan interface status
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = vlist
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_SHOW_INTERFACE
+HELP = VLAN status
+HELP = VLAN list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (vlist) {
+        VTSS_ICLI_RANGE_FOREACH (vlist, u32, id) {
+#define BUF_SIZE 1024
+#define STATUS_SIZE 8
+            u32 cnt;
+            char buf[BUF_SIZE];
+            vtss_if_status_t st[STATUS_SIZE];
+
+            vtss_rc rc = vtss_ip2_if_status_get(VTSS_IF_STATUS_TYPE_ANY,
+                                                id, STATUS_SIZE, &cnt, st);
+
+            if (rc == VTSS_RC_OK) {
+                (void)vtss_ip2_if_status_to_txt(buf, BUF_SIZE,
+                                                st, cnt);
+                PRINTF("%s", buf);
+            } else {
+                PRINTF("%% VLAN interface %u does not exist.\n", id);
+            }
+        } VTSS_ICLI_RANGE_FOREACH_END();
+#undef STATUS_SIZE
+#undef BUF_SIZE
+    } else {
+        (void)vtss_ip2_if_print(icli_session_self_printf, TRUE, VTSS_IF_STATUS_TYPE_ANY);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+COMMAND = show ip interface brief
+
+DOC_CMD_DESC    = Brief IP interface status
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+HELP = 
+HELP = 
+HELP = IP interface status and configuration
+HELP = Brief IP interface status
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    (void)vtss_ip2_if_brief_print(icli_session_self_printf);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+COMMAND = show ip arp
+
+DOC_CMD_DESC    = Print ARP table
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    (void)vtss_ip2_nb_print(VTSS_IP_TYPE_IPV4, icli_session_self_printf);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+COMMAND = clear ip arp 
+DOC_CMD_DESC    = Clear ARP cache
+DOC_CMD_USAGE   = clear ip arp
+HELP =
+HELP =
+HELP = Clear ARP cache
+PRIVILEGE = ICLI_PRIVILEGE_0
+CMD_MODE = ICLI_CMD_MODE_EXEC
+VARIABLE_BEGIN
+    vtss_rc rc;
+VARIABLE_END
+CODE_BEGIN
+    rc = vtss_ip2_nb_clear(VTSS_IP_TYPE_IPV4);
+    if (rc != VTSS_RC_OK) {
+        PRINTF("%% Failed to clear IP ARP: %s.\n", error_txt(rc));
+    }
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+COMMAND = show ip route
+
+DOC_CMD_DESC    = Routing table status
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+HELP = 
+HELP = 
+HELP = Display the current ip routing table
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    (void)vtss_ip2_route_print(VTSS_ROUTING_ENTRY_TYPE_IPV4_UC, icli_session_self_printf);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+IF_FLAG = 
+COMMAND = ping ip <word1-255> [ repeat <1-60> ] [ size <2-1452> ] [ interval <0-30> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ping
+! 2: ip
+! 3: <ip_addr>
+! 4: repeat
+! 5: <count:1-60>
+! 6: size
+! 7: <size:2-1452>
+! 8: interval
+! 9: <seconds:0-30>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = v_ip_addr
+CMD_VAR = has_repeat
+CMD_VAR = count
+CMD_VAR = has_size
+CMD_VAR = size
+CMD_VAR = has_interval
+CMD_VAR = seconds
+
+HELP = ##ICLI_HELP_PING
+HELP = IP (ICMP) echo
+HELP = ICMP destination address
+HELP = Specify repeat count
+HELP = 1-60; Default is 5
+HELP = Specify datagram size
+HELP = 2-1452; Default is 56 (excluding MAC, IP and ICMP headers)
+HELP = Specify repeat interval
+HELP = 0-30; Default is 0
+
+BYWORD = <HasPing : option>
+BYWORD = <HasIp : option>
+BYWORD = 
+BYWORD = <HasRepeat : option>
+BYWORD = <Count : 1-60>
+BYWORD = <HasSize : option>
+BYWORD = <Size : 2-1452>
+BYWORD = <HasInterval : option>
+BYWORD = <Seconds : 0-30>
+
+VARIABLE_BEGIN
+    i32                 len, cnt, itv, irc;
+    icli_line_mode_t    line_mode;
+VARIABLE_END
+
+CODE_BEGIN
+    len = PING_DEF_PACKET_LEN;
+    cnt = PING_DEF_PACKET_CNT;
+    itv = PING_DEF_PACKET_INTERVAL;
+
+    if (has_repeat) {
+        cnt = count;
+    }
+    if (has_size) {
+        len = size;
+    }
+    if (has_interval) {
+        itv = seconds;
+    }
+
+    irc = ICLI_LINE_MODE_GET(&line_mode);
+    if (irc != ICLI_RC_OK) {
+        ICLI_PRINTF("%% Invalid line mode operation.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    irc = ICLI_LINE_MODE_SET(ICLI_LINE_MODE_FLOOD);
+    if (irc != ICLI_RC_OK) {
+            ICLI_PRINTF("%% Invalid line mode operation.\n");
+            return ICLI_RC_ERROR;
+    }
+
+    (void) ping_test(icli_session_self_printf, v_ip_addr, len, cnt, itv);
+    (void) ICLI_LINE_MODE_SET(line_mode);
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear ip statistics [ system ] [ interface vlan <vlan_list> ] [ icmp ] [ icmp-msg <0~255> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ip2_stat_ipv4_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: clear
+! 2: ip
+! 3: statistics
+! 4: system
+! 5: interface
+! 6: vlan
+! 7: <vlan_list>
+! 8: icmp
+! 9: icmp-msg
+! 10: <0~255>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_system
+CMD_VAR = has_interface
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = has_icmp
+CMD_VAR = has_icmp_msg
+CMD_VAR = type
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##ICLI_HELP_CLEAR
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_STATISTICS
+HELP = IPv4 system traffic
+HELP = ##ICLI_HELP_INTERFACE
+HELP = IPv4 interface traffic
+HELP = VLAN identifier(s): VID
+HELP = IPv4 ICMP traffic
+HELP = IPv4 ICMP traffic for designated message type
+HELP = ICMP message type ranges from 0 to 255
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = system : Option
+BYWORD = interface : Option
+BYWORD = 
+BYWORD = 
+BYWORD = icmp : Option
+BYWORD = icmp-msg : Option
+BYWORD = <Type : 0~255>
+
+VARIABLE_BEGIN
+    BOOL            clear_all;
+    vtss_ip_type_t  version;
+VARIABLE_END
+
+CODE_BEGIN
+    clear_all = TRUE;
+    if (has_system || has_interface || has_icmp || has_icmp_msg) {
+        clear_all = FALSE;
+    }
+
+    if (has_system || clear_all) {
+        if (vtss_ip2_stat_syst_cntr_clear(VTSS_IP_TYPE_IPV4) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to clear IPv4 system statistics.\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+
+    if (has_interface || clear_all) {
+        vtss_if_id_t    ifidx;
+
+        if (has_interface) {
+            u32         mdx;
+            vtss_vid_t  vidx, bnd;
+
+            if (!v_vlan_list) {
+                ICLI_PRINTF("%% Invalid VLAN list.\n");
+                return ICLI_RC_ERROR;
+            }
+
+            for (mdx = 0; mdx < v_vlan_list->cnt; mdx++) {
+                bnd = v_vlan_list->range[mdx].max;
+                for (vidx = v_vlan_list->range[mdx].min; vidx <= bnd; vidx++) {
+                    memset(&ifidx, 0x0, sizeof(vtss_if_id_t));
+                    ifidx.type = VTSS_ID_IF_TYPE_VLAN;
+                    ifidx.u.vlan = vidx;
+                    if (vtss_ip2_stat_intf_cntr_clear(VTSS_IP_TYPE_IPV4, &ifidx) != VTSS_OK) {
+                        ICLI_PRINTF("%% Failed to clear IPv4 VLAN %u statistics.\n", vidx);
+                    }
+                }
+            }
+        } else {
+            vtss_if_status_ip_stat_t    ipstat_intf;
+            vtss_if_id_vlan_t           ifvdx;
+
+            memset(&ipstat_intf, 0x0, sizeof(vtss_if_status_ip_stat_t));
+            version = VTSS_IP_TYPE_NONE;
+            ifvdx = VTSS_VID_NULL;
+            while (vtss_ip2_cntr_intf_stat_iter_next(&version, &ifvdx, &ipstat_intf) == VTSS_OK) {
+                version = ipstat_intf.IPVersion;
+                ifvdx = ipstat_intf.IfIndex.u.vlan;
+                if (ipstat_intf.IPVersion != VTSS_IP_TYPE_IPV4) {
+                    break;
+                }
+
+                memset(&ifidx, 0x0, sizeof(vtss_if_id_t));
+                ifidx.type = VTSS_ID_IF_TYPE_VLAN;
+                ifidx.u.vlan = ifvdx;
+                if (vtss_ip2_stat_intf_cntr_clear(VTSS_IP_TYPE_IPV4, &ifidx) != VTSS_OK) {
+                    ICLI_PRINTF("%% Failed to clear IPv4 VLAN %u statistics.\n", ifvdx);
+                }
+            }
+        }
+    }
+
+    if (has_icmp || clear_all) {
+        if (vtss_ip2_stat_icmp_cntr_clear(VTSS_IP_TYPE_IPV4) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to clear ICMPv4 statistics.\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+
+    if (has_icmp_msg || clear_all) {
+        char    buf[IP2_MAX_ICMP_TXT_LEN];
+
+        if (has_icmp_msg) {
+            u32 mdx, idx, bnd;
+
+            if (!type) {
+                ICLI_PRINTF("%% Invalid given type value list.\n");
+                return ICLI_RC_ERROR;
+            }
+
+            for (mdx = 0; mdx < type->cnt; mdx++) {
+                bnd = type->range[mdx].max;
+                for (idx = type->range[mdx].min; idx <= bnd; idx++) {
+                    if ((vtss_ip2_stat_imsg_cntr_clear(VTSS_IP_TYPE_IPV4, idx) != VTSS_OK) &&
+                        vtss_ip2_stat_icmp_type_txt(buf, IP2_MAX_ICMP_TXT_LEN, VTSS_IP_TYPE_IPV4, idx)) {
+                        ICLI_PRINTF("%% Failed to clear ICMPv4 message %s statistics.\n", buf);
+                    }
+                }
+            }
+        } else {
+            vtss_ips_icmp_stat_t    icmp_msg;
+            u32                     imsg;
+
+            version = VTSS_IP_TYPE_NONE;
+            imsg = 0;
+            memset(&icmp_msg, 0x0, sizeof(vtss_ips_icmp_stat_t));
+            if (vtss_ip2_cntr_icmp_msg_iter_first(&version, &imsg, &icmp_msg) == VTSS_OK) {
+                do {
+                    version = icmp_msg.IPVersion;
+                    imsg = icmp_msg.Type;
+                    if (version != VTSS_IP_TYPE_IPV4) {
+                        break;
+                    }
+
+                    if ((vtss_ip2_stat_imsg_cntr_clear(VTSS_IP_TYPE_IPV4, imsg) != VTSS_OK) &&
+                        vtss_ip2_stat_icmp_type_txt(buf, IP2_MAX_ICMP_TXT_LEN, VTSS_IP_TYPE_IPV4, imsg)) {
+                        ICLI_PRINTF("%% Failed to clear ICMPv4 message %s statistics.\n", buf);
+                    }
+                } while (vtss_ip2_cntr_icmp_msg_iter_next(&version, &imsg, &icmp_msg) == VTSS_OK);
+            }
+        }
+    }
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show ip statistics [ system ] [ interface vlan <vlan_list> ] [ icmp ] [ icmp-msg <0~255> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ip2_stat_ipv4_show
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: ip
+! 3: statistics
+! 4: system
+! 5: interface
+! 6: vlan
+! 7: <vlan_list>
+! 8: icmp
+! 9: icmp-msg
+! 10: <0~255>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_system
+CMD_VAR = has_interface
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = has_icmp
+CMD_VAR = has_icmp_msg
+CMD_VAR = type
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_STATISTICS
+HELP = IPv4 system traffic
+HELP = ##ICLI_HELP_INTERFACE
+HELP = IPv4 interface traffic
+HELP = VLAN identifier(s): VID
+HELP = IPv4 ICMP traffic
+HELP = IPv4 ICMP traffic for designated message type
+HELP = ICMP message type ranges from 0 to 255
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = system : Option
+BYWORD = interface : Option
+BYWORD = 
+BYWORD = 
+BYWORD = icmp : Option
+BYWORD = icmp-msg : Option
+BYWORD = <Type : 0~255>
+
+VARIABLE_BEGIN
+    BOOL            show_all, first_pr;
+    vtss_ip_type_t  version;
+VARIABLE_END
+
+CODE_BEGIN
+    show_all = TRUE;
+    if (has_system || has_interface || has_icmp || has_icmp_msg) {
+        show_all = FALSE;
+    }
+
+    if (has_system || show_all) {
+        vtss_ips_ip_stat_t  ipstat_syst;
+
+        memset(&ipstat_syst, 0x0, sizeof(vtss_ips_ip_stat_t));
+        version = VTSS_IP_TYPE_IPV4;
+        if (vtss_ip2_cntr_syst_stat_iter_get(&version, &ipstat_syst) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to get IPv4 statistics.\n");
+            return ICLI_RC_ERROR;
+        }
+
+        icli_ip2_stat_ip_syst_display(session_id, &ipstat_syst);
+    }
+
+    if (has_interface || show_all) {
+        vtss_if_status_ip_stat_t    ipstat_intf;
+        vtss_if_id_vlan_t           ifvdx;
+        u32                         mdx;
+        vtss_vid_t                  vidx, bnd;
+
+        first_pr = TRUE;
+        if (has_interface) {
+            BOOL    bypassing;
+
+            if (!v_vlan_list) {
+                ICLI_PRINTF("%% Invalid given VLAN list.\n");
+                return ICLI_RC_ERROR;
+            }
+
+            bypassing = FALSE;
+            for (mdx = 0; mdx < v_vlan_list->cnt; mdx++) {
+                bnd = v_vlan_list->range[mdx].max;
+                for (vidx = v_vlan_list->range[mdx].min; vidx <= bnd; vidx++) {
+                    memset(&ipstat_intf, 0x0, sizeof(vtss_if_status_ip_stat_t));
+                    version = VTSS_IP_TYPE_IPV4;
+                    ifvdx = vidx;
+                    if (vtss_ip2_cntr_intf_stat_iter_get(&version, &ifvdx, &ipstat_intf) != VTSS_OK) {
+                        ICLI_PRINTF("%% Failed to get IPv4 VLAN %u statistics.\n", vidx);
+                        continue;
+                    }
+
+                    icli_ip2_stat_ip_intf_display(session_id, &first_pr, &ipstat_intf);
+                    bypassing = (icli_session_printf(session_id, "%s", "") == ICLI_RC_ERR_BYPASS);
+                    if (bypassing) {
+                        break;
+                    }
+                }
+
+                if (bypassing) {
+                    break;
+                }
+            }
+        } else {
+            memset(&ipstat_intf, 0x0, sizeof(vtss_if_status_ip_stat_t));
+            version = VTSS_IP_TYPE_NONE;
+            ifvdx = VTSS_VID_NULL;
+            while (vtss_ip2_cntr_intf_stat_iter_next(&version, &ifvdx, &ipstat_intf) == VTSS_OK) {
+                version = ipstat_intf.IPVersion;
+                ifvdx = ipstat_intf.IfIndex.u.vlan;
+                if (ipstat_intf.IPVersion != VTSS_IP_TYPE_IPV4) {
+                    break;
+                }
+
+                icli_ip2_stat_ip_intf_display(session_id, &first_pr, &ipstat_intf);
+                if (icli_session_printf(session_id, "%s", "") == ICLI_RC_ERR_BYPASS) {
+                    break;
+                }
+            }
+        }
+    }
+
+    if (has_icmp || show_all) {
+        vtss_ips_icmp_stat_t    icmp_sys;
+
+        memset(&icmp_sys, 0x0, sizeof(vtss_ips_icmp_stat_t));
+        version = VTSS_IP_TYPE_IPV4;
+        if (vtss_ip2_cntr_icmp_ver_iter_get(&version, &icmp_sys) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to get ICMPv4 statistics.\n");
+            return ICLI_RC_ERROR;
+        }
+
+        icli_ip2_stat_icmp_syst_display(session_id, &icmp_sys);
+    }
+
+    if (has_icmp_msg || show_all) {
+        vtss_ips_icmp_stat_t    icmp_msg;
+        u32                     imsg;
+        u32                     mdx, idx, bnd;
+        char                    buf[IP2_MAX_ICMP_TXT_LEN];
+
+        first_pr = TRUE;
+        if (has_icmp_msg) {
+            if (!type) {
+                ICLI_PRINTF("%% Invalid given type value list.\n");
+                return ICLI_RC_ERROR;
+            }
+
+            for (mdx = 0; mdx < type->cnt; mdx++) {
+                bnd = type->range[mdx].max;
+                for (idx = type->range[mdx].min; idx <= bnd; idx++) {
+                    memset(&icmp_msg, 0x0, sizeof(vtss_ips_icmp_stat_t));
+                    version = VTSS_IP_TYPE_IPV4;
+                    imsg = idx;
+                    if ((vtss_ip2_cntr_icmp_msg_iter_get(&version, &imsg, &icmp_msg) != VTSS_OK) &&
+                        vtss_ip2_stat_icmp_type_txt(buf, IP2_MAX_ICMP_TXT_LEN, VTSS_IP_TYPE_IPV4, idx)) {
+                        ICLI_PRINTF("%% Failed to get ICMPv4 message %s statistics.\n", buf);
+                    } else {
+                        icli_ip2_stat_icmp_type_display(session_id, TRUE, &first_pr, &icmp_msg);
+                    }
+                }
+            }
+        } else {
+            version = VTSS_IP_TYPE_NONE;
+            imsg = 0;
+            memset(&icmp_msg, 0x0, sizeof(vtss_ips_icmp_stat_t));
+            if (vtss_ip2_cntr_icmp_msg_iter_first(&version, &imsg, &icmp_msg) == VTSS_OK) {
+                do {
+                    version = icmp_msg.IPVersion;
+                    imsg = icmp_msg.Type;
+                    if (version != VTSS_IP_TYPE_IPV4) {
+                        break;
+                    }
+
+                    icli_ip2_stat_icmp_type_display(session_id, FALSE, &first_pr, &icmp_msg);
+                } while (vtss_ip2_cntr_icmp_msg_iter_next(&version, &imsg, &icmp_msg) == VTSS_OK);
+            }
+        }
+
+        ICLI_PRINTF("\n\r");
+    }
+CODE_END
+
+CMD_END
+
+
+
+
+
+
+
+###############################################################################
+# Debug commands start here
+###############################################################################
+
+
+
+CMD_BEGIN
+COMMAND = debug ipstack log [ERR|NOERR] [WARNING|NOWARNING] [NOTICE|NONOTICE] [INFO|NOINFO] [DEBUG|NODEBUG] [MDEBUG|NOMDEBUG] [IOCTL|NOIOCTL] [INIT|NOINIT] [ADDR|NOADDR] [FAIL|NOFAIL] [EMERG|NOEMERG] [CRIT|NOCRIT]
+HELP =
+HELP =
+HELP = Set or show the log mask for the IP stack
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_err
+CMD_VAR = has_noerr
+CMD_VAR = has_warning
+CMD_VAR = has_nowarning
+CMD_VAR = has_notice
+CMD_VAR = has_nonotice
+CMD_VAR = has_info
+CMD_VAR = has_noinfo
+CMD_VAR = has_debug
+CMD_VAR = has_nodebug
+CMD_VAR = has_mdebug
+CMD_VAR = has_nomdebug
+CMD_VAR = has_ioctl
+CMD_VAR = has_noioctl
+CMD_VAR = has_init
+CMD_VAR = has_noinit
+CMD_VAR = has_addr
+CMD_VAR = has_noaddr
+CMD_VAR = has_fail
+CMD_VAR = has_nofail
+CMD_VAR = has_emerg
+CMD_VAR = has_noemerg
+CMD_VAR = has_crit
+CMD_VAR = has_nocrit
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+VARIABLE_BEGIN
+VARIABLE_END
+CODE_BEGIN
+    unsigned mask = 0;
+    if (has_err) {
+        mask |= 0x0001;
+    }
+    if (has_noerr) {
+        mask &= ~0x0001;
+    }
+
+    if (has_warning) {
+        mask |= 0x0002;
+    }
+    if (has_nowarning) {
+        mask &= ~0x0002;
+    }
+
+    if (has_notice) {
+        mask |= 0x0004;
+    }
+    if (has_nonotice) {
+        mask &= ~0x0004;
+    }
+
+    if (has_info) {
+        mask |= 0x0008;
+    }
+    if (has_noinfo) {
+        mask &= ~0x0008;
+    }
+
+    if (has_debug) {
+        mask |= 0x0010;
+    }
+    if (has_nodebug) {
+        mask &= ~0x0010;
+    }
+
+    if (has_mdebug) {
+        mask |= 0x0020;
+    }
+    if (has_nomdebug) {
+        mask &= ~0x0020;
+    }
+
+    if (has_ioctl) {
+        mask |= 0x0040;
+    }
+    if (has_noioctl) {
+        mask &= ~0x0040;
+    }
+
+    if (has_init) {
+        mask |= 0x0080;
+    }
+    if (has_noinit) {
+        mask &= ~0x0080;
+    }
+
+    if (has_addr) {
+        mask |= 0x0100;
+    }
+    if (has_noaddr) {
+        mask &= ~0x0100;
+    }
+
+    if (has_fail) {
+        mask |= 0x0200;
+    }
+    if (has_nofail) {
+        mask &= ~0x0200;
+    }
+
+    if (has_emerg) {
+        mask |= 0x0400;
+    }
+    if (has_noemerg) {
+        mask &= ~0x0400;
+    }
+
+    if (has_crit) {
+        mask |= 0x0800;
+    }
+    if (has_nocrit) {
+        mask &= ~0x0800;
+    }
+
+    bsd_ip_log_level_set(mask);
+    CPRINTF("IP log mask: 0x%04x", mask);
+    if (mask & 0x0001) {
+        CPRINTF(" ERR");
+    }
+
+    if (mask & 0x0002) {
+        CPRINTF(" WARNING");
+    }
+
+    if (mask & 0x0004) {
+        CPRINTF(" NOTICE");
+    }
+
+    if (mask & 0x0008) {
+        CPRINTF(" INFO");
+    }
+
+    if (mask & 0x0010) {
+        CPRINTF(" DEBUG");
+    }
+
+    if (mask & 0x0020) {
+        CPRINTF(" MDEBUG");
+    }
+
+    if (mask & 0x0040) {
+        CPRINTF(" IOCTL");
+    }
+
+    if (mask & 0x0080) {
+        CPRINTF(" INIT");
+    }
+
+    if (mask & 0x0100) {
+        CPRINTF(" ADDR");
+    }
+
+    if (mask & 0x0200) {
+        CPRINTF(" FAIL");
+    }
+
+    if (mask & 0x0400) {
+        CPRINTF(" EMERG");
+    }
+
+    if (mask & 0x0800) {
+        CPRINTF(" CRIT");
+    }
+    CPRINTF("\n");
+CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND = debug ip kmem
+HELP =
+HELP =
+HELP = Show IP kernel buffer stats
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CODE_BEGIN
+    extern void cyg_kmem_print_stats(void);
+    cyg_kmem_print_stats();
+CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND = debug ip route
+HELP =
+HELP =
+HELP = List network routes (direcly from kernel)
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CODE_BEGIN
+    show_network_routes(icli_session_self_printf);
+CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND = debug ip sockets
+HELP =
+HELP =
+HELP = Show IP sockets state
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CODE_BEGIN
+{
+    struct sockaddr_in peeraddr, myaddr;
+    socklen_t addrlen = sizeof(peeraddr);
+    int so_type;
+    socklen_t so_type_len = sizeof(so_type);
+    int i;
+
+    for (i = 3; i < CYGNUM_FILEIO_NFD; i++) {
+        if (getpeername(i, (struct sockaddr *)&peeraddr, &addrlen) == 0) {
+            (void) getsockname(i, (struct sockaddr *)&myaddr, &addrlen);
+            PRINTF("Fd %d from %s:%d to %d\n", i,
+                    inet_ntoa(peeraddr.sin_addr),
+                    ntohs(peeraddr.sin_port),
+                    ntohs(myaddr.sin_port));
+        } else if (getsockname(i, (struct sockaddr *)&myaddr, &addrlen) == 0) {
+            if (getsockopt(i, SOL_SOCKET, SO_TYPE, &so_type, &so_type_len) != 0) {
+                so_type = -1;
+            }
+            PRINTF("Fd %3d %s %s LISTEN %5d\n", i,
+                    so_type == SOCK_DGRAM  ? "UDP" :
+                    so_type == SOCK_STREAM ? "TCP" :
+                    so_type == SOCK_RAW    ? "RAW" :
+                    "UNK",
+                    myaddr.sin_family == AF_INET  ? "IPv4" :
+                    myaddr.sin_family == AF_INET6 ? "IPv6" :
+                    "Unkn",
+                    ntohs(myaddr.sin_port));
+        }
+    }
+}
+CODE_END
+CMD_END
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_L3RT) && defined(VTSS_ARCH_JAGUAR_1)
+COMMAND = debug ip lpm stat ip <vlan_list>
+HELP =
+HELP =
+HELP = LPM debug functions
+HELP = Stats
+HELP = Clear
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = vlan_list
+CODE_BEGIN
+    PRINTF("TYPE VLAN RX-Frames    RX-Octets       TX-Frames    TX-Octets\n");
+    PRINTF("---- ---- ------------ --------------- ------------ ---------------\n");
+    VTSS_ICLI_RANGE_FOREACH (vlan_list, u32, vlan_id) {
+        cli_cmd_debug_lpm_stat_get_single(vlan_id, TRUE);
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+CMD_END
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_L3RT) && defined(VTSS_ARCH_JAGUAR_1)
+COMMAND = debug ip lpm stat ipv6 <vlan_list>
+HELP =
+HELP =
+HELP = LPM debug functions
+HELP = Stats
+HELP = Clear
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = vlan_list
+CODE_BEGIN
+    PRINTF("TYPE VLAN RX-Frames    RX-Octets       TX-Frames    TX-Octets\n");
+    PRINTF("---- ---- ------------ --------------- ------------ ---------------\n");
+    VTSS_ICLI_RANGE_FOREACH (vlan_list, u32, vlan_id) {
+        cli_cmd_debug_lpm_stat_get_single(vlan_id, FALSE);
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+CMD_END
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_L3RT) && defined(VTSS_ARCH_JAGUAR_1)
+COMMAND = debug ip lpm stat clear <vlan_list>
+HELP =
+HELP =
+HELP = LPM debug functions
+HELP = Stats
+HELP = Clear
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = vlan_list
+CODE_BEGIN
+    VTSS_ICLI_RANGE_FOREACH (vlan_list, u32, vlan_id) {
+        vtss_rc rc;
+        rc = vtss_ip2_chip_counters_vlan_clear(vlan_id);
+        if (rc != VTSS_RC_OK) {
+            PRINTF("Failed to clear counters on vlan %u\n", vlan_id);
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+CMD_END
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_L3RT) && defined(VTSS_ARCH_JAGUAR_1)
+COMMAND = debug ip lpm sticky clear
+HELP =
+HELP =
+HELP = LPM debug functions
+HELP = Access to selected sticky bits
+HELP = Clear lpm related sticky bits
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CODE_BEGIN
+    (void)vtss_l3_debug_sticky_clear(0);
+CODE_END
+CMD_END
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_L3RT) && defined(VTSS_ARCH_JAGUAR_1)
+COMMAND = debug ip lpm usage
+HELP =
+HELP =
+HELP = LPM debug functions
+HELP = LPM usage according to book-keeping function
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CODE_BEGIN
+{
+    u32 lpm, arp;
+    vtss_ip2_lpm_usage(&lpm, &arp);
+    PRINTF("LPM: %u, ARP: %u\n", lpm, arp);
+}
+CODE_END
+CMD_END
+
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_SNMP)
+COMMAND = debug ip global interface table change
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CODE_BEGIN
+{
+    u64 t;
+    if (vtss_ip2_interfaces_last_change(&t) == VTSS_RC_OK) {
+        PRINTF("%llu\n", t);
+    } else {
+        PRINTF("Failed\n");
+    }
+}
+CODE_END
+CMD_END
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_SNMP)
+COMMAND = debug ip vlan ipv4 created <vlan_list>
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = vlan_list
+CODE_BEGIN
+    VTSS_ICLI_RANGE_FOREACH (vlan_list, u32, vlan_id) {
+        u64 t;
+
+        if (vtss_ip2_address_created_ipv4(vlan_id, &t) == VTSS_RC_OK) {
+            PRINTF("%llu\n", t);
+        } else {
+            PRINTF("Failed\n");
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+CMD_END
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_SNMP)
+COMMAND = debug ip vlan ipv4 changed <vlan_list>
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = vlan_list
+CODE_BEGIN
+    VTSS_ICLI_RANGE_FOREACH (vlan_list, u32, vlan_id) {
+        u64 t;
+
+        if (vtss_ip2_address_changed_ipv4(vlan_id, &t) == VTSS_RC_OK) {
+            PRINTF("%llu\n", t);
+        } else {
+            PRINTF("Failed\n");
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+CMD_END
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_SNMP)
+COMMAND = debug ip vlan ipv6 created <vlan_list>
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = vlan_list
+CODE_BEGIN
+    VTSS_ICLI_RANGE_FOREACH (vlan_list, u32, vlan_id) {
+        u64 t;
+
+        if (vtss_ip2_address_created_ipv6(vlan_id, &t) == VTSS_RC_OK) {
+            PRINTF("%llu\n", t);
+        } else {
+            PRINTF("Failed\n");
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+CMD_END
+
+CMD_BEGIN
+IF_FLAG = defined(VTSS_SW_OPTION_SNMP)
+COMMAND = debug ip vlan ipv6 changed <vlan_list>
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY = ICLI_CMD_PROP_LOOSELY
+CMD_MODE = ICLI_CMD_MODE_EXEC
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = vlan_list
+CODE_BEGIN
+    VTSS_ICLI_RANGE_FOREACH (vlan_list, u32, vlan_id) {
+        u64 t;
+
+        if (vtss_ip2_address_changed_ipv6(vlan_id, &t) == VTSS_RC_OK) {
+            PRINTF("%llu\n", t);
+        } else {
+            PRINTF("Failed\n");
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+CODE_END
+CMD_END
+
+

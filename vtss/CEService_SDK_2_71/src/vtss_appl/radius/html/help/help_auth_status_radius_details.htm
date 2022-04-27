@@ -1,0 +1,321 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <title>RADIUS Authentication Statistics Help</title>
+    <link href="/lib/normal.css" rel="stylesheet" type="text/css"> <!-- For tables -->
+    <link href="/lib/help.css"   rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="/lib/dynforms.js"></script>
+    <script type="text/javascript" src="/lib/mootools-core.js"></script>
+    <script type="text/javascript" language="JavaScript">
+      window.addEvent('domready', function() {
+        $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+      });
+    </script>
+  </head>
+
+  <body>
+    <h1>RADIUS Authentication Statistics Help</h1>
+
+    <p>
+      This page provides detailed statistics for a particular RADIUS server.
+    </p>
+
+    <h2>RADIUS Authentication Statistics</h2>
+    <p>
+      The statistics map closely to those specified in <a href=http://www.ietf.org/rfc/rfc4668.txt>RFC4668 - RADIUS Authentication Client MIB</a>.<br/>
+      Use the server select box to switch between the backend servers to show details for.
+    </p>
+
+    <dl>
+      <dt>Packet Counters</dt>
+      <dd>
+        RADIUS authentication server packet counter. There are seven receive and four transmit counters.
+        <br/><br/>
+        <table summary="RADIUS Authentication Counter Help" class="display">
+          <tbody>
+            <tr class="display_header">
+              <th>Direction</th>
+              <th>Name</th>
+              <th>RFC4668 Name</th>
+              <th>Description</th>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Access Accepts</td>
+              <td>radiusAuthClientExtAccessAccepts</td>
+              <td>The number of RADIUS Access-Accept packets (valid or invalid) received from the server.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Rx</td>
+              <td class="displaytext">Access Rejects</td>
+              <td>radiusAuthClientExtAccessRejects</td>
+              <td>The number of RADIUS Access-Reject packets (valid or invalid) received from the server.</td>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Access Challenges</td>
+              <td>radiusAuthClientExtAccessChallenges</td>
+              <td>The number of RADIUS Access-Challenge packets (valid or invalid) received from the server.
+            </tr>
+            <tr class="display_odd">
+              <td>Rx</td>
+              <td class="displaytext">Malformed Access Responses</td>
+              <td>radiusAuthClientExtMalformedAccessResponses</td>
+              <td>The number of malformed RADIUS Access-Response packets received from the server.
+                  Malformed packets include packets with an invalid length. Bad authenticators or
+                  Message Authenticator attributes or unknown types are not included as malformed access responses.
+              </td>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Bad Authenticators</td>
+              <td>radiusAuthClientExtBadAuthenticators</td>
+              <td>The number of RADIUS Access-Response packets containing invalid authenticators or Message Authenticator attributes received from the server.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Rx</td>
+              <td class="displaytext">Unknown Types</td>
+              <td>radiusAuthClientExtUnknownTypes</td>
+              <td>The number of RADIUS packets that were received with unknown types from the server on the authentication port and dropped.</td>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Packets Dropped</td>
+              <td>radiusAuthClientExtPacketsDropped</td>
+              <td>The number of RADIUS packets that were received from the server on the authentication port and dropped for some other reason.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Tx</td>
+              <td class="displaytext">Access Requests</td>
+              <td>radiusAuthClientExtAccessRequests</td>
+              <td>The number of RADIUS Access-Request packets sent to the server. This does not include retransmissions.</td>
+            </tr>
+            <tr class="display_even">
+              <td>Tx</td>
+              <td class="displaytext">Access Retransmissions</td>
+              <td>radiusAuthClientExtAccessRetransmissions</td>
+              <td>The number of RADIUS Access-Request packets retransmitted to the RADIUS authentication server.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Tx</td>
+              <td class="displaytext">Pending Requests</td>
+              <td>radiusAuthClientExtPendingRequests</td>
+              <td>The number of RADIUS Access-Request packets destined for the server that have not yet timed out
+                  or received a response. This variable is incremented when an Access-Request is sent and decremented due to
+                  receipt of an Access-Accept, Access-Reject, Access-Challenge, timeout, or retransmission.
+              </td>
+            </tr>
+            <tr class="display_even">
+              <td>Tx</td>
+              <td class="displaytext">Timeouts</td>
+              <td>radiusAuthClientExtTimeouts</td>
+              <td>The number of authentication timeouts to the server. After a timeout, the client may retry to the same
+                  server, send to a different server, or give up.  A retry to the same server is counted as a
+                  retransmit as well as a timeout. A send to a different server is counted as a Request as well as a timeout.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </dd>
+
+      <dt>Other Info</dt>
+      <dd>This section contains information about the state of the server and the latest round-trip time.
+        <br/><br/>
+        <table summary="Other Info Help" class="display">
+          <tbody>
+            <tr class="display_header">
+              <th>Name</th>
+              <th>RFC4668 Name</th>
+              <th>Description</th>
+            </tr>
+            <tr class="display_even">
+              <td class="displaytext">IP Address</td>
+              <td>-</td>
+              <td>IP address and UDP port for the authentication server in question.</td>
+            </tr>
+            <tr class="display_odd">
+              <td class="displaytext">State</td>
+              <td>-</td>
+              <td>Shows the state of the server. It takes one of the following values:<br/>
+                <samp>Disabled</samp>: The selected server is disabled.<br/>
+                <samp>Not Ready</samp>: The server is enabled, but IP communication is not yet up and running.<br/>
+                <samp>Ready</samp>: The server is enabled, IP communication is up and running, and the RADIUS module is ready to accept access attempts.<br/>
+                <samp>Dead (X seconds left)</samp>: Access attempts were made to this server, but it did not reply within the configured timeout.
+                      The server has temporarily been disabled, but will get re-enabled when the dead-time expires. The number of seconds left before this
+                      occurs is displayed in parentheses. This state is only reachable when more than one server is enabled.
+              </td>
+            </tr>
+            <tr class="display_even">
+              <td class="displaytext">Round-Trip Time</td>
+              <td>radiusAuthClientExtRoundTripTime</td>
+              <td>The time interval (measured in milliseconds) between the most recent Access-Reply/Access-Challenge
+                  and the Access-Request that matched it from the RADIUS authentication server.
+                  The granularity of this measurement is 100 ms. A value of 0 ms indicates that there hasn't been round-trip communication with the server yet.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </dd>
+    </dl>
+
+    <div class="has_dot1x_acct">
+    <h2>RADIUS Accounting Statistics</h2>
+    <p>
+      The statistics map closely to those specified in <a href=http://www.ietf.org/rfc/rfc4670.txt>RFC4670 - RADIUS Accounting Client MIB</a>.<br/>
+      Use the server select box to switch between the backend servers to show details for.
+    </p>
+
+    <dl>
+      <dt>Packet Counters</dt>
+      <dd>
+        RADIUS accounting server packet counter. There are five receive and four transmit counters.
+        <br/><br/>
+        <table summary="RADIUS Accounting Counter Help" class="display">
+          <tbody>
+            <tr class="display_header">
+              <th>Direction</th>
+              <th>Name</th>
+              <th>RFC4670 Name</th>
+              <th>Description</th>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Responses</td>
+              <td>radiusAccClientExtResponses</td>
+              <td>The number of RADIUS packets (valid or invalid) received from the server.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Rx</td>
+              <td class="displaytext">Malformed Responses</td>
+              <td>radiusAccClientExtMalformedResponses</td>
+              <td>The number of malformed RADIUS packets received from the server.
+                  Malformed packets include packets with an invalid length. Bad authenticators or
+                  unknown types are not included as malformed access responses.
+              </td>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Bad Authenticators</td>
+              <td>radiusAcctClientExtBadAuthenticators</td>
+              <td>The number of RADIUS packets containing invalid authenticators received from the server.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Rx</td>
+              <td class="displaytext">Unknown Types</td>
+              <td>radiusAccClientExtUnknownTypes</td>
+              <td>The number of RADIUS packets of unknown types that were received from the server on the accounting port.</td>
+            </tr>
+            <tr class="display_even">
+              <td>Rx</td>
+              <td class="displaytext">Packets Dropped</td>
+              <td>radiusAccClientExtPacketsDropped</td>
+              <td>The number of RADIUS packets that were received from the server on the accounting port and dropped for some other reason.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Tx</td>
+              <td class="displaytext">Requests</td>
+              <td>radiusAccClientExtRequests</td>
+              <td>The number of RADIUS packets sent to the server. This does not include retransmissions.</td>
+            </tr>
+            <tr class="display_even">
+              <td>Tx</td>
+              <td class="displaytext">Retransmissions</td>
+              <td>radiusAccClientExtRetransmissions</td>
+              <td>The number of RADIUS packets retransmitted to the RADIUS accounting server.</td>
+            </tr>
+            <tr class="display_odd">
+              <td>Tx</td>
+              <td class="displaytext">Pending Requests</td>
+              <td>radiusAccClientExtPendingRequests</td>
+              <td>The number of RADIUS packets destined for the server that have not yet timed out
+                  or received a response. This variable is incremented when a Request is sent and decremented due to
+                  receipt of a Response, timeout, or retransmission.
+              </td>
+            </tr>
+            <tr class="display_even">
+              <td>Tx</td>
+              <td class="displaytext">Timeouts</td>
+              <td>radiusAccClientExtTimeouts</td>
+              <td>The number of accounting timeouts to the server. After a timeout, the client may retry to the same
+                  server, send to a different server, or give up.  A retry to the same server is counted as a
+                  retransmit as well as a timeout. A send to a different server is counted as a Request as well as a timeout.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </dd>
+
+      <dt>Other Info</dt>
+      <dd>This section contains information about the state of the server and the latest round-trip time.
+        <br/><br/>
+        <table summary="Other Info Help" class="display">
+          <tbody>
+            <tr class="display_header">
+              <th>Name</th>
+              <th>RFC4670 Name</th>
+              <th>Description</th>
+            </tr>
+            <tr class="display_even">
+              <td class="displaytext">IP Address</td>
+              <td>-</td>
+              <td>IP address and UDP port for the accounting server in question.</td>
+            </tr>
+            <tr class="display_odd">
+              <td class="displaytext">State</td>
+              <td>-</td>
+              <td>Shows the state of the server. It takes one of the following values:<br/>
+                <samp>Disabled</samp>: The selected server is disabled.<br/>
+                <samp>Not Ready</samp>: The server is enabled, but IP communication is not yet up and running.<br/>
+                <samp>Ready</samp>: The server is enabled, IP communication is up and running, and the RADIUS module is ready to accept accounting attempts.<br/>
+                <samp>Dead (X seconds left)</samp>: Accounting attempts were made to this server, but it did not reply within the configured timeout.
+                      The server has temporarily been disabled, but will get re-enabled when the dead-time expires. The number of seconds left before this
+                      occurs is displayed in parentheses. This state is only reachable when more than one server is enabled.
+              </td>
+            </tr>
+            <tr class="display_even">
+              <td class="displaytext">Round-Trip Time</td>
+              <td>radiusAccClientExtRoundTripTime</td>
+              <td>The time interval (measured in milliseconds) between the most recent Response
+                  and the Request that matched it from the RADIUS accounting server.
+                  The granularity of this measurement is 100 ms. A value of 0 ms indicates that there hasn't been round-trip communication with the server yet.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </dd>
+    </dl>
+    </div>
+
+    <h2>Buttons</h2>
+    <p><i>The server select box determines which server is affected by clicking the buttons.</i></p>
+    <p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+    <p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+    <p><input type="button" value=" Clear ">: Clears the counters for the selected server. The "Pending Requests" counter will not be cleared by this operation.</p>
+  </body>
+</html>

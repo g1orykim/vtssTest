@@ -1,0 +1,214 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>LLDP Media Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+    window.addEvent('domready', function() {
+      $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+  });
+ </script>
+</head>
+
+<body>
+<h1>LLDP Media Help</h1>
+
+<p>This page provides a status overview of all <a href="glossary.htm#lldpmed" class="glossary">LLDP-MED</a> neighbors.
+   The displayed table contains a row for each port on which an LLDP neighbor is detected. This function applies to VoIP devices which support LLDP-MED. The columns hold the following information:
+</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>
+   The port on which the LLDP frame was received.
+ </dd>
+
+ <dt>Device Type</dt>
+ <dd>
+ <p>LLDP-MED Devices are comprised of two primary <b>Device Types</b>: Network Connectivity Devices and
+Endpoint Devices. </p>
+<b>LLDP-MED Network Connectivity Device Definition</b>
+<p>LLDP-MED Network Connectivity Devices, as defined in TIA-1057, provide access to the IEEE
+802 based LAN infrastructure for LLDP-MED Endpoint Devices. An LLDP-MED Network Connectivity
+Device is a LAN access device based on any of the following technologies:</p>
+<p>1. LAN Switch/Router</p>
+<p>2. IEEE 802.1 Bridge</p>
+<p>3. IEEE 802.3 Repeater (included for historical reasons)</p>
+<p>4. IEEE 802.11 Wireless Access Point</p>
+<p>5. Any device that supports the IEEE 802.1AB and MED extensions defined by TIA-1057
+and can relay IEEE 802 frames via any method.</p>
+
+
+<b>LLDP-MED Endpoint Device Definition</b>
+<p> LLDP-MED Endpoint Devices, as defined in TIA-1057, are located at the IEEE 802 LAN network
+edge, and participate in IP communication service using the LLDP-MED framework.</p>
+<p>Within the LLDP-MED Endpoint Device category, the LLDP-MED scheme is broken into further
+Endpoint Device Classes, as defined in the following.</p>
+<p>Each LLDP-MED Endpoint Device Class is defined to build upon the capabilities
+defined for the previous Endpoint Device Class. For-example will any LLDP-MED Endpoint
+Device claiming compliance as a Media Endpoint (Class II) also
+support all aspects of TIA-1057 applicable to Generic Endpoints (Class I), and any LLDP-MED Endpoint
+Device claiming compliance as a Communication Device (Class III) will also support all aspects of
+TIA-1057 applicable to both Media Endpoints (Class II) and Generic Endpoints (Class I).</p>
+<b>LLDP-MED Generic Endpoint (Class I)</b>
+<p>The LLDP-MED Generic Endpoint (Class I) definition is applicable to all endpoint products that require
+the base LLDP discovery services defined in TIA-1057, however do not support IP media or act
+as an end-user communication appliance. Such devices may include (but are not limited to) IP
+Communication Controllers, other communication related servers, or any device requiring basic
+services as defined in TIA-1057.</p>
+<p>Discovery services defined in this class include LAN configuration, device location, network policy,
+power management, and inventory management.</p>
+<b>LLDP-MED Media Endpoint (Class II)</b>
+<p>The LLDP-MED Media Endpoint (Class II) definition is applicable to all endpoint products that have IP
+media capabilities however may or may not be associated with a particular end user. Capabilities
+include all of the capabilities defined for the previous Generic Endpoint Class (Class I), and are
+extended to include aspects related to media streaming. Example product categories expected to
+adhere to this class include (but are not limited to) Voice / Media Gateways, Conference Bridges,
+Media Servers, and similar.</p>
+<p>Discovery services defined in this class include media-type-specific network layer policy discovery.</p>
+<b>LLDP-MED Communication Endpoint (Class III)</b>
+<p>The LLDP-MED Communication Endpoint (Class III) definition is applicable to all endpoint products
+that act as end user communication appliances supporting IP media. Capabilities include all of the
+capabilities defined for the previous Generic Endpoint (Class I) and Media Endpoint (Class II) classes,
+and are extended to include aspects related to end user devices. Example product categories
+expected to adhere to this class include (but are not limited to) end user communication appliances,
+such as IP Phones, PC-based softphones, or other communication appliances that directly support
+the end user.</p>
+<p>Discovery services defined in this class include provision of location identifier (including ECS / E911
+information), embedded L2 switch support, inventory management.</p>
+  </dd>
+ <dt>LLDP-MED Capabilities</dt>
+ <dd>
+   <p><b>LLDP-MED Capabilities</b> describes the neighbor unit's
+   LLDP-MED capabilities. The possible capabilities are:</p>
+   <p>1. LLDP-MED capabilities</p>
+   <p>2. Network Policy</p>
+   <p>3. Location Identification</p>
+   <p>4. Extended Power via MDI - PSE</p>
+   <p>5. Extended Power via MDI - PD</p>
+   <p>6. Inventory</p>
+   <p>7. Reserved</p>
+ </dd>
+
+ <dt>Application Type</dt>
+ <dd>
+ <p><b>Application Type</b> indicating the primary function of the application(s) defined for
+this network policy, advertised by an Endpoint or Network Connectivity
+   Device. The possible application types are shown below.</p>
+ <p>1. Voice - for use by dedicated IP Telephony handsets and other similar appliances supporting
+interactive voice services. These devices are typically deployed on a separate VLAN for ease
+of deployment and enhanced security by isolation from data
+   applications.</p>
+ <p>2. Voice Signalling - for use in network topologies that require a different policy for
+the voice signalling than for the voice media.</p>
+ <p>3. Guest Voice - to support a separate limited feature-set voice service for guest users and
+visitors with their own IP Telephony handsets and other similar appliances supporting
+interactive voice services.</p>
+ <p>4. Guest Voice Signalling - for use in network topologies that require a different
+policy for the guest voice signalling than for the guest voice media.</p>
+ <p>5. Softphone Voice - for use by softphone applications on typical data centric devices, such as
+PCs or laptops.</p>
+ <p>6. Video Conferencing - for use by dedicated Video Conferencing equipment and other similar
+appliances supporting real-time interactive video/audio services.</p>
+ <p>7. Streaming Video - for use by broadcast or multicast based video content distribution and other
+similar applications supporting streaming video services that require specific network policy
+treatment. Video applications relying on TCP with buffering would not be an intended use of
+this application type.</p>
+ <p>8. Video Signalling - for use in network topologies that require a separate policy for
+the video signalling than for the video media.</p>
+ </dd>
+ <dt>Policy</dt>
+ <dd>
+ <p><b>Policy</b> indicates that an Endpoint Device wants to explicitly advertise that
+ the policy is required by the device. Can be either Defined or Unknown </p>
+ <p>Unknown: The network policy for the specified application type is
+ currently unknown.</p>
+ <p>Defined: The network policy is defined.</p>
+ </dd>
+ <dt>TAG</dt>
+ <dd>
+ <p><b>TAG</b> is indicative of whether the specified application type is using a tagged
+ or an untagged VLAN. Can be Tagged or Untagged.</p>
+ <p>Untagged: The device is using an untagged frame format and as such does not include
+a tag header as defined by IEEE 802.1Q-2003.</p> 
+ <p>Tagged: The device is using the IEEE 802.1Q tagged frame format.</p>
+
+ </dd>
+ <dt>VLAN ID</dt>
+ <dd>
+  <p><b>VLAN ID</b> is the VLAN identifier (VID) for the port as defined
+    in IEEE 802.1Q-2003. A value of 1 through 4094 is used to define a valid VLAN ID.
+    A value of 0 (Priority Tagged) is used if the device is using priority tagged frames as defined by
+    IEEE 802.1Q-2003, meaning that only the IEEE 802.1D priority level is significant and the default
+    PVID of the ingress port is used instead.</p>
+ </dd>
+ <dt>Priority</dt>
+ <dd>
+  <p><b>Priority</b> is the Layer 2 priority to be used for the specified application type. One of the eight priority levels (0 through 7).</p>
+ </dd>
+
+ <dt>DSCP</dt>
+ <dd>
+  <p><b>DSCP</b> is the DSCP value to be used to provide Diffserv node behavior for the specified
+    application type as defined in IETF RFC 2474. Contain one of 64 code point
+    values (0 through 63).</p>
+ </dd>
+ 
+
+
+<dt>Auto-negotiation</dt>
+ <dd>
+<p><b>Auto-negotiation</b> identifies if MAC/PHY auto-negotiation is supported by
+the link partner.</p>
+ </dd>
+
+<dt>Auto-negotiation status</dt>
+ <dd>
+<p><b>Auto-negotiation status</b> identifies if auto-negotiation is
+currently enabled at the link partner. If <b>Auto-negotiation</b> is
+supported and <b>Auto-negotiation status</b> is disabled, the 802.3 PMD operating mode will be
+determined the operational MAU type field value rather than by auto-negotiation.</p>
+</dd>
+
+<dt>Auto-negotiation Capabilities</dt>
+ <dd>
+<p><b>Auto-negotiation Capabilities</b> shows the link partners MAC/PHY
+capabilities.</p>
+ </dd>
+
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page.</p>
+</body>
+</html>
+

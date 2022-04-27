@@ -1,0 +1,68 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_icfg := $(DIR_APPL)/icfg
+
+OBJECTS_icfg_c := icfg.o icfg_api.o \
+		  $(if $(MODULE_WEB),icfg_web.o)
+
+OBJECTS_icfg   := $(OBJECTS_icfg_c) icfg_default-config.o
+
+$(OBJECTS_icfg_c): %.o: $(DIR_icfg)/%.c
+	$(call compile_c, $@, $<)
+
+# ifeq ($(filter BRINGUP, WEBSTAX,$1))
+ifeq ($(filter voice_vlan,$(MODULES)),voice_vlan)
+ICFG_DEFAULT_CONFIG = $(if $(Custom/DefaultConfig),$(Custom/DefaultConfig),$(DIR_APPL)/icfg/icfg-default-config.txt)
+else
+ICFG_DEFAULT_CONFIG = $(if $(Custom/DefaultConfig),$(Custom/DefaultConfig),$(DIR_APPL)/icfg/icfg-default-config-no-voice-vlan.txt)
+endif
+
+icfg_default-config.o: $(DIR_icfg)/icfg_default-config.S always
+	@echo Using default-config=$(ICFG_DEFAULT_CONFIG)
+	$(call compile_c, $@, $<, -DCONFIGFILE=$(ICFG_DEFAULT_CONFIG))
+
+# Built-in ICLI
+$(eval $(call add_icli,$(foreach m, icfg,$(DIR_icfg)/$(m).icli)))
+
+INCLUDES += -I$(DIR_icfg)
+
+WEB_CONTENT += $(DIR_icfg)/html
+
+# Lint files
+LINT_FILES_icfg += $(DIR_icfg)/icfg.c
+LINT_FILES_icfg += $(DIR_icfg)/icfg_api.c
+LINT_FILES_icfg += $(if $(MODULE_WEB),$(DIR_icfg)/icfg_web.c)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_icfg += $(DIR_icfg)/*.c $(DIR_icfg)/*.h
+
+# Tidy files
+TIDY_FILES_icfg += $(DIR_icfg)/html/*.htm
+
+# JSlint files
+JSLINT_FILES_icfg += $(DIR_icfg)/html/*.htm
+

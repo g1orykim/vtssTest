@@ -1,0 +1,299 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>System Log</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Refresh timer
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_syslog.htm";
+
+var firstId = 1, lastId = 1, perPageEntryNum = 20;
+
+function addRow(idx, frag, values)
+{
+    var tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+    var td = CreateStyledElement("td", "cr");
+    var txt = document.createTextNode(values[0]);
+    var link = document.createElement("a");
+    link.href = "syslog_detailed.htm?syslogFlag=0&syslogStartId=" + parseInt(values[0], 10);
+    link.appendChild(txt);  // Add Text
+    td.appendChild(link);   // Add link to cell
+    tr.appendChild(td);     // Add cell to row
+    addTextCell(tr, values[1], "cr");
+    addTextCell(tr, values[2], "cl");
+    addTextCell(tr, unescape(values[3]), "cl");
+    frag.appendChild(tr);   // Add row to fragment
+    lastId = values[0];
+}
+
+function processUpdate(req, ref)
+{
+    var frag, tr;
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        firstId = document.getElementById("syslogStartId").value;
+        if (String(req.responseText) == "null") {
+            frag = document.createDocumentFragment();
+            tr = CreateStyledElement("tr", "notice", 4);
+            addTextCell(tr, "No entry exists", "cl", 4);
+            frag.appendChild(tr);
+            document.getElementById("summaryDesc").innerHTML = "The total number of entries is 0 for the given level.";
+        } else {
+            var responseData = req.responseText.split("#");
+            if (parseInt(responseData[1], 10)) {
+                var syslog = responseData[1].split("|");
+
+                //create holder for accumulated tbody elements and text nodes
+                frag = document.createDocumentFragment();
+                var firstTime = 1;
+                for (var i = 0; i < syslog.length; i++) {
+                    if (syslog[i]) {
+                        var pval = syslog[i].split("/");
+                        addRow(i, frag, pval);
+                        if (firstTime) {
+                            firstId = pval[0];
+                            perPageEntryNum = document.getElementById("syslogEntryNum").value;
+                            firstTime = 0;
+                        }
+                    }
+                }
+                document.getElementById("syslogStartId").value = firstId;
+                document.getElementById("summaryDesc").innerHTML = "The total number of entries is " + responseData[0] + " for the given level.";
+            } else {
+                frag = document.createDocumentFragment();
+                tr = CreateStyledElement("tr", "notice", 4);
+                addTextCell(tr, "No more entries", "cl", 4);
+                frag.appendChild(tr);
+                document.getElementById("summaryDesc").innerHTML = "The total number of entries is " + responseData[0] + " for the given level.";
+            }
+        }
+
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+
+        // Update the timer
+        var autorefresh = document.getElementById('autorefresh');
+        if (autorefresh && autorefresh.checked) {
+            if (timerID) {
+                clearTimeout(timerID);
+            }
+            timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+        }
+    } else {
+        SpomHandleError();
+    }
+
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate()
+{
+    // Format: [total_entry_num]#[id]/[level]/[time]/[message]|[id]/[level]/[time]/[message]|...
+    //var req = "1/Info/13726d 14:36:/Frame of 554 bytes received on port 6|2/Info/13726d 14:36:/Frame of 554 bytes received on port 6|3/Info/13726d 14:36:/Frame of 554 bytes received on port 6";
+    //processUpdate(req, 'syslogData');
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    document.getElementById("update").style.visibility = "visible";
+    var startId = parseInt(document.getElementById("syslogStartId").value, 10);
+    var url = "/stat/syslog?syslogFlag=1&syslogLevel=" + document.getElementById("syslogLevel").value + "&syslogStartId=" + startId + "&syslogEntryNum=" + document.getElementById("syslogEntryNum").value;
+    loadXMLDoc(SpomAddSidArg(url), processUpdate, 'syslogData');
+    SpomUpdateDisplaySid("display_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    document.getElementById("syslogStartId").value = 1;
+    requestUpdate();            // Update page to reflect selector
+}
+
+function checkForm(checkStartId, add_str)
+{
+    // syslogStartId
+    if (checkStartId && !isWithinRange("syslogStartId", 1, 0xFFFFFFFF, "'Start ID'", add_str)) {
+        return false;
+    }
+
+    // syslogEntryNum
+    if (!isWithinRange("syslogEntryNum", 2, 999, "'entries per page'", add_str)) {
+        return false;
+    }
+
+    return true;
+}
+
+function requestClear()
+{
+    document.getElementById("update").style.visibility = "visible";
+    document.getElementById("syslogStartId").value = 1;
+    var url = "/stat/syslog?syslogFlag=0&syslogLevel=" + document.getElementById("syslogLevel").value + "&syslogStartId=1" + "&syslogEntryNum=" + document.getElementById("syslogEntryNum").value + "&syslogClear=" + document.getElementById("syslogClear").value;
+    loadXMLDoc(SpomAddSidArg(url), processUpdate, 'syslogData');
+}
+
+function GetFirstEntry()
+{
+    document.getElementById("update").style.visibility = "visible";
+    document.getElementById("syslogStartId").value = 1;
+    var url = "/stat/syslog?syslogFlag=1&syslogLevel=" + document.getElementById("syslogLevel").value + "&syslogStartId=1" + "&syslogEntryNum=" + document.getElementById("syslogEntryNum").value;
+    loadXMLDoc(SpomAddSidArg(url), processUpdate, 'syslogData');
+}
+
+function GetPreviousEntry()
+{
+    document.getElementById("update").style.visibility = "visible";
+    var startId = firstId;
+    var url = "/stat/syslog?syslogFlag=2&syslogLevel=" + document.getElementById("syslogLevel").value + "&syslogStartId=" + startId + "&syslogEntryNum=" + document.getElementById("syslogEntryNum").value;
+    loadXMLDoc(SpomAddSidArg(url), processUpdate, 'syslogData');
+}
+
+function GetNextEntry()
+{
+    document.getElementById("update").style.visibility = "visible";
+    var startId = parseInt(lastId, 10);
+    var url = "/stat/syslog?syslogFlag=3&syslogLevel=" + document.getElementById("syslogLevel").value + "&syslogStartId=" + startId + "&syslogEntryNum=" + document.getElementById("syslogEntryNum").value;
+    loadXMLDoc(SpomAddSidArg(url), processUpdate, 'syslogData');
+}
+
+function GetLastEntry()
+{
+    document.getElementById("update").style.visibility = "visible";
+    var startId = 1;
+    var url = "/stat/syslog?syslogFlag=4&syslogLevel=" + document.getElementById("syslogLevel").value + "&syslogStartId=" + startId + "&syslogEntryNum=" + document.getElementById("syslogEntryNum").value;
+    loadXMLDoc(SpomAddSidArg(url), processUpdate, 'syslogData');
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>System Log Information <span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh"    onclick="if(!checkForm(true,  '')) {return false;} chkRefresh(this);">
+  <input type="button"   value="Refresh"                        onclick="if(!checkForm(true,  '')) {return false;} requestUpdate();    this.blur();">
+  <input type="button"   value="Clear"   title="Clear the selected level" onclick="if(!checkForm(true,  '')) {return false;} requestClear();     this.blur();">
+  <input type="button"   value=" |<< "   title="First page"     onclick="if(!checkForm(false, '')) {return false;} GetFirstEntry();    this.blur();">
+  <input type="button"   value=" << "    title="Previous page"  onclick="if(!checkForm(true,  '')) {return false;} GetPreviousEntry(); this.blur();">
+  <input type="button"   value=" >> "    title="Next page"      onclick="if(!checkForm(true,  '')) {return false;} GetNextEntry();     this.blur();">
+  <input type="button"   value=" >>| "   title="Last page"      onclick="if(!checkForm(true,  '')) {return false;} GetLastEntry();     this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+    <table summary="System Log" class="config">
+      <tr class="config">
+       <td class="param_label">Level</td>
+       <td>
+        <select id="syslogLevel" name="syslogLevel" onchange="requestUpdate();">
+         <option value="0">Info</option>
+         <option value="1">Warning</option>
+         <option value="2">Error</option>
+         <option value="3" selected>All</option>
+        </select>
+       </td>
+      </tr>
+      <tr class="config">
+       <td class="param_label">Clear Level</td>
+       <td>
+        <select id="syslogClear" name="syslogClear">
+         <option value="0">Info</option>
+         <option value="1">Warning</option>
+         <option value="2">Error</option>
+         <option value="3" selected>All</option>
+        </select>
+       </td>
+      </tr>
+    </table>
+
+  <p><span id="summaryDesc"></span></p>
+
+  <p>
+    <span class="displaytext">Start from ID </span>
+    <input type="text" id="syslogStartId" name="syslogStartId" maxlength="10" size = "10" value="1">
+    <span class="displaytext"> with </span>
+    <input type="text" id="syslogEntryNum" name="syslogEntryNum" maxlength="3" size = "3" value="20">
+    <span class="displaytext"> entries per page. </span>
+  </p>
+
+<table summary="System Log" class="display">
+ <thead>
+  <tr class="display_header">
+   <th>ID</th>
+   <th>Level</th>
+   <th>Time</th>
+   <th>Message</th>
+  </tr>
+ </thead>
+ <tbody id="syslogData">
+ </tbody>
+</table>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

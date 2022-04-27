@@ -1,0 +1,299 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port Security Switch Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Refresh timer
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_psec_status_switch.htm";
+
+var StateTyp = Array("Disabled", "Ready", "Limit Reached", "Shutdown");
+var StateVal = Array(0, 1, 2, 3);
+
+var PARM_IDX_SYS_PSEC_LIMIT_SUPPORTED  = 0; // If PSEC LIMIT is supported, then a "State" column and a "Limit" column will be shown, otherwise these columns will be hidden.
+var PARM_SYS_CNT                       = (PARM_IDX_SYS_PSEC_LIMIT_SUPPORTED + 1);
+
+// Section repeated once per supported user:
+var PARM_IDX_USER_NAME                 = 0;
+var PARM_IDX_USER_ABBR                 = 1; // One-letter unique user name abbreviation.
+var PARM_USER_CNT                      = (PARM_IDX_USER_ABBR + 1);
+
+// Section repeated once per port:
+var PARM_IDX_PORT_NUMBER               = 0;
+var PARM_IDX_PORT_ENA_USERS_MASK       = 1;
+var PARM_IDX_PORT_STATE                = 2;
+var PARM_IDX_PORT_CUR_MAC_CNT          = 3;
+var PARM_IDX_PORT_MAC_LIMIT            = 4; // == 0 if PSEC LIMIT is not enabled on this port.
+var PARM_PORT_CNT                      = (PARM_IDX_PORT_MAC_LIMIT + 1);
+
+var all_users = Array();
+
+function add_legend(frag, user_values)
+{
+  all_users = []; // Clear the array
+  var u = 0;
+  for (var i = 0; i < user_values.length; i += PARM_USER_CNT) {
+    all_users.push({'name':user_values[i + PARM_IDX_USER_NAME], 'abbr':user_values[i + PARM_IDX_USER_ABBR]});
+    var tr = CreateStyledElement("tr", u % 2 ? "display_odd" : "display_even");
+    addTextCell(tr, all_users[u].name, "cl");
+    addTextCell(tr, all_users[u++].abbr, "cl");
+    frag.appendChild(tr);
+  }
+}
+
+function add_port_head(frag, psec_limit_supp)
+{
+  var elem;
+  var rowspan = psec_limit_supp ? 2 : 1;
+  var tr = CreateStyledElement("tr", "display_header");
+
+  elem = addTextHeaderCell(tr, "Port");
+  elem.setAttribute("rowSpan", rowspan);
+  elem = addTextHeaderCell(tr, "Users");
+  elem.setAttribute("rowSpan", rowspan);
+  if (psec_limit_supp) {
+    elem = addTextHeaderCell(tr, "State");
+    elem.setAttribute("rowSpan", rowspan);
+    addTextHeaderCell(tr, "MAC Count", "cl", 2);
+  } else {
+    addTextHeaderCell(tr, "MAC Count", "cl");
+  }
+  frag.appendChild(tr); // Add row to fragment
+
+  if (psec_limit_supp) {
+    tr = CreateStyledElement("tr", "display_header");
+    addTextHeaderCell(tr, "Current");
+    addTextHeaderCell(tr, "Limit");
+    frag.appendChild(tr);
+  }
+}
+
+function add_port_row(port, frag, port_values, psec_limit_supp)
+{
+  var tr = CreateStyledElement("tr", port % 2 ? "display_even" : "display_odd");
+
+  // Port number with href.
+  var td   = CreateStyledElement("td", "cr");
+  var link = document.createElement("a");
+  var txt  = document.createTextNode(port);
+  link.href = "psec_status_port.htm?port=" + port;
+  link.appendChild(txt);
+  td.appendChild(link);
+  tr.appendChild(td);
+
+  // Users
+  var users = parseInt(port_values[PARM_IDX_PORT_ENA_USERS_MASK], 10);
+  var mask = 1;
+  var user_txt = '';
+  for (u = 0; u < all_users.length; u++) {
+    if (users & mask) {
+      user_txt += all_users[u].abbr;
+    } else {
+      user_txt += '-';
+    }
+    mask <<= 1;
+  }
+
+  // Add the user abbreviations in a monospace font.
+  td = addTextCell(tr, "", "c_courier");
+  var tt = document.createElement("tt"); // <tt> maps to a monospace font
+  tt.appendChild(document.createTextNode(user_txt));
+  td.appendChild(tt);
+
+  // State. Only added if PSEC LIMIT is supported
+  if (psec_limit_supp) {
+    var state = port_values[PARM_IDX_PORT_STATE];
+    addTextCell(tr, StateTyp[state], "cl");
+  }
+
+  // MAC Count
+  var mac_cnt_txt;
+  if (parseInt(port_values[PARM_IDX_PORT_ENA_USERS_MASK], 10) === 0) {
+    // If no users are enabled on this port, write "-".
+    mac_cnt_txt = "-";
+  } else {
+    mac_cnt_txt = port_values[PARM_IDX_PORT_CUR_MAC_CNT];
+  }
+  addTextCell(tr, mac_cnt_txt, "cr");
+
+  // Limit. Only added if PSEC LIMIT is supported
+  if (psec_limit_supp) {
+    if (parseInt(port_values[PARM_IDX_PORT_MAC_LIMIT], 10) !== 0) {
+      mac_cnt_txt = port_values[PARM_IDX_PORT_MAC_LIMIT];
+    } else {
+      mac_cnt_txt = "-";
+    }
+    addTextCell(tr, mac_cnt_txt, "cr");
+  }
+
+  frag.appendChild(tr); // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+  // Format [Sys]#[Users]#[PortStatus1]#[PortStatus2]#...#[PortStatusN]
+  // [Sys]       : psec_limit_supported
+  // [Users]     : user_name_1/user_abbr_1/user_name_2/user_abbr_2/.../user_name_N/user_abbr_N
+  // [PortStatus]: port_number/ena_user_mask/state/cur_mac_cnt/mac_limit.
+  var values = req.responseText.split("#");
+
+  document.getElementById("update").style.visibility = "hidden";
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  var psec_limit_supp = parseInt(values[PARM_IDX_SYS_PSEC_LIMIT_SUPPORTED], 10) !== 0;
+  var user_values = values[1].split("/");
+  if ((user_values.length % PARM_USER_CNT) !== 0) {
+    return;
+  }
+
+  // Add legend
+  var frag_legend = document.createDocumentFragment();
+  add_legend(frag_legend, user_values);
+  var tbody = document.getElementById('legend');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag_legend);
+
+  // Add port status heading (variable because the State and Limit columns may not be shown if PSEC LIMIT is not supported).
+  var frag_head = document.createDocumentFragment();
+  add_port_head(frag_head, psec_limit_supp);
+  tbody = document.getElementById('port_head');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag_head);
+
+  // Add port status
+  var frag_port = document.createDocumentFragment();
+  for (var p = 2; p < values.length; p++) {
+    var port_values = values[p].split("/");
+    if (port_values.length != PARM_PORT_CNT) {
+      return;
+    }
+    add_port_row(parseInt(port_values[PARM_IDX_PORT_NUMBER], 10), frag_port, port_values, psec_limit_supp);
+  }
+
+  tbody = document.getElementById('port_stat');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag_port);
+
+  // Update the timer
+  var autorefresh = document.getElementById('autorefresh');
+  if (autorefresh.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+  }
+}
+
+function requestUpdate()
+{
+  if (SpomNavigationLoading()) {
+    return; // Bail out, navigation will trigger update
+  }
+
+  document.getElementById("update").style.visibility = "visible";
+  loadXMLDoc(SpomAddSidArg("/stat/psec_status_switch"), processUpdate, null);
+  SpomUpdateDisplaySid("sid_display");
+}
+
+function chkRefresh(fld)
+{
+  if (!fld.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = null;
+  } else {
+    requestUpdate();
+  }
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+  SpomSetCurrentSid(sid); // Save current SID
+  requestUpdate();        // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+<!-- <body class="content"> -->
+
+  <h1>Port Security Switch Status</h1>
+
+  <div class="refreshbar">
+    <form action="#">
+      <label for="autorefresh">Auto-refresh</label>
+      <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+      <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+      <img id="update" alt="" src="images/updating.gif">
+   </form>
+  </div>
+
+  <h2>User Module Legend</h2>
+
+  <table summary="Port Security User Legend" class="display">
+    <thead>
+      <tr class="display_header">
+        <th>User Module Name</th>
+        <th>Abbr</th>
+      </tr>
+    </thead>
+    <tbody id="legend"></tbody>
+  </table>
+
+  <h2>Port Status <span id="sid_display"></span></h2>
+
+  <table summary="Port Security Port Status" class="display">
+    <thead id="port_head"><tr><td></td></tr></thead>
+    <tbody id="port_stat"><tr><td></td></tr></tbody>
+  </table>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

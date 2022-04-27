@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <title>Port Security Limit Control Configuration Help</title>
+    <link href="/lib/help.css"   rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="../lib/config.js"></script>
+    <script type="text/javascript" language="JavaScript">
+    function FillInLimitMax()
+    {
+      var i = 1;
+      while(1) {
+        var fld = document.getElementById("lm_" + i++);
+        if(fld) {
+          fld.innerHTML = configPsecLimitLimitMax;
+        } else {
+          break;
+        }
+      }
+    }
+    </script>
+  </head>
+
+  <body onload="FillInLimitMax();">
+    <h1>Port Security Limit Control Configuration Help</h1>
+    <p>
+      This page allows you to configure the Port Security Limit Control system and port settings.<br/><br/>
+      Limit Control allows for limiting the number of users on a given port. A user is identified by a MAC address and VLAN ID.
+      If Limit Control is enabled on a port, the <a href="#Limit">limit</a> specifies the maximum number of users on the port.
+      If this number is exceeded, an <a href="#Action">action</a> is taken. The action can be one of the four different actions as described below.<br/>
+      The Limit Control module utilizes a lower-layer module, Port Security module, which manages MAC
+      addresses learnt on the port.
+    </p>
+
+    <p>
+      The Limit Control configuration consists of two sections, a system- and a port-wide.
+    </p>
+
+    <h2>System Configuration</h2>
+    <dl>
+      <dt><a name="GlblEna">Mode</a></dt>
+      <dd>
+        Indicates if Limit Control is globally enabled or disabled on the
+        <span class="Standalone_only">switch</span><span class="SPOM_only">stack</span>.
+        If globally disabled, other modules may still use the underlying functionality, but limit checks and corresponding
+        actions are disabled.
+      </dd>
+
+      <dt><a name="AgingEnabled">Aging Enabled</a></dt>
+      <dd>
+        If checked, secured MAC addresses are subject to aging as discussed under <a href="#AgingPeriod">Aging Period </a>.
+      </dd>
+
+      <dt><a name="AgingPeriod">Aging Period</a></dt>
+      <dd>
+        If <a href="#AgingEnabled">Aging Enabled</a> is checked, then the aging period is controlled with this input.
+        If other modules are using the underlying port security for securing MAC addresses, they may have other requirements
+        to the aging period. The underlying port security will use the shorter requested aging period of all modules that use
+        the functionality.<br/>
+        The Aging Period can be set to a number between 10 and 10,000,000 seconds.<br/>
+        To understand why aging may be desired, consider the following scenario: Suppose an end-host is connected to a 3rd party switch or hub,
+        which in turn is connected to a port on this switch on which Limit Control is enabled. The end-host will be allowed to forward
+        if the limit is not exceeded. Now suppose that the end-host logs off or powers down. If it wasn't for aging, the end-host would
+        still take up resources on this switch and will be allowed to forward. To overcome this situation, enable aging. With aging enabled,
+        a timer is started once the end-host gets secured. When the timer expires, the switch starts looking for frames from the end-host,
+        and if such frames are not seen within the next Aging Period, the end-host is assumed to be disconnected, and the corresponding
+        resources are freed on the switch.
+      </dd>
+    </dl>
+
+    <h2>Port Configuration</h2>
+    The table has one row for each port on the <span class="SPOM_only">selected </span>switch<span class="SPOM_only"> in the stack</span>
+    and a number of columns, which are:
+    <dl>
+      <dt>Port</dt>
+      <dd>The port number to which the configuration below applies.</dd>
+
+      <dt>Mode</dt>
+      <dd>
+        Controls whether Limit Control is enabled on this port. Both this and the <a href="#GlblEna">Global Mode</a> must be set to
+        Enabled for Limit Control to be in effect.
+        Notice that other modules may still use the underlying port security features without enabling Limit Control on a given port.
+      </dd>
+
+      <dt><a name="Limit">Limit</a></dt>
+      <dd>
+        The maximum number of MAC addresses that can be secured on this port. This number cannot exceed <span id="lm_1">1024</span>. If
+        the limit is exceeded, the corresponding <a href="#Action">action</a> is taken.<br/>
+        The <span class="SPOM_only">stack</span><span class="Standalone_only">switch</span> is "born" with a total number of MAC addresses
+        from which all ports draw whenever a new MAC address is seen on a Port Security-enabled port. Since all ports draw from the same pool,
+        it may happen that a configured maximum cannot be granted, if the remaining ports have already used all available MAC addresses.
+      </dd>
+
+      <dt><a name="Action">Action</a></dt>
+      <dd>
+        If <a href="#Limit">Limit</a> is reached, the switch can take one of the following actions:<br/>
+        <samp>None</samp>: Do not allow more than <a href="#Limit">Limit</a> MAC addresses on the port, but take no further action.<br/>
+        <samp>Trap</samp>: If <a href="#Limit">Limit</a> + 1 MAC addresses is seen on the port, send an SNMP trap. If Aging is disabled, only
+          one SNMP trap will be sent, but with Aging enabled, new SNMP traps will be sent every time the limit gets exceeded.<br/>
+        <samp>Shutdown</samp>: If <a href="#Limit">Limit</a> + 1 MAC addresses is seen on the port, shut down the port. This implies that all
+          secured MAC addresses will be removed from the port, and no new address will be learned. Even if the link is physically disconnected and
+          reconnected on the port (by disconnecting the cable), the port will remain shut down. There are three ways to re-open the port:<br/>
+          1) Boot <span class="SPOM_only">the stack or elect a new master</span><span class="Standalone_only">the switch</span>,<br/>
+          2) Disable and re-enable Limit Control on the port or the <span class="SPOM_only">stack</span><span class="Standalone_only">switch</span>,<br/>
+          3) Click the <a href="#Reopen">Reopen</a> button.<br/>
+        <samp>Trap &amp; Shutdown</samp>: If <a href="#Limit">Limit</a> + 1 MAC addresses is seen on the port, both the "Trap" and the "Shutdown" actions described above will be taken.
+      </dd>
+
+      <dt><a name="State">State</a></dt>
+      <dd>
+        This column shows the current state of the port as seen from the Limit Control's point of view. The state takes one of four values:<br/>
+        <samp>Disabled</samp>: Limit Control is either globally disabled or disabled on the port.<br/>
+        <samp>Ready</samp>: The limit is not yet reached. This can be shown for all <a href="#Action">actions</a>.<br/>
+        <samp>Limit Reached</samp>: Indicates that the limit is reached on this port. This state can only be shown if <a href="#Action">Action</a> is set to <samp>None</samp> or <samp>Trap</samp>.<br/>
+        <samp>Shutdown</samp>: Indicates that the port is shut down by the Limit Control module. This state can only be shown if <a href="#Action">Action</a> is set to <samp>Shutdown</samp> or <samp>Trap &amp; Shutdown</samp>.<br/>
+      </dd>
+
+      <dt><a name="Reopen">Re-open Button</a></dt>
+      <dd>
+        If a port is shutdown by this module, you may reopen it by clicking this button, which will only be enabled if this is the case.
+        For other methods, refer to <samp>Shutdown</samp> in the <a href="#Action">Action</a> section.<br/>
+        Note that clicking the reopen button causes the page to be refreshed, so non-committed changes will be lost.
+       </dd>
+    </dl>
+
+    <h2>Buttons</h2>
+    <p><input type="button" value=" Refresh">: Click to refresh the page. Note that non-committed changes will be lost.</p>
+    <p><input type="button" value=" Save ">: Click to save changes.</p>
+    <p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+  </body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DHCP Statistics</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+var defaultUser = 0;
+
+
+// Help page magic
+var help_page = "/help/help_dhcp_helper_statistics.htm";
+
+var selectedPort = configPortMin;
+var pageArgs = searchArgs(window.location.search);
+var pageArgsName = 'port';
+if (pageArgs[pageArgsName]) {
+    selectedPort = parseInt(pageArgs[pageArgsName], 10);
+}
+
+function updateUser(values)
+{
+    var optionItem, fld = document.getElementById("user");
+
+    while (fld.options.length > 1) {
+        fld.removeChild(fld.lastChild);
+    }
+
+    // Get defaut user
+    defaultUser = parseInt(values[0], 10);
+
+    // Add new option item
+    for (i = 1; i < values.length; i++) {
+        if (!values[i]) {
+            continue;
+        }
+        optionItem = document.createElement('OPTION');
+        fld.options.add(optionItem);
+        optionItem.innerHTML = values[i];
+        optionItem.value = i - 1;
+    }
+
+    // Set default select item
+    for (i = 0; i < fld.options.length; i++) {
+        if (defaultUser == fld.options[i].value) {
+            fld.options[i].setAttribute("selected", true);
+            fld.options[i].setAttribute("defaultSelected", true);
+            fld.options[i].defaultSelected = true;
+            break;
+        }
+    }
+}
+
+function contentUpdate(req, ref)
+{
+    // Format: [select_user_id]/[user_name1]/[user_name2]/...,[port_no],[counter_1]/[counter_2]/.../[counter_n]
+    //var input = "0/Server/Client/Snooping/Relay,1,1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20/21/22/23/24";
+    var input = req.responseText;
+    var values = input.split(",");
+    if (values.length == 3) {
+        updateUser(values[0].split("/"));
+        var port = parseInt(values[1], 10);
+        var counters = values[2].split("/");
+        for (var j = 0; j < counters.length; j++) {
+            var id = "counter" + "_" + (j + 1);
+            UpdateId(id, counters[j]);
+        }
+        if (counters.length == 25) {
+            document.getElementById("rxUntrustedDiscarded").style.display = "none";
+        } else {
+            document.getElementById("rxUntrustedDiscarded").style.display = "";
+        }
+
+        var portid = document.getElementById("port");
+        if (portid) {
+            portid.innerHTML = configPortName(port, 1);
+        }
+        var autorefresh = document.getElementById('autorefresh');
+        if (autorefresh && autorefresh.checked) {
+            if (timerID) {
+                clearTimeout(timerID);
+            }
+            timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+        }
+    } else {
+        SpomHandleError();
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate()
+{
+    document.getElementById("update").style.visibility = "visible";
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/stat/dhcp_helper_statistics?port=" + selectedPort + "&user=" + document.getElementById('user').value), contentUpdate, null);
+    SpomUpdateDisplaySid("sid_display");
+}
+
+function requestClear()
+{
+    document.getElementById("update").style.visibility = "visible";
+    loadXMLDoc(SpomAddSidArg("/stat/dhcp_helper_statistics?clear=1&port=" + selectedPort + "&user=" + document.getElementById('user').value), contentUpdate, null);
+}
+
+function PortSelect(sel)
+{
+    selectedPort = sel.options[sel.selectedIndex].value;
+    requestUpdate();
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+function docLoad()
+{
+    selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+    requestUpdate();
+}
+
+function changeUser(fld)
+{
+    var new_url = "/stat/dhcp_helper_statistics?port=" + selectedPort + "&user=" + fld.value;
+    loadXMLDoc(SpomAddSidArg(new_url), contentUpdate, null);
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+    requestUpdate();            // Update page to reflect selector
+}
+
+</script>
+
+</head>
+
+<body class="content" onload="docLoad();">
+
+<h1>DHCP Detailed Statistics <span id="sid_display"></span><span>&nbsp;</span><span id="port"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <select id="user" onchange="changeUser(this);">
+   <option value= "-1">Combined</option>
+  </select>
+  <select id="portselect" onchange="PortSelect(this);">
+    <option value="1">Port 1</option>
+    <option value="99">Port 99</option>
+   </select>
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <input type="button" value="Clear"   onclick="requestClear();  this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+  <table summary="DHCP Port Statistics" width="60%" class="display">
+    <tbody>
+      <tr class="display_header">
+        <th colspan="2" class="hdrc">Receive Packets</th>
+        <th colspan="2" class="hdrc">Transmit Packets</th>
+      </tr>
+      <tr class="display_even">
+        <td class="displaytext"> Rx Discover</td>
+        <td class="cr" id="counter_1">0</td>
+        <td class="displaytext"> Tx Discover</td>
+        <td class="cr" id="counter_2">0</td>
+      </tr>
+      <tr class="display_odd">
+        <td class="displaytext"> Rx Offer</td>
+        <td class="cr" id="counter_3">0</td>
+        <td class="displaytext"> Tx Offer</td>
+        <td class="cr" id="counter_4">0</td>
+      </tr>
+      <tr class="display_even">
+        <td class="displaytext"> Rx Request</td>
+        <td class="cr" id="counter_5">0</td>
+        <td class="displaytext"> Tx Request</td>
+        <td class="cr" id="counter_6">0</td>
+      </tr>
+      <tr class="display_odd">
+        <td class="displaytext"> Rx Decline</td>
+        <td class="cr" id="counter_7">0</td>
+        <td class="displaytext"> Tx Decline</td>
+        <td class="cr" id="counter_8">0</td>
+      </tr>
+      <tr class="display_even">
+        <td class="displaytext"> Rx ACK</td>
+        <td class="cr" id="counter_9">0</td>
+        <td class="displaytext"> Tx ACK</td>
+        <td class="cr" id="counter_10">0</td>
+      </tr>
+      <tr class="display_odd">
+        <td class="displaytext"> Rx NAK</td>
+        <td class="cr" id="counter_11">0</td>
+        <td class="displaytext"> Tx NAK</td>
+        <td class="cr" id="counter_12">0</td>
+      </tr>
+      <tr class="display_even">
+        <td class="displaytext"> Rx Release</td>
+        <td class="cr" id="counter_13">0</td>
+        <td class="displaytext"> Tx Release</td>
+        <td class="cr" id="counter_14">0</td>
+      </tr>
+      <tr class="display_odd">
+        <td class="displaytext"> Rx Inform</td>
+        <td class="cr" id="counter_15">0</td>
+        <td class="displaytext"> Tx Inform</td>
+        <td class="cr" id="counter_16">0</td>
+      </tr>
+      <tr class="display_even">
+        <td class="displaytext"> Rx Lease Query</td>
+        <td class="cr" id="counter_17">0</td>
+        <td class="displaytext"> Tx Lease Query</td>
+        <td class="cr" id="counter_18">0</td>
+      </tr>
+      <tr class="display_odd">
+        <td class="displaytext"> Rx Lease Unassigned</td>
+        <td class="cr" id="counter_19">0</td>
+        <td class="displaytext"> Tx Lease Unassigned</td>
+        <td class="cr" id="counter_20">0</td>
+      </tr>
+      <tr class="display_even">
+        <td class="displaytext"> Rx Lease Unknown</td>
+        <td class="cr" id="counter_21">0</td>
+        <td class="displaytext"> Tx Lease Unknown</td>
+        <td class="cr" id="counter_22">0</td>
+      </tr>
+      <tr class="display_odd">
+        <td class="displaytext"> Rx Lease Active</td>
+        <td class="cr" id="counter_23">0</td>
+        <td class="displaytext"> Tx Lease Active</td>
+        <td class="cr" id="counter_24">0</td>
+      </tr>
+      <tr class="display_even" >
+        <td class="displaytext"> Rx Discarded Checksum Error</td>
+        <td class="cr" id="counter_26">0</td>
+        <td class="displaytext" colspan="2"></td>
+      </tr>
+      <tr id="rxUntrustedDiscarded" class="display_odd" style="display:none;">
+        <td class="displaytext"> Rx Discarded from Untrusted</td>
+        <td class="cr" id="counter_25">0</td>
+        <td class="displaytext" colspan="2"></td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,674 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>SNMP System Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+var ipv6_supported = false;
+var v3_supported = false;
+var snmpVersion, snmpv3EngineId, trapMode, trapVersion, trapSecurityEngineIdProbe, trapSecurityEngineIdValue, trapSecurityNameValue, manualTrapSecurityEngineIdChanged = 0;
+var oTUser = Array();
+var snmpCommunityLen = 255;
+var snmpDataTable = Array("snmpData", "trapData");
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = genArrayInt(0, 1);
+var oTVersion2 = Array("SNMP v1", "SNMP v2c");
+var oTVersion3 = Array("SNMP v1", "SNMP v2c", "SNMP v3");
+var oVVersion = Array(0, 1, 3);
+
+// Help page magic
+var help_page = "/help/help_snmp.htm";
+
+function IsValidEngineID(snmpv3_engineid)
+{
+    //The format of 'Engine ID' is restricted to 5 - 32 octet string
+    if ((snmpv3_engineid.length % 2) || (snmpv3_engineid.length < 10) || (snmpv3_engineid.length > 64) || (!IsHex(snmpv3_engineid))) {
+        return false;
+    }
+
+    //The format of 'Engine ID' may not be all zeros or all 'ff'H
+    var char_0_cnt = 0, char_f_cnt = 0;
+    for (var i = 0; i < snmpv3_engineid.length; i++) {
+        var ValueChar = snmpv3_engineid.charAt(i);
+        if (ValueChar == '0') {
+            char_0_cnt++;
+        }
+        if (ValueChar == 'f' || ValueChar == 'F') {
+            char_f_cnt++;
+        }
+    }
+    if (char_0_cnt == snmpv3_engineid.length || char_f_cnt == snmpv3_engineid.length) {
+        return false;
+    }
+
+    return true;
+}
+
+function isCommunityString(str)
+{
+    var myReg;
+
+    myReg = /^[!-~]{0,}$/;
+
+    return myReg.test(str);
+}
+
+function checkForm()
+{
+    var fld;
+
+    if (document.getElementById("snmp_version").value != 3) {
+        //snmp_read_community
+        fld = document.getElementById("snmp_read_community");
+        if (fld) {
+            if (String(fld.value) === "") {
+                if (!confirm("Read Community.\nDo you want an empty community ?")) {
+                    return false;
+                }
+            }
+            if (!isCommunityString(fld.value)) {
+                GiveAlert("The 'Read Community' is restricted to ASCII characters from 33 to 126", fld);
+                return false;
+            }
+            if (fld.value.length>snmpCommunityLen) {
+                GiveAlert("The length of 'Read Community' is restricted to 0 - " + snmpCommunityLen, fld);
+                return false;
+            }
+        }
+
+        //snmp_write_community
+        fld = document.getElementById("snmp_write_community");
+        if (fld) {
+            if (String(fld.value) === "") {
+                if (!confirm("Write Community.\nDo you want an empty community ?")) {
+                    return false;
+                }
+            }
+            if (!isCommunityString(fld.value)) {
+                GiveAlert("The 'Write Community' is restricted to ASCII characters from 33 to 126", fld);
+                return false;
+            }
+            if (fld.value.length>snmpCommunityLen) {
+                GiveAlert("The length of 'Write Community' is restricted to 0 - " + snmpCommunityLen, fld);
+                return false;
+            }
+        }
+    }
+
+    //snmpv3_engineid
+    if (v3_supported == 1) {
+        fld = document.getElementById("snmpv3_engineid");
+        if (fld) {
+            if (!IsValidEngineID(fld.value)) {
+                alert("The 'Engine ID' string must contain an even number between 10 and 64 hexadecimal digits, but all-zeros and all-'F's are not allowed");
+                return false;
+            }
+            if (fld.value != snmpv3EngineId) {
+                if (!confirm("Change Engine ID will clear all original local users.\nDo you want to proceed anyway?")) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    //trap_mode snmp_mode
+    if (document.getElementById("trap_mode").value == 1 && parseInt(document.getElementById("snmp_mode").value, 10) === 0) {
+        if (!confirm("SNMP Mode Configuration is Disable.\nDo you want to proceed anyway?")) {
+            return false;
+        }
+    }
+
+    //trap_community
+    fld = document.getElementById("trap_community");
+    if (fld) {
+        if (String(fld.value) === "") {
+            if (!confirm("SNMP Trap Community.\nDo you want an empty community ?")) {
+                return false;
+            }
+        }
+        if (!isCommunityString(fld.value)) {
+            GiveAlert("The 'SNMP Trap Community' is restricted to ASCII characters from 33 to 126", fld);
+            return false;
+        }
+        if (fld.value.length>snmpCommunityLen) {
+            GiveAlert("The length of 'SNMP Trap Community' is restricted to 0 - " + snmpCommunityLen, fld);
+            return false;
+        }
+    }
+
+    //trap_dip
+    fld = document.getElementById("trap_dip");
+    if (fld && (String(fld.value) != "0.0.0.0" && String(fld.value) !== "")) {
+        if (!isHostName("trap_dip", "'Trap Destination Address'")) {
+            return false;
+        }
+    }
+
+    if (document.getElementById("trap_mode").value == 1 && (String(fld.value) == "0.0.0.0" || String(fld.value) === "")) {
+        if (!confirm("The value of 'Trap Destination Address' is 0.0.0.0.\nDo you want to proceed anyway?")) {
+            return false;
+        }
+    }
+
+    //trap_dipv6
+    if (ipv6_supported == 1) {
+        fld = document.getElementById("trap_dipv6");
+        if (fld) {
+            if (!isIpv6Str("trap_dipv6", "'Trap Destination IPv6 Address'", 3, 0)) {
+                return false;
+            }
+        }
+        if (document.getElementById("trap_mode").value == 1 && (fld.value == "0:0:0:0:0:0:0:0" || fld.value == "::0")) {
+            if (!confirm("The value of 'Trap Destination IPv6 Address' is 0:0:0:0:0:0:0:0.\nDo you want to proceed anyway?")) {
+                return false;
+            }
+        }
+    }
+
+    //trap_inform_timeout
+    fld = document.getElementById("trap_inform_timeout");
+    if (fld) {
+        if (!isWithinRange("trap_inform_timeout", 0, 2147, "'Trap Inform Timeout'")) {
+            return false;
+        }
+    }
+
+    //trap_inform_retries
+    fld = document.getElementById("trap_inform_retries");
+    if (fld) {
+        if (!isWithinRange("trap_inform_retries", 0, 255, "'Trap Inform Retry Times'")) {
+            return false;
+        }
+    }
+
+    //trap_security_engineid
+    fld = document.getElementById("trap_security_engineid");
+    if (fld) {
+        if (!IsValidEngineID(fld.value)) {
+            alert("The 'Trap Security Engine ID' string must contain an even number between 10 and 64 hexadecimal digits, but all-zeros and all-'F's are not allowed");
+            return false;
+        }
+    }
+
+    //trap_security_name
+    fld = document.getElementById("trap_security_name");
+    if (fld) {
+        if (document.getElementById("trap_mode").value == 1 && document.getElementById("trap_version").value == 3 && parseInt(document.getElementById("trap_probe_security_engineid").value, 10) === 0 && (manualTrapSecurityEngineIdChanged || document.getElementById("trap_security_name").value == "None")) {
+            alert("After saving configuration, remember select the correct trap security name");
+        }
+    }
+
+    document.getElementById("snmp_read_community").disabled = false;
+    document.getElementById("snmp_write_community").disabled = false;
+
+    return true;
+}
+
+function changeTrapSecurityEngineId()
+{
+    manualTrapSecurityEngineIdChanged = 1;
+}
+
+function changeSnmpVersion()
+{
+    if (document.getElementById("snmp_version").value == 3) {
+        document.getElementById("snmp_read_community").disabled = true;
+        document.getElementById("snmp_write_community").disabled = true;
+        if (v3_supported == 1) {
+            document.getElementById("snmpv3_engineid").disabled = false;
+        }
+    } else {
+        document.getElementById("snmp_read_community").disabled = false;
+        document.getElementById("snmp_write_community").disabled = false;
+        if (v3_supported == 1) {
+            document.getElementById("snmpv3_engineid").disabled = true;
+        }
+    }
+}
+
+function changeTrapSecurityEngineIdProbe()
+{
+    var tbody = document.getElementById("trapData");
+    var newChild = document.createElement("tr");
+    if (document.getElementById("trap_version").value == 3) {
+        addTextCell(newChild, "Trap Security Engine ID", "param_label");
+        if ((trapSecurityEngineIdProbe = document.getElementById("trap_probe_security_engineid").value) == 1) {
+            if (String(trapSecurityEngineIdValue) === "") {
+                addTextCell(newChild, "Probe Fail", "cl");
+            } else {
+                addTextCell(newChild, trapSecurityEngineIdValue, "cl");
+            }
+        } else {
+            var td = addInputCell(newChild, trapSecurityEngineIdValue, "cl", "trap_security_engineid", 32);
+            td.setAttribute("maxLength", 64);
+            td.onchange = changeTrapSecurityEngineId;
+        }
+    } else {
+        addTextCell(newChild, "", "cl", 2);
+    }
+    if (ipv6_supported == 1) {
+        tbody.replaceChild(newChild, tbody.childNodes[11]);
+    } else {
+        tbody.replaceChild(newChild, tbody.childNodes[10]);
+    }
+}
+
+function changeTrapVersion()
+{
+    var tbody = document.getElementById("trapData");
+    var newChild, td;
+
+    if (parseInt(document.getElementById("trap_version").value, 10) === 0) {
+        document.getElementById("trap_inform_mode").disabled = true;
+        document.getElementById("trap_inform_timeout").disabled = true;
+        document.getElementById("trap_inform_retries").disabled = true;
+    } else {
+        document.getElementById("trap_inform_mode").disabled = false;
+        document.getElementById("trap_inform_timeout").disabled = false;
+        document.getElementById("trap_inform_retries").disabled = false;
+    }
+
+    newChild = document.createElement("tr");
+    if (document.getElementById("trap_version").value == 3) {
+        //trap_probe_security_engineid
+        addTextCell(newChild, "Trap Probe Security Engine ID", "param_label");
+        td = addSelectCell(newChild, oTMode, oVMode, trapSecurityEngineIdProbe, "cl", "trap_probe_security_engineid");
+        td.onchange = changeTrapSecurityEngineIdProbe;
+        td.style.width = "16em";
+    } else {
+        addTextCell(newChild, "", "cl", 2);
+    }
+    if (ipv6_supported == 1) {
+        tbody.replaceChild(newChild, tbody.childNodes[10]);
+    } else {
+        tbody.replaceChild(newChild, tbody.childNodes[9]);
+    }
+
+    newChild = document.createElement("tr");
+    if (document.getElementById("trap_version").value == 3) {
+        //trap_security_engineid
+        addTextCell(newChild, "Trap Security Engine ID", "param_label");
+        if (trapSecurityEngineIdProbe == 1) {
+            if (String(trapSecurityEngineIdValue) === "") {
+                addTextCell(newChild, "Probe Fail", "cl");
+            } else {
+                addTextCell(newChild, trapSecurityEngineIdValue, "cl");
+            }
+        } else {
+            td = addInputCell(newChild, trapSecurityEngineIdValue, "cl", "trap_security_engineid", 32);
+            td.setAttribute("maxLength", 64);
+            td.onchange = changeTrapSecurityEngineId;
+        }
+    } else {
+        addTextCell(newChild, "", "cl", 2);
+    }
+    if (ipv6_supported == 1) {
+        tbody.replaceChild(newChild, tbody.childNodes[11]);
+    } else {
+        tbody.replaceChild(newChild, tbody.childNodes[10]);
+    }
+
+    newChild = document.createElement("tr");
+    if (document.getElementById("trap_version").value == 3) {
+        //trap_security_name
+        addTextCell(newChild, "Trap Security Name", "param_label");
+        td = addSelectCell(newChild, oTUser, oTUser, trapSecurityNameValue, "cl", "trap_security_name");
+        td.style.width = "16em";
+    } else {
+        addTextCell(newChild, "", "cl", 2);
+    }
+    if (ipv6_supported == 1) {
+        tbody.replaceChild(newChild, tbody.childNodes[12]);
+    } else {
+        tbody.replaceChild(newChild, tbody.childNodes[11]);
+    }
+}
+
+function addRow(frag, values)
+{
+    var tr, td;
+
+    //snmp_mode
+    tr = document.createElement("tr");
+    addTextCell(tr, "Mode", "param_label");
+    td = addSelectCell(tr, oTMode, oVMode, values[0], "cl", "snmp_mode");
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //snmp_version
+    snmpVersion = values[1];
+    tr = document.createElement("tr");
+    addTextCell(tr, "Version", "param_label");
+    if (v3_supported == 1) {
+        td = addSelectCell(tr, oTVersion3, oVVersion, snmpVersion, "cl", "snmp_version");
+    } else {
+        td = addSelectCell(tr, oTVersion2, oVVersion, snmpVersion, "cl", "snmp_version");
+    }
+    td.style.width = "16em";
+    td.onchange = changeSnmpVersion;
+    frag.appendChild(tr);
+
+    //snmp_read_community
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Read Community", "param_label", "snmp_read_community");
+    td = addInputCell(tr, unescape(values[2]), "cl", "snmp_read_community", 16);
+    td.setAttribute("maxLength", snmpCommunityLen);
+    td.style.width = "16em";
+    if (snmpVersion == 3) {
+        td.disabled = true;
+    }
+    frag.appendChild(tr);
+
+    //snmp_write_community
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Write Community", "param_label", "snmp_write_community");
+    td = addInputCell(tr, unescape(values[3]), "cl", "snmp_write_community", 16);
+    td.setAttribute("maxLength", snmpCommunityLen);
+    td.style.width = "16em";
+    if (snmpVersion == 3) {
+        td.disabled = true;
+    }
+    frag.appendChild(tr);
+
+    if (parseInt(v3_supported, 10) === 0) {
+        return;
+    }
+
+    //snmpv3_engineid
+    snmpv3EngineId = values[4];
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Engine ID", "param_label", "snmpv3_engineid");
+    td = addInputCell(tr, snmpv3EngineId, "cl", "snmpv3_engineid", 32);
+    td.setAttribute("maxLength", 64);
+    td.style.width = "16em";
+    if (snmpVersion != 3) {
+        td.disabled = true;
+    }
+    frag.appendChild(tr);
+}
+
+function addTrapRow(frag, values)
+{
+    var tr, td, index = 0;
+
+    //trap_mode
+    trapMode = values[index++];
+    tr = document.createElement("tr");
+    addTextCell(tr, "Trap Mode", "param_label");
+    td = addSelectCell(tr, oTMode, oVMode, trapMode, "cl", "trap_mode");
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_version
+    trapVersion = values[index++];
+    tr = document.createElement("tr");
+    addTextCell(tr, "Trap Version", "param_label");
+    if (v3_supported == 1) {
+        td = addSelectCell(tr, oTVersion3, oVVersion, parseInt(trapVersion, 10), "cl", "trap_version");
+        td.onchange = changeTrapVersion;
+    } else {
+        td = addSelectCell(tr, oTVersion2, oVVersion, parseInt(trapVersion, 10), "cl", "trap_version");
+    }
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_community
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Trap Community", "param_label", "trap_community");
+    td = addInputCell(tr, unescape(values[index++]), "cl", "trap_community", 16);
+    td.setAttribute("maxLength", snmpCommunityLen);
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_dip
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Trap Destination Address", "param_label", "trap_dip");
+    td = addInputCell(tr, values[index++], "cl", "trap_dip", 15);
+    td.setAttribute("maxLength", 255);
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_dipv6
+    if (ipv6_supported == 1) {
+        var temp_value = values[index].split(":");
+        if (temp_value.length > 1) {
+            tr = document.createElement("tr");
+            addLabelTextCell(tr, "Trap Destination IPv6 Address", "param_label", "trap_dipv6");
+            td = addInputCell(tr, values[index++], "cl", "trap_dipv6", 40);
+            td.setAttribute("maxLength", 40);
+            td.style.width = "16em";
+            frag.appendChild(tr);
+        }
+    } else {
+        index++;
+    }
+
+    //trap_authen_fail
+    tr = document.createElement("tr");
+    addTextCell(tr, "Trap Authentication Failure", "param_label");
+    td = addSelectCell(tr, oTMode, oVMode, values[index++], "cl", "trap_authen_fail");
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_linkup_linkdown
+    tr = document.createElement("tr");
+    addTextCell(tr, "Trap Link-up and Link-down", "param_label");
+    td = addSelectCell(tr, oTMode, oVMode, values[index++], "cl", "trap_linkup_linkdown");
+    td.style.width = "16em";
+    frag.appendChild(tr);
+
+    //trap_inform_mode
+    tr = document.createElement("tr");
+    addTextCell(tr, "Trap Inform Mode", "param_label");
+    td = addSelectCell(tr, oTMode, oVMode, values[index++], "cl", "trap_inform_mode");
+    td.style.width = "16em";
+    if (parseInt(trapVersion, 10) === 0) {
+        td.disabled = true;
+    }
+    frag.appendChild(tr);
+
+    //trap_inform_timeout
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Trap Inform Timeout (seconds)", "param_label", "trap_inform_timeout");
+    td = addInputCell(tr, values[index++], "cl", "trap_inform_timeout", 4);
+    td.setAttribute("maxLength", 4);
+    td.style.width = "16em";
+    if (parseInt(trapVersion, 10) === 0) {
+        td.disabled = true;
+    }
+    frag.appendChild(tr);
+
+    //trap_inform_retries
+    tr = document.createElement("tr");
+    addLabelTextCell(tr, "Trap Inform Retry Times", "param_label", "trap_inform_retries");
+    td = addInputCell(tr, values[index++], "cl", "trap_inform_retries", 3);
+    td.setAttribute("maxLength", 3);
+    td.style.width = "16em";
+    if (parseInt(trapVersion, 10) === 0) {
+        td.disabled = true;
+    }
+    frag.appendChild(tr);
+
+    if (parseInt(v3_supported, 10) === 0) {
+        return;
+    }
+
+    trapSecurityEngineIdProbe = values[index++];
+    trapSecurityEngineIdValue = values[index++];
+    trapSecurityNameValue = values[index++];
+
+    var trap_ver = values[1];
+
+    //trap_probe_security_engineid
+    tr = document.createElement("tr");
+    if (trap_ver == 3) {
+        addTextCell(tr, "Trap Probe Security Engine ID", "param_label");
+        td = addSelectCell(tr, oTMode, oVMode, trapSecurityEngineIdProbe, "cl", "trap_probe_security_engineid");
+        td.onchange = changeTrapSecurityEngineIdProbe;
+        td.style.width = "16em";
+    } else {
+        addTextCell(tr, "", "cl", 2);
+    }
+    frag.appendChild(tr);
+
+    //trap_security_engineid
+    tr = document.createElement("tr");
+    if (trap_ver == 3) {
+        addTextCell(tr, "Trap Security Engine ID", "param_label");
+        if (trapSecurityEngineIdProbe == 1) {
+            if (String(trapSecurityEngineIdValue) === "") {
+                addTextCell(tr, "Probe Fail", "cl");
+            } else {
+                addTextCell(tr, trapSecurityEngineIdValue, "cl");
+            }
+        } else {
+            td = addInputCell(tr, trapSecurityEngineIdValue, "cl", "trap_security_engineid", 32);
+            td.setAttribute("maxLength", 64);
+            td.onchange = changeTrapSecurityEngineId;
+        }
+    } else {
+        addTextCell(tr, "", "cl", 2);
+    }
+    frag.appendChild(tr);
+
+    //trap_security_name
+    tr = document.createElement("tr");
+    if (trap_ver == 3) {
+        addTextCell(tr, "Trap Security Name", "param_label");
+        if (oTUser.length) {
+            td = addSelectCell(tr, oTUser, oTUser, trapSecurityNameValue, "cl", "trap_security_name");
+        td.style.width = "16em";
+        } else {
+            addTextCell(tr, "Not Exist", "cl");
+        }
+    } else {
+        addTextCell(tr, "", "cl", 2);
+    }
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    if (req.responseText) {
+        var i, values = req.responseText.split(",");
+        //if (1) {
+        //var values = req.split(",");
+
+        ipv6_supported = values[0];
+        v3_supported = values[1];
+
+        var names = values[2].split("|");
+        for (i = 0; i < names.length; i++) {
+            if (names[i]) {
+                oTUser[oTUser.length] = names[i];
+            }
+        }
+
+        var snmpConfig = values[3].split("|");
+
+        for (i = 0; i < snmpDataTable.length; i++) {
+            //create holder for accumulated tbody elements and text nodes
+            var frag = document.createDocumentFragment();
+            if (i === 0) {
+                addRow(frag, snmpConfig[i].split("/"));
+            }
+            else if (i == 1) {
+                addTrapRow(frag, snmpConfig[i].split("/"));
+            }
+            var tbody = document.getElementById(snmpDataTable[i]);
+            clearChildNodes(tbody);
+            if (!tbody.appendChild(frag)) { // Add Frag to table body
+                alert("This browser doesn't support dynamic tables.");
+            }
+        }
+    }
+}
+
+function requestUpdate()
+{
+    //Format: [ipv6_supported],[v3_supported],[trap_security_name1]|[trap_security_name2]|...,
+    //        [snmp_mode]/[snmp_version]/[snmp_read_community]/[snmp_write_community]/[snmpv3_engineid]|
+    //        [trap_mode]/[trap_version]/[trap_community]/[trap_dip]/[trap_dipv6]/[trap_authen_fail]/[trap_linkup_linkdown]/[trap_inform_mode]/[trap_inform_timeout]/[trap_inform_retries]/[trap_probe_security_engineid]/[trap_security_engineid]/[trap_security_name]
+    //var req="1,None|default_user|default_user1|default_user2,1/3/public/private/80000715017f000001|1/3/public/192.168.1.100/0:0:0:0:0:0:c000:33/1/1/1/10/5/1/88E70FE5CB453D41CC30C1CD/default_user";
+    //processUpdate(req, "");
+    loadXMLDoc("/config/snmp", processUpdate, "");
+    //help_page = (v3_supported == 1 ? "/help/help_snmp.htm" : "/help/help_snmpv3.htm");
+}
+
+function snmpReset(form)
+{
+    form.reset();
+    changeSnmpVersion();
+    changeTrapVersion();
+    changeTrapSecurityEngineIdProbe();
+    manualTrapSecurityEngineIdChanged = 0;
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>SNMP System Configuration</h1>
+
+<form name="snmpForm" method="POST" action="/config/snmp" onsubmit="return checkForm();">
+
+<table summary="SNMP System Configuration" cellspacing="0" class="config">
+ <tbody id="snmpData">
+ </tbody>
+</table>
+
+<table summary="SNMP Trap Configuration" cellspacing="0" class="config hidden">
+ <tbody id="trapData">
+ </tbody>
+</table>
+
+<p>
+<input type="submit" value="Save">
+<input type="reset" value="Reset" onclick="snmpReset(this.form);">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

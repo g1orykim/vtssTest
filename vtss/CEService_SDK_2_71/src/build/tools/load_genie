@@ -1,0 +1,54 @@
+#!/bin/bash
+
+user=`whoami`
+
+file="vtss_appl"
+
+usage() {
+    echo "Usage: load_genie [-f <file>] <genie_name>"
+    echo ""
+    echo "Options:"
+    echo "-h:        Print this help text."
+    echo "-f <file>: Load file <file> (default $file)"
+    echo ""
+    echo "Description"
+    echo "Load switch application example into genie board."
+    exit 0
+} 
+
+if [ $# = 0 -o "$1" = "-h" ]; then
+    usage;
+fi
+
+# Determine file
+if [ "$1" = "-f" ]; then
+    file=$2
+    if [ "$file" = "" ]; then
+	usage;
+    fi
+    shift
+    shift
+fi
+
+genie=$1
+
+if [ "$genie" = "" ]; then
+  usage;
+fi
+
+# Step backwards until the 'build' directory exists
+[ -d build ] || cd ..
+[ -d build ] || cd ..
+[ -d build ] || cd ..
+
+# Copy files to FTP directory
+ftpdir=/data/ftp/sw/$user
+[ -d $ftpdir ] || ( mkdir $ftpdir; chmod a+rwx $ftpdir )
+cp build/obj/vtss_appl.elf $ftpdir/$file
+chmod 755 $ftpdir/$file
+
+# Fix an IT problem
+unset LD_LIBRARY_PATH
+
+# Update switch:
+/import/swtools/genieupload -k vtss_appl -u sw -p Rb4U: -x soft02:/$user/$file $genie:/tmp/

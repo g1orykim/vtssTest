@@ -1,0 +1,6277 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<!-- Number of commands
+0057
+-->
+
+<html>
+
+<head>
+<title></title>
+<link href="vtss.css" rel="stylesheet" type="text/css">
+</head>
+
+<body lang=EN-US>
+
+<!-- Title -->
+<div class=Title>
+<p class=NewLine>&nbsp;</p>
+<p class=Title>
+CLI Command Reference Guide
+</p>
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<!-- Reference Link -->
+<div class=RefLink>
+<hr>
+<p class=NewLine>&nbsp;</p>
+
+<p class=RefLink>
+<a href="#cr0021">
+no qos cos 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0027">
+no qos dei 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0023">
+no qos dpl 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0051">
+no qos dscp-classify 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0053">
+no qos dscp-remark 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0049">
+no qos dscp-translate 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0009">
+no qos map cos-dscp &lt;cos&gt; dpl &lt;dpl&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0047">
+no qos map cos-tag cos &lt;cos&gt; dpl &lt;dpl&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0007">
+no qos map dscp-classify { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0003">
+no qos map dscp-cos { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0011">
+no qos map dscp-egress-translation { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } &lt;dpl&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0005">
+no qos map dscp-ingress-translation { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0033">
+no qos map tag-cos pcp &lt;pcp&gt; dei &lt;dei&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0025">
+no qos pcp 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0035">
+no qos policer 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0018">
+no qos qce &lt;qce_id_range&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0057">
+no qos qce { [ addr ] [ key ] } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0037">
+no qos queue-policer queue &lt;queue&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0043">
+no qos queue-shaper queue &lt;queue&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0041">
+no qos shaper 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0055">
+no qos storm { unicast | broadcast | unknown } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0016">
+no qos storm { unicast | multicast | broadcast } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0045">
+no qos tag-remark 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0031">
+no qos trust dscp 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0029">
+no qos trust tag 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0014">
+no qos wred queue &lt;queue&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0039">
+no qos wrr 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0020">
+qos cos &lt;cos&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0026">
+qos dei &lt;dei&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0022">
+qos dpl &lt;dpl&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0050">
+qos dscp-classify { zero | selected | any } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0052">
+qos dscp-remark { rewrite | remap | remap-dp } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0048">
+qos dscp-translate 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0008">
+qos map cos-dscp &lt;cos&gt; dpl &lt;dpl&gt; dscp { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0046">
+qos map cos-tag cos &lt;cos&gt; dpl &lt;dpl&gt; pcp &lt;pcp&gt; dei &lt;dei&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0006">
+qos map dscp-classify { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0002">
+qos map dscp-cos { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } cos &lt;cos&gt; dpl &lt;dpl&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0010">
+qos map dscp-egress-translation { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } &lt;dpl&gt; to { &lt;dscp_num_tr&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0004">
+qos map dscp-ingress-translation { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } to { &lt;dscp_num_tr&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0032">
+qos map tag-cos pcp &lt;pcp&gt; dei &lt;dei&gt; cos &lt;cos&gt; dpl &lt;dpl&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0024">
+qos pcp &lt;pcp&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0034">
+qos policer &lt;rate&gt; [ fps ] [ flowcontrol ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0019">
+qos qce refresh 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0056">
+qos qce { [ addr { source | destination } ] [ key { double-tag | normal | ip-addr | mac-ip-addr } ] } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0017">
+qos qce { [ update ] } &lt;qce_id&gt; [ { next &lt;qce_id_next&gt; } | last ] [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] [ smac { &lt;smac&gt; | &lt;smac_24&gt; | any } ] [ dmac { &lt;dmac&gt; | unicast | multicast | broadcast | any } ] [ tag { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { &lt;ot_vid&gt; | any } ] [ pcp { &lt;ot_pcp&gt; | any } ] [ dei { &lt;ot_dei&gt; | any } ] } ] [ inner-tag { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { &lt;it_vid&gt; | any } ] [ pcp { &lt;it_pcp&gt; | any } ] [ dei { &lt;it_dei&gt; | any } ] } ] [ frame-type { any | { etype [ { &lt;etype_type&gt; | any } ] } | { llc [ dsap { &lt;llc_dsap&gt; | any } ] [ ssap { &lt;llc_ssap&gt; | any } ] [ control { &lt;llc_control&gt; | any } ] } | { snap [ { &lt;snap_data&gt; | any } ] } | { ipv4 [ proto { &lt;pr4&gt; | tcp | udp | any } ] [ sip { &lt;sip4&gt; | any } ] [ dip { &lt;dip4&gt; | any } ] [ dscp { &lt;dscp4&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | any } ] [ fragment { yes | no | any } ] [ sport { &lt;sp4&gt; | any } ] [ dport { &lt;dp4&gt; | any } ] } | { ipv6 [ proto { &lt;pr6&gt; | tcp | udp | any } ] [ sip { &lt;sip6&gt; | any } ] [ dip { &lt;dip6&gt; | any } ] [ dscp { &lt;dscp6&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | any } ] [ sport { &lt;sp6&gt; | any } ] [ dport { &lt;dp6&gt; | any } ] } } ] [ action { [ cos { &lt;action_cos&gt; | default } ] [ dpl { &lt;action_dpl&gt; | default } ] [ pcp-dei { &lt;action_pcp&gt; &lt;action_dei&gt; | default } ] [ dscp { &lt;action_dscp_dscp&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | default } ] [ policy { &lt;action_policy&gt; | default } ] } ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0036">
+qos queue-policer queue &lt;queue&gt; &lt;rate&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0042">
+qos queue-shaper queue &lt;queue&gt; &lt;rate&gt; [ excess ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0040">
+qos shaper &lt;rate&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0054">
+qos storm { unicast | broadcast | unknown } &lt;rate&gt; [ fps ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0015">
+qos storm { unicast | multicast | broadcast } { { &lt;rate&gt; [ kfps ] } | { 1024 kfps } } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0044">
+qos tag-remark { pcp &lt;pcp&gt; dei &lt;dei&gt; | mapped } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0030">
+qos trust dscp 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0028">
+qos trust tag 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0013">
+qos wred queue &lt;queue&gt; min-fl &lt;min_fl&gt; max &lt;max&gt; [ fill-level ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0012">
+qos wred queue &lt;queue&gt; min-th &lt;min_th&gt; mdp-1 &lt;mdp_1&gt; mdp-2 &lt;mdp_2&gt; mdp-3 &lt;mdp_3&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0038">
+qos wrr &lt;w0&gt; &lt;w1&gt; &lt;w2&gt; &lt;w3&gt; &lt;w4&gt; &lt;w5&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0001">
+show qos [ { interface [ &lt;port_type&gt; [ &lt;port&gt; ] ] } | wred | { maps [ dscp-cos ] [ dscp-ingress-translation ] [ dscp-classify ] [ cos-dscp ] [ dscp-egress-translation ] } | storm | { qce [ &lt;qce&gt; ] } ] 
+</a></p>
+
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0021">
+no qos cos 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0027">
+no qos dei 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0023">
+no qos dpl 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dpl
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0051">
+no qos dscp-classify 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-classify
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0053">
+no qos dscp-remark 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-remark
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0049">
+no qos dscp-translate 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-translate
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0009">
+no qos map cos-dscp &lt;cos&gt; dpl &lt;dpl&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cos-dscp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;cos&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dpl
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dpl&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0047">
+no qos map cos-tag cos &lt;cos&gt; dpl &lt;dpl&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cos-tag
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;cos&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dpl
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dpl&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0007">
+no qos map dscp-classify { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-classify
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp_num&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0003">
+no qos map dscp-cos { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-cos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp_num&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0011">
+no qos map dscp-egress-translation { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } &lt;dpl&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-egress-translation
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp_num&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dpl&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0005">
+no qos map dscp-ingress-translation { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-ingress-translation
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp_num&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0033">
+no qos map tag-cos pcp &lt;pcp&gt; dei &lt;dei&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tag-cos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dei&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0025">
+no qos pcp 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0035">
+no qos policer 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+policer
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0018">
+no qos qce &lt;qce_id_range&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qce
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;qce_id_range&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0057">
+no qos qce { [ addr ] [ key ] } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qce
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+addr
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+key
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0037">
+no qos queue-policer queue &lt;queue&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+queue-policer
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+queue
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;queue&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0043">
+no qos queue-shaper queue &lt;queue&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+queue-shaper
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+queue
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;queue&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0041">
+no qos shaper 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+shaper
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0055">
+no qos storm { unicast | broadcast | unknown } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+storm
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+unicast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+broadcast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+unknown
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0016">
+no qos storm { unicast | multicast | broadcast } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+storm
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+unicast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+multicast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+broadcast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0045">
+no qos tag-remark 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tag-remark
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0031">
+no qos trust dscp 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+trust
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0029">
+no qos trust tag 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+trust
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tag
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0014">
+no qos wred queue &lt;queue&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+wred
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+queue
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;queue&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0039">
+no qos wrr 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+wrr
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0020">
+qos cos &lt;cos&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+Quality of Service
+</p>
+<p class=CmdSubTitle2>
+cos
+</p>
+<p class=CmdSubDesc2>
+Class of service configuration
+</p>
+<p class=CmdSubTitle2>
+&lt;cos&gt;
+</p>
+<p class=CmdSubDesc2>
+Specific class of service
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0026">
+qos dei &lt;dei&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dei&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0022">
+qos dpl &lt;dpl&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dpl
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dpl&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0050">
+qos dscp-classify { zero | selected | any } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-classify
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+zero
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+selected
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0052">
+qos dscp-remark { rewrite | remap | remap-dp } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-remark
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+rewrite
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+remap
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+remap-dp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0048">
+qos dscp-translate 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-translate
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0008">
+qos map cos-dscp &lt;cos&gt; dpl &lt;dpl&gt; dscp { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cos-dscp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;cos&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dpl
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dpl&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp_num&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0046">
+qos map cos-tag cos &lt;cos&gt; dpl &lt;dpl&gt; pcp &lt;pcp&gt; dei &lt;dei&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cos-tag
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;cos&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dpl
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dpl&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dei&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0006">
+qos map dscp-classify { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-classify
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp_num&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0002">
+qos map dscp-cos { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } cos &lt;cos&gt; dpl &lt;dpl&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+Quality of Service
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+Global QoS Map/Table
+</p>
+<p class=CmdSubTitle2>
+dscp-cos
+</p>
+<p class=CmdSubDesc2>
+Map for dscp to cos
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp_num&gt;
+</p>
+<p class=CmdSubDesc2>
+Specific DSCP or range
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+Default PHB(DSCP 0) for best effort traffic
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF11(DSCP 10)
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF12(DSCP 12)
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF13(DSCP 14)
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF21(DSCP 18)
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF22(DSCP 20)
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF23(DSCP 22)
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF31(DSCP 26)
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF32(DSCP 28)
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF33(DSCP 30)
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF41(DSCP 34)
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF42(DSCP 36)
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+Assured Forwarding PHB AF43(DSCP 38)
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+Class Selector PHB CS1 precedence 1(DSCP 8)
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+Class Selector PHB CS2 precedence 2(DSCP 16)
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+Class Selector PHB CS3 precedence 3(DSCP 24)
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+Class Selector PHB CS4 precedence 4(DSCP 32)
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+Class Selector PHB CS5 precedence 5(DSCP 40)
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+Class Selector PHB CS6 precedence 6(DSCP 48)
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+Class Selector PHB CS7 precedence 7(DSCP 56)
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+Expedited Forwarding PHB(DSCP 46)
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+Voice Admit PHB(DSCP 44)
+</p>
+<p class=CmdSubTitle2>
+cos
+</p>
+<p class=CmdSubDesc2>
+Specify class of service
+</p>
+<p class=CmdSubTitle2>
+&lt;cos&gt;
+</p>
+<p class=CmdSubDesc2>
+Specific class of service
+</p>
+<p class=CmdSubTitle2>
+dpl
+</p>
+<p class=CmdSubDesc2>
+Specify drop precedence level
+</p>
+<p class=CmdSubTitle2>
+&lt;dpl&gt;
+</p>
+<p class=CmdSubDesc2>
+Specific drop precedence level
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0010">
+qos map dscp-egress-translation { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } &lt;dpl&gt; to { &lt;dscp_num_tr&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-egress-translation
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp_num&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dpl&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+to
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp_num_tr&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0004">
+qos map dscp-ingress-translation { &lt;dscp_num&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } to { &lt;dscp_num_tr&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-ingress-translation
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp_num&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+to
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp_num_tr&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0032">
+qos map tag-cos pcp &lt;pcp&gt; dei &lt;dei&gt; cos &lt;cos&gt; dpl &lt;dpl&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+map
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tag-cos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dei&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;cos&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dpl
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dpl&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0024">
+qos pcp &lt;pcp&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0034">
+qos policer &lt;rate&gt; [ fps ] [ flowcontrol ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+policer
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;rate&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+fps
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+flowcontrol
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0019">
+qos qce refresh 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qce
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+refresh
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0056">
+qos qce { [ addr { source | destination } ] [ key { double-tag | normal | ip-addr | mac-ip-addr } ] } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qce
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+addr
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+source
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+destination
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+key
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+double-tag
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+normal
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ip-addr
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+mac-ip-addr
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0017">
+qos qce { [ update ] } &lt;qce_id&gt; [ { next &lt;qce_id_next&gt; } | last ] [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] [ smac { &lt;smac&gt; | &lt;smac_24&gt; | any } ] [ dmac { &lt;dmac&gt; | unicast | multicast | broadcast | any } ] [ tag { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { &lt;ot_vid&gt; | any } ] [ pcp { &lt;ot_pcp&gt; | any } ] [ dei { &lt;ot_dei&gt; | any } ] } ] [ inner-tag { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { &lt;it_vid&gt; | any } ] [ pcp { &lt;it_pcp&gt; | any } ] [ dei { &lt;it_dei&gt; | any } ] } ] [ frame-type { any | { etype [ { &lt;etype_type&gt; | any } ] } | { llc [ dsap { &lt;llc_dsap&gt; | any } ] [ ssap { &lt;llc_ssap&gt; | any } ] [ control { &lt;llc_control&gt; | any } ] } | { snap [ { &lt;snap_data&gt; | any } ] } | { ipv4 [ proto { &lt;pr4&gt; | tcp | udp | any } ] [ sip { &lt;sip4&gt; | any } ] [ dip { &lt;dip4&gt; | any } ] [ dscp { &lt;dscp4&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | any } ] [ fragment { yes | no | any } ] [ sport { &lt;sp4&gt; | any } ] [ dport { &lt;dp4&gt; | any } ] } | { ipv6 [ proto { &lt;pr6&gt; | tcp | udp | any } ] [ sip { &lt;sip6&gt; | any } ] [ dip { &lt;dip6&gt; | any } ] [ dscp { &lt;dscp6&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | any } ] [ sport { &lt;sp6&gt; | any } ] [ dport { &lt;dp6&gt; | any } ] } } ] [ action { [ cos { &lt;action_cos&gt; | default } ] [ dpl { &lt;action_dpl&gt; | default } ] [ pcp-dei { &lt;action_pcp&gt; &lt;action_dei&gt; | default } ] [ dscp { &lt;action_dscp_dscp&gt; | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | default } ] [ policy { &lt;action_policy&gt; | default } ] } ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qce
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+update
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;qce_id&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+next
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;qce_id_next&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+last
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+smac
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;smac&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;smac_24&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dmac
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dmac&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+unicast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+multicast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+broadcast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tag
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+type
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+untagged
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tagged
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+c-tagged
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+s-tagged
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;ot_vid&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;ot_pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;ot_dei&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+inner-tag
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+type
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+untagged
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tagged
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+c-tagged
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+s-tagged
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;it_vid&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;it_pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;it_dei&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+frame-type
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+etype
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;etype_type&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+llc
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dsap
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;llc_dsap&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ssap
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;llc_ssap&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+control
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;llc_control&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snap
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;snap_data&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ipv4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+proto
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;pr4&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tcp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+udp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;sip4&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dip
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dip4&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp4&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+fragment
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+yes
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+sport
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;sp4&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dport
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dp4&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ipv6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+proto
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;pr6&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tcp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+udp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;sip6&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dip
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dip6&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp6&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+sport
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;sp6&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dport
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dp6&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+action
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;action_cos&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+default
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dpl
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;action_dpl&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+default
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+pcp-dei
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;action_pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;action_dei&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+default
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;action_dscp_dscp&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+be
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af11
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af12
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af13
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af21
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af22
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af23
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af31
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af32
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af33
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af41
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af42
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+af43
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs4
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs5
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs6
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cs7
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ef
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+va
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+default
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+policy
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;action_policy&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+default
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0036">
+qos queue-policer queue &lt;queue&gt; &lt;rate&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+queue-policer
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+queue
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;queue&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;rate&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0042">
+qos queue-shaper queue &lt;queue&gt; &lt;rate&gt; [ excess ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+queue-shaper
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+queue
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;queue&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;rate&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+excess
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0040">
+qos shaper &lt;rate&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+shaper
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;rate&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0054">
+qos storm { unicast | broadcast | unknown } &lt;rate&gt; [ fps ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+storm
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+unicast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+broadcast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+unknown
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;rate&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+fps
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0015">
+qos storm { unicast | multicast | broadcast } { { &lt;rate&gt; [ kfps ] } | { 1024 kfps } } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+storm
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+unicast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+multicast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+broadcast
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;rate&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+kfps
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+1024
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+kfps
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0044">
+qos tag-remark { pcp &lt;pcp&gt; dei &lt;dei&gt; | mapped } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tag-remark
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;dei&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+mapped
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0030">
+qos trust dscp 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+trust
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0028">
+qos trust tag 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+trust
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tag
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0013">
+qos wred queue &lt;queue&gt; min-fl &lt;min_fl&gt; max &lt;max&gt; [ fill-level ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+wred
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+queue
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;queue&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+min-fl
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;min_fl&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+max
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;max&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+fill-level
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0012">
+qos wred queue &lt;queue&gt; min-th &lt;min_th&gt; mdp-1 &lt;mdp_1&gt; mdp-2 &lt;mdp_2&gt; mdp-3 &lt;mdp_3&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+wred
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+queue
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;queue&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+min-th
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;min_th&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+mdp-1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;mdp_1&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+mdp-2
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;mdp_2&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+mdp-3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;mdp_3&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0038">
+qos wrr &lt;w0&gt; &lt;w1&gt; &lt;w2&gt; &lt;w3&gt; &lt;w4&gt; &lt;w5&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+wrr
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;w0&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;w1&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;w2&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;w3&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;w4&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;w5&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0001">
+show qos [ { interface [ &lt;port_type&gt; [ &lt;port&gt; ] ] } | wred | { maps [ dscp-cos ] [ dscp-ingress-translation ] [ dscp-classify ] [ cos-dscp ] [ dscp-egress-translation ] } | storm | { qce [ &lt;qce&gt; ] } ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;port&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+wred
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+maps
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-cos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-ingress-translation
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-classify
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cos-dscp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dscp-egress-translation
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+storm
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+qce
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;qce&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+</body></html>
+

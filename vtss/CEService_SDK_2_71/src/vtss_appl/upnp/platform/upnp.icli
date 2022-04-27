@@ -1,0 +1,405 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_UPNP)
+
+INCLUDE_BEGIN
+#include "main.h"
+#include "cli.h"
+#include "vtss_upnp_api.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+
+typedef enum {
+    SYS_MODE_CMD,
+    SYS_TTL_CMD,
+    SYS_ADV_CMD,
+    SYS_CMD_END
+}UPNP_ICLI_system_cmd_t;
+
+static void UPNP_ICLI_system_set(u32 session_id, UPNP_ICLI_system_cmd_t cmd, void* var)
+{
+    vtss_rc             rc;
+    upnp_conf_t         conf;
+
+    if ((rc = upnp_mgmt_conf_get(&conf)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+        return;
+    }
+
+    switch (cmd) {
+        case SYS_MODE_CMD:
+        {
+            BOOL  original_mode;
+            original_mode = conf.mode;
+            conf.mode = *(BOOL*)var ? 1: 0;
+            if (conf.mode != original_mode && (rc = upnp_mgmt_conf_set(&conf)) != VTSS_OK) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+            break;
+        }
+        case SYS_TTL_CMD:
+        {
+            u8 tmp;
+            tmp = conf.ttl;
+            conf.ttl = *(u8*)var;
+            if (conf.ttl != tmp && (rc = upnp_mgmt_conf_set(&conf)) != VTSS_OK) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+            break;
+        }
+        case SYS_ADV_CMD:
+        {
+            u32 tmp;
+            tmp = conf.adv_interval;
+            conf.adv_interval = *(u32*)var;
+            if ( conf.adv_interval != tmp && (rc = upnp_mgmt_conf_set(&conf)) != VTSS_OK ) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+            break;
+        }
+        default:
+            ICLI_PRINTF("undkown cmd %d\n", cmd);
+            break;
+    }
+
+}
+
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_SHOW_UPNP = Display UPnP configurations
+HELP_UPNP = Set UPnP's configurations
+HELP_UPNP_TTL = Set TTL value
+HELP_UPNP_TTL_VAL = TTL value
+HELP_UPNP_ADV_INTERVAL = Set advertising duration
+HELP_UPNP_ADV_INTERVAL_VAL = advertising duration
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show upnp
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: upnp
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##HELP_SHOW_UPNP
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    upnp_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) upnp_mgmt_conf_get(&conf);
+    ICLI_PRINTF("UPnP Mode                 : %s\n", cli_bool_txt(conf.mode));
+    ICLI_PRINTF("UPnP TTL                  : %d\n", conf.ttl);
+    ICLI_PRINTF("UPnP Advertising Duration : %ld\n", conf.adv_interval);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = upnp
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: upnp
+
+CMD_VAR = 
+
+HELP = ##HELP_UPNP
+
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL mode = TRUE;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode = FALSE;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    UPNP_ICLI_system_set(session_id, SYS_MODE_CMD, &mode);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    UPNP_ICLI_system_set(session_id, SYS_MODE_CMD, &mode);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = upnp ttl <1-255>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: upnp
+! 2: ttl
+! 3: <1-255>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_1_to_255
+
+HELP = ##HELP_UPNP
+HELP = ##HELP_UPNP_TTL
+HELP = ##HELP_UPNP_TTL_VAL
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    i8 ttl;
+VARIABLE_END
+
+CODE_BEGIN
+    ttl = (i8) v_1_to_255;
+    UPNP_ICLI_system_set(session_id, SYS_TTL_CMD, &ttl);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no upnp ttl
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: upnp
+! 3: ttl
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##HELP_UPNP
+HELP = ##HELP_UPNP_TTL
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    i8 ttl = (i8) UPNP_MGMT_DEFAULT_TTL;
+VARIABLE_END
+
+CODE_BEGIN
+    UPNP_ICLI_system_set(session_id, SYS_TTL_CMD, &ttl);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = upnp advertising-duration <100-86400>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: upnp
+! 2: advertising-duration
+! 3: <100-86400>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_100_to_86400
+
+HELP = ##HELP_UPNP
+HELP = ##HELP_UPNP_ADV_INTERVAL
+HELP = ##HELP_UPNP_ADV_INTERVAL_VAL
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    UPNP_ICLI_system_set(session_id, SYS_ADV_CMD, &v_100_to_86400);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no upnp advertising-duration
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: upnp
+! 3: advertising-duration
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##HELP_UPNP
+HELP = ##HELP_UPNP_ADV_INTERVAL
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    u32 adv_interval = UPNP_MGMT_DEFAULT_INT;
+VARIABLE_END
+
+CODE_BEGIN
+    UPNP_ICLI_system_set(session_id, SYS_ADV_CMD, &adv_interval);
+CODE_END
+
+CMD_END
+

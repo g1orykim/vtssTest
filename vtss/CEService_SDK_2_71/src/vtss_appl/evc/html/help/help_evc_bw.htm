@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>EVC Bandwidth Profile Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="../lib/config.js"></script>
+ <script type="text/javascript">
+function requestUpdate()
+{
+    document.getElementById('EvcPolicerIdMax').innerHTML = configEvcPolicerIdMax;
+    document.getElementById('EvcPolicerIdMax1').innerHTML = configEvcPolicerIdMax;
+    document.getElementById('EvcPolicerIdMax2').innerHTML = configEvcPolicerIdMax;
+    document.getElementById('EvcCirMin').innerHTML = configEvcCirMin;
+    document.getElementById('EvcCirMax').innerHTML = configEvcCirMax;
+    document.getElementById('EvcCbsMin').innerHTML = configEvcCbsMin;
+    document.getElementById('EvcCbsMax').innerHTML = configEvcCbsMax;
+    document.getElementById('EvcEirMin').innerHTML = configEvcEirMin;
+    document.getElementById('EvcEirMax').innerHTML = configEvcEirMax;
+    document.getElementById('EvcEbsMin').innerHTML = configEvcEbsMin;
+    document.getElementById('EvcEbsMax').innerHTML = configEvcEbsMax;
+}
+ </script>
+</head>
+
+<body onload="requestUpdate();">
+<h1>EVC Bandwidth Profile Configuration Help</h1>
+<p>This page displays current <a href="glossary.htm#EVC" class="glossary">EVC</a> ingress bandwidth profile configurations. These <a href="glossary.htm#policer" class="glossary">policer</a>s may be used to limit the traffic received on UNI ports.
+   The settings can also be configured here.</p>
+
+<dl>
+ <dt>Start Policer ID</dt>
+ <dd>
+ The start Policer ID for displaying the table entries.
+ The allowed range is from <samp>1</samp> through <samp><span id="EvcPolicerIdMax">128</span></samp>.
+ </dd>
+
+ <dt>Number of Entries</dt>
+ <dd>
+ The number of entries per page.
+ The allowed range is from <samp>2</samp> through <samp><span id="EvcPolicerIdMax1">128</span></samp>.
+ </dd>
+
+ <dt>Policer ID</dt>
+ <dd>
+ The Policer ID is used to identify one of the <span id="EvcPolicerIdMax2">128</span> policers.
+ </dd>
+
+ <dt>State</dt>
+ <dd>
+ The administrative state of the bandwidth profile. The allowed values are:
+ <br><samp>Enabled</samp>: The bandwidth profile enabled.
+ <br><samp>Disabled</samp>: The bandwidth profile is disabled.
+ </dd>
+
+ <dt>Type</dt>
+ <dd>
+ The policer type of the bandwidth profile. The allowed values are:
+ <br><samp>MEF</samp>: MEF ingress bandwidth profile.
+ <br><samp>Single</samp>: Single bucket policer.
+ </dd>
+
+ <dt>Policer Mode</dt>
+ <dd>
+ The colour mode of the bandwidth profile. The allowed values are:
+ <br><samp>Coupled</samp>: Colour-aware mode with coupling enabled.
+ <br><samp>Aware</samp>: Colour-aware mode with coupling disabled.
+ </dd>
+ <dd class="has_arch_jaguar_1">
+ <samp>Blind</samp>: Colour-blind mode.
+ </dd>
+
+ <dt>Rate Type</dt>
+ <dd>
+ The rate type of the bandwidth profile. The allowed values are:
+ <br><samp>Data</samp>: Specify that this bandwidth profile operates on data rate.
+ <br><samp>Line</samp>: Specify that this bandwidth profile operates on line rate.
+ </dd>
+ <dd class="has_arch_jaguar_1">
+ <samp>Blind</samp>: Colour-blind mode.
+ </dd>
+
+ <dt>CIR</dt>
+ <dd>
+ The Committed Information Rate of the bandwidth profile.
+ The allowed range is from <samp><span id="EvcCirMin">0</span></samp> through <samp><span id="EvcCirMax">1000000</span></samp> kilobit per second.
+ </dd>
+
+ <dt>CBS</dt>
+ <dd>
+ The Committed Burst Size of the bandwidth profile.
+ The allowed range is from <samp><span id="EvcCbsMin">0</span></samp> through <samp><span id="EvcCbsMax">100000</span></samp> bytes.
+ </dd>
+
+ <dt>EIR</dt>
+ <dd>
+ The Excess Information Rate for MEF type bandwidth profile.
+ The allowed range is from <samp><span id="EvcEirMin">0</span></samp> through <samp><span id="EvcEirMax">1000000</span></samp> kilobit per second.
+ </dd>
+
+ <dt>EBS</dt>
+ <dd>
+ The Excess Burst Size for MEF type bandwidth profile.
+ The allowed range is from <samp><span id="EvcEbsMin">0</span></samp> through <samp><span id="EvcEbsMax">100000</span></samp> bytes.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Refresh ">: Refreshes the displayed table starting from the input fields.</p>
+<p><input type="button" value=" |<< ">: Updates the table, starting with the first entry in the table.</p>
+<p><input type="button" value=" << ">: Updates the table, ending at the entry before the first entry currently displayed.</p>
+<p><input type="button" value=" >> ">: Updates the table, starting with the entry after the last entry currently displayed.</p>
+<p><input type="button" value=" >>| ">: Updates the table, ending at the last entry in the table.</p>
+
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

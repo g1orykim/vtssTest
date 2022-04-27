@@ -1,0 +1,589 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = VTSS_SW_OPTION_POE
+
+INCLUDE_BEGIN
+#include "poe_icli_functions.h"
+#include "icli_porting_util.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_POE = Power Over Ethernet.
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_POE
+
+COMMAND = show poe [ interface <port_type_list> ]
+
+DOC_CMD_DESC    = Use the show poe to show PoE status.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Use to show PoE status for the switch.
+DOC_CMD_EXAMPLE = show poe
+
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: poe
+! 3: interface
+! 4: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_interface
+CMD_VAR = v_port_type_list
+
+HELP = Display PoE (Power Over Ethernet) status for the switch.
+HELP = ##HELP_POE
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Interface : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    poe_icli_show(session_id, has_interface, v_port_type_list);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_POE 
+
+COMMAND = poe mode { standard | plus }
+
+DOC_CMD_DESC    = Use poe mode to configure of PoE mode.
+DOC_CMD_DEFAULT = PoE is disabled.
+DOC_CMD_USAGE   = Use to configure PoE mode.
+DOC_CMD_EXAMPLE = poe mode poe 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: poe
+! 2: mode
+! 3: poe
+! 4: plus
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_poe
+CMD_VAR = has_poe_plus
+
+HELP = ##HELP_POE
+HELP = PoE mode.
+HELP = Set mode to PoE (Maximum power 15.4 W)
+HELP = Set mode to PoE+ (Maximum power 30.0 W)
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Poe : option>
+BYWORD = <PoePlus : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    poe_icli_mode(session_id, has_poe, has_poe_plus, plist, FALSE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_POE 
+
+COMMAND = no poe mode
+
+DOC_CMD_DESC    = Use poe mode to configure of PoE mode.
+DOC_CMD_DEFAULT = PoE is disabled.
+DOC_CMD_USAGE   = Use to set PoE mode to default.
+DOC_CMD_EXAMPLE = no poe mode 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+RUNTIME = 
+
+! 1: no
+! 2: poe
+! 3: mode
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = no
+HELP = ##HELP_POE
+HELP = PoE mode.
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    poe_icli_mode(session_id, FALSE, FALSE, plist, TRUE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_POE 
+
+COMMAND = poe priority { low | high | critical }
+
+DOC_CMD_DESC    = Use poe priority to configure PoE priority.
+DOC_CMD_DEFAULT = Priority is low.
+DOC_CMD_USAGE   = Use to configure PoE priority.
+DOC_CMD_EXAMPLE = poe priority high
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: poe
+! 2: priority
+! 3: low
+! 4: high
+! 5: critical
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_low
+CMD_VAR = has_high
+CMD_VAR = has_critical
+
+HELP = ##HELP_POE
+HELP = Interface priority.
+HELP = Set priority to low.
+HELP = Set priority to high.
+HELP = Set priority to critical.
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Low : option>
+BYWORD = <High : option>
+BYWORD = <Critical : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    poe_icli_priority(session_id, has_low, has_high, has_critical, plist, FALSE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_POE 
+
+COMMAND = no poe priority
+
+DOC_CMD_DESC    = Use poe priority to configure PoE priority.
+DOC_CMD_DEFAULT = Priority is low.
+DOC_CMD_USAGE   = Use to configure PoE priority.
+DOC_CMD_EXAMPLE = poe priority high
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: poe
+! 3: priority
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = ##HELP_POE
+HELP = Set Interface priority to default value.
+
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    poe_icli_priority(session_id, FALSE, FALSE, FALSE, plist, TRUE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_POE 
+
+COMMAND = poe management mode { class-consumption | class-reserved-power | allocation-consumption | allocation-reserved-power | lldp-consumption | lldp-reserved-power }
+
+POE_MANAGEMENT_MODE_HELP = Use management mode to configure PoE power management method. 
+DOC_CMD_DESC    = ##POE_MANAGEMENT_MODE_HELP
+DOC_CMD_DEFAULT = Management mode is class-consumption.
+DOC_CMD_USAGE   = Use to configure PoE power management method.
+DOC_CMD_EXAMPLE = poe management mode class-reserved-power
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+! 1: poe
+! 2: management
+! 3: mode
+! 4: class-consumption
+! 5: class-reserved-power
+! 6: allocation-consumption
+! 7: allocation-reserved-power
+! 8: lldp-consumption
+! 9: lldp-reserved-power
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_class_consumption
+CMD_VAR = has_class_reserved_power
+CMD_VAR = has_allocation_consumption
+CMD_VAR = has_allocation_reserved_power
+CMD_VAR = has_lldp_consumption
+CMD_VAR = has_lldp_reserved_power
+
+HELP = ##HELP_POE 
+HELP = ##POE_MANAGEMENT_MODE_HELP
+HELP = mode
+HELP = Max. port power determined by class, and power is managed according to power consumption. 
+HELP = Max. port power determined by class, and power is managed according to reserved power.
+HELP = Max. port power determined by allocated, and power is managed according to power consumption. 
+HELP = Max. port power determined by alocated, and power is managed according to reserved power.
+HELP = Max. port power determined by LLDP Media protocol, and power is managed according to power consumption. 
+HELP = Max. port power determined by LLDP Media protocol, and power is managed according to reserved power.
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <ClassConsumption : option>
+BYWORD = <ClassReservedPower : option>
+BYWORD = <AllocationConsumption : option>
+BYWORD = <AllocationReservedPower : option>
+BYWORD = <LldpConsumption : option>
+BYWORD = <LldpReservedPower : option>
+
+CODE_BEGIN
+    poe_icli_management_mode(session_id, has_class_consumption, has_class_reserved_power, has_allocation_consumption, has_allocation_reserved_power, has_lldp_consumption, has_lldp_reserved_power, FALSE);
+CODE_END
+
+CMD_END
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_POE 
+
+COMMAND = no poe management mode
+
+DOC_CMD_DESC    = ##POE_MANAGEMENT_MODE_HELP
+DOC_CMD_DEFAULT = Management mode is class-consumption.
+DOC_CMD_USAGE   = Use to configure PoE power management method.
+DOC_CMD_EXAMPLE = poe management mode class-reserved-power
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE | ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP =
+HELP = ##HELP_POE 
+HELP = POE_MANAGEMENT_MODE_HELP
+HELP = mode
+
+CODE_BEGIN
+    poe_icli_management_mode(session_id, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE);
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_POE 
+
+COMMAND = poe power limit { <fword2.1> }
+
+DOC_CMD_DESC    = Use poe power limit to configure the maximum allowed power for the interface when power management is in allocation mode.
+DOC_CMD_DEFAULT = Maximum power is 15.4W
+DOC_CMD_USAGE   = Use to configure the maximum allowed power for the interface when power management is in allocation mode.
+DOC_CMD_EXAMPLE = poe power limit 14
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: poe
+! 2: power
+! 3: limit
+! 4: <word9>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_word9
+
+HELP = ##HELP_POE
+HELP = Setting maximum power for port in allocation mode.
+HELP = The maximum power.
+HELP = Maximum power for the interface (0-15.4 Watt for PoE standard mode, 0-30.0 Watt for PoE plus mode)
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Power in watts : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    poe_icli_power_limit(session_id, v_word9, plist, FALSE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_POE 
+
+COMMAND = no poe power limit
+
+DOC_CMD_DESC    = Use poe power limit to configure the maximum allowed power for the interface when power management is in allocation mode.
+DOC_CMD_DEFAULT = Maximum power is 15.4W
+DOC_CMD_USAGE   = Use to configure the maximum allowed power for the interface when power management is in allocation mode.
+DOC_CMD_EXAMPLE = poe power limit 14
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: poe
+! 3: power
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = ##HELP_POE
+HELP = Setting maximum power for port in allocation mode to default value.
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    poe_icli_power_limit(session_id, "15.4", plist, TRUE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_POE 
+
+COMMAND = poe supply sid <1~16> <1-2000>
+
+POE_SUPPLY_HELP = Use poe supply to specify the maximum power the power supply can deliver.
+DOC_CMD_DESC    = ##POE_SUPPLY_HELP
+DOC_CMD_DEFAULT = Power supply maximum is 2000W
+DOC_CMD_USAGE   = Use to specify the maximum power the power supply can deliver.
+DOC_CMD_EXAMPLE = poe supply 1000
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+MODE_VAR = plist
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME =  icli_runtime_stacking
+RUNTIME =  icli_runtime_stacking
+
+! 1: poe
+! 2: supply
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_1_to_16
+CMD_VAR = v_1_to_2000
+
+HELP = ##HELP_POE
+HELP = ##POE_SUPPLY_HELP
+HELP = runtime, see poe_icli_functions.c
+HELP = runtime, see poe_icli_functions.c
+HELP = Maximum power the power supply can deliver.
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Switch id : option>
+BYWORD = 
+
+CODE_BEGIN
+    poe_icli_power_supply(session_id, v_1_to_16, v_1_to_2000, FALSE);  
+CODE_END
+
+CMD_END
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = VTSS_SW_OPTION_POE 
+
+COMMAND = no poe supply [sid <1~16>]
+
+DOC_CMD_DESC    = ##POE_SUPPLY_HELP
+DOC_CMD_DEFAULT = Power supply maximum is 2000W
+DOC_CMD_USAGE   = Use to specify the maximum power the power supply can deliver.
+DOC_CMD_EXAMPLE = poe supply 1000
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE | ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+MODE_VAR = plist
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME =  icli_runtime_stacking
+RUNTIME =  icli_runtime_stacking
+
+! 1: poe
+! 2: supply
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_1_to_16
+
+
+HELP =
+HELP = ##HELP_POE
+HELP = ##POE_SUPPLY_HELP
+HELP = runtime, see poe_icli_functions.c
+HELP = runtime, see poe_icli_functions.c
+
+CODE_BEGIN
+    poe_icli_power_supply(session_id, v_1_to_16, 0, TRUE); 
+CODE_END
+
+CMD_END
+

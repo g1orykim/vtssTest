@@ -1,0 +1,223 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Top Image</title>
+ <link href="lib/top.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <base target="_self">
+
+ <script type="text/javascript">
+var HelpWindow = 0;
+
+// This function opens a browser window showing context help for a web page.
+function showContextHelp()
+{
+    if (parent.main.help_page && parent.main.help_page.length > 0) {
+        var loc = parent.main.document.location;
+        var port = (loc.port != "" ? ":" + loc.port : "");
+        var url = parent.main.document.URL;
+        var pval = url.split("/");
+        var helpurl = loc.protocol + "//" + pval[2] + port + parent.main.help_page;
+
+        // Re-use window? it does not work on Safari
+        if (0 /*HelpWindow != 0 && !HelpWindow.closed*/) {
+            // Actually, this does not work (the help page itself focus()'es!
+            HelpWindow.focus();
+            HelpWindow.location = helpurl;
+        } else {
+            HelpWindow = window.open(helpurl, "HelpWindow",
+                                     "toolbar=yes,location=no,directories=no,status=no," +
+                                     "menubar=no,scrollbars=yes,resizable=yes," +
+                                     "width=400,height=550");
+        }
+    } else {
+        alert("Sorry, this page does not have any help.");
+    }
+}
+
+function setLogo()
+{
+    var logotext = document.getElementById("logotext");
+    if (logotext) {
+        // Glory - modify
+        // logotext.innerHTML = configSwitchName + "&trade; " + configSwitchDescription;
+        logotext.innerHTML = "NHM-2208 Series";
+    }
+}
+
+function getIdValue(name)
+{
+    var i, x, y, cookie_string = document.cookie.split(";");
+    for (i = 0; i < cookie_string.length; i++) {
+        x = cookie_string[i].substr(0, cookie_string[i].indexOf("="));
+        y = cookie_string[i].substr(cookie_string[i].indexOf("=") + 1);
+        x = x.replace(/^\s+|\s+$/g,"");
+        if (x == name) {
+            return unescape(y);
+        }
+    }
+    return 0;
+}
+
+function setIdValue(name, value)
+{
+    var argc = setIdValue.arguments.length; 
+    var argv = setIdValue.arguments;     
+    var path = (argc > 3) ? argv[3] : null;   
+    var domain = (argc > 4) ? argv[4] : null;   
+    var secure = (argc > 5) ? argv[5] : false;   
+     
+     
+    document.cookie = name + "=" + value +  
+    ((path === null) ? "" : ("; path=" + path)) +
+    ((domain === null) ? "" : ("; domain=" + domain)) +     
+    ((secure === true) ? "; secure" : ""); 
+} 
+
+function redirect()
+{
+    document.location.href = "/";
+}
+
+function basicAuthLogout()
+{
+    var req, agent = navigator.userAgent.toLowerCase();
+    try {
+        if (agent.indexOf("msie") != -1) {
+            // Only MSIE provide syntax for clear authentication cache
+            document.execCommand("ClearAuthenticationCache", "false");
+        } else {
+            var sesstype, sessid;
+            var loc = String(window.parent.document.location);
+            if (loc.indexOf("https://")!= -1) {
+                sesstype = 1;
+                sessid = getIdValue("sesslid");
+            } else {
+                sesstype = 0;
+                sessid = getIdValue("seid");
+            }
+
+            if (agent.indexOf("opera") != -1) {
+                if (sesstype == 1) {
+                    setIdValue("sesslid", "-1");
+                } else {
+                    setIdValue("seid", "-1");
+                }
+            }
+            req = initXMLHTTP();
+            if (agent.indexOf("opera") != -1) {
+                req.open("GET", "/config/ip_config", false, "", "");
+            } else if (agent.indexOf("safari") != -1 && agent.indexOf("chrome") == -1) {
+                req.open("GET", "/config/ip_config", true, "~", "");
+            } else {
+                req.open("GET", "/config/ip_config", false, "~", "");
+            }
+            req.send("");
+            req.abort();
+            if (agent.indexOf("opera") != -1) {
+                 if (sesstype == 1) {
+                    setIdValue("sesslid", sessid);
+                } else {
+                    setIdValue("seid", sessid);
+                }
+            }
+        }
+    } catch(e) {
+        // There was an error
+        req = null;
+        return;
+    }
+    if (agent.indexOf("safari") != -1) {
+        setTimeout('redirect()', 500);
+    } else {
+        redirect();
+    }
+}
+
+// There's no real completed solution for clear authentication cache in Firefox, Chrome or Safari.
+// A key technique that we use to effectively log out feature:
+// Change the authentication to a reserved username/password ("~"/"").
+// It works on FF, Chrome and Safari but not on Opera.
+// We use a specific cookie (sess_id, -1) to trigger a HTTP response with error code 401 (not authorized)
+function clickLogout()
+{
+    if (confirm('Do you want to log out the web site?'))
+    {
+        var sesstype, sessid;
+        var loc = String(window.parent.document.location);
+        if (loc.indexOf("https://")!= -1) {
+            sesstype = 1;
+            sessid = getIdValue("sesslid");
+        } else {
+            sesstype = 0;
+            sessid = getIdValue("seid");
+        }
+        loadXMLDoc("/stat/logout?type=" + sesstype + "&sessid=" + sessid, null, null);
+
+        setTimeout('basicAuthLogout()', 1000);
+    }
+}
+
+</script>
+
+</head>
+
+<body onload="setLogo();">
+
+<table summary="logo" border="0" cellspacing="0" cellpadding="0" width="100%">
+  <tr>
+    <td>
+      <img border="0" src="logo.gif" width="190" height="54" alt="Vitesse" />
+    </td>
+    <td width="100%">
+      <div id = "logotext" class="logotext"></div>
+    </td>
+  </tr>
+</table>
+
+<div class="helpbutton">
+<a href="main.htm" target="main"><img alt="Home" title="Home" border="0" src="images/home.gif"></a>
+<input type="image" alt="Logout" title="Logout" src="images/logout.gif" onclick="clickLogout();">
+<a href="#" onclick="showContextHelp();"><img alt="Show Help" title="Show Help" border="0" src="images/help.gif"></a>
+</div>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

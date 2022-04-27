@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <title>TACACS+ Server Configuration Help</title>
+    <link href="/lib/help.css" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="/lib/config.js"></script>
+    <script type="text/javascript" src="/lib/mootools-core.js"></script>
+    <script type="text/javascript" language="JavaScript">
+      window.addEvent('domready', function() {
+        $$('span.AuthServerCnt').set('text', configAuthServerCnt);
+        $$('span.AuthKeyLen').set('text', configAuthKeyLen);
+        $$('span.AuthTimeoutMin').set('text', configAuthTimeoutMin);
+        $$('span.AuthTimeoutMax').set('text', configAuthTimeoutMax);
+        $$('span.AuthDeadtimeMin').set('text', configAuthDeadtimeMin);
+        $$('span.AuthDeadtimeMax').set('text', configAuthDeadtimeMax);
+      });
+    </script>
+  </head>
+
+  <body>
+    <h1>TACACS+ Server Configuration Help</h1>
+    <p>
+      This page allows you to configure the <a href="glossary.htm#radius" class="glossary">TACACS+</a> servers.
+    </p>
+
+    <h2>Global Configuration</h2>
+    These setting are common for all of the TACACS+ servers.
+    <dl>
+      <dt>Timeout</dt>
+      <dd>
+        Timeout is the number of seconds, in the range <span class="AuthTimeoutMin">?</span> to <span class="AuthTimeoutMax">?</span>,
+        to wait for a reply from a TACACS+ server before it is considered to be dead.
+      </dd>
+      <dt>Deadtime</dt>
+      <dd>
+        Deadtime, which can be set to a number between <span class="AuthDeadtimeMin">?</span> to <span class="AuthDeadtimeMax">?</span> minutes,
+        is the period during which the switch will not send new requests to a server that has failed to respond to a previous request.
+        This will stop the switch from continually trying to contact a server that it has already determined as dead.<br/>
+        Setting the Deadtime to a value greater than 0 (zero) will enable this feature, but only if more than one server has been configured.
+      </dd>
+      <dt>Key</dt>
+      <dd>
+        The secret key - up to <span class="AuthKeyLen">?</span> characters long - shared between the TACACS+ server and the switch.
+      </dd>
+    </dl>
+
+    <h2>Server Configuration</h2>
+    The table has one row for each TACACS+ server and a number of columns, which are:
+    <dl>
+      <dt>Delete</dt>
+      <dd>
+        To delete a TACACS+ server entry, check this box. The entry will be deleted during the next Save.
+      </dd>
+      <dt>Hostname</dt>
+      <dd>
+        The IP address<span class="has_dns"> or hostname</span> of the TACACS+ server.
+      </dd>
+      <dt>Port</dt>
+      <dd>
+        The <a href="glossary.htm#tcp" class="glossary">TCP</a> port to use on the TACACS+ server for authentication.
+      </dd>
+      <dt>Timeout</dt>
+      <dd>
+        This optional setting overrides the global timeout value. Leaving it blank will use the global timeout value.
+      </dd>
+      <dt>Key</dt>
+      <dd>
+        This optional setting overrides the global key. Leaving it blank will use the global key.
+      </dd>
+    </dl>
+
+    <h2>Adding a New Server</h2>
+    <p>
+      Click <input type="button" value=" Add New Server "> to add a new TACACS+ server. An empty row is added
+      to the table, and the TACACS+ server can be configured as needed. Up to <span class="AuthServerCnt">?</span> servers are supported.<br/>
+      The <input type="button" value=" Delete "> button can be used to undo the addition of the new server.
+    </p>
+
+    <h2>Buttons</h2>
+    <p><input type="button" value=" Save ">: Click to save changes.</p>
+    <p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+  </body>
+</html>

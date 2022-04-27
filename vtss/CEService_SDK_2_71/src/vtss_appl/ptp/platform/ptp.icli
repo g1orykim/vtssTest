@@ -1,0 +1,4327 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_PTP)
+
+INCLUDE_BEGIN
+#include "ptp_icli_functions.h"
+#include "icli_porting_util.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show ptp <0-3> { default | current | parent | time-property | filter | servo | clk | ho | uni | master-table-unicast | slave | { { port-state | port-ds | wireless | foreign-master-record } [ interface <port_type_list> ] } }
+
+DOC_CMD_DESC    = Show various PTP data
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = show ptp 0 current
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: ptp
+! 3: <0-3>
+! 4: default
+! 5: current
+! 6: parent
+! 7: time-property
+! 8: filter
+! 9: servo
+! 10: clk
+! 11: ho
+! 12: uni
+! 13: master-table-unicast
+! 14: slave
+! 15: port-state
+! 16: port-ds
+! 17: wireless
+! 18: foreign-master-record
+! 19: interface
+! 20: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = has_default
+CMD_VAR = has_current
+CMD_VAR = has_parent
+CMD_VAR = has_time_property
+CMD_VAR = has_filter
+CMD_VAR = has_servo
+CMD_VAR = has_clk
+CMD_VAR = has_ho
+CMD_VAR = has_uni
+CMD_VAR = has_master_table_unicast
+CMD_VAR = has_slave
+CMD_VAR = has_port_state
+CMD_VAR = has_port_ds
+CMD_VAR = has_wireless
+CMD_VAR = has_foreign_master_record
+CMD_VAR = has_interface
+CMD_VAR = v_port_type_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Precision time Protocol (1588)
+HELP = Show various PTP data
+HELP = Show PTP default data set (IEEE1588 paragraph 8.2.1).
+HELP = Show PTP current data set (IEEE1588 paragraph 8.2.2).
+HELP = Show PTP parent data set (IEEE1588 paragraph 8.2.3).
+HELP = Show PTP time properties data set (IEEE1588 paragraph 8.2.4).
+HELP = Show PTP filter parameters.
+HELP = Show PTP servo parameters.
+HELP = Show PTP slave clock options parameters.
+HELP = Show PTP slave holdover parameters.
+HELP = Show PTP slave unicast configuration parameters.
+HELP = Show PTP master list of connected unicast slaves.
+HELP = Show PTP slave clock lock threshold parameters.
+HELP = Show PTP port state.
+HELP = Show PTP port data set (IEEE1588 paragraph 8.2.5).
+HELP = Show PTP port wireless parameters.
+HELP = Show PTP port foreign masters.
+HELP = Define interface list for the 'port' show commands. Default is show all interfaces.
+HELP = Optional interface list.
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = default : Option
+BYWORD = current : Option
+BYWORD = parent : Option
+BYWORD = time-property : Option
+BYWORD = filter : Option
+BYWORD = servo : Option
+BYWORD = clk : Option
+BYWORD = ho : Option
+BYWORD = uni : Option
+BYWORD = master-table-unicast : Option
+BYWORD = slave : Option
+BYWORD = port-state : Option
+BYWORD = port-ds : Option
+BYWORD = wireless : Option
+BYWORD = foreign-master-record : Option
+BYWORD = interface : Option
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ptp_icli_show(session_id, clockinst, has_default, has_current, has_parent, has_time_property, 
+        has_filter, has_servo, has_clk, has_ho, has_uni, has_master_table_unicast, 
+        has_slave, has_port_state, has_port_ds, has_wireless, has_foreign_master_record, 
+        has_interface, v_port_type_list);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = show ptp ext
+
+DOC_CMD_DESC    = Show the 1PPS and External clock output configuration and vcxo frequency rate adjustment option.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = show ptp ext
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: ptp
+! 3: ext
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Precision time Protocol (1588)
+HELP = Show the 1PPS and External clock output configuration \
+ and vcxo frequency rate adjustment option. \
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ptp_icli_ext_clock_mode_show(session_id);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_ARCH_SERVAL)
+
+COMMAND = show ptp rs422
+
+DOC_CMD_DESC    = Show the RS422 clock configuration
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = show ptp rs422
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: ptp
+! 3: rs422
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Serval has two physical external clocks, this command sets the alternative clock, that is connected to the RS422 connector.
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ptp_icli_rs422_clock_mode_show(session_id);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> local-clock { update | ratio <-10000000-10000000> }
+
+DOC_CMD_DESC    = Update local clock current time, or set clock ratio.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: local-clock
+! 4: update
+! 5: ratio
+! 6: <-10000000-10000000>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = has_update
+CMD_VAR = has_ratio
+CMD_VAR = ratio
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = PTP Clock instance [0-3]
+HELP = Update local clock current time, or set clock ratio
+HELP = The local clock is synchronized to the eCos system clock
+HELP = Set the local master clock frequency ratio.
+HELP = Ratio in units of 0,1 PPB, (ratio > 0 => faster clock, ratio < 0 => slower clock).
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = update : Option
+BYWORD = ratio : Option
+BYWORD = <Ratio : -10000000-10000000>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ptp_icli_local_clock_set(session_id, clockinst, has_update, has_ratio, ratio);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show ptp <0-3> local-clock
+
+DOC_CMD_DESC    = Show local clock current time.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = show ptp 0 local-clock
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: ptp
+! 3: <0-3>
+! 4: local-clock
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = PTP Clock instance [0-3]
+HELP = Show local clock current time
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ptp_icli_local_clock_show(session_id, clockinst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> slave-cfg [ stable-offset <0-1000000> ] [ offset-ok <0-1000000> ] [ offset-fail <0-1000000> ]
+
+DOC_CMD_DESC    = Set PTP clock Slave Configuration 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: slave-cfg
+! 4: stable-offset
+! 5: <0-1000000>
+! 6: offset-ok
+! 7: <0-1000000>
+! 8: offset-fail
+! 9: <0-1000000>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = has_stable_offset
+CMD_VAR = stable_offset
+CMD_VAR = has_offset_ok
+CMD_VAR = offset_ok
+CMD_VAR = has_offset_fail
+CMD_VAR = offset_fail
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance [0-3]
+HELP = Set PTP clock Slave Configuration
+HELP = set the stable_offset threshold
+HELP = stable_offset threshold in ns.
+HELP = set the offset_ok threshold
+HELP = offset_ok threshold in ns
+HELP = set the offset_fail threshold
+HELP = offset_fail threshold in ns
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = stable-offset : Option
+BYWORD = <StableOffset : 0-1000000>
+BYWORD = offset-ok : Option
+BYWORD = <OffsetOk : 0-1000000>
+BYWORD = offset-fail : Option
+BYWORD = <OffsetFail : 0-1000000>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ptp_icli_slave_cfg_set(session_id, clockinst, has_stable_offset, stable_offset, has_offset_ok, offset_ok, has_offset_fail, offset_fail);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined (VTSS_SW_OPTION_ZL_3034X_PDV)
+
+COMMAND = ptp ms-pdv [ one-hz ] [ min-phase <0-100> ] [ apr <0-8> ]
+
+DOC_CMD_DESC    = Enable 3'rd party PDV algorithm from Microsemi
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = This is an alternative to Vitesses PDV algorithm
+DOC_CMD_EXAMPLE = ptp ms-pdv one-hz min-phase 5 apr 1
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: ms-pdv
+! 3: one-hz
+! 4: min-phase
+! 5: <0-100>
+! 6: apr
+! 7: <0-8>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_one_hz
+CMD_VAR = has_min_phase
+CMD_VAR = min_phase
+CMD_VAR = has_apr
+CMD_VAR = apr
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Enable 3'rd party PDV algorithm from Microsemi
+HELP = Enable 1 Hz (phase) synchronization
+HELP = Define minimum phase adjustment threshold (default is 20)
+HELP = Threshols in ns
+HELP = Define the Advances Phase Recovery mode. (See Microsemi mode description)
+HELP = mode [0-8]
+
+BYWORD = 
+BYWORD = 
+BYWORD = one-hz : Option
+BYWORD = min-phase : Option
+BYWORD = <MinPhase : 0-100>
+BYWORD = apr : Option
+BYWORD = <Apr : 0-8>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_ms_pdv_set(session_id, has_one_hz, has_min_phase, min_phase, has_apr, apr, TRUE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined (VTSS_SW_OPTION_ZL_3034X_PDV)
+
+COMMAND = no ptp ms-pdv
+
+DOC_CMD_DESC    = Disable 3'rd party PDV algorithm from Microsemi
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp ms-pdv
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: ms-pdv
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Disable 3'rd party PDV algorithm from Microsemi
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_ms_pdv_set(session_id, FALSE, FALSE, 0, FALSE, 0, FALSE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_ARCH_JAGUAR_1) && defined(VTSS_FEATURE_PHY_TIMESTAMP)
+
+COMMAND = ptp ref-clock { mhz125 | mhz156p25 | mhz250 }
+
+DOC_CMD_DESC    = Set the 1588 reference clock frequency on the PCB107 board
+DOC_CMD_DEFAULT = Frequency is 250 MHz
+DOC_CMD_USAGE   = Used to test the 1588 accuracy at different frequencies
+DOC_CMD_EXAMPLE = ptp ref-clock mhz125 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: ref-clock
+! 3: mhz125
+! 4: mhz156p25
+! 5: mhz250
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_mhz125
+CMD_VAR = has_mhz156p25
+CMD_VAR = has_mhz250
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Set the 1588 reference clock frequency on the PCB107 board
+HELP = Set the frequency to 125 MHz
+HELP = Set the frequency to 156.25 MHz
+HELP = Set the frequency to 250 MHz
+
+BYWORD = 
+BYWORD = 
+BYWORD = mhz125 : Option
+BYWORD = mhz156p25 : Option
+BYWORD = mhz250 : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_ptp_ref_clock_set(session_id, has_mhz125, has_mhz156p25, has_mhz250);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_ARCH_JAGUAR_1) && defined(VTSS_FEATURE_PHY_TIMESTAMP)
+
+COMMAND = no ptp ref-clock
+
+DOC_CMD_DESC    = Set the 1588 reference clock frequency to default on the PCB107 board
+DOC_CMD_DEFAULT = Frequency is 250 MHz
+DOC_CMD_USAGE   = Used to test the 1588 accuracy at different frequencies
+DOC_CMD_EXAMPLE = no ptp ref-clock
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: ref-clock
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Set the 1588 reference clock frequency to default on the PCB107 board
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_ptp_ref_clock_set(session_id, FALSE, FALSE, TRUE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp tc-internal [ mode <0-3> ]
+
+DOC_CMD_DESC    = Define the internal mode used in TC's (0 = MODE_30BIT, 1 = MODE_32BIT, 2 = MODE_44BIT, 3 = MODE_48BIT)
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Mode 44BIT and 48BIT can only be used for TC's
+DOC_CMD_EXAMPLE = ptp tc-internal mode 1 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: tc-internal
+! 3: mode
+! 4: <0-3>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_mode
+CMD_VAR = mode
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Define the internal mode used in TC's
+HELP = Set mode
+HELP = mode [0-3] (0 = MODE_30BIT, 1 = MODE_32BIT, 2 = MODE_44BIT, 3 = MODE_48BIT)
+
+BYWORD = 
+BYWORD = 
+BYWORD = mode : Option
+BYWORD = <Mode : 0-8>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_tc_internal_set(session_id, has_mode, mode);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show ptp <0-3> slave-cfg
+
+DOC_CMD_DESC    = Show PTP clock Slave Configuration 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: ptp
+! 3: <0-3>
+! 4: slave-cfg
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Show PTP clock Slave Configuration
+HELP = Clock instance [0-3]
+HELP = Show slave lock configuration
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ptp_icli_slave_cfg_show(session_id, clockinst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show ptp <0-3> slave-table-unicast
+
+DOC_CMD_DESC    = Show the Unicast slave table of the requested unicast masters
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = show ptp 0 slave-table-unicast
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: show
+! 2: ptp
+! 3: <0-3>
+! 4: slave-table-unicast
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Precision time Protocol (1588)
+HELP = Clock instance: 0-3
+HELP = Show the Unicast slave table of the requested unicast masters
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ptp_icli_slave_table_unicast_show(session_id, clockinst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> wireless mode interface <port_type_list>
+
+DOC_CMD_DESC    = Enable wireless mode for one or more interfaces.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 wireless mode gi 1/1
+
+NO_FORM_DOC_CMD_DESC    = Disable wireless mode for one or more interfaces.
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no ptp 0 wireless mode gi 1/1
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: wireless
+! 4: mode
+! 5: interface
+! 6: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = Enable wireless mode for an interface.
+HELP = Clock instance [0-3]
+HELP = Enable wireless mode for one or more interfaces.
+HELP = Enable wireless mode for an interface.
+HELP = Interface
+HELP = Interface id
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_wireless_mode_set(session_id, clockinst, TRUE, v_port_type_list);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+ptp_icli_wireless_mode_set(session_id, clockinst, FALSE, v_port_type_list);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> wireless pre-notification interface <port_type_list>
+
+DOC_CMD_DESC    = Issue a pre notification that the wireless modem is going to change.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 wireless pre-noticifation interface gi 1/1
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: wireless
+! 4: pre-notification
+! 5: interface
+! 6: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance [0-3]
+HELP = 
+HELP = Issue a pre notification that the wireless modem is going to change.
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ptp_icli_wireless_pre_notification(session_id, clockinst, v_port_type_list);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> wireless delay <0-1000000000> [ <0-1000000> ] interface <port_type_list>
+
+DOC_CMD_DESC    = Set the wireless delay for one or more ports
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 wireless delay 1000000 interface gi 1/2
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: wireless
+! 4: delay
+! 5: <0-1000000000>
+! 6: <0-1000000>
+! 7: interface
+! 8: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = base_delay
+CMD_VAR = incr_delay
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance [0-3]
+HELP = 
+HELP = 
+HELP = Base wireless transmission delay (in picco seconds)
+HELP = Incremental wireless transmission delay pr. byte (in picco seconds)
+HELP = Interface parameter
+HELP = 
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+BYWORD = <BaseDelay : 0-1000000000>
+BYWORD = <IncrDelay : 0-1000000>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ptp_icli_wireless_delay(session_id, clockinst, base_delay, incr_delay, v_port_type_list);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> mode { boundary | e2etransparent | p2ptransparent | master | slave } [ onestep | twostep ] [ ethernet | ip4multi | ip4unicast | oam | onepps ] [ oneway | twoway ] [ id <clock_id> ] [ vid <vlan_id> [ <0-7> ] [ tag ] ] [ mep <1-100> ]
+
+DOC_CMD_DESC    = Create a PTP clock instance
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 mode boundary onestep ethernet 10
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: mode
+! 4: boundary
+! 5: e2etransparent
+! 6: p2ptransparent
+! 7: master
+! 8: slave
+! 9: onestep
+! 10: twostep
+! 11: ethernet
+! 12: ip4multi
+! 13: ip4unicast
+! 14: oam
+! 15: onepps
+! 16: oneway
+! 17: twoway
+! 18: id
+! 19: <clock_id>
+! 20: vid
+! 21: <vlan_id>
+! 22: <0-7>
+! 23: tag
+! 24: mep
+! 25: <1-100>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = has_boundary
+CMD_VAR = has_e2etransparent
+CMD_VAR = has_p2ptransparent
+CMD_VAR = has_master
+CMD_VAR = has_slave
+CMD_VAR = has_onestep
+CMD_VAR = has_twostep
+CMD_VAR = has_ethernet
+CMD_VAR = has_ip4multi
+CMD_VAR = has_ip4unicast
+CMD_VAR = has_oam
+CMD_VAR = has_onepps
+CMD_VAR = has_oneway
+CMD_VAR = has_twoway
+CMD_VAR = has_id
+CMD_VAR = v_clock_id
+CMD_VAR = has_vid
+CMD_VAR = vid
+CMD_VAR = prio
+CMD_VAR = has_tag
+CMD_VAR = has_mep
+CMD_VAR = mep_id
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance [0-3]
+HELP = Enable a PTP instance
+HELP = Ordinary / Boundary clock
+HELP = End to end transparent clock
+HELP = Peer to peer transparent clock
+HELP = Master only clock
+HELP = Slave only clock
+HELP = Onestep mode
+HELP = Twostep mode
+HELP = Ethernet protocol encapsulation
+HELP = IPv4 multicast protocol encapsulation
+HELP = IPv4 unicast protocol encapsulation
+HELP = OAM encapsulation (only used in Serval based Distributed TC)
+HELP = 1PPS master slave synchronization(only used wht Gen2 1588 PHY's)
+HELP = Oneway slave mode (no Delay_req)
+HELP = Twoway slave mode
+HELP = define PTP clock instance identifier
+HELP = PTP clock instance identifier (8 bytes)
+HELP = define Vlan ID
+HELP = VLAN id
+HELP = The range of Priorities ptp can use in the tagged frames
+HELP = The ptp frames are tagged with the VLAN tag specified in the VID field
+HELP = Define mep id used in OAM based PTP
+HELP = Mep instance number used if the OAM protocol option is used (only relevant i Serval)
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = boundary : Option
+BYWORD = e2etransparent : Option
+BYWORD = p2ptransparent : Option
+BYWORD = master : Option
+BYWORD = slave : Option
+BYWORD = onestep : Option
+BYWORD = twostep : Option
+BYWORD = ethernet : Option
+BYWORD = ip4multi : Option
+BYWORD = ip4unicast : Option
+BYWORD = oam : Option
+BYWORD = onepps : Option
+BYWORD = oneway : Option
+BYWORD = twoway : Option
+BYWORD = id : Option
+BYWORD = 
+BYWORD = vid : Option
+BYWORD = <Vid : vlan_id>
+BYWORD = <Prio : 0-7>
+BYWORD = tag : Option
+BYWORD = mep : Option
+BYWORD = <MepId : 1-100>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_mode(session_id, clockinst, 
+                has_boundary, has_e2etransparent, has_p2ptransparent, has_master, has_slave,
+                has_onestep, has_twostep, 
+                has_ethernet, has_ip4multi, has_ip4unicast, has_oam, has_onepps,
+                has_oneway, has_twoway, 
+                has_id, &v_clock_id,
+                has_vid, vid, prio, has_tag, has_mep, mep_id);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> mode { boundary | e2etransparent | p2ptransparent | master | slave }
+
+DOC_CMD_DESC    = Delete a PTP clock instance
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 mode boundary
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: mode
+! 5: boundary
+! 6: e2etransparent
+! 7: p2ptransparent
+! 8: master
+! 9: slave
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = has_boundary
+CMD_VAR = has_e2etransparent
+CMD_VAR = has_p2ptransparent
+CMD_VAR = has_master
+CMD_VAR = has_slave
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Instance number: 0-3
+HELP = Delete PTP clock instance
+HELP = Delete if boundary clock
+HELP = Delete if e2e TC
+HELP = Delete if p2p TC
+HELP = Delete if master only
+HELP = Delete if slaveonly
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = boundary : Option
+BYWORD = e2etransparent : Option
+BYWORD = p2ptransparent : Option
+BYWORD = master : Option
+BYWORD = slave : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_no_mode(session_id, clockinst, 
+                has_boundary, has_e2etransparent, has_p2ptransparent, has_master, has_slave);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> priority1 <0-255>
+
+DOC_CMD_DESC    = Set Clock priority 1
+DOC_CMD_DEFAULT = 128
+DOC_CMD_USAGE   = Used to set Clock priority 1 for PTP BMC algorithm (0 is highest priority)
+DOC_CMD_EXAMPLE = ptp 0 priority1 199
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: priority1
+! 4: <0-255>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = priority1
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance [0-3]
+HELP = Clock priority 1 for PTP BMC algorithm (0 is highest priority)
+HELP = PTP clock priority1: range = 0-255
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = <Priority1 : 0-255>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_priority1_set(session_id, clockinst, priority1);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> priority2 <0-255>
+
+DOC_CMD_DESC    = Set Clock priority 2
+DOC_CMD_DEFAULT = 128
+DOC_CMD_USAGE   = Used to set Clock priority 2 for PTP BMC algorithm (0 is highest priority)
+DOC_CMD_EXAMPLE = ptp 0 priority2 200
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: priority2
+! 4: <0-255>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = priority2
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance [0-3]
+HELP = Clock priority 2 for PTP BMC algorithm (0 is highest priority)
+HELP = PTP clock priority1: range = 0-255
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = <Priority2 : 0-255>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_priority2_set(session_id, clockinst, priority2);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> domain <0-127>
+
+DOC_CMD_DESC    = Set clock domain
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 domain 2
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: domain
+! 4: <0-127>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = domain
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance [0-3]
+HELP = Clock domain for PTP
+HELP = PTP domain: range = 0-127
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = <Domain : 0-127>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_domain_set(session_id, clockinst, domain);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> priority1
+
+DOC_CMD_DESC    = Set Clock priority 1 to default
+DOC_CMD_DEFAULT = 128
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 priority1
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: priority1
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance [0-3]
+HELP = Default Clock priority 1
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_priority1_set(session_id, clockinst, 128);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> priority2
+
+DOC_CMD_DESC    = Set Clock priority 2 to default
+DOC_CMD_DEFAULT = 128
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 priority2
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: priority2
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance [0-3]
+HELP = Default Clock priority 2
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_priority2_set(session_id, clockinst, 128);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> domain
+
+DOC_CMD_DESC    = Set Clock domain to default
+DOC_CMD_DEFAULT = 0
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 domain
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: domain
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance [0-3]
+HELP = Default Clock domain
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_domain_set(session_id, clockinst, 0);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> time-property [ utc-offset <-32768-32767> ] [ valid ] [ leap-59 | leap-61 ] [ time-traceable ] [ freq-traceable ] [ ptptimescale ] [ time-source <0-255> ]
+
+DOC_CMD_DESC    = Set PTP clock Timing properties Data set.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 time-property leap-59
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: time-property
+! 4: utc-offset
+! 5: <-32768-32767>
+! 6: valid
+! 7: leap-59
+! 8: leap-61
+! 9: time-traceable
+! 10: freq-traceable
+! 11: ptptimescale
+! 12: time-source
+! 13: <0-255>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = has_utc_offset
+CMD_VAR = utc_offset
+CMD_VAR = has_valid
+CMD_VAR = has_leapminus_59
+CMD_VAR = has_leapminus_61
+CMD_VAR = has_time_traceable
+CMD_VAR = has_freq_traceable
+CMD_VAR = has_ptptimescale
+CMD_VAR = has_time_source
+CMD_VAR = time_source
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set time properties
+HELP = set utc offset
+HELP = utc offset value 
+HELP = UTC offset is valid
+HELP = leap59 in current day
+HELP = leap61 in current day
+HELP = timing is traceable
+HELP = frequency is traceable
+HELP = timing is a PTP time scale
+HELP = set timesource
+HELP = timesource: range 0-255
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = utc-offset : Option
+BYWORD = <UtcOffset : -32768-32767>
+BYWORD = valid : Option
+BYWORD = leap-59 : Option
+BYWORD = leap-61 : Option
+BYWORD = time-traceable : Option
+BYWORD = freq-traceable : Option
+BYWORD = ptptimescale : Option
+BYWORD = time-source : Option
+BYWORD = <TimeSource : 0-255>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_time_property_set(session_id, clockinst, has_utc_offset, utc_offset, has_valid, has_leapminus_59,
+            has_leapminus_61, has_time_traceable, has_freq_traceable, has_ptptimescale, has_time_source, time_source);
+
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> filter [ delay <0-6> ] [ period <1-10000> ] [ dist <1-10> ]
+
+DOC_CMD_DESC    = Set PTP clock filter data
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 filter delay 3
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: filter
+! 4: delay
+! 5: <0-6>
+! 6: period
+! 7: <1-10000>
+! 8: dist
+! 9: <1-10>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = has_delay
+CMD_VAR = delay
+CMD_VAR = has_period
+CMD_VAR = period
+CMD_VAR = has_dist
+CMD_VAR = dist
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set filter parameters
+HELP = Set delay filter parameter
+HELP = Log2 of timeconstant in delay filter, valid range: 1-6 .
+HELP = Set offset filter period parameter
+HELP = Measurement period in number of sync events, valid range: 1-10000
+HELP = Set offset filter dist parameter
+HELP = Distance between servo update n number of measurement periods, valid range: 1-10
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = delay : Option
+BYWORD = <Delay : 0-6>
+BYWORD = period : Option
+BYWORD = <Period : 1-10000>
+BYWORD = dist : Option
+BYWORD = <Dist : 1-10>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_filter_set(session_id, clockinst, has_delay, delay, has_period, period, has_dist, dist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> filter
+
+DOC_CMD_DESC    = Set PTP clock filter data to default values
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 filter
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: filter
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set PTP clock filter data to default values
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_filter_default_set(session_id, clockinst);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> servo displaystates
+
+DOC_CMD_DESC    = Enable log of path delay, offset and servo internal data
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 servo displaystates
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: servo
+! 4: displaystates
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set Servo parameters
+HELP = Enable logging of servo parameters on the console
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_servo_displaystate_set(session_id, clockinst, TRUE);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+ptp_icli_servo_displaystate_set(session_id, clockinst, FALSE);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> servo ap <1-1000>
+
+DOC_CMD_DESC    = Set PID servo P parameter.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 servo ap 80
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: servo
+! 4: ap
+! 5: <1-1000>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = ap
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = 
+HELP = Set 'P' parameter in the servo
+HELP = [1..1000] 'P' component in PID servo regulator
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+BYWORD = <Ap : 1-1000>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_servo_ap_set(session_id, clockinst, TRUE, ap);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> servo ap
+
+DOC_CMD_DESC    = Disable PID servo P part
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 ap
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: servo
+! 5: ap
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = 
+HELP = Disable 'P' parameter in the servo
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_servo_ap_set(session_id, clockinst, FALSE, 0);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> servo ai <1-10000>
+
+DOC_CMD_DESC    = Set PID servo I parameter.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 servo ai 40
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: servo
+! 4: ai
+! 5: <1-10000>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = ai
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = 
+HELP = Set 'I' parameter in the servo
+HELP = [1..10000] 'I' component in PID servo regulator.
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+BYWORD = <Ai : 1-10000>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_servo_ai_set(session_id, clockinst, TRUE, ai);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> servo ai
+
+DOC_CMD_DESC    = Disable PID servo I part
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 ai
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: servo
+! 5: ai
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = 
+HELP = Disable 'P' parameter in the servo
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_servo_ai_set(session_id, clockinst, FALSE, 0);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> servo ad <1-10000>
+
+DOC_CMD_DESC    = Set PID servo D parameter.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 servo ad 160
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: servo
+! 4: ad
+! 5: <1-10000>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = ad
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP =  Clock instance 0-3
+HELP = 
+HELP = Set 'D' parameter in the servo
+HELP = [1..10000] 'D' component in PID servo regulator
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+BYWORD = <Ad : 1-10000>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_servo_ad_set(session_id, clockinst, TRUE, ad);
+CODE_END
+
+CMD_END
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> servo ad
+
+DOC_CMD_DESC    = Disable PID servo D part
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 servo ad
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: servo
+! 5: ad
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = 
+HELP = Disable 'P' parameter in the servo
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_servo_ad_set(session_id, clockinst, FALSE, 0);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> clk sync <1-1000> ap <1-40>
+
+DOC_CMD_DESC    = Set PTP slave clock options, to 'clock is SyncE locked'
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 clk sync 200 ap 100
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: clk
+! 4: sync
+! 5: <1-1000>
+! 6: ap
+! 7: <1-40>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = threshold
+CMD_VAR = 
+CMD_VAR = ap
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set PTP slave clock options
+HELP = Set PTP slave clock options to 'clock is SyncE locked'
+HELP = [1..1000] Threshold in ns for offsetFromMaster defines when the offset increment/decrement mode is entered
+HELP = Set the adjustment factor
+HELP = [1..40]  The offset increment/decrement adjustment factor
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+BYWORD = <Threshold : 1-1000>
+BYWORD = 
+BYWORD = <Ap : 1-40>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_clock_servo_options_set(session_id, clockinst, TRUE, threshold, ap);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> clk
+
+DOC_CMD_DESC    = Set PTP slave clock options, to freerunning
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 clk
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: clk
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set PTP slave clock options, to freerunning
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_clock_servo_options_set(session_id, clockinst, FALSE, 0, 0);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> ho [ filter <60-86400> ] [ adj-threshold <1-1000> ]
+
+DOC_CMD_DESC    = Set PTP Servo holdover parameters
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 ho filter 150 500
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: ho
+! 4: filter
+! 5: <60-86400>
+! 6: adj-threshold
+! 7: <1-1000>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = has_filter
+CMD_VAR = ho_filter
+CMD_VAR = has_adj_threshold
+CMD_VAR = adj_threshold
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set PTP Servo holdover parameters
+HELP = Set stabilization period
+HELP = [60..86400] Holdover filter and stabilization period
+HELP = Set adjustment threshold
+HELP = [1..1000]  max frequency adjustment change within the holdover stabilization period (ppb)
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = filter : Option
+BYWORD = <HoFilter : 60-86400>
+BYWORD = adj-threshold : Option
+BYWORD = <AdjThreshold : 1-1000>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_clock_slave_holdover_set(session_id, clockinst, has_filter, ho_filter, has_adj_threshold, adj_threshold);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> ho
+
+DOC_CMD_DESC    = Reset PTP Servo holdover parameters to default values
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 ho
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: ho
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = Reset PTP Servo holdover parameters to default values
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_clock_slave_holdover_set(session_id, clockinst, FALSE, 0, FALSE, 0);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> uni <0-4> [ duration <10-1000> ] <ipv4_ucast>
+
+DOC_CMD_DESC    = Set a Unicast Slave configuration entry
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 uni 0 192.168.1.10
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: uni
+! 4: <0-4>
+! 5: duration
+! 6: <10-1000>
+! 7: <ipv4_ucast>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = idx
+CMD_VAR = has_duration
+CMD_VAR = duration
+CMD_VAR = ip
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set a Unicast Slave configuration entry
+HELP = [0..4] Index in the slave table
+HELP = Set the Duration parameter
+HELP = Duration [10..1000]. Number of seconds for which the Announce/Sync messages are requested
+HELP = IPv4 address of requested master clock
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = <Index : 0-4>
+BYWORD = duration : Option
+BYWORD = <Duration : 10-1000>
+BYWORD = <Ip : ipv4_ucast>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_clock_unicast_conf_set(session_id, clockinst, idx, has_duration, duration, ip);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> uni <0-4>
+
+DOC_CMD_DESC    = Clear a Unicast Slave configuration entry
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 uni 0
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: uni
+! 5: <0-4>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = idx
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = Clear a Unicast Slave configuration entry
+HELP = [0..4] Index in the slave table
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = <Index : 0-4>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_clock_unicast_conf_set(session_id, clockinst, idx, FALSE, 0, 0);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp ext [ output | input ] [ ext <1-25000000> ] [ vcxo ]
+
+DOC_CMD_DESC    = Update the 1PPS and External clock output configuration and vcxo frequency rate adjustment option
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp ect output
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: ext
+! 3: output
+! 4: input
+! 5: ext
+! 6: <1-25000000>
+! 7: vcxo
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_output
+CMD_VAR = has_input
+CMD_VAR = has_ext
+CMD_VAR = clockfreq
+CMD_VAR = has_vcxo
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Update the 1PPS and External clock output configuration and vcxo frequency rate adjustment option
+HELP = Enable 1PPS output
+HELP = Enable 1PPS input
+HELP = Enable external clock frequency output
+HELP = [1..25.000.000] External Clock output frequency in Hz
+HELP = Enable VCXO frequency control
+
+BYWORD = 
+BYWORD = 
+BYWORD = output : Option
+BYWORD = input : Option
+BYWORD = ext : Option
+BYWORD = <Clockfreq : 1-25000000>
+BYWORD = vcxo : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_ext_clock_set(session_id, has_output, has_input, has_ext, clockfreq, has_vcxo);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp ext
+
+DOC_CMD_DESC    = Set the 1PPS and External clock output configuration and vcxo frequency rate adjustment option to default values
+DOC_CMD_DEFAULT = 1PPS disabled, clockout disabled, vcxo disabled.
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp ext
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: ext
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Set the 1PPS and External clock output configuration and vcxo frequency rate adjustment option to default values
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_ext_clock_set(session_id, FALSE, FALSE, FALSE, 1, FALSE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_ARCH_SERVAL)
+
+COMMAND = ptp rs422 { main-auto | main-man | sub } [ pps-delay <0-999999999> ] { ser | { pim interface <port_type_id> } }
+
+DOC_CMD_DESC    = Set the RS422 clock configuration
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Serval has two physical external clocks, this command sets the alternative clock, that is connected to the RS422 connector
+DOC_CMD_EXAMPLE = ptp rs422 main-auto 0 ser
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: rs422
+! 3: main-auto
+! 4: main-man
+! 5: sub
+! 6: pps-delay
+! 7: <0-999999999>
+! 8: ser
+! 9: pim
+! 10: interface
+! 11: <port_type_id>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_main_auto
+CMD_VAR = has_main_man
+CMD_VAR = has_sub
+CMD_VAR = has_pps_delay
+CMD_VAR = pps_delay
+CMD_VAR = has_ser
+CMD_VAR = has_pim
+CMD_VAR = 
+CMD_VAR = v_port_type_id
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+
+HELP = 
+HELP = Set the RS422 clock configuration
+HELP = RS422 clock in main_auto mode (1PPS out, save time at L/S input)
+HELP = RS422 clock in main_man mode (1PPS out, send configured pps_delay to sub module)
+HELP = RS422 clock in sub mode (save time and load new time at L/S input)
+HELP = Set the 1PPS latency (used in main_man mode)
+HELP = The configured 1PPS latency (used in main-man mode)
+HELP = Use Serial interface to transfer 1PPS information
+HELP = Use pim protocol to transfer 1PPS information over a switch port
+HELP = Define interface used for PIM protocol
+HELP = Switch interface port used for the PIM protocol in 'pim' mode
+
+BYWORD = 
+BYWORD = 
+BYWORD = main-auto : Option
+BYWORD = main-man : Option
+BYWORD = sub : Option
+BYWORD = pps-delay : Option
+BYWORD = <PpsDelay : 0-999999999>
+BYWORD = ser : Option
+BYWORD = pim : Option
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_rs422_clock_set(session_id, has_main_auto, has_main_man, has_sub, has_pps_delay, pps_delay, has_ser, has_pim, v_port_type_id.begin_iport);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_ARCH_SERVAL)
+
+COMMAND = no ptp rs422
+
+DOC_CMD_DESC    = Set the default RS422 clock configuration
+DOC_CMD_DEFAULT = 1PPS disabled
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp rs422
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: rs422
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Set the default RS422 clock configuration
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_rs422_clock_set(session_id, FALSE, FALSE, FALSE, FALSE, 0, FALSE, FALSE, 0);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> log <1-4>
+
+DOC_CMD_DESC    = Set the PTP debug mode
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 log 1
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: ptp
+! 2: <0-3>
+! 3: log
+! 4: <1-4>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = debug_mode
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set the PTP debug mode
+HELP = 1-4 Debug log mode, 1 => log offset from master, 2 => log sync packets, 3 => log Delay_req, 4 => log both
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = <DebugMode : 1-4>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_debug_log_mode_set(session_id, clockinst, debug_mode);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> log
+
+DOC_CMD_DESC    = Set the PTP debug mode to default
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp log
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: log
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance [0-3]
+HELP = Disable the PTP debug logging
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_debug_log_mode_set(session_id, clockinst, 0);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> [ internal ]
+
+DOC_CMD_DESC    = Enable PTP for the interface(s), optionally set as an internal interface
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: ptp
+! 2: <0-3>
+! 3: internal
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = has_internal
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = [0-3] Clock instance
+HELP = enable as an internal interface
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = internal : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_state_set(session_id, clockinst, TRUE, has_internal, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3>
+
+DOC_CMD_DESC    = Disable PTP for the interface(s)
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Disable PTP for the interface(s)
+HELP = [0-3] Clock instance
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_state_set(session_id, clockinst, FALSE, FALSE, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> announce { [ interval <-3-4> ] [ timeout <1-10> ] }*1
+
+DOC_CMD_DESC    = Set announce interval and timeout
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 announce interval 1 timeout 3
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: ptp
+! 2: <0-3>
+! 3: announce
+! 4: interval
+! 5: <-3-4>
+! 6: timeout
+! 7: <1-10>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = has_interval
+CMD_VAR = interval
+CMD_VAR = has_timeout
+CMD_VAR = timeout
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set announce interval and timeout
+HELP = Set announce interval
+HELP = LogAnnounceInterval
+HELP = Set Announce timeout
+HELP = Announce timeout (*announce interval)
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = interval : Option
+BYWORD = <Interval : -3-4>
+BYWORD = timeout : Option
+BYWORD = <Timeout : 1-10>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_announce_set(session_id, clockinst, has_interval, interval, has_timeout, timeout, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> sync-interval <-7-4>
+
+DOC_CMD_DESC    = Set sync interval
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 sync-interval -4
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: ptp
+! 2: <0-3>
+! 3: sync-interval
+! 4: <-7-4>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = interval
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set sync interval
+HELP = LogSyncInterval
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = <Interval : -7-4>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_sync_interval_set(session_id, clockinst, interval, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> delay-mechanism { e2e | p2p }
+
+DOC_CMD_DESC    = Set delay machanism
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 delay-mechanism e2e
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: ptp
+! 2: <0-3>
+! 3: delay-mechanism
+! 4: e2e
+! 5: p2p
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = has_e2e
+CMD_VAR = has_p2p
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set delay machanism
+HELP = End to End Delay mechanism
+HELP = Peer to Peer Delay mechanism
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = e2e : Option
+BYWORD = p2p : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_delay_mechanism_set(session_id, clockinst, has_e2e, has_p2p, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> delay-req interval <-7-5>
+
+DOC_CMD_DESC    = Set pdelay req interval
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 delay-req interval -3
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: ptp
+! 2: <0-3>
+! 3: delay-req
+! 4: interval
+! 5: <-7-5>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = interval
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set pdelay req interval
+HELP = Define pdelay req interval
+HELP = logMinPdelayReqInterval
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+BYWORD = <Interval : -7-5>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_min_pdelay_interval_set(session_id, clockinst, interval, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> delay-asymmetry <-100000-100000>
+
+DOC_CMD_DESC    = Set path delay asymmetry
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 delay_asymmetry -1234
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: ptp
+! 2: <0-3>
+! 3: delay-asymmetry
+! 4: <-100000-100000>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = delay_asymmetry
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set path delay asymmetry
+HELP = Delay asymmetry in ns.
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = <DelayAsymmetry : -100000-100000>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_delay_asymmetry_set(session_id, clockinst, delay_asymmetry, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> ingress-latency <-100000-100000>
+
+DOC_CMD_DESC    = Set port ingress latency
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 ingress-latency 272
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: ptp
+! 2: <0-3>
+! 3: ingress-latency
+! 4: <-100000-100000>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = ingress_latency
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set port ingress latency
+HELP = Ingress latency in ns
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = <IngressLatency : -100000-100000>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_ingress_latency_set(session_id, clockinst, ingress_latency, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ptp <0-3> egress-latency <-100000-100000>
+
+DOC_CMD_DESC    = Set port egress latency
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp 0 egress-latency 123
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: ptp
+! 2: <0-3>
+! 3: egress-latency
+! 4: <-100000-100000>
+
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = egress_latency
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set port egress latency
+HELP = Egress latency in ns
+
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = <EgressLatency : -100000-100000>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_egress_latency_set(session_id, clockinst, egress_latency, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> announce { interval | timeout }
+
+DOC_CMD_DESC    = Set announce interval and timeout to default
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 announce interval
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: announce
+! 5: interval
+! 6: timeout
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = has_interval
+CMD_VAR = has_timeout
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set announce interval or timeout to default
+HELP = Set announce interval to default
+HELP = Set announce timeout to default
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = interval : Option
+BYWORD = timeout : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_announce_set(session_id, clockinst, has_interval, 0, has_timeout, 3, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> sync-interval
+
+DOC_CMD_DESC    = Set sync interval to default
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 sync-interval
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: sync-interval
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set sync interval to default
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_sync_interval_set(session_id, clockinst, 0, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> delay-mechanism
+
+DOC_CMD_DESC    = Set delay machanism to default
+DOC_CMD_DEFAULT = e2e
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 delay-mechanism
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: delay-mechanism
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set delay machanism to default (e2e)
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_delay_mechanism_set(session_id, clockinst, TRUE, FALSE, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> delay-req interval
+
+DOC_CMD_DESC    = Set pdelay req interval to default
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 delay-req interval
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: delay-req
+! 5: interval
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance [0-3]
+HELP = Set pdelay req interval to default
+HELP = Set pdelay req interval to default
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_min_pdelay_interval_set(session_id, clockinst, 2, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> delay-asymmetry
+
+DOC_CMD_DESC    = Set path delay asymmetry to default
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 delay-asymmetry
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: delay-asymmetry
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set path delay asymmetry to default (0)
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_delay_asymmetry_set(session_id, clockinst, 0, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> ingress-latency
+
+DOC_CMD_DESC    = Set port ingress latency to default
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 ingress-latency
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: ingress-latency
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set port ingress latency to default
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_ingress_latency_set(session_id, clockinst, 0, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ptp <0-3> egress-latency
+
+DOC_CMD_DESC    = Set port egress latency to default
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp 0 egress-latency
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: no
+! 2: ptp
+! 3: <0-3>
+! 4: egress-latency
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = clockinst
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Clock instance 0-3
+HELP = Set port egress latency to default
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Clockinst : 0-3>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_egress_latency_set(session_id, clockinst, 0, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PHY_TIMESTAMP)
+
+COMMAND = ptp pps-sync { main-auto | main-man | sub } [ pps-phase <0-999999999> ] [ cable-asy <-10000-10000> ] [ ser-man | ser-auto ]
+
+DOC_CMD_DESC    = Set 1pps synchronization mode for the Gen2 1588 phy's
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp pps-sync main-auto cable-asy -10 ser-man
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: ptp
+! 2: pps-sync
+! 3: main-auto
+! 4: main-man
+! 5: sub
+! 6: pps-phase
+! 7: <0-999999999>
+! 8: cable-asy
+! 9: <-10000-10000>
+! 10: ser-man
+! 11: ser-auto
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_main_auto
+CMD_VAR = has_main_man
+CMD_VAR = has_sub
+CMD_VAR = has_pps_phase
+CMD_VAR = pps_phase
+CMD_VAR = has_cable_asy
+CMD_VAR = cable_asy
+CMD_VAR = has_ser_man
+CMD_VAR = has_ser_auto
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Set 1pps synchronization mode for the Gen2 1588 phy's
+HELP = Set the mode to main with automatic cable delay measurement
+HELP = Set the mode to main with manual cable delay configuration
+HELP = Set the mode to sub (slave)
+HELP = Set cable delay manually (used in main-man mode)
+HELP = The cable delay in ns.
+HELP = Set cable asymmetry (used in main-auto mode)
+HELP = The cable asymmetry in ns. (Tms = mean delay + asy, Tsm = mean delay - asy)
+HELP = Set Serial TOD manual mode (i.e. both phase and frequency adjustment is done in SW)
+HELP = Set Serial TOD auto mode (i.e. the phase adjustment is done in HW, and frequency adjustment is done in SW)
+
+BYWORD = 
+BYWORD = 
+BYWORD = main-auto : Option
+BYWORD = main-man : Option
+BYWORD = sub : Option
+BYWORD = pps-phase : Option
+BYWORD = <PpsPhase : 0-999999999>
+BYWORD = cable-asy : Option
+BYWORD = <CableAsy : -10000-10000>
+BYWORD = ser-man : Option
+BYWORD = ser-auto : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_1pps_mode_set(session_id, has_main_auto, has_main_man, has_sub, has_pps_phase, pps_phase,
+                            has_cable_asy, cable_asy, has_ser_man, has_ser_auto, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PHY_TIMESTAMP)
+
+COMMAND = no ptp pps-sync
+
+DOC_CMD_DESC    = Disable 1pps synchronization mode for the Gen2 1588 phy
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = no ptp pps-sync
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: no
+! 2: ptp
+! 3: pps-sync
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Disable 1pps synchronization mode for the Gen2 1588 phy
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_1pps_mode_set(session_id, FALSE, FALSE, FALSE, FALSE, 0,
+                            FALSE, 0, FALSE, FALSE, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PHY_TIMESTAMP)
+
+COMMAND = ptp pps-delay { { auto master-port interface <port_type_id> } | { man cable-delay <0-999999999> } }
+
+DOC_CMD_DESC    = Set the internal 1PPS cable delay, with optional closed loop delay measurement
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = ptp pps-delay auto master-port interface gigabit 1/1 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: ptp
+! 2: pps-delay
+! 3: auto
+! 4: master-port
+! 5: interface
+! 6: <port_type_id>
+! 7: man
+! 8: cable-delay
+! 9: <0-999999999>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_auto
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_id
+CMD_VAR = has_man
+CMD_VAR = 
+CMD_VAR = cable_delay
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Set the internal 1PPS cable delay, with optional closed loop delay measurement.
+HELP = Enable automatic closed loop cable delay measurement.
+HELP = Define the port that is 1pps master.
+HELP = Define master port interface 
+HELP = Define interface type and instance
+HELP = Set manually cable delay.
+HELP = Define the cable delay.
+HELP = The Cable delay in ns.
+
+BYWORD = 
+BYWORD = 
+BYWORD = auto : Option
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = man : Option
+BYWORD = 
+BYWORD = <CableDelay : 0-999999999>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_1pps_delay_set(session_id, has_auto, v_port_type_id.begin_iport, has_man, cable_delay, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PHY_TIMESTAMP)
+
+COMMAND = no ptp pps-delay
+
+DOC_CMD_DESC    = Set default internal 1PPS cable delay
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: no
+! 2: ptp
+! 3: pps-delay
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = Set default internal 1PPS cable delay
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+ptp_icli_port_1pps_delay_set(session_id, FALSE, 0, FALSE, 0, plist);
+CODE_END
+
+CMD_END
+

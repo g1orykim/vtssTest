@@ -1,0 +1,62 @@
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+DIR_ip2 := $(DIR_APPL)/ip2
+
+# ip2 module files
+OBJECTS_ip2 := ip2_os_ecos.o \
+               ip2_os_ecos_monitor.o \
+               ip2_ecos_driver.o \
+               ip2_legacy.o \
+               ip2_utils.o \
+               ip2_iterators.o \
+               ip2.o \
+  $(call if-module,icli, ip2_icli_priv.o) \
+  $(call if-module,snmp, ip2_snmp.o) \
+  $(call if-module,web,  ip2_web.o) \
+  $(call if-module,vcli, ip2_cli.o) \
+  $(call if-module,arch_jaguar_1, ip2_chip_lpm.o, ip2_chip_mactable.o)
+
+# icli
+$(eval $(call add_icli,$(foreach m, ip2 ipv6,$(DIR_ip2)/$(m).icli)))
+
+# Compile/dependencies
+$(OBJECTS_ip2): %.o: $(DIR_ip2)/%.c
+	$(call compile_c, $@, $<,)
+
+# Include files
+INCLUDES += -I$(DIR_ip2)
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_ip2)/html
+
+# Coding style check - eventually include .h-files
+VTSS_CODE_STYLE_CHK_FILES_ip2 += $(DIR_ip2)/*.[ch]
+
+# Lint - eventually all .c-files
+LINT_FILES_ip2 += $(addprefix $(DIR_ip2)/,$(filter-out ip2_ecos_driver.c,$(OBJECTS_ip2:.o=.c)))
+
+# Tidy files
+TIDY_FILES_ip2 += $(DIR_ip2)/html/*.htm $(DIR_ip2)/html/help/*.htm
+
+# JSlint files
+JSLINT_FILES_ip2 += $(TIDY_FILES_ip2)

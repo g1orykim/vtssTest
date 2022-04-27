@@ -1,0 +1,287 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_LED_POW_REDUC)
+
+INCLUDE_BEGIN
+#include "led_pow_reduc_icli_functions.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+
+HELP_GREEN = Green ethernet (Power reduction).
+HELP_LED = LED power reduction.
+HELP_ON_EVENT = Specifies when to turn LEDs on at 100%% intensity.
+HELP_LINK_CHANGE = Specifies how long to turn LEDs intensity to 100%%, when a link changes state.
+HELP_INTERVAL = Interval in whole hours at which to configure the LED intensity.
+HELP_INTERVAL_TIME = Interval from 00.00 to 24.00 (00 is used to start at midnight, while 24 is used to stop at midnight).
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LED_POW_REDUC)
+
+COMMAND = green-ethernet led interval <0~24> intensity <0-100>
+
+DOC_CMD_DESC    = Use green-ethernet led interval to configure the LED intensity at specific interval of the day.
+DOC_CMD_DEFAULT = Intensity is 20%%
+DOC_CMD_USAGE   = Use to configure the LED intensity at specific interval of the day.
+DOC_CMD_EXAMPLE = green-ethernet led interval 1-5 50
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: green-ethernet
+! 2: led
+! 3: interval
+! 4: <0~24>
+! 5: intensity
+! 6: <0-100>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_0_to_24
+CMD_VAR = 
+CMD_VAR = v_0_to_100
+
+
+HELP = ##HELP_GREEN
+HELP = ##HELP_LED
+HELP = ##HELP_INTERVAL
+HELP = ##HELP_INTERVAL_TIME
+HELP = LEDs intensity.
+HELP = Internsity from 0%% (LEDs OFF) to 100%%
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    led_pow_reduc_icli_led_interval(session_id, v_0_to_24, v_0_to_100, FALSE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LED_POW_REDUC)
+
+COMMAND = no green-ethernet led interval <0~24>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: green-ethernet
+! 3: led
+! 4: interval
+! 5: <0~24>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR =
+
+HELP = Setting LEDs intensity to default for the specified interval.
+HELP = ##HELP_GREEN
+HELP = ##HELP_LED
+HELP = ##HELP_INTERVAL
+HELP = ##HELP_INTERVAL_TIME
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    led_pow_reduc_icli_led_interval(session_id, NULL, 0, TRUE);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LED_POW_REDUC)
+
+COMMAND = green-ethernet led on-event { [ link-change <0-65535> ] [ error ] }*1
+
+DOC_CMD_DESC    = Use green-ethernet led on-event to configure when to turn LEDs intensity to 100%%. 
+DOC_CMD_DEFAULT = link-change is 10 seconds, error is default turning LEDs intensity to 100%% at errors. 
+DOC_CMD_USAGE   = Use to configure when to set LEDs intensity to 100%%. 
+DOC_CMD_EXAMPLE = green-ethernet led on-event 30 error
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: green-ethernet
+! 2: led
+! 3: on-event
+! 4: link-change
+! 5: <0-65535>
+! 6: error
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_link_change
+CMD_VAR = v_0_to_65535
+CMD_VAR = has_error
+
+HELP = ##HELP_GREEN
+HELP = ##HELP_LED
+HELP = ##HELP_ON_EVENT
+HELP = ##HELP_LINK_CHANGE
+HELP = Number of seconds to set LEDs intensity at 100%% intensity at link change.
+HELP = Set LEDs intensity to 100%% if an error occurs.
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <LinkChange : option>
+BYWORD = 
+BYWORD = <Error : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    led_pow_reduc_icli_on_event(session_id, has_link_change, v_0_to_65535, has_error, FALSE);
+CODE_END
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_LED_POW_REDUC)
+
+COMMAND = no green-ethernet led on-event [ link-change ] [ error ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: green-ethernet
+! 3: led
+! 4: on-event
+! 5: link-change
+! 6: error
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_link_change
+CMD_VAR = has_error
+
+HELP = Setting the on-event to default.
+HELP = ##HELP_GREEN
+HELP = ##HELP_LED
+HELP = ##HELP_ON_EVENT
+HELP = ##HELP_LINK_CHANGE
+HELP = Set the number of seconds which the LEDs intensity are set at 100%% at link change to default.
+HELP = Don't change LEDs power intensity if an error occur.
+
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <LinkChange : option>
+BYWORD = <Error : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    led_pow_reduc_icli_on_event(session_id, has_link_change, 0, has_error, TRUE);
+CODE_END
+
+CMD_END
+

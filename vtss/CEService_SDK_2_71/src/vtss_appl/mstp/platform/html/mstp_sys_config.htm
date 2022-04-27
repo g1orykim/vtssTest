@@ -1,0 +1,217 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>STP Bridge Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_mstp_sys_config.htm";
+
+var ppT = Array(16);
+var ppV = Array(16);
+for(var i = 0; i < 16; i++) {
+    ppV[i] = (i << 4);
+    ppT[i] = String(ppV[i] << 8);
+}
+
+var pvalT, pvalV;
+if(configBuildCE || configBuildSMB) {
+    pvalT = Array("STP", "RSTP", "MSTP");
+    pvalV = Array(0, 2, 3);
+} else {
+    pvalT = Array("STP", "RSTP");
+    pvalV = Array(0, 2);
+}
+
+function RecCheck(chk)
+{
+    var rectim = document.getElementById('recoverytimeout');
+    rectim.disabled = !chk.checked;
+}
+
+function processUpdate(req, ref)
+{
+    var values = req.responseText.split(",");
+    UpdateIdSelect('proto', pvalT, pvalV, values[0]);
+    UpdateIdSelect('prio', ppT, ppV, values[1]);
+    UpdateIdValue('delay', values[2]);
+    UpdateIdValue('maxage', values[3]);
+    UpdateIdValue('maxhops', values[4]);
+    UpdateIdValue('txholdcount', values[5]);
+    if(configHasStpEnhancements) {
+        UpdateIdChecked('bpdufiltering', parseInt(values[6], 10));
+        UpdateIdChecked('bpduguard', parseInt(values[7], 10));
+        var errRecovery = parseInt(values[8], 10);
+        var chk = UpdateIdChecked('recovery', errRecovery > 0);
+        if(errRecovery) {
+            UpdateIdValue('recoverytimeout', errRecovery);
+        }
+        RecCheck(chk);
+    }
+}
+
+function requestUpdate() {
+    loadXMLDoc("/config/rstp_sys", processUpdate, null);
+}
+
+function checkForm()
+{
+    if(!isWithinRange("delay", 4, 30, "'Forward Delay'", " seconds")) {
+        return false;
+    }
+    if(!isWithinRange("maxage", 6, 40, "'Max Age'", " seconds")) {
+        return false;
+    }
+    if(!isWithinRange("maxhops", 6, 40, "'Maximum Hop Count'", " hops")) {
+        return false;
+    }
+    if(!isWithinRange("txholdcount", 1, 10, "'Transmit Hold Count'", " PDUs/sec")) {
+        return false;
+    }
+    var fld_age = document.getElementById("maxage");
+    var age = parseInt(fld_age.value, 10);
+    var delay = parseInt(document.getElementById("delay").value, 10);
+    if(age > ((delay-1)*2)) {
+        return GiveAlert("MaxAge must be <= (FwdDelay-1)*2", fld_age);
+    }
+    if(configHasStpEnhancements) {
+        var errRecovery = document.getElementById('recovery');
+        if(errRecovery.checked &&
+           !isWithinRange("recoverytimeout", 30, 86400, "'Port Error Recovery Timeout'", " seconds")) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function ResetForm(form)
+{
+    form.reset();
+    RecCheck(document.getElementById('recovery'));
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>STP Bridge Configuration</h1>
+
+<form method="POST" action="/config/rstp_sys" onsubmit="return checkForm();">
+
+<fieldset>
+ <legend>Basic Settings</legend>
+
+<table id="sysConfig" summary="STP Bridge Configuration" class="config">
+ <tr class="config">
+  <td class="param_label"><label for="proto">Protocol Version</label></td>
+  <td class="cl">
+   <!-- Width should be 7.25 for FireFox, 7.00 for IE -->
+   <select id="proto" name="proto" style="width: 7em;">
+    <option>STP</option>
+    <option>MSTP</option>
+    <option>XSTP</option>
+   </select></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label for="prio">Bridge Priority</label></td>
+  <td class="cl">
+   <!-- Width should be 7.25 for FireFox, 7.00 for IE -->
+   <select id="prio" name="prio" style="width: 7em;">
+    <option>32768</option>
+   </select></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label for="delay">Forward Delay</label></td>
+  <td class="cl"><input type="text" id="delay" name="delay" style="width: 7em;" maxlength="2"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label for="maxage">Max Age</label></td>
+  <td class="cl"><input type="text" id="maxage" name="maxage" style="width: 7em;" maxlength="2"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label for="maxhops">Maximum Hop Count</label></td>
+  <td class="cl"><input type="text" id="maxhops" name="maxhops" style="width: 7em;" maxlength="2"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label for="txholdcount">Transmit Hold Count</label></td>
+  <td class="cl"><input type="text" id="txholdcount" name="txholdcount" style="width: 7em;" maxlength="2"></td>
+ </tr>
+</table>
+
+</fieldset>
+
+<fieldset class="hasStpEnhancements">
+ <legend>Advanced Settings</legend>
+
+<table id="enhConfig" summary="Enhanced Bridge Configuration" class="config">
+ <tr class="config">
+  <td class="param_label"><label for="bpdufiltering">Edge Port BPDU Filtering</label></td>
+  <td class="cl"><input type="checkbox" id="bpdufiltering" name="bpdufiltering"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label for="bpduguard">Edge Port BPDU Guard</label></td>
+  <td class="cl"><input type="checkbox" id="bpduguard" name="bpduguard"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label for="recovery">Port Error Recovery</label></td>
+  <td class="cl"><input type="checkbox" onclick="RecCheck(this);" id="recovery" name="recovery"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label for="recoverytimeout">Port Error Recovery Timeout</label></td>
+  <td class="cl"><input type="text" id="recoverytimeout" name="recoverytimeout" maxlength="5"></td>
+ </tr>
+</table>
+
+</fieldset>
+
+<p>
+<input type="submit" value="Save">
+<input type="reset" value="Reset" onclick="ResetForm(this.form);">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

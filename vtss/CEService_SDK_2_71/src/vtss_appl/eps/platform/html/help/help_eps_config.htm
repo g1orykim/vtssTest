@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>EPS Configuration And State Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Ethernet Protection Switch Configuration Help</h1>
+
+<p> This page allows the user to inspect and configure the current <a href="glossary.htm#EPS" class="glossary">EPS</a> Instance.</p>
+
+<h2>Instance Data</h2>
+<dl>
+ <dt>EPS ID</dt>
+ <dd>
+ The ID of the EPS.
+ </dd>
+ <dt>Domain</dt>
+ <dd>
+ See help on EPS create WEB. </dd>
+ <dt>Architecture</dt>
+ <dd>
+ See help on EPS create WEB. </dd>
+ <dt>W Flow</dt>
+ <dd>
+ See help on EPS create WEB. </dd>
+ <dt>P Flow</dt>
+ <dd>
+ See help on EPS create WEB. </dd>
+ <dt>W SF MEP</dt>
+ <dd>
+ See help on EPS create WEB. </dd>
+ <dt>P SF MEP</dt>
+ <dd>
+ See help on EPS create WEB. </dd>
+ <dt>APS MEP</dt>
+ <dd>
+ See help on EPS create WEB. </dd>
+</dl>
+
+<h2>Instance Configuration</h2>
+<dl>
+ <dt>Configured</dt>
+ <dd>
+ <p><b>Red:</b> This EPS is only created and has not yet been configured - is not active.</p>
+ <p><b>Green:</b> This EPS is configured - is active.</p>
+ </dd>
+ <dt>Protection Type</dt>
+ <dd>
+ <p><b>Unidirectional:</b> EPS in the two ends can select traffic from different working/protecting flow. This is only possible in case of 1+1.</p>
+ <p><b>Bidirectional:</b>  EPS in the two ends is selecting traffic from the same working/protecting flow. This requires APS enabled. This is mandatory for 1:1</p>
+ </dd>
+ <dt>APS</dt>
+ <dd>
+ The Automatic Protection Switching protocol can be enabled/disabled. This is mandatory for 1:1.
+ </dd>
+ <dt>Revertive</dt>
+ <dd>
+ The revertive switching to working flow can be enabled/disabled.
+ </dd>
+ <dt>WTR Time</dt>
+ <dd>
+ The Wait To Restore timing value to be used in revertive switching.
+ </dd>
+ <dt>Hold Off Time</dt>
+ <dd>
+ The timing value to be used to make persistent check on Signal Fail before switching. This is in 100 ms. and the max value is 100 (10 sec).
+ </dd>
+</dl>
+
+<h2>Instance Command</h2>
+<dl>
+ <dt>Command</dt>
+ <dd>
+ <p><b>None:</b>            There is no active local command on this instance.</p>
+ <p><b>Clear:</b>           The active local command will be cleared.</p>
+ <p><b>Lock Out:</b>        This EPS is locked to working (not active). In case of 1:N (more than one EPS with same protecting flow) - when one EPS switch to protecting flow, other EPS is enforced this command</p>
+ <p><b>Forced Switch:</b>   Forced switch to protecting.</p>
+ <p><b>Manual Switch P:</b> Manual switch to protecting.</p>
+ <p><b>Manual Switch W:</b> Manual switch to working - this is only possible in 1:1 non-revertive.</p>
+ <p><b>Exercise:</b>        Exercise of the protocol - not traffic effecting.</p>
+ <p><b>Freeze:</b>          This EPS is locally freezed - ignoring all input.</p>
+ <p><b>Lock Out Local:</b>  This EPS is locally "locked out" - ignoring local SF detected on working.</p>
+ </dd>
+</dl>
+
+<h2>Instance State</h2>
+<dl>
+ <dt>Protection State</dt>
+ <dd>
+ EPS state according to State Transition Tables in G.8031.
+ </dd>
+ <dt>W Flow</dt>
+ <dd>
+ <p><b>OK:</b> State of working flow is ok</p>
+ <p><b>SF:</b> State of working flow is Signal Fail</p>
+ <p><b>SD:</b> State of working flow is Signal Degrade (for future use)</p>
+ </dd>
+ <dt>P Flow</dt>
+ <dd>
+ <p><b>OK:</b> State of protecting flow is ok</p>
+ <p><b>SF:</b> State of protecting flow is Signal Fail</p>
+ <p><b>SD:</b> State of protecting flow is Signal Degrade (for future use)</p>
+ </dd>
+ <dt>Transmit APS r/b</dt>
+ <dd>
+ The transmitted APS according to State Transition Tables in G.8031.
+ </dd>
+ <dt>Receive APS r/b</dt>
+ <dd>
+ The received APS according to State Transition Tables in G.8031.
+ </dd>
+ <dt>Architecture Mismatch</dt>
+ <dd>
+ The architecture indicated in the received APS does not match the locally configured.
+ </dd>
+ <dt>APS on working</dt>
+ <dd>
+ APS is received on the working flow.
+ </dd>
+ <dt>Switching Incomplete</dt>
+ <dd>
+ Traffic is not selected from the same flow instance in the two ends.
+ </dd>
+ <dt>No APS Received</dt>
+ <dd>
+ APS PDU is not received from the other end.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+</body>
+</html>
+

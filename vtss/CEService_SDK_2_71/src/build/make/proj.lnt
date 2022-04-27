@@ -1,0 +1,63 @@
++fie
+// Tell lint that the VTSS_ASSERT() macro should work like assert() 
+-function( exit, control_system_assert_do_reset )
+// Doubble the line buffer twice (increase from 600 to 4800 characters) - Required in order to lint some icli files
++linebuf
++linebuf
++linebuf
+-esym(534, vtss_trace_register)
+-emacro(506, VTSS_BF_SET, VTSS_ASSERT)
+-emacro(774, VTSS_BF_SET)
+-emacro(413, offsetof)
+// Array initialization
+-e651
+// Constant value Boolean
+-e506
+// ptp macros
+-emacro(506,getFlag)
+-emacro(506,setFlag)
+-emacro(506,clearFlag)
+-emacro(506,PTP_LOG_TIMEOUT)
+// CLI
+-esym(534, cli_printf)
+// GNU statement expressions OK
+-e160
+// Repeated includes OK
+-e537
+// Unused include files are NOT OK
++e766
+// Except the "main.h"
+-efile(766, "main.h")
+// common ignored return values (web)
+-esym(534, cyg_httpd_start_chunked, cyg_httpd_write_chunked, cyg_httpd_end_chunked)
+// Thread setup
+-sem(cyg_thread_create, thread_create(2))
+-sem(cyg_scheduler_lock, thread_lock)
+-sem(cyg_scheduler_unlock, thread_unlock)
+-sem(cyg_mutex_lock, thread_lock)
+-sem(cyg_mutex_unlock, thread_unlock)
+-sem(critd_enter, thread_lock)
+-sem(critd_exit, thread_unlock)
+-sem(vtss_callout_lock, thread_lock)
+-sem(vtss_callout_unlock, thread_unlock)
+-sem(critd_init, thread_lock)
+-sem(critd_assert_locked, thread_protected)
+-sem(cyg_semaphore_wait, thread_protected)
+-sem(cyg_semaphore_post, thread_protected)
+-sem(cyg_flag_wait, thread_protected)
+-sem(cyg_flag_timed_wait, thread_protected)
+-sem(cyg_flag_poll, thread_protected)
+-sem(cyg_flag_maskbits, thread_protected)
+-sem(cyg_flag_setbits, thread_protected)
+-sem(cyg_semaphore_timed_wait, thread_protected)
+//-sem(msg_buf_pool_get, thread_protected)
+//-sem(msg_buf_pool_put, thread_protected)
+-atomic(any_scalar)
+// -include compatibility
+-header(personality.h)
+-header(webstax_options.h)
+// Custodial
+-sem(cyg_mbox_put, custodial(2))
+-sem(vtss_avl_tree_add, custodial(2))
+// Libraries headers with trouble
+-esym(114, route_in6)

@@ -1,0 +1,189 @@
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+
+MODULE_IF_FLAG = !defined(VTSS_SW_OPTION_RSPAN)
+
+INCLUDE_BEGIN
+#include "mirror_icli_functions.h"
+#include "icli_porting_util.h"
+INCLUDE_END
+
+
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = Sets monitor destination port.
+
+DOC_CMD_USAGE   = Use to set destination port.
+
+DOC_CMD_EXAMPLE = monitor destination interface GigabitEthernet 1/1
+
+
+COMMAND = monitor destination interface <port_type_id>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP = Set monitor configuration.
+HELP = The destination port. That is the port that trafficed should be mirrored to.
+HELP = Interface to mirror traffic to. 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = in_port_type
+
+CODE_BEGIN
+    VTSS_RC(mirror_destination(session_id, &in_port_type, FALSE));	
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = Sets monitor destination port.
+DOC_CMD_USAGE   = Use to set destination port.
+DOC_CMD_EXAMPLE = 
+
+COMMAND = no monitor destination 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE | ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP =
+HELP = Set monitor configuration.
+
+CODE_BEGIN
+    VTSS_RC(mirror_destination(session_id, NULL, TRUE));	
+CODE_END
+
+CMD_END
+
+
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = Sets monitor source port(s).
+
+DOC_CMD_USAGE   = Use to set source port(s).
+
+DOC_CMD_EXAMPLE = monitor source interface GigabitEthernet 1/1
+
+COMMAND = monitor source { { interface <port_type_list> } | { cpu [<range_list>] } } { both | rx | tx }
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = mirror_cpu_runtime
+RUNTIME   = mirror_sid_runtime
+RUNTIME   = 
+
+HELP = 
+HELP = The source port(s). That is the ports to be mirrored to the destination port.
+HELP = Mirror Interface traffic. 
+HELP = 
+HELP = Mirror CPU traffic.
+HELP = Switch id for the monitor CPU.
+HELP = Setting source port to both will mirror both ingress and egress traffic.
+HELP = Setting source port to rx will mirror ingress traffic.
+HELP = Setting source port to tx will mirror egress traffic.
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = interface
+CMD_VAR   = v_port_type_list
+CMD_VAR   = cpu
+CMD_VAR   = cpu_switch_range
+CMD_VAR   = both
+CMD_VAR   = rx
+CMD_VAR   = tx
+
+CODE_BEGIN
+    VTSS_RC(mirror_source(session_id, interface, v_port_type_list, cpu, cpu_switch_range, both, rx, tx, FALSE));	
+CODE_END
+
+
+CMD_END
+
+
+!==============================================================================
+CMD_BEGIN
+
+DOC_CMD_DESC    = Sets monitor source port(s).
+DOC_CMD_USAGE   = Use to set source port(s).
+DOC_CMD_EXAMPLE = 
+
+COMMAND = no monitor source { { interface <port_type_list> } | { cpu [<range_list>] } }
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+PROPERTY  = ICLI_CMD_PROP_ENABLE | ICLI_CMD_PROP_VISIBLE | ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = mirror_cpu_runtime
+RUNTIME   = mirror_sid_runtime
+
+HELP = 
+HELP = 
+HELP = The source port(s). That is the ports to be mirrored to the destination port.
+HELP = Mirror Interface traffic. 
+HELP = 
+HELP = Mirror CPU traffic.
+HELP = Switch id for the monitor CPU.
+
+CMD_VAR   =
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = interface
+CMD_VAR   = v_port_type_list
+CMD_VAR   = cpu
+CMD_VAR   = cpu_switch_range
+
+CODE_BEGIN
+    VTSS_RC(mirror_source(session_id, interface, v_port_type_list, cpu, cpu_switch_range, FALSE, FALSE, FALSE, TRUE));	
+CODE_END
+
+CMD_END
+
+
+

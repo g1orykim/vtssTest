@@ -1,0 +1,85 @@
+Toolchain instructions
+======================
+
+Traditional this project has been using a toolchain distributed by eCos. This
+toolchain included gcc 4.3.2.
+
+In future releases of WebStaX this tool chain will no longer be supported. The
+reason for this is that we will start using c++11 features, which are not
+supported by gcc 4.3. From version 3.50 gcc 4.7.x or new will be necessary.
+
+NOTE: The API will continue to support 4.3.x
+
+A tool chain for MIPS which includes gcc 4.7.3 can either be downloaded as a
+binary tar file, or it can be compiled on your development machines. The
+following will document how to install the pre-build toolchain and how it can be
+build using crosstool-ng.
+
+
+Install pre-build toolchain
+---------------------------
+
+To install the pre-build toolchain download the binaries using one of the two
+links below (the first is a 32bit build the second is a 64bit build):
+
+User name and password can be found in the software release document.
+
+ftp://public-dk.vitesse.com/Tools/vtss-cross-host-32bit-target-mips32-24kec.tar.bz2
+
+ftp://public-dk.vitesse.com/Tools/vtss-cross-host-64bit-target-mips32-24kec.tar.bz2
+
+Copy the file to "/opt" and extract it.
+
+
+
+Build the toolchain
+-------------------
+
+To build the toolchain from source, crosstool-ng version 1.18 (plus a patch) is
+needed.
+
+This guide assume you have an environment variable with the path to your webstax
+source directory:
+
+    $ export WEBSTAXHOME ~/webstax2 # correct this path as needed
+
+Start by creating a folder for build this:
+
+    $ cd ~
+    $ mkdir toolchain_build
+    $ cd toolchain_build
+
+Now download crosstool-ng:
+
+    $ wget http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.18.0.tar.bz2
+    $ tar -xjvf crosstool-ng-1.18.0.tar.bz2
+    $ cd crosstool-ng-1.18.0
+
+To build a suitable toolchain a patch is needed. The patch will allow building
+of gcc-4.7.3 and force the abi to eabi.
+
+Apply the patch and install crosstool-ng
+
+    $ patch -p1 < $WEBSTAXHOME/source/build/tools/toolchain/ct-ng-1.18.patch
+    $ ./configure
+    $ make
+    $ sudo make install
+
+All the needed tools are now available and we can start to build the toolchain
+(this might take a while depending on your internet connection and computing
+power):
+
+    $ cd ..
+    $ mkdir build
+    $ cd build
+    $ cp $WEBSTAXHOME/source/build/tools/toolchain/ct-ng-1.18.config
+    $ ct-ng oldconfig
+    $ ct-ng build
+
+The output of this is a folder called "vtss-cross-mips32-24kec". This folder
+must be copied to /opt on all development machines. To ease this distribution
+task it might be a good idea to create a tar archive:
+
+    $ tar -cvjf vtss-cross-mips32-24kec.tar.bz2 vtss-cross-mips32-24kec
+
+

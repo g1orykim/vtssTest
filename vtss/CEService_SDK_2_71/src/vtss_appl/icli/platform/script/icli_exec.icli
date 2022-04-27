@@ -1,0 +1,1585 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG =
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include <stdlib.h>
+#include "icli_cmd_func.h"
+
+#ifdef VTSS_SW_OPTION_VCLI
+#include "cli.h"
+#endif
+
+#ifdef VTSS_SW_OPTION_ICFG /* CP, 06/24/2013 13:57, Bugzilla#12076 - slient upgrade */
+#include "icfg_api.h"
+#include "icli_exec_icli.h"
+#endif
+
+/* for debug */
+extern i32 vtss_icli_exec_para_cnt_get(
+    void
+);
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+static void _icli_line_show(
+    IN u32  session_id,
+    IN u32  config_session_id,
+    IN BOOL b_alive
+)
+{
+    icli_session_data_t     *session_data;
+    BOOL                    b_self = (session_id == config_session_id);
+    i32                     day, hour, min, sec;
+
+    // allocate memory
+    session_data = (icli_session_data_t *)icli_malloc(sizeof(icli_session_data_t));
+    if ( session_data == NULL ) {
+        T_E("memory insufficient\n");
+        return;
+    }
+
+    session_data->session_id = config_session_id;
+    if ( icli_session_data_get(session_data) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to get session data of session %u.\n", config_session_id);
+        icli_free(session_data);
+        return;
+    }
+
+    /* display alive line only */
+    if ( b_alive ) {
+        if ( session_data->alive == FALSE ) {
+            icli_free(session_data);
+            return;
+        }
+    }
+
+    ICLI_PRINTF("Line is ");
+    if ( config_session_id ) {
+        ICLI_PRINTF("vty %d.\n", config_session_id - 1);
+    } else {
+        ICLI_PRINTF("con 0.\n");
+    }
+
+    if ( b_self ) {
+        ICLI_PRINTF("    * You are at this line now.\n");
+    }
+
+    if ( session_data->location[0] != 0 ) {
+        ICLI_PRINTF("    Location is at %s.\n", session_data->location);
+    }
+
+    if ( session_data->alive ) {
+        ICLI_PRINTF("    Alive from ");
+        switch( session_data->way ) {
+            case ICLI_SESSION_WAY_CONSOLE:
+                ICLI_PRINTF("CONSOLE.\n");
+                break;
+
+            case ICLI_SESSION_WAY_THREAD_CONSOLE:
+                ICLI_PRINTF("Console.\n");
+                break;
+
+            case ICLI_SESSION_WAY_TELNET:
+                ICLI_PRINTF("TELNET.\n");
+                break;
+
+            case ICLI_SESSION_WAY_THREAD_TELNET:
+                ICLI_PRINTF("Telnet.\n");
+                break;
+
+            case ICLI_SESSION_WAY_SSH:
+                ICLI_PRINTF("SSH.\n");
+                break;
+
+            case ICLI_SESSION_WAY_THREAD_SSH:
+                ICLI_PRINTF("Ssh.\n");
+                break;
+
+            case ICLI_SESSION_WAY_APP_EXEC:
+                ICLI_PRINTF("Application.\n");
+                break;
+
+            default:
+                ICLI_PRINTF("unknown.\n");
+                break;
+        }
+    } else {
+        ICLI_PRINTF("    Not alive.\n");
+    }
+
+    ICLI_PRINTF("    Default privileged level is %d.\n", session_data->privileged_level);
+
+    ICLI_PRINTF("    Command line editing is %s\n",
+        (session_data->input_style == ICLI_INPUT_STYLE_SINGLE_LINE)?"enabled":"disabled");
+
+    ICLI_PRINTF("    Display EXEC banner is %s.\n", session_data->b_exec_banner?"enabled":"disabled");
+    ICLI_PRINTF("    Display Day banner is %s.\n", session_data->b_motd_banner?"enabled":"disabled");
+
+    ICLI_PRINTF("    Terminal width is %d.\n", session_data->width);
+    ICLI_PRINTF("             length is %d.\n", session_data->lines);
+    ICLI_PRINTF("             history size is %d.\n", session_data->history_size);
+
+    sec = (session_data->wait_time <= 0) ? 0 : session_data->wait_time;
+    min = sec / 60;
+    sec = sec % 60;
+    ICLI_PRINTF("             exec-timeout is %d min %d second.\n", min, sec);
+    ICLI_PRINTF("\n");
+
+    ICLI_PRINTF("    Current session privilege is %d.\n", session_data->privilege);
+
+    sec  = session_data->elapsed_time % 60;
+    min  = (session_data->elapsed_time / 60) % 60;
+    hour = (session_data->elapsed_time / (60 * 60)) % 24;
+    day  = session_data->elapsed_time / (24 * 60 * 60);
+    ICLI_PRINTF("    Elapsed time is %d day %d hour %d min %d sec.\n", day, hour, min, sec);
+
+    sec  = session_data->idle_time % 60;
+    min  = (session_data->idle_time / 60) % 60;
+    hour = (session_data->idle_time / (60 * 60)) % 24;
+    day  = session_data->idle_time / (24 * 60 * 60);
+    ICLI_PRINTF("    Idle time is %d day %d hour %d min %d sec.\n", day, hour, min, sec);
+
+    icli_free(session_data);
+
+    ICLI_PRINTF("\n");
+}
+
+static void _icli_user_show(IN u32 session_id, IN u32 config_session_id)
+{
+    icli_session_data_t     *session_data;
+    BOOL                    b_self = (session_id == config_session_id);
+    i32                     day, hour, min, sec;
+    char                    str[64];
+
+    // allocate memory
+    session_data = (icli_session_data_t *)icli_malloc(sizeof(icli_session_data_t));
+    if ( session_data == NULL ) {
+        T_E("memory insufficient\n");
+        return;
+    }
+
+    session_data->session_id = config_session_id;
+    if ( icli_session_data_get(session_data) != ICLI_RC_OK ) {
+        ICLI_SELF_PRINTF("%% Fail to get session data of session %u.\n", config_session_id);
+        icli_free(session_data);
+        return;
+    }
+
+    /* if session not alive, display nothing */
+    if ( session_data->alive == FALSE ) {
+        icli_free(session_data);
+        return;
+    }
+
+    ICLI_SELF_PRINTF("Line is ");
+    if ( config_session_id ) {
+        ICLI_SELF_PRINTF("vty %d.\n", config_session_id - 1);
+    } else {
+        ICLI_SELF_PRINTF("con 0.\n");
+    }
+
+    if ( b_self ) {
+        ICLI_SELF_PRINTF("    * You are at this line now.\n");
+    }
+
+    switch( session_data->way ) {
+        case ICLI_SESSION_WAY_CONSOLE:
+        case ICLI_SESSION_WAY_THREAD_CONSOLE:
+            ICLI_SELF_PRINTF("    Connection is from Console.\n");
+            break;
+
+        case ICLI_SESSION_WAY_TELNET:
+        case ICLI_SESSION_WAY_THREAD_TELNET:
+            if ( session_data->client_ip.type == ICLI_IP_ADDR_TYPE_IPV4 ) {
+                (void)vtss_icli_ipv4_to_str(session_data->client_ip.u.ipv4, str);
+            } else {
+                (void)vtss_icli_ipv6_to_str(session_data->client_ip.u.ipv6, str);
+            }
+            ICLI_SELF_PRINTF("    Connection is from %s:%u by Telnet.\n", str, session_data->client_port);
+            break;
+
+        case ICLI_SESSION_WAY_SSH:
+        case ICLI_SESSION_WAY_THREAD_SSH:
+            if ( session_data->client_ip.type == ICLI_IP_ADDR_TYPE_IPV4 ) {
+                (void)vtss_icli_ipv4_to_str(session_data->client_ip.u.ipv4, str);
+            } else {
+                (void)vtss_icli_ipv6_to_str(session_data->client_ip.u.ipv6, str);
+            }
+            ICLI_SELF_PRINTF("    Connection is from %s:%u by SSH.\n", str, session_data->client_port);
+            break;
+
+        case ICLI_SESSION_WAY_APP_EXEC:
+            ICLI_SELF_PRINTF("    Connection is from application.\n");
+            break;
+
+        default:
+            ICLI_SELF_PRINTF("    Connection is unknown.\n");
+            break;
+    }
+
+    if ( session_data->user_name[0] != 0 ) {
+        ICLI_SELF_PRINTF("    User name is %s.\n", session_data->user_name);
+    } else {
+        ICLI_SELF_PRINTF("    Not login by user name.\n");
+    }
+    ICLI_SELF_PRINTF("    Privilege is %d.\n", session_data->privilege);
+
+    sec  = session_data->elapsed_time % 60;
+    min  = (session_data->elapsed_time / 60) % 60;
+    hour = (session_data->elapsed_time / (60 * 60)) % 24;
+    day  = session_data->elapsed_time / (24 * 60 * 60);
+    ICLI_SELF_PRINTF("    Elapsed time is %d day %d hour %d min %d sec.\n", day, hour, min, sec);
+
+    sec  = session_data->idle_time % 60;
+    min  = (session_data->idle_time / 60) % 60;
+    hour = (session_data->idle_time / (60 * 60)) % 24;
+    day  = session_data->idle_time / (24 * 60 * 60);
+    ICLI_SELF_PRINTF("    Idle time is %d day %d hour %d min %d sec.\n", day, hour, min, sec);
+
+    icli_free(session_data);
+
+    ICLI_SELF_PRINTF("\n");
+}
+
+#ifdef VTSS_SW_OPTION_ICFG /* CP, 06/24/2013 13:57, Bugzilla#12076 - slient upgrade */
+static BOOL _silent_upgrade_runtime(
+    IN  u32                   session_id,
+    IN  icli_runtime_ask_t    ask,
+    OUT icli_runtime_t        *runtime
+)
+{
+    if ( session_id ){}
+
+    switch ( ask ) {
+    case ICLI_ASK_PRESENT:
+        runtime->present = vtss_icfg_silent_upgrade_active();
+        return TRUE;
+
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    case ICLI_ASK_CWORD:
+    default:
+        break;
+    }
+    return FALSE;
+}
+#endif
+FUNCTION_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = configure terminal
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = Enter configuration mode
+HELP      = Configure from the terminal
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+GOTO_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    i32     level;
+
+#ifdef VTSS_SW_OPTION_ICFG /* CP, 06/24/2013 13:57, Bugzilla#12076 - slient upgrade */
+    BOOL    suac;
+#endif
+VARIABLE_END
+
+CODE_BEGIN
+#ifdef VTSS_SW_OPTION_ICFG /* CP, 06/24/2013 13:57, Bugzilla#12076 - slient upgrade */
+    suac = FALSE;
+    (void)icli_session_suac_get(session_id, &suac);
+    if ( vtss_icfg_silent_upgrade_active() ) {
+        if ( suac == FALSE ) {
+            ICLI_PRINTF("\n");
+            ICLI_PRINTF("%% Please wait while the system configuration is being upgraded, then try again.\n");
+            ICLI_PRINTF("\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+#endif
+
+    level = ICLI_MODE_ENTER( ICLI_CMD_MODE_GLOBAL_CONFIG );
+    if ( level != 1 ) {
+        ICLI_PRINTF("%% Fail to enter Configuration mode.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = help
+FUNC_NAME = _help_display
+PRIVILEGE = ICLI_PRIVILEGE_0
+HELP      = Description of the interactive help system
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+CODE_BEGIN
+    ICLI_PRINTF("Help may be requested at any point in a command by entering\n");
+    ICLI_PRINTF("a question mark '?'.  If nothing matches, the help list will\n");
+    ICLI_PRINTF("be empty and you must backup until entering a '?' shows the\n");
+    ICLI_PRINTF("available options.\n");
+    ICLI_PRINTF("Two styles of help are provided:\n");
+    ICLI_PRINTF("1. Full help is available when you are ready to enter a\n");
+    ICLI_PRINTF("   command argument (e.g. 'show ?') and describes each possible\n");
+    ICLI_PRINTF("   argument.\n");
+    ICLI_PRINTF("2. Partial help is provided when an abbreviated argument is entered\n");
+    ICLI_PRINTF("   and you want to know what arguments match the input\n");
+    ICLI_PRINTF("   (e.g. 'show pr?'.)\n");
+    ICLI_PRINTF("\n");
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = exit
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_0
+IF_FLAG   =
+FUNC_NAME = _exec_exit
+
+HELP      = Exit from EXEC mode
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( ICLI_CLOSE() != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to close session.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND    = logout
+FUNC_REUSE = _exec_exit
+PRIVILEGE  = ICLI_PRIVILEGE_0
+CMD_MODE   = ICLI_CMD_MODE_EXEC
+HELP       = Exit from EXEC mode
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = disable [<0-15>]
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_0
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   = new_priv
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = Turn off privileged commands
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    icli_privilege_t    current_priv;
+
+    new_priv = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( ICLI_PRIVILEGE_GET(&current_priv) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to get privilege\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if ( (icli_privilege_t)new_priv > current_priv ) {
+        ICLI_PRINTF("%% New privilege level must be less than current privilege level\n");
+        return ICLI_RC_OK;
+    }
+
+    if ( ICLI_PRIVILEGE_SET(new_priv) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to turn off privilege level.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = enable [ <0-15> ]
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_0
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   = new_priv
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = Turn on privileged commands
+HELP      = Choose privileged level
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    icli_privilege_t    current_priv;
+    char                priv_passwd[ICLI_PASSWORD_MAX_LEN + 1];
+    char                usr_passwd[ICLI_PASSWORD_MAX_LEN + 1];
+    i32                 passwd_len;
+    i32                 retry;
+    icli_rc_t           rc;
+    BOOL                b_auth;
+    icli_line_mode_t    old_line_mode;
+    icli_session_way_t  way;
+
+    /* initial values */
+    new_priv = ICLI_PRIVILEGE_15;
+VARIABLE_END
+
+CODE_BEGIN
+    /* get session way */
+    if ( ICLI_WAY_GET(&way) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to get session way.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    /* Console does not need to verify enable password */
+    if ( (new_priv == ICLI_PRIVILEGE_15) && (way == ICLI_SESSION_WAY_CONSOLE || way == ICLI_SESSION_WAY_THREAD_CONSOLE) ) {
+        if ( icli_enable_password_get(new_priv, priv_passwd) == FALSE ||
+             vtss_icli_str_len(priv_passwd) == 0 ||
+             vtss_icli_str_cmp(priv_passwd, ICLI_DEFAULT_ENABLE_PASSWORD) == 0 ) {
+            if ( ICLI_PRIVILEGE_SET(new_priv) != ICLI_RC_OK ) {
+                ICLI_PRINTF("%% Fail to turn on privilege level.\n\n");
+                return ICLI_RC_ERROR;
+            }
+            return ICLI_RC_OK;
+        }
+    }
+
+    if ( ICLI_PRIVILEGE_GET(&current_priv) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to get privilege\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if ( new_priv > 0 && (icli_privilege_t)new_priv > current_priv ) {
+        if ( icli_enable_password_get(new_priv, priv_passwd) == FALSE ) {
+            ICLI_PRINTF("%% No password set\n\n");
+            return ICLI_RC_OK;
+        }
+        if ( vtss_icli_str_len(priv_passwd) == 0 ) {
+            ICLI_PRINTF("%% No password set\n\n");
+            return ICLI_RC_OK;
+        }
+        /* get old line mode and then set to be FLOOD */
+        if ( ICLI_LINE_MODE_GET(&old_line_mode) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to get current line mode\n");
+            return ICLI_RC_ERROR;
+        }
+        if ( ICLI_LINE_MODE_SET(ICLI_LINE_MODE_FLOOD) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to set current line mode to be FLOOD\n");
+            return ICLI_RC_ERROR;
+        }
+        /* get password from user input */
+        b_auth = FALSE;
+        for ( retry=0, b_auth=FALSE; b_auth==FALSE && retry<ICLI_ENABLE_PASSWORD_RETRY; ++retry ) {
+            ICLI_PRINTF("Password: ");
+            passwd_len = ICLI_PASSWORD_MAX_LEN;
+            rc = ICLI_USR_STR_GET(ICLI_USR_INPUT_TYPE_PASSWORD, usr_passwd, &passwd_len, NULL);
+            switch( rc ) {
+                case ICLI_RC_ERR_EXPIRED:
+                    ICLI_PRINTF("%% Password:  timeout expired!\n");
+                    continue;
+
+                case ICLI_RC_OK:
+                    /* compare */
+                    if ( icli_enable_password_verify(new_priv, usr_passwd) ) {
+                        b_auth = TRUE;
+                    }
+                    break;
+
+                default:
+                    if ( ICLI_LINE_MODE_SET(old_line_mode) != ICLI_RC_OK ) {
+                        ICLI_PRINTF("%% Fail to set back to current line mode\n");
+                        return ICLI_RC_ERROR;
+                    }
+                    ICLI_PRINTF("%% Fail to get password from user input\n");
+                    return ICLI_RC_ERROR;
+            }
+        }
+        if ( ICLI_LINE_MODE_SET(old_line_mode) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to set back to current line mode\n");
+            return ICLI_RC_ERROR;
+        }
+        if ( b_auth == FALSE ) {
+            ICLI_PRINTF("%% Bad password\n\n");
+            return ICLI_RC_OK;
+        }
+    }
+
+    if ( ICLI_PRIVILEGE_SET(new_priv) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to turn on privilege level.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = send { * | <0~16> | console 0 | vty <0~15> } <line128>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   = b_all
+CMD_VAR   = session_list
+CMD_VAR   = b_console
+CMD_VAR   =
+CMD_VAR   = b_vty
+CMD_VAR   = vty_list
+CMD_VAR   = message
+
+RUNTIME   =
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = LINE
+
+HELP      = Send a message to other tty lines
+HELP      = All tty lines
+HELP      = Send a message to multiple lines
+HELP      = Primary terminal line
+HELP      = Send a message to a specific line
+HELP      = Virtual terminal
+HELP      = Send a message to multiple lines
+HELP      = Message to be sent to lines, in 128 char's
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    u32     sid;
+    u32     i;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( icli_config_user_str_get(session_id, 128, message) == FALSE) {
+        ICLI_PRINTF("%% Fail to get message.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // ++ to skip the start delimiter
+    ++message;
+
+    if ( b_all ) {
+        for ( sid = 0; sid < ICLI_SESSION_CNT; ++sid ) {
+            (void)icli_session_printf(sid, "\n");
+            (void)icli_session_printf(sid, "-----------------------------------------\n");
+            (void)icli_session_printf(sid, "*** Message from line %u:\n", session_id);
+            (void)icli_session_printf(sid, "%s", message);
+            (void)icli_session_printf(sid, "\n");
+            (void)icli_session_printf(sid, "-----------------------------------------\n");
+        }
+        return ICLI_RC_OK;
+    }
+
+    if ( session_list ) {
+        for ( i = 0; i < session_list->cnt; ++i ) {
+            for ( sid = session_list->range[i].min; sid <= session_list->range[i].max; ++sid ) {
+                (void)icli_session_printf(sid, "\n");
+                (void)icli_session_printf(sid, "-----------------------------------------\n");
+                (void)icli_session_printf(sid, "*** Message from line %u:\n", session_id);
+                (void)icli_session_printf(sid, "%s", message);
+                (void)icli_session_printf(sid, "\n");
+                (void)icli_session_printf(sid, "-----------------------------------------\n");
+            }
+        }
+        return ICLI_RC_OK;
+    }
+
+    if ( b_console ) {
+        sid = 0;
+        (void)icli_session_printf(sid, "\n");
+        (void)icli_session_printf(sid, "-----------------------------------------\n");
+        (void)icli_session_printf(sid, "*** Message from line %u:\n", session_id);
+        (void)icli_session_printf(sid, "%s", message);
+        (void)icli_session_printf(sid, "\n");
+        (void)icli_session_printf(sid, "-----------------------------------------\n");
+        return ICLI_RC_OK;
+    }
+
+    if ( b_vty ) {
+        for ( i = 0; i < vty_list->cnt; ++i ) {
+            for ( sid = vty_list->range[i].min; sid <= vty_list->range[i].max; ++sid ) {
+                (void)icli_session_printf(sid+1, "\n");
+                (void)icli_session_printf(sid+1, "-----------------------------------------\n");
+                (void)icli_session_printf(sid+1, "*** Message from line %u:\n", session_id);
+                (void)icli_session_printf(sid+1, "%s", message);
+                (void)icli_session_printf(sid+1, "\n");
+                (void)icli_session_printf(sid+1, "-----------------------------------------\n");
+            }
+        }
+        return ICLI_RC_OK;
+    }
+CODE_END
+
+CMD_END
+
+HELP_TERMINAL = Set terminal line parameters
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND    = terminal help
+FUNC_REUSE = _help_display
+PRIVILEGE  = ICLI_PRIVILEGE_13
+CMD_MODE   = ICLI_CMD_MODE_EXEC
+
+HELP       = ##HELP_TERMINAL
+HELP       = Description of the interactive help system
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = terminal editing
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+IF_FLAG   =
+
+HELP      = ##HELP_TERMINAL
+HELP      = ##ICLI_HELP_EDITING
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    i32     rc;
+VARIABLE_END
+
+CODE_BEGIN
+    rc = ICLI_INPUT_STYLE_SET(ICLI_INPUT_STYLE_SINGLE_LINE);
+    if ( rc != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to enable line editing\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+    i32     rc;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    rc = ICLI_INPUT_STYLE_SET(ICLI_INPUT_STYLE_MULTIPLE_LINE);
+    if ( rc != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to disable line editing\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = terminal length <0,3-512>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = lines
+
+RUNTIME   =
+
+BYWORD    =
+BYWORD    =
+BYWORD    = 0 or 3-512
+
+HELP      = ##HELP_TERMINAL
+HELP      = ##ICLI_HELP_LENGTH
+HELP      = ##ICLI_HELP_LENGTH_NUM
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( ICLI_LINES_SET( lines ) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set length.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no terminal length
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_TERMINAL
+HELP      = ##ICLI_HELP_LENGTH
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( ICLI_LINES_SET( ICLI_DEFAULT_LINES ) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set default length.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = terminal width <0,40-512>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = width
+
+RUNTIME   =
+
+BYWORD    =
+BYWORD    =
+BYWORD    = 0 or 40-512
+
+HELP      = ##HELP_TERMINAL
+HELP      = ##ICLI_HELP_WIDTH
+HELP      = ##ICLI_HELP_WIDTH_NUM
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( ICLI_WIDTH_SET( width ) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set width.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no terminal width
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_TERMINAL
+HELP      = ##ICLI_HELP_WIDTH
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( ICLI_WIDTH_SET( ICLI_DEFAULT_WIDTH ) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set default width.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = terminal exec-timeout <0-1440> [<0-3600>]
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+HELP      = ##HELP_TERMINAL
+RUNTIME   =
+BYWORD    =
+
+CMD_VAR   =
+HELP      = ##ICLI_HELP_EXEC_TIMEOUT
+RUNTIME   =
+BYWORD    =
+
+CMD_VAR   = min
+HELP      = ##ICLI_HELP_EXEC_MIN
+RUNTIME   =
+BYWORD    =
+
+CMD_VAR   = sec
+HELP      = ##ICLI_HELP_EXEC_SEC
+RUNTIME   =
+BYWORD    =
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    i32     timeout;
+
+    /* init sec */
+    sec = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    timeout = min * 60 + sec;
+    if ( ICLI_TIMEOUT_SET( timeout ) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set timeout.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no terminal exec-timeout
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_TERMINAL
+HELP      = ##ICLI_HELP_EXEC_TIMEOUT
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( ICLI_TIMEOUT_SET( ICLI_DEFAULT_WAIT_TIME ) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set default timeout.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_HISTORY      = Control the command history function
+HELP_HISTORY_SIZE = Set history buffer size
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = terminal history size <0-32>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = history_size
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##HELP_TERMINAL
+HELP      = ##ICLI_HELP_HISTORY
+HELP      = ##ICLI_HELP_HISTORY_SIZE
+HELP      = ##ICLI_HELP_HISTORY_NUM
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( ICLI_HISTORY_SIZE_SET( history_size ) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set history size.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no terminal history size
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_TERMINAL
+HELP      = ##ICLI_HELP_HISTORY
+HELP      = ##ICLI_HELP_HISTORY_SIZE
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( ICLI_HISTORY_SIZE_SET( ICLI_HISTORY_CMD_CNT ) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set default history size.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = do <line>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_0
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   = command
+
+BYWORD    =
+BYWORD    = LINE
+
+HELP      = ##ICLI_HELP_DO
+HELP      = ##ICLI_HELP_DO_LINE
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    (void)ICLI_CMD_EXEC(command, TRUE);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show terminal
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = Display terminal configuration parameters
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _icli_line_show(session_id, session_id, TRUE);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show line [alive]
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_alive
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = TTY line information
+HELP      = Display information about alive lines
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    u32     i;
+VARIABLE_END
+
+CODE_BEGIN
+    for ( i = 0; i < ICLI_SESSION_CNT; ++i ) {
+        _icli_line_show(session_id, i, b_alive);
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show history
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = Display the session command history
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    icli_session_history_cmd_t      history;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( icli_session_history_cmd_get_first(session_id, &history) == ICLI_RC_OK ) {
+        ICLI_PRINTF("  %s\n", history.history_cmd);
+        while ( icli_session_history_cmd_get_next(session_id, &history) == ICLI_RC_OK ) {
+            ICLI_PRINTF("  %s\n", history.history_cmd);
+        }
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show users [myself]
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_myself
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = Display information about terminal lines
+HELP      = Display information about mine
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    u32     i;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( b_myself ) {
+        _icli_user_show(session_id, session_id);
+    } else {
+        for ( i = 0; i < ICLI_SESSION_CNT; ++i ) {
+            _icli_user_show(session_id, i);
+        }
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug show banner
+IF_FLAG   = 0
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+HELP      = ##ICLI_HELP_DEBUG
+
+VARIABLE_BEGIN
+    char    *banner;
+VARIABLE_END
+
+CODE_BEGIN
+    banner = (char *)icli_malloc(ICLI_BANNER_MAX_LEN + 1);
+    if ( banner == NULL ) {
+        T_E("memory insufficient for banner\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if ( icli_banner_motd_get(banner) == ICLI_RC_OK ) {
+        if ( *banner == 0 ) {
+            ICLI_PRINTF("  The Day banner is not set.\n");
+        } else {
+            ICLI_PRINTF("  The Day banner is \"%s\".\n", banner);
+        }
+    }
+
+    if ( icli_banner_login_get(banner) == ICLI_RC_OK ) {
+        if ( *banner == 0 ) {
+            ICLI_PRINTF("  The Login banner is not set.\n");
+        } else {
+            ICLI_PRINTF("  The Login banner is \"%s\".\n", banner);
+        }
+    }
+
+    if ( icli_banner_exec_get(banner) == ICLI_RC_OK ) {
+        if ( *banner == 0 ) {
+            ICLI_PRINTF("  The Exec banner is not set.\n");
+        } else {
+            ICLI_PRINTF("  The Exec banner is \"%s\".\n", banner);
+        }
+    }
+
+    icli_free(banner);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug prompt <word32>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = debug_prompt
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      = Set prompt for testing
+HELP      = Word for prompt in 32 char's
+
+BYWORD    =
+BYWORD    =
+BYWORD    = WORD
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( icli_debug_prompt_set(debug_prompt) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set debug prompt\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no debug prompt
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_DEBUG
+HELP      = Clear prompt for testing
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    char    debug_prompt[ ICLI_NAME_MAX_LEN + 1 ] = {0};
+VARIABLE_END
+
+CODE_BEGIN
+    if ( icli_debug_prompt_set(debug_prompt) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set debug prompt\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+IF_FLAG   = defined(VTSS_SW_OPTION_VCLI)
+COMMAND   = debug vcli <line255>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = command
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      = vCLI
+HELP      = vCLI command
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (vcli_cmd_exec(command) != ICLI_RC_OK) {
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug icli port configuration
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   =
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      = ICLI egnine
+HELP      = Port configuration
+HELP      = Current configuration
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    icli_stack_port_range_t  *r;
+    u32                      i;
+VARIABLE_END
+
+CODE_BEGIN
+    r = (icli_stack_port_range_t *)icli_malloc(sizeof(icli_stack_port_range_t));
+    if ( r == NULL ) {
+        ICLI_PRINTF("%% Fail to allocate memory\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if ( icli_port_range_get(r) == FALSE ) {
+        ICLI_PRINTF("%% Fail to retrieve port range from ICLI\n");
+        icli_free(r);
+        return ICLI_RC_ERROR;
+    }
+
+    ICLI_PRINTF("Type                Switch ID  Port ID  Port Cnt  Usid  Uport  Isid  Iport\n");
+    ICLI_PRINTF("==================  =========  =======  ========  ====  =====  ====  =====\n");
+
+    for ( i = 0; i < r->cnt; ++i ) {
+        ICLI_PRINTF("%-18s %9u  %7u  %8u  %4u  %5u  %4u  %5u\n",
+            icli_port_type_get_name(r->switch_range[i].port_type),
+            r->switch_range[i].switch_id,
+            r->switch_range[i].begin_port,
+            r->switch_range[i].port_cnt,
+            r->switch_range[i].usid,
+            r->switch_range[i].begin_uport,
+            r->switch_range[i].isid,
+            r->switch_range[i].begin_iport);
+    }
+
+    icli_free(r);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug silent-upgrade allow-configure
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   = defined(VTSS_SW_OPTION_ICFG)
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      = Slient upgrade
+HELP      = Allow configuring during slient upgrade
+
+RUNTIME   = _silent_upgrade_runtime
+RUNTIME   = _silent_upgrade_runtime
+RUNTIME   = _silent_upgrade_runtime
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+CODE_BEGIN
+    (void)icli_session_suac_set( session_id, TRUE );
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    (void)icli_session_suac_set( session_id, FALSE );
+NO_FORM_CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug icli struct size
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+CODE_BEGIN
+    ICLI_PRINTF("icli_runtime_t          = %u\n", sizeof(icli_runtime_t));
+    ICLI_PRINTF("icli_signed_range_t     = %u\n", sizeof(icli_signed_range_t));
+    ICLI_PRINTF("icli_unsigned_range_t   = %u\n", sizeof(icli_unsigned_range_t));
+    ICLI_PRINTF("icli_stack_port_range_t = %u\n", sizeof(icli_stack_port_range_t));
+    ICLI_PRINTF("icli_range_t            = %u\n", sizeof(icli_range_t));
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show privilege
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = Display command privilege
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    icli_priv_cmd_conf_t    conf;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( icli_priv_get_first(&conf) != ICLI_RC_OK ) {
+        return ICLI_RC_OK;
+    }
+
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF(" -------------------------------------------- \n");
+    ICLI_PRINTF("|   The order is as the input sequence and   |\n");
+    ICLI_PRINTF("|   the last one has the highest priority.   |\n");
+    ICLI_PRINTF(" -------------------------------------------- \n");
+    ICLI_PRINTF("\n");
+
+    ICLI_PRINTF("  privilege %s level %u %s\n", icli_priv_mode_name(conf.mode), conf.privilege, conf.cmd);
+
+    while ( icli_priv_get_next(&conf) == ICLI_RC_OK ) {
+        ICLI_PRINTF("  privilege %s level %u %s\n", icli_priv_mode_name(conf.mode), conf.privilege, conf.cmd);
+    }
+    ICLI_PRINTF("\n");
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug parameter count
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+CODE_BEGIN
+    ICLI_PRINTF("Number of free parameters = %d\n", vtss_icli_exec_para_cnt_get());
+CODE_END
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = cls [ <1-100000> ]
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+CMD_VAR   =
+CMD_VAR   = n
+
+HELP      = Clean screen
+HELP      = Number of new lines
+
+VARIABLE_BEGIN
+    n = 200;
+VARIABLE_END
+
+CODE_BEGIN
+    for ( ; n > 0; --n ) {
+        ICLI_PRINTF("\n");
+    }
+CODE_END
+CMD_END

@@ -1,0 +1,3299 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_DHCP_SERVER)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "dhcp_server_api.h"
+
+// for VTSS_MALLOC
+#define VTSS_ALLOC_MODULE_ID VTSS_MODULE_ID_DHCP_SERVER
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+static void _error_msg(
+    IN u32                  session_id,
+    IN dhcp_server_rc_t     rc
+)
+{
+    switch ( rc ) {
+    case DHCP_SERVER_RC_OK:
+        break;
+
+    case DHCP_SERVER_RC_ERR_DUPLICATE:
+        ICLI_PRINTF("%% Duplicate configuration.\n\n");
+        break;
+
+    case DHCP_SERVER_RC_ERR_MEMORY:
+        ICLI_PRINTF("%% Memory insufficient.\n\n");
+        break;
+
+    case DHCP_SERVER_RC_ERR_FULL:
+        ICLI_PRINTF("%% Database is full.\n\n");
+        break;
+
+    case DHCP_SERVER_RC_ERR_PARAMETER:
+        ICLI_PRINTF("%% Invalid input parameters.\n\n");
+        break;
+
+    case DHCP_SERVER_RC_ERR_NOT_EXIST:
+        ICLI_PRINTF("%% Not exist.\n\n");
+        break;
+
+    case DHCP_SERVER_RC_ERROR:
+        ICLI_PRINTF("%% General error.\n\n");
+        break;
+
+    case DHCP_SERVER_RC_ERR_SUBNET:
+        ICLI_PRINTF("%% Pool's network is not defined yet.\n\n");
+        break;
+
+    case DHCP_SERVER_RC_ERR_IP:
+        ICLI_PRINTF("%% Invalid IP address.\n\n");
+        break;
+
+    default:
+        ICLI_PRINTF("%% Unknown error.\n\n");
+        break;
+    }
+}
+
+#define __SERVER_SHOW(_field_, _title_, _MAX_CNT_) \
+    if ( pool->_field_[0] ) { \
+        if ( pool->_field_[1] ) { \
+            ICLI_PRINTF("  "_title_"s are %s", icli_ipv4_to_str(pool->_field_[0], str)); \
+        } else { \
+            ICLI_PRINTF("  "_title_" is %s", icli_ipv4_to_str(pool->_field_[0], str)); \
+        } \
+        for ( i = 1; i < _MAX_CNT_; i++ ) { \
+            if ( pool->_field_[i] ) { \
+                ICLI_PRINTF(" %s", icli_ipv4_to_str(pool->_field_[i], str)); \
+            } else { \
+                break; \
+            } \
+        } \
+        ICLI_PRINTF("\n"); \
+    } else { \
+        ICLI_PRINTF("  "_title_" is -\n"); \
+    }
+
+static char *_lease_str_get(
+    IN  u32     second,
+    OUT char    *str
+)
+{
+    u32     minute;
+    u32     hour;
+    u32     day;
+
+    day    = second / (24 * 60 * 60);
+    hour   = ( second % (24 * 60 * 60) ) / (60 * 60);
+    minute = ( second % (60 * 60) ) / 60;
+
+    if ( day ) {
+        sprintf(str, "%u days %u hours %u minutes", day, hour, minute);
+    } else if ( hour ) {
+        sprintf(str, "%u hours %u minutes", hour, minute);
+    } else {
+        sprintf(str, "%u minutes", minute);
+    }
+    return str;
+}
+
+static char *_day_str_get(
+    IN  u32     second,
+    OUT char    *str
+)
+{
+    u32     minute;
+    u32     hour;
+    u32     day;
+
+    day    = second / (24 * 60 * 60);
+    hour   = ( second % (24 * 60 * 60) ) / (60 * 60);
+    minute = ( second % (60 * 60) ) / 60;
+    second = second % 60;
+
+    if ( day ) {
+        sprintf(str, "%u days %u hours %u minutes %u seconds", day, hour, minute, second);
+    } else if ( hour ) {
+        sprintf(str, "%u hours %u minutes %u seconds", hour, minute, second);
+    } else if ( minute ) {
+        sprintf(str, "%u minutes %u seconds", minute, second);
+    } else {
+        sprintf(str, "%u seconds", second);
+    }
+    return str;
+}
+
+static void _pool_show(
+    IN u32                  session_id,
+    IN dhcp_server_pool_t   *pool
+)
+{
+    char    str[64];
+    int     i;
+    u32     j;
+    char    empty_mac[DHCP_SERVER_MAC_LEN] = {0, 0, 0, 0, 0, 0};
+    BOOL    b;
+
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("Pool Name: %s\n", pool->pool_name);
+    ICLI_PRINTF("----------------------------------------------\n");
+
+    // Type, IP and Netmask
+    if ( pool->type != DHCP_SERVER_POOL_TYPE_NONE ) {
+        ICLI_PRINTF("  Type is %s\n", (pool->type == DHCP_SERVER_POOL_TYPE_NETWORK) ? "network" : "host");
+        ICLI_PRINTF("  IP is %s\n", icli_ipv4_to_str(pool->ip, str));
+        ICLI_PRINTF("  Subnet mask is %s\n", icli_ipv4_to_str(pool->subnet_mask, str));
+    } else {
+        ICLI_PRINTF("  Type is -\n");
+        ICLI_PRINTF("  IP is -\n");
+        ICLI_PRINTF("  Subnet mask is -\n");
+    }
+
+    // Broadcast
+    if ( pool->subnet_broadcast ) {
+        ICLI_PRINTF("  Subnet broadcast address is %s\n", icli_ipv4_to_str(pool->subnet_broadcast, str));
+    } else {
+        ICLI_PRINTF("  Subnet broadcast address is -\n");
+    }
+
+    // Lease time
+    if ( pool->lease ) {
+        ICLI_PRINTF("  Lease time is %s\n", _lease_str_get(pool->lease, str));
+    } else {
+        ICLI_PRINTF("  Lease time is infinite\n");
+    }
+
+    // Default router
+    __SERVER_SHOW(default_router, "Default router", DHCP_SERVER_SERVER_MAX_CNT);
+
+    // Domain name
+    if ( icli_str_len(pool->domain_name) ) {
+        ICLI_PRINTF("  Domain name is %s\n", pool->domain_name);
+    } else {
+        ICLI_PRINTF("  Domain name is -\n");
+    }
+
+    // DNS server
+    __SERVER_SHOW(dns_server, "DNS server", DHCP_SERVER_SERVER_MAX_CNT);
+
+    // NTP server
+    __SERVER_SHOW(ntp_server, "NTP server", DHCP_SERVER_SERVER_MAX_CNT);
+
+    // Netbios name server
+    __SERVER_SHOW(netbios_name_server, "Netbios name server", DHCP_SERVER_SERVER_MAX_CNT);
+
+    // Netbios node type
+    switch ( pool->netbios_node_type ) {
+        case DHCP_SERVER_NETBIOS_NODE_TYPE_B:
+            ICLI_PRINTF("  Netbios node type is B node\n");
+            break;
+        case DHCP_SERVER_NETBIOS_NODE_TYPE_P:
+            ICLI_PRINTF("  Netbios node type is P node\n");
+            break;
+        case DHCP_SERVER_NETBIOS_NODE_TYPE_M:
+            ICLI_PRINTF("  Netbios node type is M node\n");
+            break;
+        case DHCP_SERVER_NETBIOS_NODE_TYPE_H:
+            ICLI_PRINTF("  Netbios node type is H node\n");
+            break;
+        default:
+            ICLI_PRINTF("  Netbios node type is -\n");
+            break;
+    }
+
+    // Netbios scope
+    if ( icli_str_len(pool->netbios_scope) ) {
+        ICLI_PRINTF("  Netbios scope identifier is %s\n", pool->netbios_scope);
+    } else {
+        ICLI_PRINTF("  Netbios scope identifier is -\n");
+    }
+
+    // NIS domain name
+    if ( icli_str_len(pool->nis_domain_name) ) {
+        ICLI_PRINTF("  NIS domain name is %s\n", pool->nis_domain_name);
+    } else {
+        ICLI_PRINTF("  NIS domain name is -\n");
+    }
+
+    // NIS server
+    __SERVER_SHOW(nis_server, "NIS server", DHCP_SERVER_SERVER_MAX_CNT);
+
+    // Verdor class information
+    b = FALSE;
+    for ( i = 0; i < DHCP_SERVER_VENDOR_CLASS_INFO_CNT; i++ ) {
+        if ( icli_str_len(pool->class_info[i].class_id) ) {
+            b = TRUE;
+            ICLI_PRINTF("  Vendor class identifier is \"%s\" with\n", pool->class_info[i].class_id);
+            ICLI_PRINTF("         specific information is 0x");
+            for ( j = 0; j < pool->class_info[i].specific_info_len; j++ ) {
+                ICLI_PRINTF("%02x", pool->class_info[i].specific_info[j] );
+            }
+            ICLI_PRINTF("\n");
+        }
+    }
+
+    if ( b == FALSE ) {
+        ICLI_PRINTF("  Vendor class information is -\n");
+    }
+
+    // client identifier
+    switch ( pool->client_identifier.type ) {
+        case DHCP_SERVER_CLIENT_IDENTIFIER_TYPE_NONE:
+        default:
+            ICLI_PRINTF("  Client identifer is -\n");
+            break;
+        case DHCP_SERVER_CLIENT_IDENTIFIER_TYPE_FQDN:
+            ICLI_PRINTF("  Client identifer is type of FQDN that is %s\n", pool->client_identifier.u.fqdn);
+            break;
+        case DHCP_SERVER_CLIENT_IDENTIFIER_TYPE_MAC:
+            ICLI_PRINTF("  Client identifer is type of MAC address that is %s\n", icli_mac_to_str(pool->client_identifier.u.mac.addr, str));
+            break;
+    }
+
+    // chaddr
+    if ( memcmp(pool->client_haddr.addr, empty_mac, DHCP_SERVER_MAC_LEN) ) {
+        ICLI_PRINTF("  Hardware address is %s\n", icli_mac_to_str(pool->client_haddr.addr, str));
+    } else {
+        ICLI_PRINTF("  Hardware address is -\n");
+    }
+
+    // client_name
+    if ( icli_str_len(pool->client_name) ) {
+        ICLI_PRINTF("  Client name is %s\n", pool->client_name);
+    } else {
+        ICLI_PRINTF("  Client name is -\n");
+    }
+}
+
+static void _pool_counter_show(
+    IN u32                  session_id,
+    IN dhcp_server_pool_t   *pool
+)
+{
+    ICLI_PRINTF("Pool Name: %s\n", pool->pool_name);
+    ICLI_PRINTF("----------------------------------------------\n");
+    ICLI_PRINTF("     total      = %u\n", pool->total_cnt);
+    ICLI_PRINTF("     alloc      = %u\n", pool->alloc_cnt);
+}
+
+static BOOL _binding_show(
+    IN u32                      session_id,
+    IN dhcp_server_binding_t    *binding
+)
+{
+    char    str[64];
+
+    // Title
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("IP: %s\n", icli_ipv4_to_str(binding->ip, str));
+    ICLI_PRINTF("----------------------------------------------\n");
+
+    // State
+    ICLI_PRINTF("  State is ");
+    switch ( binding->state ) {
+        case DHCP_SERVER_BINDING_STATE_NONE:
+            ICLI_PRINTF("none\n");
+            break;
+        case DHCP_SERVER_BINDING_STATE_COMMITTED:
+            ICLI_PRINTF("committed\n");
+            break;
+        case DHCP_SERVER_BINDING_STATE_ALLOCATED:
+            ICLI_PRINTF("allocated\n");
+            break;
+        case DHCP_SERVER_BINDING_STATE_EXPIRED:
+            ICLI_PRINTF("expired\n");
+            break;
+        default:
+            ICLI_PRINTF("unknown(%u)\n", binding->state);
+            break;
+    }
+
+    // Binding type
+    ICLI_PRINTF("  Binding type is ");
+    switch ( binding->type ) {
+        case DHCP_SERVER_BINDING_TYPE_AUTOMATIC:
+            ICLI_PRINTF("automatic\n");
+            break;
+        case DHCP_SERVER_BINDING_TYPE_MANUAL:
+            ICLI_PRINTF("manual\n");
+            break;
+        default:
+            ICLI_PRINTF("-\n");
+            break;
+    }
+
+    // Pool name
+    ICLI_PRINTF("  Pool name is %s\n", binding->pool_name);
+
+    // Server ID
+    ICLI_PRINTF("  Server ID is %s\n", icli_ipv4_to_str(binding->server_id, str));
+
+    // VID
+    ICLI_PRINTF("  VLAN ID is %u\n", binding->vid);
+
+    // Subnet mask
+    ICLI_PRINTF("  Subnet mask is %s\n", icli_ipv4_to_str(binding->subnet_mask, str));
+
+    // Client identifier
+    switch ( binding->identifier.type ) {
+        case DHCP_SERVER_CLIENT_IDENTIFIER_TYPE_NONE:
+        default:
+            ICLI_PRINTF("  Client identifer is -\n");
+            break;
+        case DHCP_SERVER_CLIENT_IDENTIFIER_TYPE_FQDN:
+            ICLI_PRINTF("  Client identifer is type of FQDN that is %s\n", binding->identifier.u.fqdn);
+            break;
+        case DHCP_SERVER_CLIENT_IDENTIFIER_TYPE_MAC:
+            ICLI_PRINTF("  Client identifer is type of MAC address that is %s\n", icli_mac_to_str(binding->identifier.u.mac.addr, str));
+            break;
+    }
+
+    // Hardware address
+    ICLI_PRINTF("  Hardware address is %s\n", icli_mac_to_str(binding->chaddr.addr, str));
+
+    if ( binding->lease ) {
+        // Lease time
+        ICLI_PRINTF("  Lease time is %s\n", _day_str_get(binding->lease, str));
+
+        // Lease expiration
+        switch ( binding->state ) {
+            case DHCP_SERVER_BINDING_STATE_COMMITTED:
+            case DHCP_SERVER_BINDING_STATE_ALLOCATED:
+                ICLI_PRINTF("  Expiration is in %s\n", _day_str_get(binding->expire_time - dhcp_server_current_time_get(), str));
+                break;
+
+            default:
+                ICLI_PRINTF("  Expiration is -\n");
+                break;
+        }
+    } else {
+        // Lease time
+        ICLI_PRINTF("  Lease time is infinite\n");
+
+        // Lease expiration
+        ICLI_PRINTF("  No expiration\n");
+    }
+    return TRUE;
+}
+
+static u32 _day_hour_get(
+    IN    u32   session_id
+)
+{
+    u32                     min;
+    icli_variable_value_t   *value;
+
+    min = 1;
+
+    value = VTSS_MALLOC( sizeof(icli_variable_value_t) );
+    if ( value == 0 ) {
+        return min;
+    }
+
+    // get day
+    if ( icli_session_cmd_value_get(session_id, 1, value) != ICLI_RC_OK ) {
+        VTSS_FREE( value );
+        return min;
+    }
+
+    if ( value->u.u_uint ) {
+        VTSS_FREE( value );
+        return min;
+    }
+
+    // get hour
+    if ( icli_session_cmd_value_get(session_id, 2, value) != ICLI_RC_OK ) {
+        VTSS_FREE( value );
+        return min;
+    }
+
+    min = value->u.u_uint;
+    VTSS_FREE( value );
+    return min;
+}
+
+static BOOL _min_runtime(
+    IN    u32                   session_id,
+    IN    icli_runtime_ask_t    ask,
+    OUT   icli_runtime_t        *runtime
+)
+{
+    switch ( ask ) {
+    case ICLI_ASK_BYWORD:
+        if ( _day_hour_get(session_id) ) {
+            icli_sprintf(runtime->byword, "<0-59>");
+        } else {
+            icli_sprintf(runtime->byword, "<1-59>");
+        }
+        return TRUE;
+
+    case ICLI_ASK_RANGE:
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.ur.cnt = 1;
+        runtime->range.u.ur.range[0].max = 59;
+        if ( _day_hour_get(session_id) ) {
+            runtime->range.u.ur.range[0].min = 0;
+        } else {
+            runtime->range.u.ur.range[0].min = 1;
+        }
+        return TRUE;
+
+    case ICLI_ASK_PRESENT:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_CWORD:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static void _enable_vlan(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *vlist,
+    IN  BOOL                    b_enable
+)
+{
+    u32         i;
+    vtss_vid_t  vid;
+
+    for ( i = 0; i < vlist->cnt; i++ ) {
+        for ( vid = (vtss_vid_t)(vlist->range[i].min); vid <= (vtss_vid_t)(vlist->range[i].max); vid++ ) {
+            if ( dhcp_server_vlan_enable_set(vid, b_enable) != DHCP_SERVER_RC_OK ) {
+                ICLI_PRINTF("%% Fail to %s dhcp server on VLAN %u\n",
+                            b_enable ? "enable" : "disable", vid);
+            }
+        }
+    }
+}
+FUNCTION_END
+
+HELP_DHCP        = Configure DHCP server parameters
+HELP_POOL        = Configure DHCP address pools
+HELP_SHOW_POOL   = DHCP pools information
+HELP_SHOW_SERVER = DHCP server information
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show ip dhcp pool [<word32>]
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = pool_name
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = WORD
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##ICLI_HELP_SHOW_IP
+HELP      = ##ICLI_HELP_SHOW_IP_DHCP
+HELP      = ##HELP_SHOW_POOL
+HELP      = ##ICLI_HELP_DHCP_POOL_NAME
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t  pool;
+    BOOL                b_show = FALSE;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( pool_name ) {
+        (void)icli_str_cpy(pool.pool_name, pool_name);
+        if ( dhcp_server_pool_get(&pool) == DHCP_SERVER_RC_OK ) {
+            _pool_show(session_id, &pool);
+            b_show = TRUE;
+        } else {
+            ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        }
+    } else {
+        memset(&pool, 0, sizeof(dhcp_server_pool_t));
+        while ( dhcp_server_pool_get_next(&pool) == DHCP_SERVER_RC_OK ) {
+            _pool_show(session_id, &pool);
+            b_show = TRUE;
+        }
+    }
+
+    if ( b_show ) {
+        ICLI_PRINTF("\n");
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show ip dhcp pool counter [<word32>]
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = pool_name
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = WORD
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##ICLI_HELP_SHOW_IP
+HELP      = ##ICLI_HELP_SHOW_IP_DHCP
+HELP      = ##HELP_SHOW_POOL
+HELP      = Counters
+HELP      = ##ICLI_HELP_DHCP_POOL_NAME
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t  pool;
+    BOOL                b_show = FALSE;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( pool_name ) {
+        (void)icli_str_cpy(pool.pool_name, pool_name);
+        if ( dhcp_server_pool_get(&pool) == DHCP_SERVER_RC_OK ) {
+            _pool_counter_show(session_id, &pool);
+            b_show = TRUE;
+        } else {
+            ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        }
+    } else {
+        memset(&pool, 0, sizeof(dhcp_server_pool_t));
+        while ( dhcp_server_pool_get_next(&pool) == DHCP_SERVER_RC_OK ) {
+            if ( b_show ) {
+                ICLI_PRINTF("\n");
+            }
+            _pool_counter_show(session_id, &pool);
+            b_show = TRUE;
+        }
+    }
+
+    if ( b_show ) {
+        ICLI_PRINTF("\n");
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show ip dhcp excluded-address
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##ICLI_HELP_SHOW_IP
+HELP      = ##ICLI_HELP_SHOW_IP_DHCP
+HELP      = Excluded IP database
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    dhcp_server_excluded_ip_t   excluded;
+    int                         i = 0;
+    char                        str[64];
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&excluded, 0, sizeof(excluded));
+    while ( dhcp_server_excluded_get_next(&excluded) == DHCP_SERVER_RC_OK ) {
+        if ( i++ == 0 ) {
+            ICLI_PRINTF("\n");
+            ICLI_PRINTF("     Low Address      High Address   \n");
+            ICLI_PRINTF("     ---------------  ---------------\n");
+        }
+        ICLI_PRINTF("%02d   ", i);
+        ICLI_PRINTF("%-15s  ", icli_ipv4_to_str(excluded.low_ip, str));
+        ICLI_PRINTF("%-15s  ", icli_ipv4_to_str(excluded.high_ip, str));
+        ICLI_PRINTF("\n");
+    }
+    if ( i ) {
+        ICLI_PRINTF("\n");
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show ip dhcp server binding [ state {allocated | committed | expired} ] [ type {automatic | manual | expired} ]
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_state
+CMD_VAR   = b_allocated
+CMD_VAR   = b_committed
+CMD_VAR   =
+CMD_VAR   = b_type
+CMD_VAR   = b_automatic
+CMD_VAR   = b_manual
+CMD_VAR   =
+
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##ICLI_HELP_SHOW_IP
+HELP      = ##ICLI_HELP_SHOW_IP_DHCP
+HELP      = ##HELP_SHOW_SERVER
+HELP      = ##ICLI_HELP_DHCP_BINDING
+HELP      = State of binding
+HELP      = Allocated state
+HELP      = Committed state
+HELP      = Expired state
+HELP      = Type of binding
+HELP      = Automatic binding with infinite lease time
+HELP      = Manual binding for a specific host
+HELP      = Expired binding that is aged out
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    dhcp_server_binding_t       binding;
+    u32                         state;
+    dhcp_server_binding_type_t  type;
+    BOOL                        b_show = FALSE;
+VARIABLE_END
+
+CODE_BEGIN
+    state = DHCP_SERVER_BINDING_STATE_NONE;
+    if ( b_state ) {
+        if ( b_allocated ) {
+            state = DHCP_SERVER_BINDING_STATE_ALLOCATED;
+        } else if ( b_committed ) {
+            state = DHCP_SERVER_BINDING_STATE_COMMITTED;
+        } else {
+            state = DHCP_SERVER_BINDING_STATE_EXPIRED;
+        }
+    }
+
+    type = DHCP_SERVER_BINDING_TYPE_NONE;
+    if ( b_type ) {
+        if ( b_automatic ) {
+            type = DHCP_SERVER_BINDING_TYPE_AUTOMATIC;
+        } else if ( b_manual ) {
+            type = DHCP_SERVER_BINDING_TYPE_MANUAL;
+        } else {
+            type = DHCP_SERVER_BINDING_TYPE_EXPIRED;
+        }
+    }
+
+    memset(&binding, 0, sizeof(dhcp_server_binding_t));
+    while ( dhcp_server_binding_get_next(&binding) == DHCP_SERVER_RC_OK ) {
+        if ( b_state && (binding.state != state) ) {
+            continue;
+        }
+        if ( b_type && (binding.type != type) ) {
+            continue;
+        }
+        if ( _binding_show(session_id, &binding) ) {
+            b_show = TRUE;
+        }
+    }
+
+    if ( b_show ) {
+        ICLI_PRINTF("\n");
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show ip dhcp server binding <ipv4_ucast>
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = ip
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = A.B.C.D
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##ICLI_HELP_SHOW_IP
+HELP      = ##ICLI_HELP_SHOW_IP_DHCP
+HELP      = ##HELP_SHOW_SERVER
+HELP      = ##ICLI_HELP_DHCP_BINDING
+HELP      = IP address in dotted-decimal notation
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    dhcp_server_binding_t   binding;
+VARIABLE_END
+
+CODE_BEGIN
+    binding.ip = ip;
+    if ( dhcp_server_binding_get(&binding) == DHCP_SERVER_RC_OK ) {
+        (void)_binding_show( session_id, &binding );
+        ICLI_PRINTF("\n");
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show ip dhcp server
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##ICLI_HELP_SHOW_IP
+HELP      = ##ICLI_HELP_SHOW_IP_DHCP
+HELP      = ##HELP_SHOW_SERVER
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    BOOL                        b_enable;
+    vtss_vid_t                  vid;
+    BOOL                        b_title;
+    vtss_vid_t                  first;
+    vtss_vid_t                  last;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( dhcp_server_enable_get(&b_enable) == DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("\n");
+        ICLI_PRINTF("DHCP server is globally %s.\n", b_enable ? "enabled" : "disabled");
+    } else {
+        ICLI_PRINTF("%% Fail to get DHCP server enabled or disabled.\n");
+    }
+
+    b_title = TRUE;
+    first   = 0;
+    last    = 0;
+    for ( vid = 1; vid < VTSS_VIDS; vid++ ) {
+        if ( dhcp_server_vlan_enable_get(vid, &b_enable) == DHCP_SERVER_RC_OK ) {
+            if ( b_enable ) {
+                if ( b_title ) {
+                    ICLI_PRINTF("  Enabled VLANs are %u", vid);
+                    b_title = FALSE;
+                    first   = vid;
+                    last    = vid;
+                } else {
+                    if ( vid == last + 1 ) {
+                        last = vid;
+                    } else {
+                        if ( first != last ) {
+                            ICLI_PRINTF("-%u", last);
+                        }
+                        ICLI_PRINTF(", %u", vid);
+                        first   = vid;
+                        last    = vid;
+                    }
+                }
+            }
+        } else {
+            ICLI_PRINTF("%% Fail to get DHCP server enabled or disabled on VLAN %u.\n", vid);
+        }
+    }
+
+    if ( b_title ) {
+        ICLI_PRINTF("  All VLANs are disabled.\n");
+    } else {
+        if ( first != last ) {
+            ICLI_PRINTF("-%u", last);
+        }
+        ICLI_PRINTF(".\n");
+    }
+
+    ICLI_PRINTF("\n");
+CODE_END
+
+CMD_END
+
+HELP_STATISTICS = DHCP server statistics
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show ip dhcp server statistics
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##ICLI_HELP_SHOW_IP
+HELP      = ##ICLI_HELP_SHOW_IP_DHCP
+HELP      = ##HELP_SHOW_SERVER
+HELP      = ##HELP_STATISTICS
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    dhcp_server_statistics_t    statistics;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( dhcp_server_statistics_get(&statistics) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Fail to get statistics of DHCP server\n");
+        return ICLI_RC_ERROR;
+    }
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("Database Counters\n");
+    ICLI_PRINTF("=========================\n");
+    ICLI_PRINTF("  %-11s  %10u\n", "POOL",        statistics.pool_cnt);
+    ICLI_PRINTF("  %-11s  %10u\n", "Excluded IP", statistics.excluded_cnt);
+    ICLI_PRINTF("  %-11s  %10u\n", "Declined IP", statistics.declined_cnt);
+    ICLI_PRINTF("=========================\n");
+
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("Binding Counters\n");
+    ICLI_PRINTF("=========================\n");
+    ICLI_PRINTF("  %-11s  %10u\n", "Automatic", statistics.automatic_binding_cnt);
+    ICLI_PRINTF("  %-11s  %10u\n", "Manual",    statistics.manual_binding_cnt);
+    ICLI_PRINTF("  %-11s  %10u\n", "Expired",   statistics.expired_binding_cnt);
+    ICLI_PRINTF("=========================\n");
+
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("Message Received Counters\n");
+    ICLI_PRINTF("=========================\n");
+    ICLI_PRINTF("  %-11s  %10u\n", "DISCOVER", statistics.discover_cnt);
+    ICLI_PRINTF("  %-11s  %10u\n", "REQUEST",  statistics.request_cnt);
+    ICLI_PRINTF("  %-11s  %10u\n", "DECLINE",  statistics.decline_cnt);
+    ICLI_PRINTF("  %-11s  %10u\n", "RELEASE",  statistics.release_cnt);
+    ICLI_PRINTF("  %-11s  %10u\n", "INFORM",   statistics.inform_cnt);
+    ICLI_PRINTF("=========================\n");
+
+    ICLI_PRINTF("\n");
+    ICLI_PRINTF("Message Sent Counters\n");
+    ICLI_PRINTF("=========================\n");
+    ICLI_PRINTF("  %-11s  %10u\n", "OFFER",    statistics.offer_cnt);
+    ICLI_PRINTF("  %-11s  %10u\n", "ACK",      statistics.ack_cnt);
+    ICLI_PRINTF("  %-11s  %10u\n", "NAK",      statistics.nak_cnt);
+    ICLI_PRINTF("=========================\n");
+
+    ICLI_PRINTF("\n");
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show ip dhcp server declined-ip
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##ICLI_HELP_SHOW_IP
+HELP      = ##ICLI_HELP_SHOW_IP_DHCP
+HELP      = ##HELP_SHOW_SERVER
+HELP      = Declined IP address
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    vtss_ipv4_t     declined_ip;
+    int             i = 0;
+    char            str[64];
+VARIABLE_END
+
+CODE_BEGIN
+    declined_ip = 0;
+    while ( dhcp_server_declined_get_next(&declined_ip) == DHCP_SERVER_RC_OK ) {
+        if ( i++ == 0 ) {
+            ICLI_PRINTF("\n");
+            ICLI_PRINTF("      Declined IP Address\n");
+            ICLI_PRINTF("      -------------------\n");
+        }
+        ICLI_PRINTF("%04d  ", i);
+        ICLI_PRINTF("%-19s", icli_ipv4_to_str(declined_ip, str));
+        ICLI_PRINTF("\n");
+    }
+    if ( i ) {
+        ICLI_PRINTF("\n");
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show ip dhcp server declined-ip <ipv4_addr>
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_0
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = declined_ip
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = A.B.C.D
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##ICLI_HELP_SHOW_IP
+HELP      = ##ICLI_HELP_SHOW_IP_DHCP
+HELP      = ##HELP_SHOW_SERVER
+HELP      = Declined IP address
+HELP      = IP address
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    char    str[64];
+VARIABLE_END
+
+CODE_BEGIN
+    if ( dhcp_server_declined_get(&declined_ip) == DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("\n");
+        ICLI_PRINTF("Declined IP Address\n");
+        ICLI_PRINTF("-------------------\n");
+        ICLI_PRINTF("  %-19s\n", icli_ipv4_to_str(declined_ip, str));
+        ICLI_PRINTF("\n");
+    }
+CODE_END
+
+CMD_END
+
+HELP_CLEAR_IP_DHCP_SERVER = Miscellaneous DHCP server information
+HELP_CLEAR_IP_DHCP_BINDING = Clear DHCP binding
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = clear ip dhcp server binding <ipv4_ucast>
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = ip
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = A.B.C.D
+
+HELP      = ##ICLI_HELP_CLEAR
+HELP      = ##ICLI_HELP_CLEAR_IP
+HELP      = ##ICLI_HELP_CLEAR_IP_DHCP
+HELP      = ##HELP_CLEAR_IP_DHCP_SERVER
+HELP      = ##HELP_CLEAR_IP_DHCP_BINDING
+HELP      = IP address of the binding
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    dhcp_server_binding_t   binding;
+VARIABLE_END
+
+CODE_BEGIN
+    binding.ip = ip;
+    (void)dhcp_server_binding_delete( &binding );
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = clear ip dhcp server binding { automatic | manual | expired }
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_automatic
+CMD_VAR   = b_manual
+
+HELP      = ##ICLI_HELP_CLEAR
+HELP      = ##ICLI_HELP_CLEAR_IP
+HELP      = ##ICLI_HELP_CLEAR_IP_DHCP
+HELP      = ##HELP_CLEAR_IP_DHCP_SERVER
+HELP      = ##HELP_CLEAR_IP_DHCP_BINDING
+HELP      = Clear automatic bindings to expired bindings
+HELP      = Clear manual bindings to expired bindings
+HELP      = Clear expired bindings for free
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    dhcp_server_binding_type_t     type;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( b_automatic ) {
+        type = DHCP_SERVER_BINDING_TYPE_AUTOMATIC;
+    } else if ( b_manual ) {
+        type = DHCP_SERVER_BINDING_TYPE_MANUAL;
+    } else {
+        type = DHCP_SERVER_BINDING_TYPE_EXPIRED;
+    }
+    dhcp_server_binding_clear_by_type( type );
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = clear ip dhcp server statistics
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##ICLI_HELP_CLEAR
+HELP      = ##ICLI_HELP_CLEAR_IP
+HELP      = ##ICLI_HELP_CLEAR_IP_DHCP
+HELP      = ##HELP_CLEAR_IP_DHCP_SERVER
+HELP      = ##HELP_STATISTICS
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    dhcp_server_statistics_clear();
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = ip dhcp server
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##ICLI_HELP_IP
+HELP      = ##ICLI_HELP_IP_DHCP
+HELP      = Enable DHCP server
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( dhcp_server_enable_set(TRUE) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Fail to enable DHCP server\n");
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if ( dhcp_server_enable_set(FALSE) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Fail to disable DHCP server\n");
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = ip dhcp excluded-address <ipv4_addr> [<ipv4_addr>]
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = low_ip
+CMD_VAR   = high_ip
+
+HELP      = ##ICLI_HELP_IP
+HELP      = ##ICLI_HELP_IP_DHCP
+HELP      = Prevent DHCP from assigning certain addresses
+HELP      = Low IP address
+HELP      = High IP address
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    dhcp_server_excluded_ip_t     excluded;
+    dhcp_server_rc_t              rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( high_ip == 0 ) {
+        if ( low_ip == 0 ) {
+            ICLI_PRINTF("%% Low and high IP addresses can not be 0.0.0.0 at the same time.\n\n");
+            return ICLI_RC_ERROR;
+        }
+        high_ip = low_ip;
+    }
+
+    if ( low_ip > high_ip ) {
+        ICLI_PRINTF("%% Low IP addresse can not be larger than high IP address.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    excluded.low_ip  = low_ip;
+    excluded.high_ip = high_ip;
+
+    rc = dhcp_server_excluded_add( &excluded );
+    switch ( rc ) {
+    case DHCP_SERVER_RC_OK:
+    case DHCP_SERVER_RC_ERR_DUPLICATE:
+        break;
+
+    default:
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+    dhcp_server_excluded_ip_t     excluded;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    if ( high_ip == 0 ) {
+        high_ip = low_ip;
+    }
+
+    excluded.low_ip  = low_ip;
+    excluded.high_ip = high_ip;
+
+    (void)dhcp_server_excluded_delete( &excluded );
+NO_FORM_CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no ip dhcp pool <word32>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_IP
+HELP      = ##HELP_DHCP
+HELP      = ##HELP_POOL
+HELP      = ##ICLI_HELP_DHCP_POOL_NAME
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+DESTROY_MODE = ICLI_CMD_MODE_DHCP_POOL
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = pool_name
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = WORD
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t     pool;
+VARIABLE_END
+
+CODE_BEGIN
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_delete(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = ip dhcp server
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##ICLI_HELP_IP
+HELP      = ##ICLI_HELP_IP_DHCP
+HELP      = Enable DHCP server per VLAN
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR  = vlist
+
+CODE_BEGIN
+    _enable_vlan( session_id, vlist, TRUE );
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    _enable_vlan( session_id, vlist, FALSE );
+NO_FORM_CODE_END
+
+CMD_END
+
+HELP_NETWORK = Network number and mask
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = network <ipv4_addr> <ipv4_netmask>
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_VAR   =
+CMD_VAR   = ip
+CMD_VAR   = subnet_mask
+
+BYWORD    =
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+
+HELP      = ##HELP_NETWORK
+HELP      = Network number
+HELP      = Network mask in dotted-decimal notation, excluding 255.255.255.255
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t      pool;
+    dhcp_server_rc_t        rc;
+VARIABLE_END
+
+CODE_BEGIN
+    /* get user input */
+    if ( ip == 0 || subnet_mask == 0 ) {
+        ICLI_PRINTF("%% 0.0.0.0 is not allowed\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if ( subnet_mask == 0xFFffFFff ) {
+        ICLI_PRINTF("%% 255.255.255.255 is not allowed\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    pool.type        = DHCP_SERVER_POOL_TYPE_NETWORK;
+    pool.ip          = ip;
+    pool.subnet_mask = subnet_mask;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no network
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_NETWORK
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    if ( pool.type != DHCP_SERVER_POOL_TYPE_NETWORK ) {
+        return ICLI_RC_OK;
+    }
+
+    // set default
+    pool.type = DHCP_SERVER_POOL_TYPE_NONE;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_BROADCAST = Broadcast address in use on the client's subnet
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = broadcast <ipv4_addr>
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_VAR   =
+CMD_VAR   = ip
+
+BYWORD    =
+BYWORD    = A.B.C.D
+
+HELP      = ##HELP_BROADCAST
+HELP      = Broadcast IP address
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t      pool;
+    dhcp_server_rc_t        rc;
+VARIABLE_END
+
+CODE_BEGIN
+    /* get user input */
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    pool.subnet_broadcast = ip;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no broadcast
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_BROADCAST
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    pool.subnet_broadcast = 0;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_DEFAULT_ROUTER = Default routers
+HELP_ROUTER_ADDRESS = Router's IP address
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = default-router <ipv4_ucast> [<ipv4_ucast> [<ipv4_ucast> [<ipv4_ucast>]]]
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_DEFAULT_ROUTER
+HELP      = ##HELP_ROUTER_ADDRESS
+HELP      = ##HELP_ROUTER_ADDRESS
+HELP      = ##HELP_ROUTER_ADDRESS
+HELP      = ##HELP_ROUTER_ADDRESS
+
+BYWORD    =
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+
+CMD_VAR   =
+CMD_VAR   = ip
+CMD_VAR   = ip1
+CMD_VAR   = ip2
+CMD_VAR   = ip3
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+    if ( ip == 0 ) {
+        ICLI_PRINTF("%% Please specify at least one non-zero address.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    pool.default_router[0] = ip;
+    pool.default_router[1] = ip1;
+    pool.default_router[2] = ip2;
+    pool.default_router[3] = ip3;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no default-router
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_DEFAULT_ROUTER
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    pool.default_router[0] = 0;
+    pool.default_router[1] = 0;
+    pool.default_router[2] = 0;
+    pool.default_router[3] = 0;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_LEASE = Address lease time
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = lease { <0-365> [ <0-23> [ <uint> ] ] | infinite }
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_LEASE
+HELP      = Days
+HELP      = Hours
+HELP      = Minutes
+HELP      = Infinite lease
+
+CMD_VAR   =
+CMD_VAR   = day
+CMD_VAR   = hour
+CMD_VAR   = min
+CMD_VAR   = b_infinite
+
+RUNTIME   =
+RUNTIME   =
+RUNTIME   =
+RUNTIME   = _min_runtime
+RUNTIME   =
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t  pool;
+    dhcp_server_rc_t    rc;
+    u32                 lease;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+    if ( b_infinite ) {
+        lease = 0;
+    } else {
+        lease = day * 24 * 60 * 60 + hour * 60 * 60 + min * 60;
+        if ( lease == 0 ) {
+            lease = 1;
+        }
+    }
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    pool.lease = lease;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no lease
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_LEASE
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    pool.lease = DHCP_SERVER_LEASE_DEFAULT;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_DOMAIN_NAME = Domain name
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = domain-name <word128>
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_DOMAIN_NAME
+HELP      = ##HELP_DOMAIN_NAME
+
+CMD_VAR   =
+CMD_VAR   = domain_name
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    (void)icli_str_cpy(pool.domain_name, domain_name);
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no domain-name
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_DOMAIN_NAME
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    memset(pool.domain_name, 0, sizeof(pool.domain_name));
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_DNS_SERVER = DNS servers
+HELP_SERVER_ADDRESS = Server's IP address
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = dns-server <ipv4_ucast> [<ipv4_ucast> [<ipv4_ucast> [<ipv4_ucast>]]]
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_DNS_SERVER
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+
+BYWORD    =
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+
+CMD_VAR   =
+CMD_VAR   = ip
+CMD_VAR   = ip1
+CMD_VAR   = ip2
+CMD_VAR   = ip3
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+    if ( ip == 0 ) {
+        ICLI_PRINTF("%% Please specify at least one non-zero address.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    pool.dns_server[0] = ip;
+    pool.dns_server[1] = ip1;
+    pool.dns_server[2] = ip2;
+    pool.dns_server[3] = ip3;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no dns-server
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_DNS_SERVER
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    pool.dns_server[0] = 0;
+    pool.dns_server[1] = 0;
+    pool.dns_server[2] = 0;
+    pool.dns_server[3] = 0;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_NTP_SERVER = NTP servers
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = ntp-server <ipv4_ucast> [<ipv4_ucast> [<ipv4_ucast> [<ipv4_ucast>]]]
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_NTP_SERVER
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+
+BYWORD    =
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+
+CMD_VAR   =
+CMD_VAR   = ip
+CMD_VAR   = ip1
+CMD_VAR   = ip2
+CMD_VAR   = ip3
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+    if ( ip == 0 ) {
+        ICLI_PRINTF("%% Please specify at least one non-zero address.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    pool.ntp_server[0] = ip;
+    pool.ntp_server[1] = ip1;
+    pool.ntp_server[2] = ip2;
+    pool.ntp_server[3] = ip3;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no ntp-server
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_NTP_SERVER
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    pool.ntp_server[0] = 0;
+    pool.ntp_server[1] = 0;
+    pool.ntp_server[2] = 0;
+    pool.ntp_server[3] = 0;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_NETBIOS_NAME_SERVER = NetBIOS (WINS) name servers
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = netbios-name-server <ipv4_ucast> [<ipv4_ucast> [<ipv4_ucast> [<ipv4_ucast>]]]
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_NETBIOS_NAME_SERVER
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+
+BYWORD    =
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+
+CMD_VAR   =
+CMD_VAR   = ip
+CMD_VAR   = ip1
+CMD_VAR   = ip2
+CMD_VAR   = ip3
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+    if ( ip == 0 ) {
+        ICLI_PRINTF("%% Please specify at least one non-zero address.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    pool.netbios_name_server[0] = ip;
+    pool.netbios_name_server[1] = ip1;
+    pool.netbios_name_server[2] = ip2;
+    pool.netbios_name_server[3] = ip3;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no netbios-name-server
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_NETBIOS_NAME_SERVER
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    pool.netbios_name_server[0] = 0;
+    pool.netbios_name_server[1] = 0;
+    pool.netbios_name_server[2] = 0;
+    pool.netbios_name_server[3] = 0;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_NETBIOS_NODE_TYPE = NetBIOS node type
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = netbios-node-type { b-node | h-node | m-node | p-node }
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_NETBIOS_NODE_TYPE
+HELP      = Broadcast node
+HELP      = Hybrid node
+HELP      = Mixed node
+HELP      = Peer-to-peer node
+
+CMD_VAR   =
+CMD_VAR   = b_b
+CMD_VAR   = b_h
+CMD_VAR   = b_m
+CMD_VAR   =
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t                pool;
+    dhcp_server_rc_t                  rc;
+    dhcp_server_netbios_node_type_t   node_type;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+    if ( b_b ) {
+        node_type = DHCP_SERVER_NETBIOS_NODE_TYPE_B;
+    } else if ( b_h ) {
+        node_type = DHCP_SERVER_NETBIOS_NODE_TYPE_H;
+    } else if ( b_m ) {
+        node_type = DHCP_SERVER_NETBIOS_NODE_TYPE_M;
+    } else {
+        node_type = DHCP_SERVER_NETBIOS_NODE_TYPE_P;
+    }
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    pool.netbios_node_type = node_type;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no netbios-node-type
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_NETBIOS_NODE_TYPE
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    pool.netbios_node_type = DHCP_SERVER_NETBIOS_NODE_TYPE_NONE;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_NETBIOS_SCOPE = NetBIOS scope
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = netbios-scope <line128>
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_NETBIOS_SCOPE
+HELP      = Netbios scope identifier, in 128 characters
+
+BYWORD    =
+BYWORD    = LINE
+
+CMD_VAR   =
+CMD_VAR   = netbios_scope
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    (void)icli_str_cpy(pool.netbios_scope, netbios_scope);
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no netbios-scope
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_NETBIOS_SCOPE
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    memset(pool.netbios_scope, 0, sizeof(pool.netbios_scope));
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_NIS_DOMAIN_NAME = NIS domain name
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = nis-domain-name <word128>
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_NIS_DOMAIN_NAME
+HELP      = ##HELP_NIS_DOMAIN_NAME
+
+CMD_VAR   =
+CMD_VAR   = domain_name
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    (void)icli_str_cpy(pool.nis_domain_name, domain_name);
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no nis-domain-name
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_NIS_DOMAIN_NAME
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    memset(pool.nis_domain_name, 0, sizeof(pool.domain_name));
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_NIS_SERVER = Network information servers
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = nis-server <ipv4_ucast> [<ipv4_ucast> [<ipv4_ucast> [<ipv4_ucast>]]]
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_NIS_SERVER
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+HELP      = ##HELP_SERVER_ADDRESS
+
+BYWORD    =
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+
+CMD_VAR   =
+CMD_VAR   = ip
+CMD_VAR   = ip1
+CMD_VAR   = ip2
+CMD_VAR   = ip3
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+    if ( ip == 0 ) {
+        ICLI_PRINTF("%% Please specify at least one non-zero address.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    pool.nis_server[0] = ip;
+    pool.nis_server[1] = ip1;
+    pool.nis_server[2] = ip2;
+    pool.nis_server[3] = ip3;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no nis-server
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_NIS_SERVER
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    pool.nis_server[0] = 0;
+    pool.nis_server[1] = 0;
+    pool.nis_server[2] = 0;
+    pool.nis_server[3] = 0;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_HOST    = Client IP address and mask
+HELP_HOST_IP = IP address in dotted-decimal notation
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = host <ipv4_ucast> <ipv4_netmask>
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_VAR   =
+CMD_VAR   = ip
+CMD_VAR   = subnet_mask
+
+BYWORD    =
+BYWORD    = A.B.C.D
+BYWORD    = A.B.C.D
+
+HELP      = ##HELP_HOST
+HELP      = Network number
+HELP      = Network mask in dotted-decimal notation, excluding 255.255.255.255
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    /* get user input */
+    if ( ip == 0 || subnet_mask == 0 ) {
+        ICLI_PRINTF("%% 0.0.0.0 is not allowed\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if ( subnet_mask == 0xFFffFFff ) {
+        ICLI_PRINTF("%% 255.255.255.255 is not allowed\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // avoid the first 0 address
+    if ( (ip & (~subnet_mask)) == 0 ) {
+        ICLI_PRINTF("%% The combination of IP address and subnet mask is invalid. All of the bits in the host address portion of the IP address are set to 0. Please enter a valid combination of IP address and subnet mask\n");
+        return ICLI_RC_ERROR;
+    }
+
+    /* broadcast IP address is not allowed */
+    if ( (ip | subnet_mask) == 0xFFffFFff ) {
+        ICLI_PRINTF("%% The combination of IP address and subnet mask is invalid. All of the bits in the host address portion of the IP address are set to 1. Please enter a valid combination of IP address and subnet mask\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    pool.type        = DHCP_SERVER_POOL_TYPE_HOST;
+    pool.ip          = ip;
+    pool.subnet_mask = subnet_mask;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no host
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_HOST
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    if ( pool.type != DHCP_SERVER_POOL_TYPE_HOST ) {
+        return ICLI_RC_OK;
+    }
+
+    // set default
+    pool.type = DHCP_SERVER_POOL_TYPE_NONE;
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_CLIENT_IDENTIFIER = Client identifier
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = client-identifier { fqdn <line128> | mac-address <mac_addr> }
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_CLIENT_IDENTIFIER
+HELP      = FQDN type of client identifier
+HELP      = FQDN in 128 characters
+HELP      = MAC address type of client identifier
+HELP      = MAC address of client
+
+CMD_VAR   =
+CMD_VAR   = b_fqdn
+CMD_VAR   = identifier
+CMD_VAR   =
+CMD_VAR   = mac
+
+BYWORD    =
+BYWORD    =
+BYWORD    = LINE
+BYWORD    =
+BYWORD    = MAC
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    if ( b_fqdn ) {
+        pool.client_identifier.type = DHCP_SERVER_CLIENT_IDENTIFIER_TYPE_FQDN;
+        (void)icli_str_cpy(pool.client_identifier.u.fqdn, identifier);
+    } else {
+        pool.client_identifier.type = DHCP_SERVER_CLIENT_IDENTIFIER_TYPE_MAC;
+        memcpy(&(pool.client_identifier.u.mac), &mac, sizeof(pool.client_identifier.u.mac));
+    }
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no client-identifier
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_CLIENT_IDENTIFIER
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    memset( &(pool.client_identifier), 0, sizeof(pool.client_identifier) );
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_HARDWARE_ADDRESS = Client hardware address
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = hardware-address <mac_ucast>
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_HARDWARE_ADDRESS
+HELP      = Client MAC address
+
+CMD_VAR   =
+CMD_VAR   = mac
+
+BYWORD    =
+BYWORD    = MAC
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    memcpy( &(pool.client_haddr), &mac, sizeof(pool.client_haddr) );
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no hardware-address
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_HARDWARE_ADDRESS
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    memset( &(pool.client_haddr), 0, sizeof(pool.client_haddr) );
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_CLIENT_NAME = Client host name
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = client-name <word32>
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_CLIENT_NAME
+HELP      = Client hsot name in 32 characters
+
+CMD_VAR   =
+CMD_VAR   = host_name
+
+BYWORD    =
+BYWORD    = WORD
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get user input
+
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    (void)icli_str_cpy(pool.client_name, host_name);
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no client-name
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_CLIENT_NAME
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set default
+    memset(pool.client_name, 0, sizeof(pool.client_name));
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_VENDOR           = Vendor configuration
+HELP_CLASS_IDENTIFIER = Vendor class identifier
+HELP_SPECIFIC_INFO    = Vendor specific information
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = vendor class-identifier <string64> specific-info <hexval32>
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+HELP      = ##HELP_VENDOR
+HELP      = ##HELP_CLASS_IDENTIFIER
+HELP      = Class identifier in 64 characters
+HELP      = ##HELP_SPECIFIC_INFO
+HELP      = Hex values in 64 octets
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = class_id
+CMD_VAR   =
+CMD_VAR   = hexval
+
+BYWORD    =
+BYWORD    =
+BYWORD    = STRING
+BYWORD    =
+BYWORD    = HEX-VALUE
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t      pool;
+    dhcp_server_rc_t        rc;
+    u32                     i;
+    i32                     j;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    j = -1;
+    for ( i = 0; i < DHCP_SERVER_VENDOR_CLASS_INFO_CNT; i++ ) {
+        if ( icli_str_len(pool.class_info[i].class_id) ) {
+            if ( icli_str_cmp(pool.class_info[i].class_id, class_id) == 0 ) {
+                j = i;
+                break;
+            }
+        } else if ( j == -1 ) {
+            j = i;
+        }
+    }
+    if ( j == -1 ) {
+        ICLI_PRINTF("%% Vendor class information is full.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    memset( &(pool.class_info[j]), 0, sizeof(dhcp_server_vendor_class_info_t) );
+    (void)icli_str_cpy( pool.class_info[j].class_id, class_id );
+    pool.class_info[j].specific_info_len = hexval.len;
+    memcpy( pool.class_info[j].specific_info, hexval.hex, hexval.len );
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no vendor class-identifier <string64>
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_VENDOR
+HELP      = ##HELP_CLASS_IDENTIFIER
+HELP      = Class identifier in 64 characters
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = class_id
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = STRING
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+    dhcp_server_pool_t      pool;
+    dhcp_server_rc_t        rc;
+    u32                     i;
+VARIABLE_END
+
+CODE_BEGIN
+    // get pool
+    (void)icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Pool %s does not exist.\n", pool_name);
+        return ICLI_RC_ERROR;
+    }
+
+    // set user input
+    for ( i = 0; i < DHCP_SERVER_VENDOR_CLASS_INFO_CNT; i++ ) {
+        if ( icli_str_cmp(pool.class_info[i].class_id, class_id) == 0 ) {
+            break;
+        }
+    }
+    if ( i == DHCP_SERVER_VENDOR_CLASS_INFO_CNT ) {
+        return ICLI_RC_OK;
+    }
+
+    memset( &(pool.class_info[i]), 0, sizeof(dhcp_server_vendor_class_info_t) );
+
+    // set pool
+    rc = dhcp_server_pool_set( &pool );
+    if ( rc != DHCP_SERVER_RC_OK ) {
+        _error_msg(session_id, rc);
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug dhcp server memsize
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    u32     avl_mem;
+    u32     freelist_mem;
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_PRINTF("dhcp_server_pool_t        = %d\n", sizeof(dhcp_server_pool_t));
+    ICLI_PRINTF("dhcp_server_statistics_t  = %d\n", sizeof(dhcp_server_statistics_t));
+    ICLI_PRINTF("dhcp_server_binding_t     = %d\n", sizeof(dhcp_server_binding_t));
+    ICLI_PRINTF("dhcp_server_excluded_ip_t = %d\n", sizeof(dhcp_server_excluded_ip_t));
+
+    // head: 32 bytes, node: 18 bytes
+    avl_mem = 32 * 12 + 18 * ( DHCP_SERVER_EXCLUDED_MAX_CNT + DHCP_SERVER_POOL_MAX_CNT * 4 + DHCP_SERVER_BINDING_MAX_CNT * 7 );
+    ICLI_PRINTF("avl_mem = %d\n", avl_mem);
+
+    // head: 20 bytes, node: 8 bytes
+    freelist_mem = 20 * 4 + 8 * ( DHCP_SERVER_EXCLUDED_MAX_CNT + DHCP_SERVER_POOL_MAX_CNT + DHCP_SERVER_BINDING_MAX_CNT * 2 );
+    ICLI_PRINTF("freelist_mem = %d\n", freelist_mem);
+
+    ICLI_PRINTF("TOTAL = %d\n", DHCP_SERVER_EXCLUDED_MAX_CNT * sizeof(dhcp_server_excluded_ip_t) +
+                                DHCP_SERVER_BINDING_MAX_CNT * sizeof(dhcp_server_binding_t) +
+                                DHCP_SERVER_POOL_MAX_CNT * sizeof(dhcp_server_pool_t) +
+                                DHCP_SERVER_BINDING_MAX_CNT * 4 + // declined IP
+                                sizeof(dhcp_server_statistics_t) +
+                                512 + // VLAN mode
+                                2048 + // send message buffer
+                                avl_mem +
+                                freelist_mem
+               );
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug dhcp server declined add <ipv4_addr>
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = declined_ip
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = A.B.C.D
+
+HELP      =
+HELP      =
+HELP      =
+HELP      = Declined IP configuration
+HELP      = Add Declined IP
+HELP      = Declined IP address
+
+CODE_BEGIN
+    if ( dhcp_server_declined_add(declined_ip) != DHCP_SERVER_RC_OK ) {
+        ICLI_PRINTF("%% Failed to add declined IP.\n\n");
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug dhcp server declined delete <ipv4_addr>
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = declined_ip
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = A.B.C.D
+
+HELP      =
+HELP      =
+HELP      =
+HELP      = Declined IP configuration
+HELP      = Delete Declined IP
+HELP      = Declined IP address
+
+CODE_BEGIN
+    (void)dhcp_server_declined_delete( declined_ip );
+CODE_END
+
+CMD_END

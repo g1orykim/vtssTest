@@ -1,0 +1,3603 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_MVR)
+
+INCLUDE_BEGIN
+#include "icli_api.h"
+#include "icli_porting_util.h"
+#include "mgmt_api.h"
+#include "misc_api.h"
+#include "msg_api.h"
+#include "topo_api.h"
+#include "mvr.h"
+#include "mvr_api.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+static BOOL icli_ipmc_mvr_check_present(IN u32 session_id, IN icli_runtime_ask_t ask, OUT icli_runtime_t *runtime)
+{
+    icli_privilege_t    current_priv;
+
+    switch ( ask ) {
+    case ICLI_ASK_PRESENT:
+        if (ICLI_PRIVILEGE_GET(&current_priv) == ICLI_RC_OK) {
+            if (current_priv < ICLI_PRIVILEGE_15) {
+                runtime->present = FALSE;
+            } else {
+                runtime->present = TRUE;
+            }
+
+            return TRUE;
+        }
+
+        break;
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+
+        break;
+    }
+
+    return FALSE;
+}
+
+static BOOL _icli_ipmc_mvr_chk_by_vlan(vtss_vid_t vdx, icli_unsigned_range_t *vlist)
+{
+    u32         idx;
+    vtss_vid_t  vidx, bnd;
+
+    if (!vlist) {
+        return FALSE;
+    }
+
+    for (idx = 0; idx < vlist->cnt; idx++) {
+        bnd = vlist->range[idx].max;
+        for (vidx = vlist->range[idx].min; vidx <= bnd; vidx++) {
+            if (vdx == vidx) {
+                return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+static BOOL _icli_ipmc_mvr_chk_by_port_msk(vtss_isid_t isx, u8 *ptx, icli_stack_port_range_t *plist)
+{
+    u32             rdx;
+    u16             idx, bgn, cnt;
+    vtss_isid_t     isid;
+    vtss_port_no_t  iport;
+
+    if (!ptx || !plist) {
+        return FALSE;
+    }
+
+    for (rdx = 0; rdx < plist->cnt; rdx++) {
+        isid = topo_usid2isid(plist->switch_range[rdx].usid);
+        if (isid != isx) {
+            continue;
+        }
+
+        cnt = plist->switch_range[rdx].port_cnt;
+        bgn = plist->switch_range[rdx].begin_uport;
+        for (idx = 0; idx < cnt; idx++) {
+            iport = uport2iport(bgn + idx);
+            if (VTSS_PORT_BF_GET(ptx, iport)) {
+                return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+static BOOL _icli_ipmc_mvr_chk_by_port_val(vtss_isid_t isx, vtss_port_no_t ptx, icli_stack_port_range_t *plist)
+{
+    u32             rdx;
+    u16             idx, bgn, cnt;
+    vtss_isid_t     isid;
+    vtss_port_no_t  iport;
+
+    if (!plist) {
+        return FALSE;
+    }
+
+    for (rdx = 0; rdx < plist->cnt; rdx++) {
+        isid = topo_usid2isid(plist->switch_range[rdx].usid);
+        if (isid != isx) {
+            continue;
+        }
+
+        cnt = plist->switch_range[rdx].port_cnt;
+        bgn = plist->switch_range[rdx].begin_uport;
+        for (idx = 0; idx < cnt; idx++) {
+            iport = uport2iport(bgn + idx);
+            if (ptx == iport) {
+                return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+static void _icli_ipmc_mvr_db_display(u32 session_id,
+                                      ipmc_prot_intf_group_entry_t *grp,
+                                      vtss_isid_t isid,
+                                      BOOL by_port,
+                                      icli_stack_port_range_t *plist,
+                                      BOOL inc_sfm, BOOL detail)
+{
+    icli_switch_port_range_t    icli_port;
+    vtss_port_no_t              iport;
+
+    ipmc_ip_version_t           version;
+    vtss_vid_t                  vid;
+    vtss_ipv6_t                 ip6grp;
+    vtss_ipv4_t                 ip4grp, ip4src;
+    ipmc_group_db_t             *grp_db;
+    ipmc_prot_group_srclist_t   group_srclist_entry;
+    ipmc_sfm_srclist_t          *sfm_src;
+
+    BOOL                        deny_found, prted;
+    i32                         fto;
+    i8                          adrString[40], portString[MGMT_PORT_BUF_SIZE];
+
+    if (!grp || (by_port && !plist)) {
+        return;
+    }
+    version = grp->ipmc_version;
+    vid = grp->vid;
+    IPMC_LIB_ADRS_CPY(&ip6grp, &grp->group_addr);
+    IPMC_LIB_ADRS_6TO4_SET(ip6grp, ip4grp);
+    grp_db = &grp->db;
+
+    memset(adrString, 0x0, sizeof(adrString));
+    if (version == IPMC_IP_VERSION_IGMP) {
+        (void) icli_ipv4_to_str(htonl(ip4grp), adrString);
+    } else {
+        (void) icli_ipv6_to_str(ip6grp, adrString);
+    }
+    ICLI_PRINTF("\n\r%s is registered on MVR %u\n", adrString, vid);
+
+    prted = FALSE;
+    memset(&icli_port, 0x0, sizeof(icli_switch_port_range_t));
+    icli_port.switch_id = icli_isid2switchid(isid);
+    while (icli_switch_port_get_next(&icli_port)) {
+        iport = icli_port.begin_iport;
+        if (VTSS_PORT_BF_GET(grp_db->port_mask, iport)) {
+            memset(portString, 0x0, sizeof(portString));
+            ICLI_PRINTF("%s%s",
+                        prted ? "," : "Port Members: ",
+                        icli_port_info_txt_short(icli_port.usid, icli_port.begin_uport, portString));
+            prted = TRUE;
+        }
+    }
+    if (prted) {
+        ICLI_PRINTF("\n");
+    }
+
+    if (detail) {
+        ICLI_PRINTF("Hardware Switch: %s\n", grp_db->asm_in_hw ? "Yes" : "No");
+    }
+
+    if (!inc_sfm) {
+        return;
+    }
+
+    memset(&icli_port, 0x0, sizeof(icli_switch_port_range_t));
+    icli_port.switch_id = icli_isid2switchid(isid);
+    while (icli_switch_port_get_next(&icli_port)) {
+        iport = icli_port.begin_iport;
+        if (by_port && !_icli_ipmc_mvr_chk_by_port_val(isid, iport, plist)) {
+            continue;
+        }
+        if (!IPMC_LIB_GRP_PORT_DO_SFM(grp_db, iport)) {
+            continue;
+        }
+
+        if (IPMC_LIB_GRP_PORT_SFM_EX(grp_db, iport)) {
+            fto = ipmc_lib_mgmt_calc_delta_time(isid, &grp_db->tmr.delta_time.v[iport]);
+        } else {
+            fto = -1;
+        }
+
+        memset(portString, 0x0, sizeof(portString));
+        ICLI_PRINTF("%s Mode is %s",
+                    icli_port_info_txt_short(icli_port.usid, icli_port.begin_uport, portString),
+                    (fto < 0) ? "Include" : "Exclude");
+        if (!detail || (fto < 0)) {
+            ICLI_PRINTF("\n");
+        } else {
+            ICLI_PRINTF(" (Filter Timer: %d)\n", fto);
+        }
+
+        memset(&group_srclist_entry, 0x0, sizeof(ipmc_prot_group_srclist_t));
+        group_srclist_entry.type = TRUE;    /* Allow|Include List */
+        while (mvr_mgmt_get_next_group_srclist(isid, version, vid,
+                                               &ip6grp,
+                                               &group_srclist_entry) == VTSS_OK) {
+            if (!group_srclist_entry.cntr) {
+                break;
+            }
+
+            sfm_src = &group_srclist_entry.srclist;
+            if (!VTSS_PORT_BF_GET(sfm_src->port_mask, iport)) {
+                continue;
+            }
+
+            memset(adrString, 0x0, sizeof(adrString));
+            if (version == IPMC_IP_VERSION_IGMP) {
+                IPMC_LIB_ADRS_6TO4_SET(sfm_src->src_ip, ip4src);
+                (void) icli_ipv4_to_str(htonl(ip4src), adrString);
+            } else {
+                (void) icli_ipv6_to_str(sfm_src->src_ip, adrString);
+            }
+
+            if (fto < 0) {
+                ICLI_PRINTF("Allow Source Address  : %s", adrString);
+            } else {
+                ICLI_PRINTF("Request Source Address: %s", adrString);
+            }
+            if (detail) {
+                ICLI_PRINTF(" (Timer->%d)\n\rHardware Filter: %s\n",
+                            ipmc_lib_mgmt_calc_delta_time(isid, &sfm_src->tmr.delta_time.v[iport]),
+                            sfm_src->sfm_in_hw ? "Yes" : "No");
+            } else {
+                ICLI_PRINTF("\n");
+            }
+        }
+
+        deny_found = FALSE;
+        memset(&group_srclist_entry, 0x0, sizeof(ipmc_prot_group_srclist_t));
+        group_srclist_entry.type = FALSE;   /* Deny|Exclude List */
+        while (mvr_mgmt_get_next_group_srclist(isid, version, vid,
+                                               &ip6grp,
+                                               &group_srclist_entry) == VTSS_OK) {
+            if (!group_srclist_entry.cntr) {
+                break;
+            }
+
+            sfm_src = &group_srclist_entry.srclist;
+            if (!VTSS_PORT_BF_GET(sfm_src->port_mask, iport)) {
+                continue;
+            }
+
+            deny_found = TRUE;
+            memset(adrString, 0x0, sizeof(adrString));
+            if (version == IPMC_IP_VERSION_IGMP) {
+                IPMC_LIB_ADRS_6TO4_SET(sfm_src->src_ip, ip4src);
+                (void) icli_ipv4_to_str(htonl(ip4src), adrString);
+            } else {
+                (void) icli_ipv6_to_str(sfm_src->src_ip, adrString);
+            }
+
+            ICLI_PRINTF("Deny Source Address   : %s\n", adrString);
+            if (detail) {
+                ICLI_PRINTF(" (Timer->%d)\n\rHardware Filter: %s\n",
+                            ipmc_lib_mgmt_calc_delta_time(isid, &sfm_src->tmr.delta_time.v[iport]),
+                            sfm_src->sfm_in_hw ? "Yes" : "No");
+            } else {
+                ICLI_PRINTF("\n");
+            }
+        }
+        if (!deny_found && (fto >= 0)) {
+            ICLI_PRINTF("Deny Source Address: None\n");
+        }
+    }
+}
+
+static void _icli_ipmc_mvr_channel_show(u32 session_id,
+                                        ipmc_lib_grp_fltr_profile_t *fltr_profile,
+                                        BOOL detail)
+{
+    i8                          adrString[40];
+    u32                         pdx;
+    ipmc_lib_profile_t          *data;
+    ipmc_lib_rule_t             fltr_rule;
+    ipmc_lib_grp_fltr_entry_t   fltr_entry;
+
+    if (!detail || !fltr_profile) {
+        return;
+    }
+
+    data = &fltr_profile->data;
+    ICLI_PRINTF(" (In %s Mode)", ipmc_lib_version_txt(data->version, IPMC_TXT_CASE_UPPER));
+    ICLI_PRINTF("\n\rDescription: %s", data->desc);
+
+    pdx = data->index;
+    if (ipmc_lib_mgmt_fltr_profile_rule_get_first(pdx, &fltr_rule) == VTSS_OK) {
+        BOOL    heading = TRUE;
+
+        do {
+            fltr_entry.index = fltr_rule.entry_index;
+            if (ipmc_lib_mgmt_fltr_entry_get(&fltr_entry, FALSE) == VTSS_OK) {
+                if (heading) {
+                    heading = FALSE;
+
+                    ICLI_PRINTF("\nHEAD-> %s (%s the following range%s)",
+                                fltr_entry.name,
+                                ipmc_lib_fltr_action_txt(fltr_rule.action, IPMC_TXT_CASE_CAPITAL),
+                                fltr_rule.log ? " and log the matched entry" : "");
+                } else {
+                    ICLI_PRINTF("\nNEXT-> %s (%s the following range%s)",
+                                fltr_entry.name,
+                                ipmc_lib_fltr_action_txt(fltr_rule.action, IPMC_TXT_CASE_CAPITAL),
+                                fltr_rule.log ? " and log the matched entry" : "");
+                }
+
+                if (fltr_entry.version == IPMC_IP_VERSION_IGMP) {
+                    vtss_ipv4_t adrs4;
+
+                    memset(adrString, 0x0, sizeof(adrString));
+                    IPMC_LIB_ADRS_6TO4_SET(fltr_entry.grp_bgn, adrs4);
+                    (void) icli_ipv4_to_str(htonl(adrs4), adrString);
+                    ICLI_PRINTF("\nStart Address: %s", adrString);
+                    memset(adrString, 0x0, sizeof(adrString));
+                    IPMC_LIB_ADRS_6TO4_SET(fltr_entry.grp_end, adrs4);
+                    (void) icli_ipv4_to_str(htonl(adrs4), adrString);
+                    ICLI_PRINTF("\nEnd Address  : %s", adrString);
+                } else {
+                    memset(adrString, 0x0, sizeof(adrString));
+                    (void) icli_ipv6_to_str(fltr_entry.grp_bgn, adrString);
+                    ICLI_PRINTF("\nStart Address: %s", adrString);
+                    memset(adrString, 0x0, sizeof(adrString));
+                    (void) icli_ipv6_to_str(fltr_entry.grp_end, adrString);
+                    ICLI_PRINTF("\nEnd Address  : %s", adrString);
+                }
+            }
+        } while (ipmc_lib_mgmt_fltr_profile_rule_get_next(pdx, &fltr_rule) == VTSS_OK);
+    }
+}
+
+static BOOL _icli_ipmc_mvr_intf_status_show(ipmc_ip_version_t version,
+                                            u32 session_id, vtss_isid_t isid,
+                                            BOOL ctrl, BOOL state,
+                                            mvr_mgmt_interface_t *mvif,
+                                            ipmc_prot_intf_entry_param_t *param,
+                                            BOOL detail)
+{
+    BOOL                    admin;
+    vtss_vid_t              vidx;
+    mvr_conf_intf_entry_t   *mvrif;
+    mvr_conf_port_role_t    *prole;
+    ipmc_querier_sm_t       *q;
+    ipmc_statistics_t       *s;
+
+    if (!mvif || !param) {
+        return FALSE;
+    }
+
+    mvrif = &mvif->intf;
+    prole = &mvif->role;
+    q = &param->querier;
+    s = &param->stats;
+    vidx = param->vid;
+    if (ctrl && state) {
+        admin = TRUE;
+    } else {
+        admin = FALSE;
+    }
+
+    ICLI_PRINTF("\n\r%s MVR VLAN %u (Name is %s) interface is %s.\n",
+                ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                vidx,
+                strlen(mvrif->name) ? (char *)mvrif->name : "not set",
+                state ? "enabled" : "disabled");
+
+    /* Querier Status */
+    ICLI_PRINTF("Querier status is %s",
+                admin ? ((q->state == IPMC_QUERIER_IDLE) ? "IDLE" : "ACTIVE") : "DISABLED");
+    if (detail) {
+        if (q->querier_enabled) {
+            ICLI_PRINTF(" ( %s )\n", "Join Querier-Election");
+        } else {
+            ICLI_PRINTF(" ( %s )\n", "Forced Non-Querier");
+        }
+
+        if (admin) {
+            if (q->state == IPMC_QUERIER_ACTIVE) {
+                ICLI_PRINTF("Querier Up time: %u second%s; Query Interval: %hu second%s\n",
+                            q->QuerierUpTime,
+                            (q->QuerierUpTime > 1) ? "s" : "",
+                            q->timeout,
+                            (q->timeout > 1) ? "s" : "");
+            } else if (q->state == IPMC_QUERIER_INIT) {
+                ICLI_PRINTF("Startup Query Interval: %hu second%s; Startup Query Count: %u\n",
+                            q->timeout,
+                            (q->timeout > 1) ? "s" : "",
+                            q->StartUpCnt);
+
+            } else {
+                ICLI_PRINTF("Querier Expiry Time: %u second%s\n",
+                            q->OtherQuerierTimeOut,
+                            (q->OtherQuerierTimeOut > 1) ? "s" : "");
+            }
+        }
+    } else {
+        ICLI_PRINTF("\n");
+    }
+
+    /* Timers & Parameters & Counters */
+    if (detail) {
+        if (q->QuerierAdrs4) {
+            i8  adrString[40];
+
+            memset(adrString, 0x0, sizeof(adrString));
+            ICLI_PRINTF("%s address is set to %s\n",
+                        ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                        misc_ipv4_txt(q->QuerierAdrs4, adrString));
+        } else {
+            ICLI_PRINTF("%s address %swill use %s address of this interface.\n",
+                        ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                        (version == IPMC_IP_VERSION_IGMP) ?
+                        "is not set and " :
+                        "",
+                        (version == IPMC_IP_VERSION_IGMP) ?
+                        "system's IP" :
+                        "Link-Local");
+        }
+
+        ICLI_PRINTF("Control frames will be sent as %s\n",
+                    mvrif->vtag == IPMC_INTF_TAGED ? "Tagged" : "Untagged");
+
+        ICLI_PRINTF("PRI:%u / RV:%u / QI:%u / QRI:%u / LMQI:%u / URI:%u\n",
+                    param->priority,
+                    q->RobustVari,
+                    q->QueryIntvl,
+                    q->MaxResTime,
+                    q->LastQryItv,
+                    q->UnsolicitR);
+    }
+
+    if (admin) {
+        if (version == IPMC_IP_VERSION_IGMP) {
+            ICLI_PRINTF("RX IGMP Query:%u V1Join:%u V2Join:%u V3Join:%u V2Leave:%u\n",
+                        s->igmp_queries,
+                        s->igmp_v1_membership_join,
+                        s->igmp_v2_membership_join,
+                        s->igmp_v3_membership_join,
+                        s->igmp_v2_membership_leave);
+        } else {
+            ICLI_PRINTF("RX MLD Query:%u V1Report:%u V2Report:%u V1Done:%u\n",
+                        s->mld_queries,
+                        s->mld_v1_membership_report,
+                        s->mld_v2_membership_report,
+                        s->mld_v1_membership_done);
+        }
+        ICLI_PRINTF("TX %s Query:%u / (Source) Specific Query:%u\n",
+                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                    q->ipmc_queries_sent,
+                    q->group_queries_sent);
+
+        if (detail) {
+            ipmc_prot_intf_group_entry_t    intf_group_entry;
+            ipmc_ip_version_t               calc_ver;
+            vtss_vid_t                      calc_vid;
+            u16                             grpCnt;
+
+            memset(&intf_group_entry, 0x0, sizeof(ipmc_prot_intf_group_entry_t));
+            intf_group_entry.ipmc_version = calc_ver = version;
+            intf_group_entry.vid = calc_vid = vidx;
+            grpCnt = 0;
+            while (mvr_mgmt_get_next_intf_group(isid, &calc_ver, &calc_vid, &intf_group_entry) == VTSS_OK ) {
+                if ((intf_group_entry.ipmc_version != version) ||
+                    (intf_group_entry.vid != vidx)) {
+                    break;
+                }
+
+                grpCnt++;
+            }
+
+            if (version == IPMC_IP_VERSION_IGMP) {
+                ICLI_PRINTF("IGMP RX Errors:%u; Group Registration Count:%u\n",
+                            s->igmp_error_pkt, grpCnt);
+            } else {
+                ICLI_PRINTF("MLD RX Errors:%u; Group Registration Count:%u\n",
+                            s->mld_error_pkt, grpCnt);
+            }
+        }
+    }
+
+    /* Port Roles */
+    if (detail && prole) {
+        icli_switch_port_range_t    icli_port;
+        vtss_port_no_t              iport;
+        BOOL                        psrc[VTSS_PORT_ARRAY_SIZE], fsrc;
+        BOOL                        prcv[VTSS_PORT_ARRAY_SIZE], frcv;
+        BOOL                        pina[VTSS_PORT_ARRAY_SIZE], fina;
+        i8                          portString[MGMT_PORT_BUF_SIZE];
+
+        ICLI_PRINTF("Port Role Setting:");
+        fsrc = frcv = fina = FALSE;
+        memset(psrc, 0x0, sizeof(psrc));
+        memset(prcv, 0x0, sizeof(prcv));
+        memset(pina, 0x0, sizeof(pina));
+        memset(&icli_port, 0x0, sizeof(icli_switch_port_range_t));
+        icli_port.switch_id = icli_isid2switchid((u16)isid);
+        while (icli_switch_port_get_next(&icli_port)) {
+            iport = icli_port.begin_iport;
+
+            if (port_isid_port_no_is_stack(isid, iport)) {
+                psrc[iport] = prcv[iport] = pina[iport] = FALSE;
+                continue;
+            }
+
+            if (prole->ports[iport] == MVR_PORT_ROLE_SOURC) {
+                fsrc = psrc[iport] = TRUE;
+                prcv[iport] = pina[iport] = FALSE;
+            } else if (prole->ports[iport] == MVR_PORT_ROLE_RECVR) {
+                frcv = prcv[iport] = TRUE;
+                psrc[iport] = pina[iport] = FALSE;
+            } else {
+                fina = pina[iport] = TRUE;
+                psrc[iport] = prcv[iport] = FALSE;
+            }
+        }
+
+        if (!fsrc && !frcv && !fina) {
+            ICLI_PRINTF(" <Empty Port Table>");
+        } else {
+            BOOL    prted;
+
+            prted = FALSE;
+            memset(&icli_port, 0x0, sizeof(icli_switch_port_range_t));
+            icli_port.switch_id = icli_isid2switchid(isid);
+            while (fsrc && icli_switch_port_get_next(&icli_port)) {
+                if (psrc[icli_port.begin_iport]) {
+                    memset(portString, 0x0, sizeof(portString));
+                    ICLI_PRINTF("%s%s",
+                                prted ? "," : "\nSource Port  : ",
+                                icli_port_info_txt_short(icli_port.usid, icli_port.begin_uport, portString));
+                    prted = TRUE;
+                }
+            }
+
+            prted = FALSE;
+            memset(&icli_port, 0x0, sizeof(icli_switch_port_range_t));
+            icli_port.switch_id = icli_isid2switchid(isid);
+            while (frcv && icli_switch_port_get_next(&icli_port)) {
+                if (prcv[icli_port.begin_iport]) {
+                    memset(portString, 0x0, sizeof(portString));
+                    ICLI_PRINTF("%s%s",
+                                prted ? "," : "\nReceiver Port: ",
+                                icli_port_info_txt_short(icli_port.usid, icli_port.begin_uport, portString));
+                    prted = TRUE;
+                }
+            }
+
+            prted = FALSE;
+            memset(&icli_port, 0x0, sizeof(icli_switch_port_range_t));
+            icli_port.switch_id = icli_isid2switchid(isid);
+            while (fina && icli_switch_port_get_next(&icli_port)) {
+                if (pina[icli_port.begin_iport]) {
+                    memset(portString, 0x0, sizeof(portString));
+                    ICLI_PRINTF("%s%s",
+                                prted ? "," : "\nInactive Port: ",
+                                icli_port_info_txt_short(icli_port.usid, icli_port.begin_uport, portString));
+                    prted = TRUE;
+                }
+            }
+        }
+        ICLI_PRINTF("\n\r");
+    }
+
+    /* MVR Interface Channel */
+    ICLI_PRINTF("Interface Channel Profile:");
+    if (mvrif && mvrif->profile_index) {
+        ipmc_lib_profile_mem_t  *pfm;
+
+        if (IPMC_MEM_PROFILE_MTAKE(pfm)) {
+            ipmc_lib_grp_fltr_profile_t *fltr_profile;
+
+            fltr_profile = &pfm->profile;
+            fltr_profile->data.index = mvrif->profile_index;
+            if (ipmc_lib_mgmt_fltr_profile_get(fltr_profile, FALSE) != VTSS_OK) {
+                ICLI_PRINTF(" <No Such Profile!>");
+            } else {
+                int pf_strlen = strlen(fltr_profile->data.name);
+
+                if (pf_strlen) {
+                    ICLI_PRINTF(" %s", fltr_profile->data.name);
+
+                    _icli_ipmc_mvr_channel_show(session_id, fltr_profile, detail);
+                } else {
+                    ICLI_PRINTF(" <No Profile Name!>");
+                }
+            }
+
+            IPMC_MEM_PROFILE_MGIVE(pfm);
+        } else {
+            ICLI_PRINTF(" <Error Displaying Profile!>");
+        }
+    } else {
+        ICLI_PRINTF(" <No Associated Profile>");
+    }
+    ICLI_PRINTF("\n\r");
+
+    return TRUE;
+}
+
+static void _icli_ipmc_mvr_intf_statistics_display(u32 session_id,
+                                                   icli_unsigned_range_t *vlist,
+                                                   i8 *vname,
+                                                   BOOL detail)
+{
+    switch_iter_t                   sit;
+    vtss_usid_t                     usid;
+    vtss_isid_t                     isid;
+    ipmc_ip_version_t               version;
+    BOOL                            prt_title;
+    BOOL                            ctrl;
+    mvr_mgmt_interface_t            mvr_icli_intf;
+    ipmc_prot_intf_entry_param_t    param;
+
+    if (mvr_mgmt_get_mode(&ctrl) != VTSS_OK) {
+        ctrl = FALSE;
+    }
+
+    (void) switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID);
+    while (switch_iter_getnext(&sit)) {
+        isid = sit.isid;
+        usid = sit.usid;
+
+        if (vlist) {
+            u32         idx;
+            vtss_vid_t  vidx, bnd;
+
+            prt_title = TRUE;
+            for (idx = 0; idx < vlist->cnt; idx++) {
+                bnd = vlist->range[idx].max;
+                for (vidx = vlist->range[idx].min; vidx <= bnd; vidx++) {
+                    version = IPMC_IP_VERSION_IGMP;
+                    mvr_icli_intf.vid = vidx;
+                    if (mvr_mgmt_get_intf_entry(isid, &mvr_icli_intf) != VTSS_OK) {
+                        ICLI_PRINTF("%% Invalid MVR %s VLAN %u.\n\n",
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                                    vidx);
+                        continue;
+                    }
+
+                    memset(&param, 0x0, sizeof(ipmc_prot_intf_entry_param_t));
+                    param.vid = vidx;
+                    if (mvr_mgmt_get_intf_info(isid, version, &param) != VTSS_OK) {
+                        continue;
+                    }
+
+                    if (prt_title) {
+                        ICLI_PRINTF("\nSwitch-%u MVR-%s Interface Status\n",
+                                    usid,
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER));
+                        prt_title = FALSE;
+                    }
+
+                    if (!_icli_ipmc_mvr_intf_status_show(version, session_id, isid,
+                                                         ctrl, TRUE,
+                                                         &mvr_icli_intf,
+                                                         &param,
+                                                         detail)) {
+                        ICLI_PRINTF("%% Failed to display MVR %s VLAN %u statistics.\n\n",
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                                    vidx);
+                    }
+                }
+            }
+
+            prt_title = TRUE;
+            for (idx = 0; idx < vlist->cnt; idx++) {
+                bnd = vlist->range[idx].max;
+                for (vidx = vlist->range[idx].min; vidx <= bnd; vidx++) {
+                    version = IPMC_IP_VERSION_MLD;
+                    mvr_icli_intf.vid = vidx;
+                    if (mvr_mgmt_get_intf_entry(isid, &mvr_icli_intf) != VTSS_OK) {
+                        ICLI_PRINTF("%% Invalid MVR %s VLAN %u.\n\n",
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                                    vidx);
+                        continue;
+                    }
+
+                    memset(&param, 0x0, sizeof(ipmc_prot_intf_entry_param_t));
+                    param.vid = vidx;
+                    if (mvr_mgmt_get_intf_info(isid, version, &param) != VTSS_OK) {
+                        continue;
+                    }
+
+                    if (prt_title) {
+                        ICLI_PRINTF("\nSwitch-%u MVR-%s Interface Status\n",
+                                    usid,
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER));
+                        prt_title = FALSE;
+                    }
+
+                    if (!_icli_ipmc_mvr_intf_status_show(version, session_id, isid,
+                                                         ctrl, TRUE,
+                                                         &mvr_icli_intf,
+                                                         &param,
+                                                         detail)) {
+                        ICLI_PRINTF("%% Failed to display MVR %s VLAN %u statistics.\n\n",
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                                    vidx);
+                    }
+                }
+            }
+        } else if (vname) {
+            if (strlen(vname)) {
+                memset(&mvr_icli_intf, 0x0, sizeof(mvr_mgmt_interface_t));
+                strncpy(mvr_icli_intf.intf.name, vname, strlen(vname));
+                if (mvr_mgmt_get_intf_entry_by_name(VTSS_ISID_GLOBAL, &mvr_icli_intf) != VTSS_OK) {
+                    ICLI_PRINTF("%% Invalid MVR VLAN %s.\n\n", vname);
+                    return;
+                }
+
+                memset(&param, 0x0, sizeof(ipmc_prot_intf_entry_param_t));
+                version = IPMC_IP_VERSION_IGMP;
+                param.vid = mvr_icli_intf.vid;
+                if (mvr_mgmt_get_intf_info(isid, version, &param) == VTSS_OK) {
+                    ICLI_PRINTF("\nSwitch-%u MVR-%s Interface Status\n",
+                                usid,
+                                ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER));
+
+                    if (!_icli_ipmc_mvr_intf_status_show(version, session_id, isid,
+                                                         ctrl, TRUE,
+                                                         &mvr_icli_intf,
+                                                         &param,
+                                                         detail)) {
+                        ICLI_PRINTF("%% Failed to display MVR %s VLAN %u statistics.\n\n",
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                                    mvr_icli_intf.vid);
+                    }
+                }
+
+                memset(&param, 0x0, sizeof(ipmc_prot_intf_entry_param_t));
+                version = IPMC_IP_VERSION_MLD;
+                param.vid = mvr_icli_intf.vid;
+                if (mvr_mgmt_get_intf_info(isid, version, &param) == VTSS_OK) {
+                    ICLI_PRINTF("\nSwitch-%u MVR-%s Interface Status\n",
+                                usid,
+                                ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER));
+
+                    if (!_icli_ipmc_mvr_intf_status_show(version, session_id, isid,
+                                                         ctrl, TRUE,
+                                                         &mvr_icli_intf,
+                                                         &param,
+                                                         detail)) {
+                        ICLI_PRINTF("%% Failed to display MVR %s VLAN %u statistics.\n\n",
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                                    mvr_icli_intf.vid);
+                    }
+                }
+            } else {
+                ICLI_PRINTF("%% Invalid operation.\n\n");
+            }
+        } else {
+            prt_title = TRUE;
+            memset(&mvr_icli_intf, 0x0, sizeof(mvr_mgmt_interface_t));
+            while (mvr_mgmt_get_next_intf_entry(isid, &mvr_icli_intf) == VTSS_OK) {
+                memset(&param, 0x0, sizeof(ipmc_prot_intf_entry_param_t));
+                version = IPMC_IP_VERSION_IGMP;
+                param.vid = mvr_icli_intf.vid;
+                if (mvr_mgmt_get_intf_info(isid, version, &param) == VTSS_OK) {
+                    if (prt_title) {
+                        ICLI_PRINTF("\nSwitch-%u MVR-%s Interface Status\n",
+                                    usid,
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER));
+                        prt_title = FALSE;
+                    }
+
+                    if (!_icli_ipmc_mvr_intf_status_show(version, session_id, isid,
+                                                         ctrl, TRUE,
+                                                         &mvr_icli_intf,
+                                                         &param,
+                                                         detail)) {
+                        ICLI_PRINTF("%% Failed to display MVR %s VLAN %u statistics.\n\n",
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                                    mvr_icli_intf.vid);
+                    }
+                }
+            }
+
+            prt_title = TRUE;
+            memset(&mvr_icli_intf, 0x0, sizeof(mvr_mgmt_interface_t));
+            while (mvr_mgmt_get_next_intf_entry(isid, &mvr_icli_intf) == VTSS_OK) {
+                memset(&param, 0x0, sizeof(ipmc_prot_intf_entry_param_t));
+                version = IPMC_IP_VERSION_MLD;
+                param.vid = mvr_icli_intf.vid;
+                if (mvr_mgmt_get_intf_info(isid, version, &param) == VTSS_OK) {
+                    if (prt_title) {
+                        ICLI_PRINTF("\nSwitch-%u MVR-%s Interface Status\n",
+                                    usid,
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER));
+                        prt_title = FALSE;
+                    }
+
+                    if (!_icli_ipmc_mvr_intf_status_show(version, session_id, isid,
+                                                         ctrl, TRUE,
+                                                         &mvr_icli_intf,
+                                                         &param,
+                                                         detail)) {
+                        ICLI_PRINTF("%% Failed to display MVR %s VLAN %u statistics.\n\n",
+                                    ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER),
+                                    mvr_icli_intf.vid);
+                    }
+                }
+            }
+        }
+    }
+}
+
+static BOOL _icli_ipmc_mvr_intf_set(mvr_mgmt_interface_t *entry,
+                                    BOOL mode, BOOL priv, BOOL adr4, BOOL prit, BOOL lmqi,
+                                    i32 val,
+                                    i32 atr)
+{
+    mvr_conf_intf_entry_t   *mvif;
+
+    if (!entry) {
+        return FALSE;
+    }
+
+    mvif = &entry->intf;
+    if (mode) {
+        mvif->mode = atr;
+    } else if (priv) {
+        mvif->priority = (val & 0xFF);
+    } else if (adr4) {
+        mvif->querier4_address = val;
+    } else if (prit) {
+        mvif->vtag = atr;
+    } else if (lmqi) {
+        mvif->last_listener_query_interval = val;
+    } else {
+        return FALSE;
+    }
+
+    return (mvr_mgmt_set_intf_entry(VTSS_ISID_GLOBAL, IPMC_OP_SET, entry) == VTSS_OK);
+}
+
+static BOOL icli_ipmc_mvr_intf_config(u32 session_id,
+                                      BOOL chklist,
+                                      icli_unsigned_range_t *vlist,
+                                      BOOL chkname,
+                                      i8 *vname,
+                                      BOOL mode, BOOL priv, BOOL adr4, BOOL prit, BOOL lmqi,
+                                      i32 val, i32 atr)
+{
+    mvr_mgmt_interface_t    mvr_icli_intf;
+
+    if ((chklist && !vlist) ||
+        (chkname && !vname)) {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return FALSE;
+    }
+
+    if (chklist && vlist) {
+        u32         idx;
+        vtss_vid_t  vidx, bnd;
+
+        for (idx = 0; idx < vlist->cnt; idx++) {
+            bnd = vlist->range[idx].max;
+            for (vidx = vlist->range[idx].min; vidx <= bnd; vidx++) {
+                mvr_icli_intf.vid = vidx;
+                if (mvr_mgmt_get_intf_entry(VTSS_ISID_GLOBAL, &mvr_icli_intf) != VTSS_OK) {
+                    ICLI_PRINTF("%% Invalid MVR VLAN ID %u.\n\n", vidx);
+                    continue;
+                }
+
+                if (!_icli_ipmc_mvr_intf_set(&mvr_icli_intf, mode, priv, adr4, prit, lmqi, val, atr)) {
+                    ICLI_PRINTF("%% Invalid parameter operation on MVR VLAN %u.\n\n", vidx);
+                }
+            }
+        }
+    } else if (chkname && vname && strlen(vname)) {
+        memset(&mvr_icli_intf, 0x0, sizeof(mvr_mgmt_interface_t));
+        strncpy(mvr_icli_intf.intf.name, vname, strlen(vname));
+        if (mvr_mgmt_get_intf_entry_by_name(VTSS_ISID_GLOBAL, &mvr_icli_intf) != VTSS_OK) {
+            ICLI_PRINTF("%% Invalid MVR VLAN %s.\n\n", vname);
+            return FALSE;
+        }
+
+        if (!_icli_ipmc_mvr_intf_set(&mvr_icli_intf, mode, priv, adr4, prit, lmqi, val, atr)) {
+            ICLI_PRINTF("%% Invalid parameter operation on MVR VLAN %s.\n\n", vname);
+            return FALSE;
+        }
+    } else {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static BOOL icli_ipmc_mvr_channel_config(u32 session_id,
+                                         BOOL do_del,
+                                         BOOL chklist,
+                                         icli_unsigned_range_t *vlist,
+                                         BOOL chkvid,
+                                         vtss_vid_t mvid,
+                                         BOOL chkname,
+                                         i8 *vname,
+                                         i8 *channel)
+{
+    vtss_rc                     mvr_icli_rc;
+    mvr_mgmt_interface_t        mvr_icli_intf;
+    mvr_conf_intf_entry_t       *mvif;
+    ipmc_lib_profile_mem_t      *pfm;
+    ipmc_lib_grp_fltr_profile_t *fltr_profile;
+
+    if ((chklist && !vlist) ||
+        (chkname && !vname) ||
+        (!do_del && !channel)) {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return FALSE;
+    }
+
+    if (chklist && vlist) {
+        u32         idx;
+        vtss_vid_t  vidx, bnd;
+
+        for (idx = 0; idx < vlist->cnt; idx++) {
+            bnd = vlist->range[idx].max;
+            for (vidx = vlist->range[idx].min; vidx <= bnd; vidx++) {
+                mvr_icli_intf.vid = vidx;
+                if (mvr_mgmt_get_intf_entry(VTSS_ISID_GLOBAL, &mvr_icli_intf) != VTSS_OK) {
+                    ICLI_PRINTF("%% Invalid MVR VLAN ID %u.\n\n", vidx);
+                    continue;
+                }
+
+                mvif = &mvr_icli_intf.intf;
+                if (do_del) {
+                    mvif->profile_index = MVR_CONF_DEF_INTF_PROFILE;
+                } else {
+                    if (channel && strlen(channel) && IPMC_MEM_PROFILE_MTAKE(pfm)) {
+                        fltr_profile = &pfm->profile;
+                        memset(fltr_profile, 0x0, sizeof(ipmc_lib_grp_fltr_profile_t));
+                        strncpy(fltr_profile->data.name, channel, strlen(channel));
+                        if (ipmc_lib_mgmt_fltr_profile_get(fltr_profile, TRUE) != VTSS_OK) {
+                            ICLI_PRINTF("%% Please specify correct filter profile name.\n\n");
+                            IPMC_MEM_PROFILE_MGIVE(pfm);
+                            return FALSE;
+                        }
+
+                        mvif->profile_index = fltr_profile->data.index;
+                        IPMC_MEM_PROFILE_MGIVE(pfm);
+                    } else {
+                        ICLI_PRINTF("%% Invalid channel operation on MVR VLAN %u.\n\n", vidx);
+                        continue;
+                    }
+                }
+
+                mvr_icli_rc = mvr_mgmt_set_intf_entry(VTSS_ISID_GLOBAL, IPMC_OP_SET, &mvr_icli_intf);
+                if (mvr_icli_rc != VTSS_OK) {
+                    if (mvr_icli_rc == IPMC_ERROR_ENTRY_OVERLAPPED) {
+                        ICLI_PRINTF("%% Expected profile has overlapped addresses used in other MVR VLAN.\n\n");
+                    } else {
+                        if (mvr_icli_rc == IPMC_ERROR_ENTRY_NOT_FOUND) {
+                            ICLI_PRINTF("%% Expected profile does not exist.\n\n");
+                        }
+                    }
+
+                    return FALSE;
+                }
+            }
+        }
+    } else if ((chkname && vname) || (chkvid && (mvid != VTSS_IPMC_VID_NULL))) {
+        if (chkname && vname && strlen(vname)) {
+            memset(&mvr_icli_intf, 0x0, sizeof(mvr_mgmt_interface_t));
+            strncpy(mvr_icli_intf.intf.name, vname, strlen(vname));
+            mvr_icli_rc = mvr_mgmt_get_intf_entry_by_name(VTSS_ISID_GLOBAL, &mvr_icli_intf);
+        } else if (chkvid && (mvid != VTSS_IPMC_VID_NULL)) {
+            mvr_icli_intf.vid = mvid;
+            mvr_icli_rc = mvr_mgmt_get_intf_entry(VTSS_ISID_GLOBAL, &mvr_icli_intf);
+        } else {
+            mvr_icli_rc = VTSS_RC_ERROR;
+        }
+        if (mvr_icli_rc != VTSS_OK) {
+            ICLI_PRINTF("%% Invalid operation.\n\n");
+            return FALSE;
+        }
+
+        mvif = &mvr_icli_intf.intf;
+        if (do_del) {
+            mvif->profile_index = MVR_CONF_DEF_INTF_PROFILE;
+        } else {
+            if (channel && strlen(channel) && IPMC_MEM_PROFILE_MTAKE(pfm)) {
+                fltr_profile = &pfm->profile;
+                memset(fltr_profile, 0x0, sizeof(ipmc_lib_grp_fltr_profile_t));
+                strncpy(fltr_profile->data.name, channel, strlen(channel));
+                if (ipmc_lib_mgmt_fltr_profile_get(fltr_profile, TRUE) != VTSS_OK) {
+                    ICLI_PRINTF("%% Please specify correct filter profile name.\n\n");
+                    IPMC_MEM_PROFILE_MGIVE(pfm);
+                    return FALSE;
+                }
+
+                mvif->profile_index = fltr_profile->data.index;
+                IPMC_MEM_PROFILE_MGIVE(pfm);
+            } else {
+                ICLI_PRINTF("%% Invalid channel operation on MVR VLAN %u.\n\n", mvif->vid);
+                return FALSE;
+            }
+        }
+
+        mvr_icli_rc = mvr_mgmt_set_intf_entry(VTSS_ISID_GLOBAL, IPMC_OP_SET, &mvr_icli_intf);
+        if (mvr_icli_rc != VTSS_OK) {
+            if (mvr_icli_rc == IPMC_ERROR_ENTRY_OVERLAPPED) {
+                ICLI_PRINTF("%% Expected profile has overlapped addresses used in other MVR VLAN.\n\n");
+            } else {
+                if (mvr_icli_rc == IPMC_ERROR_ENTRY_NOT_FOUND) {
+                    ICLI_PRINTF("%% Expected profile does not exist.\n\n");
+                }
+            }
+
+            return FALSE;
+        }
+    } else {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static BOOL icli_ipmc_mvr_vlan_port_role_set(u32 session_id,
+                                             icli_stack_port_range_t *plist,
+                                             mvr_port_role_t val,
+                                             BOOL chklist,
+                                             icli_unsigned_range_t *vlist,
+                                             BOOL chkname,
+                                             i8 *vname)
+{
+    u32                         rdx;
+    u16                         idx, bgn, cnt;
+    vtss_isid_t                 isid;
+    vtss_uport_no_t             uport;
+    vtss_port_no_t              iport;
+    mvr_mgmt_interface_t        mvr_icli_intf;
+    mvr_conf_port_role_t        *mvpr;
+
+    if (!plist) {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return FALSE;
+    }
+
+    for (rdx = 0; rdx < plist->cnt; rdx++) {
+        isid = topo_usid2isid(plist->switch_range[rdx].usid);
+        cnt = plist->switch_range[rdx].port_cnt;
+        bgn = plist->switch_range[rdx].begin_uport;
+        for (idx = 0; idx < cnt; idx++) {
+            uport = bgn + idx;
+            iport = uport2iport(uport);
+            if (port_isid_port_no_is_stack(isid, iport)) {
+                continue;
+            }
+
+            if (chklist && vlist) {
+                u32         mdx;
+                vtss_vid_t  vidx, bnd;
+
+                for (mdx = 0; mdx < vlist->cnt; mdx++) {
+                    bnd = vlist->range[mdx].max;
+                    for (vidx = vlist->range[mdx].min; vidx <= bnd; vidx++) {
+                        mvr_icli_intf.vid = vidx;
+                        if (mvr_mgmt_get_intf_entry(isid, &mvr_icli_intf) != VTSS_OK) {
+                            ICLI_PRINTF("%% Invalid MVR VLAN ID %u.\n\n", vidx);
+                            continue;
+                        }
+
+                        mvpr = &mvr_icli_intf.role;
+                        mvpr->ports[iport] = val;
+
+                        if (mvr_mgmt_set_intf_entry(isid, IPMC_OP_SET, &mvr_icli_intf) != VTSS_OK) {
+                            ICLI_PRINTF("%% Invalid operation on setting MVR port %u role.\n\n", uport);
+                        }
+                    }
+                }
+            } else if (chkname && vname && strlen(vname)) {
+                memset(&mvr_icli_intf, 0x0, sizeof(mvr_mgmt_interface_t));
+                strncpy(mvr_icli_intf.intf.name, vname, strlen(vname));
+                if (mvr_mgmt_get_intf_entry_by_name(isid, &mvr_icli_intf) != VTSS_OK) {
+                    ICLI_PRINTF("%% Invalid MVR VLAN %s.\n\n", vname);
+                    return FALSE;
+                }
+
+                mvpr = &mvr_icli_intf.role;
+                mvpr->ports[iport] = val;
+
+                if (mvr_mgmt_set_intf_entry(isid, IPMC_OP_SET, &mvr_icli_intf) != VTSS_OK) {
+                    ICLI_PRINTF("%% Invalid operation on setting MVR port %u role.\n\n", uport);
+                }
+            } else {
+                ICLI_PRINTF("%% Invalid operation.\n\n");
+                return FALSE;
+            }
+        }
+    }
+
+    return TRUE;
+}
+
+static BOOL _icli_ipmc_mvr_immediate_leave_set(u32 session_id, icli_stack_port_range_t *plist, BOOL state)
+{
+    u32                         rdx;
+    u16                         idx, bgn, cnt;
+    vtss_isid_t                 isid;
+    vtss_port_no_t              iport;
+    mvr_conf_fast_leave_t       icli_ipmcmvr_imd_leave;
+
+    if (!plist) {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return FALSE;
+    }
+
+    for (rdx = 0; rdx < plist->cnt; rdx++) {
+        isid = topo_usid2isid(plist->switch_range[rdx].usid);
+        if (mvr_mgmt_get_fast_leave_port(isid, &icli_ipmcmvr_imd_leave) != VTSS_OK) {
+            continue;
+        }
+
+        cnt = plist->switch_range[rdx].port_cnt;
+        bgn = plist->switch_range[rdx].begin_uport;
+        for (idx = 0; idx < cnt; idx++) {
+            iport = uport2iport(bgn + idx);
+            if (port_isid_port_no_is_stack(isid, iport)) {
+                continue;
+            }
+
+            VTSS_PORT_BF_SET(icli_ipmcmvr_imd_leave.ports, iport, state);
+        }
+
+        (void) mvr_mgmt_set_fast_leave_port(isid, &icli_ipmcmvr_imd_leave);
+    }
+
+    return TRUE;
+}
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_MVR_VLAN_LIST  = MVR multicast VLAN list
+HELP_MVR_VLAN_NAME  = MVR multicast VLAN name
+HELP_QUERIER_ADR    = MVR address configuration used in IGMP
+HELP_MVR_VLAN_FRAME = MVR control frame in TX
+HELP_MVR_CHANNEL    = MVR channel configuration
+HELP_MVR_PORT_ROLE  = MVR port role configuration
+HELP_MVR_MODE       = MVR mode of operation
+HELP_STATUS_DETAIL  = Detail running information/statistics of MVR
+HELP_STATISTICS     = Running MVR protocol counters
+HELP_GRP_DB         = Multicast group database from MVR
+HELP_GRP_DB_INC_SFM = Including source filter multicast information from MVR
+HELP_GRP_DB_DETAIL  = Detail information/statistics of MVR group database
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr vlan <vlan_list> type { source | receiver }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_port_role_config_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: mvr
+! 2: vlan
+! 3: <vlan_list>
+! 4: type
+! 5: source
+! 6: receiver
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+CMD_VAR = has_source
+CMD_VAR = has_receiver
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##HELP_MVR_PORT_ROLE
+HELP = MVR source port
+HELP = MVR receiver port
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Source : option>
+BYWORD = <Receiver : option>
+
+VARIABLE_BEGIN
+    mvr_port_role_t prole;
+VARIABLE_END
+
+CODE_BEGIN
+    prole = MVR_CONF_DEF_PORT_ROLE;
+    if (has_source) {
+        prole = MVR_PORT_ROLE_SOURC;
+    } else {
+        if (has_receiver) {
+            prole = MVR_PORT_ROLE_RECVR;
+        }
+    }
+
+    if (!icli_ipmc_mvr_vlan_port_role_set(session_id,
+                                          plist, prole,
+                                          TRUE, v_vlan_list,
+                                          FALSE, NULL)) {
+        ICLI_PRINTF("%% Failed to set MVR port role.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr name <word16> type { source | receiver }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_port_role_config_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: mvr
+! 2: name
+! 3: <mvr_name:word16>
+! 4: type
+! 5: source
+! 6: receiver
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+CMD_VAR = has_source
+CMD_VAR = has_receiver
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_MVR_PORT_ROLE
+HELP = MVR source port
+HELP = MVR receiver port
+
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+BYWORD = <Source : option>
+BYWORD = <Receiver : option>
+
+VARIABLE_BEGIN
+    mvr_port_role_t prole;
+VARIABLE_END
+
+CODE_BEGIN
+    prole = MVR_CONF_DEF_PORT_ROLE;
+    if (has_source) {
+        prole = MVR_PORT_ROLE_SOURC;
+    } else {
+        if (has_receiver) {
+            prole = MVR_PORT_ROLE_RECVR;
+        }
+    }
+
+    if (!icli_ipmc_mvr_vlan_port_role_set(session_id,
+                                          plist, prole,
+                                          FALSE, NULL,
+                                          TRUE, mvr_name)) {
+        ICLI_PRINTF("%% Failed to set MVR port role.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr vlan <vlan_list> type
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_port_role_clear_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: vlan
+! 4: <vlan_list>
+! 5: type
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##HELP_MVR_PORT_ROLE
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_vlan_port_role_set(session_id,
+                                          plist, MVR_PORT_ROLE_INACT,
+                                          TRUE, v_vlan_list,
+                                          FALSE, NULL)) {
+        ICLI_PRINTF("%% Failed to inactivate MVR port role.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr name <word16> type
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_port_role_clear_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: name
+! 4: <mvr_name:word16>
+! 5: type
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_MVR_PORT_ROLE
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_vlan_port_role_set(session_id,
+                                          plist, MVR_PORT_ROLE_INACT,
+                                          FALSE, NULL,
+                                          TRUE, mvr_name)) {
+        ICLI_PRINTF("%% Failed to inactivate MVR port role.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr immediate-leave
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_immediate_leave_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: mvr
+! 2: immediate-leave
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_IMD_LEAVE
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!_icli_ipmc_mvr_immediate_leave_set(session_id, plist, TRUE)) {
+        ICLI_PRINTF("%% Failed to enable immediate leave.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!_icli_ipmc_mvr_immediate_leave_set(session_id, plist, FALSE)) {
+        ICLI_PRINTF("%% Failed to disable immediate leave.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear mvr [ vlan <vlan_list> | name <word16> ] statistics
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_clear_statistics
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: clear
+! 2: mvr
+! 3: vlan
+! 4: <vlan_list>
+! 5: name
+! 6: <mvr_name:word16>
+! 7: statistics
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_vlan
+CMD_VAR = v_vlan_list
+CMD_VAR = has_name
+CMD_VAR = mvr_name
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_CLEAR
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_STATISTICS
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Vlan : option>
+BYWORD = 
+BYWORD = <Name : option>
+BYWORD = <MvrName : word16>
+BYWORD = <Statistics : option>
+
+VARIABLE_BEGIN
+    mvr_mgmt_interface_t    mvr_icli_intf;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_vlan && v_vlan_list) {
+        u32         idx;
+        vtss_vid_t  vidx, bnd;
+
+        for (idx = 0; idx < v_vlan_list->cnt; idx++) {
+            bnd = v_vlan_list->range[idx].max;
+            for (vidx = v_vlan_list->range[idx].min; vidx <= bnd; vidx++) {
+                mvr_icli_intf.vid = vidx;
+                if (mvr_mgmt_get_intf_entry(VTSS_ISID_GLOBAL, &mvr_icli_intf) != VTSS_OK) {
+                    ICLI_PRINTF("%% Invalid MVR VLAN ID %u.\n\n", vidx);
+                    continue;
+                }
+
+                if (mvr_mgmt_clear_stat_counter(VTSS_ISID_GLOBAL, vidx) != VTSS_OK) {
+                    ICLI_PRINTF("%% Invalid operation on clearing MVR VLAN %u counters.\n\n", vidx);
+                }
+            }
+        }
+    } else if (has_name && mvr_name && strlen(mvr_name)) {
+        memset(&mvr_icli_intf, 0x0, sizeof(mvr_mgmt_interface_t));
+        strncpy(mvr_icli_intf.intf.name, mvr_name, strlen(mvr_name));
+        if (mvr_mgmt_get_intf_entry_by_name(VTSS_ISID_GLOBAL, &mvr_icli_intf) != VTSS_OK) {
+            ICLI_PRINTF("%% Invalid MVR VLAN %s.\n\n", mvr_name);
+            return ICLI_RC_ERROR;
+        }
+
+        if (mvr_mgmt_clear_stat_counter(VTSS_ISID_GLOBAL, mvr_icli_intf.vid) != VTSS_OK) {
+            ICLI_PRINTF("%% Invalid operation on clearing MVR VLAN %u counters.\n\n", mvr_icli_intf.vid);
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        if (mvr_mgmt_clear_stat_counter(VTSS_ISID_GLOBAL, VTSS_IPMC_VID_ALL) != VTSS_OK) {
+            ICLI_PRINTF("%% Invalid operation on clearing MVR VLAN counters.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show mvr [ vlan <vlan_list> | name <word16> ] [ group-database [ interface <port_type_list> ] [ sfm-information ] ] [ detail ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_display_statistics
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = icli_ipmc_mvr_check_present
+RUNTIME = icli_ipmc_mvr_check_present
+
+! 1: show
+! 2: mvr
+! 3: vlan
+! 4: <vlan_list>
+! 5: name
+! 6: <mvr_name:word16>
+! 7: group-database
+! 8: interface
+! 9: <port_type_list>
+! 10: sfm-information
+! 11: detail
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_vlan
+CMD_VAR = v_vlan_list
+CMD_VAR = has_name
+CMD_VAR = mvr_name
+CMD_VAR = has_group_database
+CMD_VAR = has_interface
+CMD_VAR = v_port_type_list
+CMD_VAR = has_sfm_information
+CMD_VAR = has_detail
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_MVR
+HELP = Search by VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = Search by MVR name
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_GRP_DB
+HELP = Search by port
+HELP = ##ICLI_HELP_PORT_TYPE_LIST
+HELP = ##HELP_GRP_DB_INC_SFM
+HELP = ##HELP_GRP_DB_DETAIL
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Vlan : option>
+BYWORD = 
+BYWORD = <Name : option>
+BYWORD = <MvrName : word16>
+BYWORD = <GroupDatabase : option>
+BYWORD = <Interface : option>
+BYWORD = 
+BYWORD = <SfmInformation : option>
+BYWORD = <Detail : option>
+
+VARIABLE_BEGIN
+    BOOL                            global_state;
+VARIABLE_END
+
+CODE_BEGIN
+    if (mvr_mgmt_get_mode(&global_state) != VTSS_OK) {
+        global_state = FALSE;
+    }
+    ICLI_PRINTF("\n\rMVR is %s.\n\r",
+                global_state ?
+                "now enabled to start group registration" :
+                "currently disabled, please enable MVR to start group registration");
+
+    if (has_group_database) {
+        icli_switch_port_range_t        switch_range;
+        vtss_usid_t                     usid;
+        vtss_isid_t                     isid;
+
+        BOOL                            bypassing;
+        mvr_mgmt_interface_t            mvr_icli_intf;
+        vtss_vid_t                      vid;
+        ipmc_ip_version_t               version;
+        ipmc_prot_intf_group_entry_t    intf_group_entry;
+        ipmc_group_db_t                 *grp_db;
+        u32                             grp4Cnt, grp6Cnt;
+
+        ICLI_PRINTF("\nMVR Group Database\n");
+
+        if (has_interface && v_port_type_list) {
+            if (!icli_cmd_port_range_exist(session_id, v_port_type_list, TRUE, TRUE) &&
+                v_port_type_list->cnt == 0) {
+                //Stop process since the port list counter is zero
+                return TRUE;
+            }
+        }
+
+        bypassing = FALSE;
+        memset(&switch_range, 0, sizeof(switch_range));
+        while (icli_switch_get_next(&switch_range)) {
+            if (!msg_switch_exists(switch_range.isid)) {
+                continue;
+            }
+            isid = switch_range.isid;
+            usid = switch_range.usid;
+
+            grp4Cnt = grp6Cnt = 0;
+            memset(&mvr_icli_intf, 0x0, sizeof(mvr_mgmt_interface_t));
+            while (mvr_mgmt_get_next_intf_entry(isid, &mvr_icli_intf) == VTSS_OK) {
+                if (has_name && mvr_name && strlen(mvr_name)) {
+                    if (strncmp(mvr_icli_intf.intf.name, mvr_name, strlen(mvr_name))) {
+                        continue;
+                    }
+                }
+                vid = mvr_icli_intf.vid;
+                if (has_vlan && !_icli_ipmc_mvr_chk_by_vlan(vid, v_vlan_list)) {
+                    continue;
+                }
+
+                version = IPMC_IP_VERSION_IGMP;
+                memset(&intf_group_entry, 0x0, sizeof(ipmc_prot_intf_group_entry_t));
+                while (mvr_mgmt_get_next_intf_group(isid, &version, &vid, &intf_group_entry) == VTSS_OK ) {
+                    if (mvr_icli_intf.vid != intf_group_entry.vid) {
+                        continue;
+                    }
+
+                    grp_db = &intf_group_entry.db;
+                    if (has_interface && !_icli_ipmc_mvr_chk_by_port_msk(isid, grp_db->port_mask, v_port_type_list)) {
+                        continue;
+                    }
+                    if (version == IPMC_IP_VERSION_IGMP) {
+                        if (!grp4Cnt) {
+                            ICLI_PRINTF("\nSwitch-%u MVR-%s Group Table\n",
+                                        usid,
+                                        ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER));
+                        }
+                        grp4Cnt++;
+                    } else {
+                        if (!grp6Cnt) {
+                            ICLI_PRINTF("\nSwitch-%u MVR-%s Group Table\n",
+                                        usid,
+                                        ipmc_lib_version_txt(version, IPMC_TXT_CASE_UPPER));
+                        }
+                        grp6Cnt++;
+                    }
+
+                    _icli_ipmc_mvr_db_display(session_id, &intf_group_entry, isid,
+                                              has_interface, v_port_type_list,
+                                              has_sfm_information, has_detail);
+
+                    bypassing = (icli_session_printf(session_id, "%s", "") == ICLI_RC_ERR_BYPASS);
+                    if (bypassing) {
+                        break;
+                    }
+                }
+
+                if (bypassing) {
+                    break;
+                }
+            }
+
+            if (bypassing) {
+                break;
+            }
+
+            ICLI_PRINTF("\nSwitch-%u MVR Group Count: %u\n", usid, (grp4Cnt + grp6Cnt));
+        }
+    } else {
+        if (has_vlan && v_vlan_list) {
+            _icli_ipmc_mvr_intf_statistics_display(session_id, v_vlan_list, NULL, has_detail);
+        } else if (has_name && mvr_name) {
+            _icli_ipmc_mvr_intf_statistics_display(session_id, NULL, mvr_name, has_detail);
+        } else {
+            _icli_ipmc_mvr_intf_statistics_display(session_id, NULL, NULL, has_detail);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_ctrl_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_MVR
+
+BYWORD = 
+
+VARIABLE_BEGIN
+    BOOL    icli_ipmcmvr_state_enable;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL    icli_ipmcmvr_state_disable;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    icli_ipmcmvr_state_enable = TRUE;
+    if (mvr_mgmt_set_mode(&icli_ipmcmvr_state_enable) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to enable MVR.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    icli_ipmcmvr_state_disable = FALSE;
+    if (mvr_mgmt_set_mode(&icli_ipmcmvr_state_disable) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to disable MVR.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr vlan <vlan_list> [ name <word16> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_intf_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: vlan
+! 3: <vlan_list>
+! 4: name
+! 5: <mvr_name:word16>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = has_name
+CMD_VAR = mvr_name
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Name : option>
+BYWORD = <MvrName : word16>
+
+VARIABLE_BEGIN
+    vtss_rc                 mvr_icli_rc;
+    int                     str_len;
+    mvr_mgmt_interface_t    mvr_icli_intf;
+    mvr_conf_intf_entry_t   *mvif;
+VARIABLE_END
+
+CODE_BEGIN
+    if ((has_name && mvr_name) &&
+        !IPMC_LIB_NAME_IDX_CHECK(mvr_name, MVR_NAME_MAX_LEN)) {
+        ICLI_PRINTF("%% Invalid given MVR name.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if (v_vlan_list) {
+        u32         idx;
+        vtss_vid_t  vidx, bnd, vlan_cnt;
+
+        vlan_cnt = 0;
+        for (idx = 0; idx < v_vlan_list->cnt; idx++) {
+            bnd = v_vlan_list->range[idx].max;
+            for (vidx = v_vlan_list->range[idx].min; vidx <= bnd; vidx++) {
+                if (!vlan_cnt) {
+                    memset(&mvr_icli_intf, 0x0, sizeof(mvr_mgmt_interface_t));
+                    mvr_icli_intf.vid = vidx;
+                    mvif = &mvr_icli_intf.intf;
+                    str_len = 0;
+                    if (has_name && mvr_name) {
+                        str_len = strlen(mvr_name);
+                    }
+                    if (mvr_mgmt_get_intf_entry(VTSS_ISID_GLOBAL, &mvr_icli_intf) == VTSS_OK) {
+                        if (str_len && mvr_name) {
+                            strncpy(mvif->name, mvr_name, str_len);
+                        }
+
+                        mvr_icli_rc = mvr_mgmt_set_intf_entry(VTSS_ISID_GLOBAL, IPMC_OP_SET, &mvr_icli_intf);
+                    } else {
+                        if (str_len && mvr_name) {
+                            strncpy(mvif->name, mvr_name, str_len);
+                        }
+                        mvif->mode = MVR_CONF_DEF_INTF_MODE;
+                        mvif->vtag = MVR_CONF_DEF_INTF_VTAG;
+                        mvif->querier4_address = MVR_CONF_DEF_INTF_ADRS4;
+                        mvif->priority = MVR_CONF_DEF_INTF_PRIO;
+                        mvif->last_listener_query_interval = MVR_CONF_DEF_INTF_LLQI;
+
+                        mvr_icli_rc = mvr_mgmt_set_intf_entry(VTSS_ISID_GLOBAL, IPMC_OP_ADD, &mvr_icli_intf);
+                    }
+
+                    if (mvr_icli_rc != VTSS_OK) {
+                        if (str_len && mvr_name &&
+                            mvr_icli_rc == IPMC_ERROR_ENTRY_NAME_DUPLICATED) {
+                            ICLI_PRINTF("%% Duplicate given MVR name: %s\n", mvr_name);
+                        }
+
+                        ICLI_PRINTF("%% Failed to set MVR VLAN interface.\n\n");
+                        return ICLI_RC_ERROR;
+                    }
+                }
+
+                ++vlan_cnt;
+            }
+        }
+
+        if (vlan_cnt > 1) {
+            ICLI_PRINTF("%% Only the first given MVR VLAN applies interface configuration.\n\n");
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr vlan <vlan_list>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_intf_delete
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: vlan
+! 4: <vlan_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    mvr_mgmt_interface_t    mvr_icli_intf;
+VARIABLE_END
+
+CODE_BEGIN
+    if (v_vlan_list) {
+        u32         idx;
+        vtss_vid_t  vidx, bnd;
+
+        for (idx = 0; idx < v_vlan_list->cnt; idx++) {
+            bnd = v_vlan_list->range[idx].max;
+            for (vidx = v_vlan_list->range[idx].min; vidx <= bnd; vidx++) {
+                memset(&mvr_icli_intf, 0x0, sizeof(mvr_mgmt_interface_t));
+                mvr_icli_intf.vid = vidx;
+                if (mvr_mgmt_get_intf_entry(VTSS_ISID_GLOBAL, &mvr_icli_intf) == VTSS_OK) {
+                    if (mvr_mgmt_set_intf_entry(VTSS_ISID_GLOBAL, IPMC_OP_DEL, &mvr_icli_intf) != VTSS_OK) {
+                        ICLI_PRINTF("%% Failed to delete MVR VLAN interface.\n\n");
+                        return ICLI_RC_ERROR;
+                    }
+                } else {
+                    ICLI_PRINTF("%% MVR VLAN %u doesn't exist.\n\n", vidx);
+                }
+            }
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr vlan <vlan_list> mode { dynamic | compatible }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_mode_set_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: vlan
+! 3: <vlan_list>
+! 4: mode
+! 5: dynamic
+! 6: compatible
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+CMD_VAR = has_dynamic
+CMD_VAR = has_compatible
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##HELP_MVR_MODE
+HELP = Dynamic MVR operation mode
+HELP = Compatible MVR operation mode
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Dynamic : option>
+BYWORD = <Compatible : option>
+
+VARIABLE_BEGIN
+    mvr_intf_mode_t vmode;
+VARIABLE_END
+
+CODE_BEGIN
+    vmode = MVR_CONF_DEF_INTF_MODE;
+    if (has_dynamic) {
+        vmode = MVR_INTF_MODE_DYNA;
+    } else {
+        if (has_compatible) {
+            vmode = MVR_INTF_MODE_COMP;
+        }
+    }
+
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   TRUE, v_vlan_list,
+                                   FALSE, NULL,
+                                   1, 0, 0, 0, 0,
+                                   0, vmode)) {
+        ICLI_PRINTF("%% Failed to set MVR interface mode setting.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr name <word16> mode { dynamic | compatible }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_mode_set_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: name
+! 3: <mvr_name:word16>
+! 4: mode
+! 5: dynamic
+! 6: compatible
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+CMD_VAR = has_dynamic
+CMD_VAR = has_compatible
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_MVR_MODE
+HELP = Dynamic MVR operation mode
+HELP = Compatible MVR operation mode
+
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+BYWORD = <Dynamic : option>
+BYWORD = <Compatible : option>
+
+VARIABLE_BEGIN
+    mvr_intf_mode_t vmode;
+VARIABLE_END
+
+CODE_BEGIN
+    vmode = MVR_CONF_DEF_INTF_MODE;
+    if (has_dynamic) {
+        vmode = MVR_INTF_MODE_DYNA;
+    } else {
+        if (has_compatible) {
+            vmode = MVR_INTF_MODE_COMP;
+        }
+    }
+
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   FALSE, NULL,
+                                   TRUE, mvr_name,
+                                   1, 0, 0, 0, 0,
+                                   0, vmode)) {
+        ICLI_PRINTF("%% Failed to set MVR interface mode setting.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr vlan <vlan_list> mode
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_mode_default_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: vlan
+! 4: <vlan_list>
+! 5: mode
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##HELP_MVR_MODE
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   TRUE, v_vlan_list,
+                                   FALSE, NULL,
+                                   1, 0, 0, 0, 0,
+                                   0, MVR_CONF_DEF_INTF_MODE)) {
+        ICLI_PRINTF("%% Failed to default MVR interface mode setting.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr name <word16> mode
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_mode_default_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: name
+! 4: <mvr_name:word16>
+! 5: mode
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_MVR_MODE
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   FALSE, NULL,
+                                   TRUE, mvr_name,
+                                   1, 0, 0, 0, 0,
+                                   0, MVR_CONF_DEF_INTF_MODE)) {
+        ICLI_PRINTF("%% Failed to default MVR interface mode setting.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr vlan <vlan_list> igmp-address <ipv4_ucast>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_querier_adrs_set_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: vlan
+! 3: <vlan_list>
+! 4: igmp-address
+! 5: <ipv4_ucast>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+CMD_VAR = v_ipv4_ucast
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##HELP_QUERIER_ADR
+HELP = A valid IPv4 unicast address
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   TRUE, v_vlan_list,
+                                   FALSE, NULL,
+                                   0, 0, 1, 0, 0,
+                                   v_ipv4_ucast, 0)) {
+        ICLI_PRINTF("%% Failed to set MVR IGMP address settings for IGMP.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr name <word16> igmp-address <ipv4_ucast>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_querier_adrs_set_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: name
+! 3: <mvr_name:word16>
+! 4: igmp-address
+! 5: <ipv4_ucast>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+CMD_VAR = v_ipv4_ucast
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_QUERIER_ADR
+HELP = A valid IPv4 unicast address
+
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   FALSE, NULL,
+                                   TRUE, mvr_name,
+                                   0, 0, 1, 0, 0,
+                                   v_ipv4_ucast, 0)) {
+        ICLI_PRINTF("%% Failed to set MVR IGMP address settings for IGMP.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr vlan <vlan_list> igmp-address
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_querier_adrs_default_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: vlan
+! 4: <vlan_list>
+! 5: igmp-address
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##HELP_QUERIER_ADR
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   TRUE, v_vlan_list,
+                                   FALSE, NULL,
+                                   0, 0, 1, 0, 0,
+                                   MVR_CONF_DEF_INTF_ADRS4, 0)) {
+        ICLI_PRINTF("%% Failed to clear MVR IGMP address settings for IGMP.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr name <word16> igmp-address
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_querier_adrs_default_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: name
+! 4: <mvr_name:word16>
+! 5: igmp-address
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_QUERIER_ADR
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   FALSE, NULL,
+                                   TRUE, mvr_name,
+                                   0, 0, 1, 0, 0,
+                                   MVR_CONF_DEF_INTF_ADRS4, 0)) {
+        ICLI_PRINTF("%% Failed to clear MVR IGMP address settings for IGMP.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr vlan <vlan_list> frame priority <0-7>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_frame_priority_set_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: vlan
+! 3: <vlan_list>
+! 4: frame
+! 5: priority
+! 6: <cos_priority:0-7>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = cos_priority
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##HELP_MVR_VLAN_FRAME
+HELP = ##ICLI_HELP_INTF_PRI
+HELP = CoS priority ranges from 0 to 7
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <CosPriority : 0-7>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   TRUE, v_vlan_list,
+                                   FALSE, NULL,
+                                   0, 1, 0, 0, 0,
+                                   cos_priority, 0)) {
+        ICLI_PRINTF("%% Failed to set MVR interface priority settings.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr vlan <vlan_list> frame tagged
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_frame_tagged_set_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: vlan
+! 3: <vlan_list>
+! 4: frame
+! 5: tagged
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##HELP_MVR_VLAN_FRAME
+HELP = Tagged IGMP/MLD frames will be sent
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   TRUE, v_vlan_list,
+                                   FALSE, NULL,
+                                   0, 0, 0, 1, 0,
+                                   0, IPMC_INTF_TAGED)) {
+        ICLI_PRINTF("%% Failed to set MVR frame tagged settings.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   TRUE, v_vlan_list,
+                                   FALSE, NULL,
+                                   0, 0, 0, 1, 0,
+                                   0, IPMC_INTF_UNTAG)) {
+        ICLI_PRINTF("%% Failed to set MVR frame untagged settings.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr name <word16> frame priority <0-7>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_frame_priority_set_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: name
+! 3: <mvr_name:word16>
+! 4: frame
+! 5: priority
+! 6: <cos_priority:0-7>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = cos_priority
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_MVR_VLAN_FRAME
+HELP = ##ICLI_HELP_INTF_PRI
+HELP = CoS priority ranges from 0 to 7
+
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+BYWORD = 
+BYWORD = <CosPriority : 0-7>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   FALSE, NULL,
+                                   TRUE, mvr_name,
+                                   0, 1, 0, 0, 0,
+                                   cos_priority, 0)) {
+        ICLI_PRINTF("%% Failed to set MVR interface priority settings.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr name <word16> frame tagged
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_frame_tagged_set_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: name
+! 3: <mvr_name:word16>
+! 4: frame
+! 5: tagged
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_MVR_VLAN_FRAME
+HELP = Tagged IGMP/MLD frames will be sent
+
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   FALSE, NULL,
+                                   TRUE, mvr_name,
+                                   0, 0, 0, 1, 0,
+                                   0, IPMC_INTF_TAGED)) {
+        ICLI_PRINTF("%% Failed to set MVR frame tagged settings.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   FALSE, NULL,
+                                   TRUE, mvr_name,
+                                   0, 0, 0, 1, 0,
+                                   0, IPMC_INTF_UNTAG)) {
+        ICLI_PRINTF("%% Failed to set MVR frame untagged settings.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr vlan <vlan_list> frame priority
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_frame_priroity_default_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: vlan
+! 4: <vlan_list>
+! 5: frame
+! 6: priority
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##HELP_MVR_VLAN_FRAME
+HELP = ##ICLI_HELP_INTF_PRI
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   TRUE, v_vlan_list,
+                                   FALSE, NULL,
+                                   0, 1, 0, 0, 0,
+                                   MVR_CONF_DEF_INTF_PRIO, 0)) {
+        ICLI_PRINTF("%% Failed to default MVR interface priority settings.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr name <word16> frame priority
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_frame_priroity_default_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: name
+! 4: <mvr_name:word16>
+! 5: frame
+! 6: priority
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_MVR_VLAN_FRAME
+HELP = ##ICLI_HELP_INTF_PRI
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   FALSE, NULL,
+                                   TRUE, mvr_name,
+                                   0, 1, 0, 0, 0,
+                                   MVR_CONF_DEF_INTF_PRIO, 0)) {
+        ICLI_PRINTF("%% Failed to default MVR interface priority settings.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr vlan <vlan_list> last-member-query-interval <0-31744>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_lmqi_set_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: vlan
+! 3: <vlan_list>
+! 4: last-member-query-interval
+! 5: <ipmc_lmqi:0-31744>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+CMD_VAR = ipmc_lmqi
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##ICLI_HELP_INTF_LMQI
+HELP = 0 - 31744 tenths of seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <IpmcLmqi : 0-31744>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   TRUE, v_vlan_list,
+                                   FALSE, NULL,
+                                   0, 0, 0, 0, 1,
+                                   ipmc_lmqi, 0)) {
+        ICLI_PRINTF("%% Failed to set MVR interface LMQI.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr name <word16> last-member-query-interval <0-31744>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_lmqi_set_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: name
+! 3: <mvr_name:word16>
+! 4: last-member-query-interval
+! 5: <ipmc_lmqi:0-31744>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+CMD_VAR = ipmc_lmqi
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##ICLI_HELP_INTF_LMQI
+HELP = 0 - 31744 tenths of seconds
+
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+BYWORD = <IpmcLmqi : 0-31744>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   FALSE, NULL,
+                                   TRUE, mvr_name,
+                                   0, 0, 0, 0, 1,
+                                   ipmc_lmqi, 0)) {
+        ICLI_PRINTF("%% Failed to set MVR interface LMQI.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr vlan <vlan_list> last-member-query-interval
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_lmqi_default_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: vlan
+! 4: <vlan_list>
+! 5: last-member-query-interval
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##ICLI_HELP_INTF_LMQI
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   TRUE, v_vlan_list,
+                                   FALSE, NULL,
+                                   0, 0, 0, 0, 1,
+                                   MVR_CONF_DEF_INTF_LLQI, 0)) {
+        ICLI_PRINTF("%% Failed to default MVR interface LMQI.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr name <word16> last-member-query-interval
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_lmqi_default_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: name
+! 4: <mvr_name:word16>
+! 5: last-member-query-interval
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##ICLI_HELP_INTF_LMQI
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_intf_config(session_id,
+                                   FALSE, NULL,
+                                   TRUE, mvr_name,
+                                   0, 0, 0, 0, 1,
+                                   MVR_CONF_DEF_INTF_LLQI, 0)) {
+        ICLI_PRINTF("%% Failed to default MVR interface LMQI.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr vlan <vlan_list> channel <word16>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_channel_set_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: vlan
+! 3: <vlan_list>
+! 4: channel
+! 5: <profile_name:word16>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+CMD_VAR = profile_name
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##HELP_MVR_CHANNEL
+HELP = ##ICLI_HELP_PROFILE_NAME
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <ProfileName : word16>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (v_vlan_list) {
+        u32         idx;
+        vtss_vid_t  vidx, bnd, vlan_cnt;
+
+        vlan_cnt = 0;
+        for (idx = 0; idx < v_vlan_list->cnt; idx++) {
+            bnd = v_vlan_list->range[idx].max;
+            for (vidx = v_vlan_list->range[idx].min; vidx <= bnd; vidx++) {
+                if (!vlan_cnt) {
+                    if (!icli_ipmc_mvr_channel_config(session_id, FALSE,
+                                                      FALSE, NULL,
+                                                      TRUE, vidx,
+                                                      FALSE, NULL,
+                                                      profile_name)) {
+                        ICLI_PRINTF("%% Failed to set MVR interface channel.\n\n");
+                        return ICLI_RC_ERROR;
+                    }
+                }
+
+                ++vlan_cnt;
+            }
+        }
+
+        if (vlan_cnt > 1) {
+            ICLI_PRINTF("%% Only the first given MVR VLAN applies interface channel setting.\n\n");
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = mvr name <word16> channel <word16>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_channel_set_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: mvr
+! 2: name
+! 3: <mvr_name:word16>
+! 4: channel
+! 5: <profile_name:word16>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+CMD_VAR = profile_name
+
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_MVR_CHANNEL
+HELP = ##ICLI_HELP_PROFILE_NAME
+
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+BYWORD = <ProfileName : word16>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_channel_config(session_id, FALSE,
+                                      FALSE, NULL,
+                                      FALSE, VTSS_IPMC_VID_NULL,
+                                      TRUE, mvr_name,
+                                      profile_name)) {
+        ICLI_PRINTF("%% Failed to set MVR interface channel.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr vlan <vlan_list> channel
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_channel_del_idx
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: vlan
+! 4: <vlan_list>
+! 5: channel
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_VLAN
+HELP = ##HELP_MVR_VLAN_LIST
+HELP = ##HELP_MVR_CHANNEL
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_channel_config(session_id, TRUE,
+                                      TRUE, v_vlan_list,
+                                      FALSE, VTSS_IPMC_VID_NULL,
+                                      FALSE, NULL,
+                                      NULL)) {
+        ICLI_PRINTF("%% Failed to delete MVR interface channel.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no mvr name <word16> channel
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = icli_ipmc_mvr_vlan_channel_del_nme
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: mvr
+! 3: name
+! 4: <mvr_name:word16>
+! 5: channel
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = mvr_name
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_MVR
+HELP = ##ICLI_HELP_MVR_NAME
+HELP = ##HELP_MVR_VLAN_NAME
+HELP = ##HELP_MVR_CHANNEL
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <MvrName : word16>
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_ipmc_mvr_channel_config(session_id, TRUE,
+                                      FALSE, NULL,
+                                      FALSE, VTSS_IPMC_VID_NULL,
+                                      TRUE, mvr_name,
+                                      NULL)) {
+        ICLI_PRINTF("%% Failed to delete MVR interface channel.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END

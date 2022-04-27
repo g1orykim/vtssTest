@@ -1,0 +1,830 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_DHCP_RELAY)
+
+INCLUDE_BEGIN
+#include "icli_api.h"
+#include "icli_porting_util.h"
+#include "dhcp_relay_api.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+static BOOL DHCP_RELAY_ICLI_check_present(IN u32 session_id, IN icli_runtime_ask_t ask, OUT icli_runtime_t *runtime)
+{
+    icli_privilege_t    current_priv;
+
+    switch ( ask ) {
+    case ICLI_ASK_PRESENT:
+        runtime->present = FALSE;
+        if (ICLI_PRIVILEGE_GET(&current_priv) == ICLI_RC_OK) {
+            if (!(current_priv < ICLI_PRIVILEGE_15)) {
+                runtime->present = TRUE;
+            }
+        }
+        return TRUE;
+
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+
+        break;
+    }
+
+    return FALSE;
+}
+
+static char *DHCP_RELAY_ICLI_policy_txt(u32 dhcpr_policy)
+{
+    char    *txt;
+
+    switch (dhcpr_policy) {
+    case DHCP_RELAY_INFO_POLICY_DROP:
+        txt = "drop";
+        break;
+    case DHCP_RELAY_INFO_POLICY_KEEP:
+        txt = "keep";
+        break;
+    case DHCP_RELAY_INFO_POLICY_REPLACE:
+    default:
+        txt = "replace";
+        break;
+    }
+
+    return txt;
+}
+
+static BOOL DHCP_RELAY_ICLI_set(u32 session_id,
+                                 BOOL ctrl, BOOL hlper, BOOL info_opt, BOOL info_plcy,
+                                 u32 val, vtss_ipv4_t *adrs)
+{
+    dhcp_relay_conf_t   dhcpr_cfg;
+
+    memset(&dhcpr_cfg, 0x0, sizeof(dhcp_relay_conf_t));
+    if (dhcp_relay_mgmt_conf_get(&dhcpr_cfg) != VTSS_OK) {
+        return FALSE;
+    }
+
+    if (ctrl) {
+        dhcpr_cfg.relay_mode = val;
+    }
+    if (info_opt) {
+        dhcpr_cfg.relay_info_mode = val;
+    }
+    if (info_plcy) {
+        dhcpr_cfg.relay_info_policy = val;
+    }
+    if (hlper) {
+        u32 idx, max;
+
+        memset(dhcpr_cfg.relay_server, 0x0, sizeof(dhcpr_cfg.relay_server));
+        max = (val < DHCP_RELAY_MGMT_MAX_DHCP_SERVER) ? val : DHCP_RELAY_MGMT_MAX_DHCP_SERVER;
+        idx = 0;
+        for (; (idx < max) && adrs; idx++) {
+            if (adrs[idx]) {
+                dhcpr_cfg.relay_server[idx] = adrs[idx];
+            }
+        }
+
+        dhcpr_cfg.relay_server_cnt = idx;
+    }
+
+    /* Check parameters */
+    if (dhcpr_cfg.relay_info_mode == DHCP_RELAY_MGMT_DISABLED && dhcpr_cfg.relay_info_policy == DHCP_RELAY_INFO_POLICY_REPLACE) {
+        ICLI_PRINTF("%% The 'Replace' policy is invalid when relay information mode is disabled.\n");
+        return FALSE;
+    }
+
+    if (dhcp_relay_mgmt_conf_set(&dhcpr_cfg) != VTSS_OK) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static BOOL DHCP_RELAY_ICLI_mode_set(u32 session_id, u32 val)
+{
+    return DHCP_RELAY_ICLI_set(session_id,
+                                1, 0, 0, 0,
+                                val, NULL);
+}
+
+static BOOL DHCP_RELAY_ICLI_helper_set(u32 session_id, u32 cnt, vtss_ipv4_t *adrs)
+{
+    u32         idx, max;
+    vtss_ipv4_t hlpr_adrs[DHCP_RELAY_MGMT_MAX_DHCP_SERVER];
+
+    memset(hlpr_adrs, 0x0, sizeof(hlpr_adrs));
+    max = (cnt < DHCP_RELAY_MGMT_MAX_DHCP_SERVER) ? cnt : DHCP_RELAY_MGMT_MAX_DHCP_SERVER;
+    idx = 0;
+    for (; (idx < max) && adrs; idx++) {
+        hlpr_adrs[idx] = adrs[idx];
+    }
+
+    return DHCP_RELAY_ICLI_set(session_id,
+                                0, 1, 0, 0,
+                                idx, hlpr_adrs);
+}
+
+static BOOL DHCP_RELAY_ICLI_info_option_set(u32 session_id, u32 val)
+{
+    return DHCP_RELAY_ICLI_set(session_id,
+                                0, 0, 1, 0,
+                                val, NULL);
+}
+
+static BOOL DHCP_RELAY_ICLI_info_policy_set(u32 session_id, u32 val)
+{
+    return DHCP_RELAY_ICLI_set(session_id,
+                                0, 0, 0, 1,
+                                val, NULL);
+}
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_DHCP_RELAY_SERVER  = DHCP relay server
+HELP_DHCP_RELAY_INFO    = DHCP information option(Option 82)
+HELP_DHCP_RELAY_POLICY  = Policy for handling the receiving DHCP packet already include the information option
+HELP_DHCP_RELAY_OPTION  = DHCP option
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear ip dhcp relay statistics
+
+DOC_CMD_DESC    = Use the clear ip dhcp relay statistics privileged EXEC \
+                  command to clear the statistics maintained by IP DHCP \
+                  realy.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Clear all IP DHCP relay statistics.
+DOC_CMD_EXAMPLE = This example shows how to clear IP DHCP relay statistics:
+DOC_CMD_EXAMPLE = Switch# clear ip dhcp relay statistics
+DOC_CMD_EXAMPLE = You can verify that the information was deleted by entering the show ip dhcp relay statistics user EXEC command.
+
+FUNC_NAME = icli_dhcp_relay_statistics_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: clear
+! 2: ip
+! 3: dhcp
+! 4: relay
+! 5: statistics
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_CLEAR
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##ICLI_HELP_DHCP_RELAY
+HELP = ##ICLI_HELP_STATISTICS
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    dhcp_relay_stats_clear();
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show ip dhcp relay [ statistics ]
+
+DOC_CMD_DESC    = Use the show ip dhcp relay user EXEC command without \
+                  keywords to display the DHCP relay configuration, \
+                  or use the statistics keyword to display statistics.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Expressions are case sensitive. For example, if you enter | exclude output, the lines that contain output do not appear, but the lines that contain Output appear.
+DOC_CMD_EXAMPLE = This is an example of output from the show ip dhcp relay command:
+DOC_CMD_EXAMPLE = Switch# show ip dhcp relay
+DOC_CMD_EXAMPLE = Switch DHCP relay mode is disabled
+DOC_CMD_EXAMPLE = Switch DHCP relay server address is 0.0.0.0
+DOC_CMD_EXAMPLE = Switch DHCP relay information option is enabled
+DOC_CMD_EXAMPLE = Switch DHCP relay information policy is replace
+
+FUNC_NAME = icli_dhcp_relay_statistics_show
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = DHCP_RELAY_ICLI_check_present
+
+! 1: show
+! 2: ip
+! 3: dhcp
+! 4: relay
+! 5: statistics
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_statistics
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##ICLI_HELP_DHCP_RELAY
+HELP = ##ICLI_HELP_STATISTICS
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    dhcp_relay_conf_t   icli_dhcpr_cfg;
+    dhcp_relay_stats_t  icli_dhcpr_stats;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&icli_dhcpr_cfg, 0x0, sizeof(dhcp_relay_conf_t));
+    if (dhcp_relay_mgmt_conf_get(&icli_dhcpr_cfg) != VTSS_OK) {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    ICLI_PRINTF("Switch DHCP relay mode is %s\n", icli_bool_txt(icli_dhcpr_cfg.relay_mode));
+    if (icli_dhcpr_cfg.relay_server_cnt) {
+        u32 idx;
+        i8  adrString[40];
+
+        for (idx = 0; idx < DHCP_RELAY_MGMT_MAX_DHCP_SERVER; idx++) {
+            if (icli_dhcpr_cfg.relay_server[idx] || idx == 0) {
+                memset(adrString, 0x0, sizeof(adrString));
+                (void) icli_ipv4_to_str(icli_dhcpr_cfg.relay_server[idx], adrString);
+                ICLI_PRINTF("Switch DHCP relay server address is %s\n", adrString);
+            }
+        }
+    } else {
+        ICLI_PRINTF("Switch DHCP relay server address is 0.0.0.0\n");
+    }
+    ICLI_PRINTF("Switch DHCP relay information option is %s\n", icli_bool_txt(icli_dhcpr_cfg.relay_info_mode));
+    ICLI_PRINTF("Switch DHCP relay information policy is %s\n",
+                DHCP_RELAY_ICLI_policy_txt(icli_dhcpr_cfg.relay_info_policy));
+
+    if (has_statistics) {
+        memset(&icli_dhcpr_stats, 0x0, sizeof(dhcp_relay_stats_t));
+        dhcp_relay_stats_get(&icli_dhcpr_stats);
+
+        ICLI_PRINTF("\n\rServer Statistics:");
+        ICLI_PRINTF("\n------------------");
+        ICLI_PRINTF("\nTransmit to Server        : %-10u Transmit Error              : %-10u",
+                    icli_dhcpr_stats.client_packets_relayed,
+                    icli_dhcpr_stats.client_packet_errors);
+        ICLI_PRINTF("\nReceive from Server       : %-10u Receive Missing Agent Option: %-10u",
+                    icli_dhcpr_stats.receive_server_packets,
+                    icli_dhcpr_stats.missing_agent_option);
+        ICLI_PRINTF("\nReceive Missing Circuit ID: %-10u Receive Missing Remote ID   : %-10u",
+                    icli_dhcpr_stats.missing_circuit_id,
+                    icli_dhcpr_stats.missing_remote_id);
+        ICLI_PRINTF("\nReceive Bad Circuit ID    : %-10u Receive Bad Remote ID       : %-10u\n\r",
+                    icli_dhcpr_stats.bad_circuit_id,
+                    icli_dhcpr_stats.bad_remote_id);
+
+        ICLI_PRINTF("\n\rClient Statistics:");
+        ICLI_PRINTF("\n------------------");
+        ICLI_PRINTF("\nTransmit to Client        : %-10u Transmit Error              : %-10u",
+                    icli_dhcpr_stats.server_packets_relayed,
+                    icli_dhcpr_stats.server_packet_errors);
+        ICLI_PRINTF("\nReceive from Client       : %-10u Receive Agent Option        : %-10u",
+                    icli_dhcpr_stats.receive_client_packets,
+                    icli_dhcpr_stats.receive_client_agent_option);
+        ICLI_PRINTF("\nReplace Agent Option      : %-10u Keep Agent Option           : %-10u",
+                    icli_dhcpr_stats.replace_agent_option,
+                    icli_dhcpr_stats.keep_agent_option);
+        ICLI_PRINTF("\nDrop Agent Option         : %-10u\n\r",
+                    icli_dhcpr_stats.drop_agent_option);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ip dhcp relay
+
+DOC_CMD_DESC    = Use the ip dhcp relay global configuration command to \
+                  enable the DHCP relay server. Use the no form of this \
+                  command to disable the DHCP relay server.
+DOC_CMD_DEFAULT = The DHCP relay server is disabled.
+DOC_CMD_USAGE   = Enable the DHCP relay server.
+DOC_CMD_EXAMPLE = This example shows how to enable the DHCP relay server:
+DOC_CMD_EXAMPLE = Switch(config)# ip dhcp relay
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp relay user EXEC command.
+
+NO_FORM_DOC_CMD_DESC    = Use the no ip dhcp relay global configuration command to \
+                          disable the DHCP relay server.
+NO_FORM_DOC_CMD_DEFAULT = The DHCP relay is disabled.
+NO_FORM_DOC_CMD_USAGE   = Disable the DHCP relay server.
+NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable the DHCP relay server:
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# no ip dhcp relay
+NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp relay user EXEC command.
+
+FUNC_NAME = icli_dhcp_relay_mode
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ip
+! 2: dhcp
+! 3: relay
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##ICLI_HELP_DHCP_RELAY
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!DHCP_RELAY_ICLI_mode_set(session_id, DHCP_RELAY_MGMT_ENABLED)) {
+        ICLI_PRINTF("%% Failed to enable DHCP relay agent.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!DHCP_RELAY_ICLI_mode_set(session_id, DHCP_RELAY_MGMT_DISABLED)) {
+        ICLI_PRINTF("%% Failed to disable DHCP relay agent.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ip helper-address <ipv4_ucast>
+
+DOC_CMD_DESC    = Use the ip helper-address global configuration command \
+                  to configure the host address of DHCP relay server.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Configure the host address of DHCP relay server.
+DOC_CMD_EXAMPLE = This example shows how to configure the host address of DHCP relay server:
+DOC_CMD_EXAMPLE = Switch(config)# ip helper-address 192.168.2.1
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp realy privileged EXEC command.
+
+FUNC_NAME = icli_dhcp_relay_addr
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ip
+! 2: helper-address
+! 3: <ip:ipv4_ucast>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = v_ipv4_ucast
+
+HELP = ##ICLI_HELP_IP
+HELP = ##HELP_DHCP_RELAY_SERVER
+HELP = IP address of the DHCP relay server
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Ip : ipv4_ucast>
+
+VARIABLE_BEGIN
+    u32                 max, srv_cnt;
+    dhcp_relay_conf_t   icli_dhcpr_cfg;
+VARIABLE_END
+
+CODE_BEGIN
+    max = DHCP_RELAY_MGMT_MAX_DHCP_SERVER;
+    srv_cnt = 0;
+    memset(&icli_dhcpr_cfg, 0x0, sizeof(dhcp_relay_conf_t));
+    if (dhcp_relay_mgmt_conf_get(&icli_dhcpr_cfg) == VTSS_OK) {
+        if (max > 1) {
+            for (; srv_cnt < max; srv_cnt++) {
+                if (icli_dhcpr_cfg.relay_server[srv_cnt]) {
+                    continue;
+                }
+
+                icli_dhcpr_cfg.relay_server[srv_cnt] = v_ipv4_ucast;
+            }
+        } else {
+            icli_dhcpr_cfg.relay_server[0] = v_ipv4_ucast;
+            srv_cnt = 1;
+        }
+    }
+
+    if (!DHCP_RELAY_ICLI_helper_set(session_id, srv_cnt, icli_dhcpr_cfg.relay_server)) {
+        ICLI_PRINTF("%% Failed to set DHCP relay server.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ip helper-address
+
+DOC_CMD_DESC    = Use the no ip helper-address global configuration command \
+                  to clear the host address of DHCP relay server.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Clear the host address of DHCP relay server.
+DOC_CMD_EXAMPLE = This example shows how to clear the host address of DHCP relay server:
+DOC_CMD_EXAMPLE = Switch(config)# no ip helper-address
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp realy privileged EXEC command.
+
+FUNC_NAME = icli_dhcp_relay_addr_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: ip
+! 3: helper-address
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    u32                 max, srv_cnt;
+    dhcp_relay_conf_t   icli_dhcpr_cfg;
+VARIABLE_END
+
+CODE_BEGIN
+    max = DHCP_RELAY_MGMT_MAX_DHCP_SERVER;
+    srv_cnt = 0;
+    memset(&icli_dhcpr_cfg, 0x0, sizeof(dhcp_relay_conf_t));
+    if (dhcp_relay_mgmt_conf_get(&icli_dhcpr_cfg) == VTSS_OK) {
+        if (max > 1) {
+            for (; srv_cnt < max; srv_cnt++) {
+                if (icli_dhcpr_cfg.relay_server[srv_cnt]) {
+                    continue;
+                }
+
+                icli_dhcpr_cfg.relay_server[srv_cnt] = 0;
+            }
+        } else {
+            icli_dhcpr_cfg.relay_server[0] = 0;
+            srv_cnt = 1;
+        }
+    }
+
+    if (!DHCP_RELAY_ICLI_helper_set(session_id, srv_cnt, icli_dhcpr_cfg.relay_server)) {
+        ICLI_PRINTF("%% Failed to set DHCP relay server.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ip dhcp relay information option
+
+DOC_CMD_DESC    = Use the ip dhcp relay information option global configuration command to \
+                  enable the DHCP relay information option. Use the no form of this \
+                  command to disable the DHCP relay information option.
+DOC_CMD_DESC    = The option 82 circuit ID format as "[vlan_id][module_id][port_no]". \
+                  The first four characters represent the VLAN ID, the fifth and sixth \
+                  characters are the module ID(in standalone device it always equal 0, \
+                  in stackable device it means switch ID), and the last two characters \
+                  are the port number. For example, "00030108" means the DHCP message \
+                  receive form VLAN ID 3, switch ID 1, port No 8. And the option 82 \
+                  remote ID value is equal the switch MAC address.
+DOC_CMD_DEFAULT = The DHCP relay information option is disabled.
+DOC_CMD_USAGE   = Enable the DHCP relay information option.
+DOC_CMD_EXAMPLE = This example shows how to enable the DHCP relay information option:
+DOC_CMD_EXAMPLE = Switch(config)# ip dhcp relay information option
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp relay user EXEC command.
+
+NO_FORM_DOC_CMD_DESC    = Use the no ip dhcp relay information option global configuration command to \
+                          disable the DHCP relay information option.
+NO_FORM_DOC_CMD_DEFAULT = The DHCP relay information option is disabled.
+NO_FORM_DOC_CMD_USAGE   = Disable the DHCP relay information option.
+NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable the DHCP relay information option:
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# no ip dhcp relay information option
+NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp relay user EXEC command.
+FUNC_NAME = icli_dhcp_relay_info_option
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ip
+! 2: dhcp
+! 3: relay
+! 4: information
+! 5: option
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##ICLI_HELP_DHCP_RELAY
+HELP = ##HELP_DHCP_RELAY_INFO
+HELP = ##HELP_DHCP_RELAY_OPTION
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!DHCP_RELAY_ICLI_info_option_set(session_id, DHCP_RELAY_MGMT_ENABLED)) {
+        ICLI_PRINTF("%% Failed to enable DHCP relay information option.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!DHCP_RELAY_ICLI_info_option_set(session_id, DHCP_RELAY_MGMT_DISABLED)) {
+        ICLI_PRINTF("%% Failed to disable DHCP relay information option.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ip dhcp relay information policy { drop | keep | replace }
+
+DOC_CMD_DESC    = Use the ip dhcp relay information policy global configuration command to \
+                  configure the DHCP relay information policy.
+DOC_CMD_DESC    = When DHCP relay information mode operation is enabled, if the agent receives \
+                  a DHCP message that already contains relay agent information it will enforce \
+                  the policy. The 'Replace' policy is invalid when relay information mode is disabled.
+DOC_CMD_DEFAULT = The DHCP relay information policy is keep the original DHCP information.
+DOC_CMD_USAGE   = Configure the DHCP relay information policy.
+DOC_CMD_EXAMPLE = This example shows how to configure the DHCP relay information drop policy:
+DOC_CMD_EXAMPLE = Switch(config)# ip dhcp relay information policy drop
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp relay user EXEC command. 
+
+FUNC_NAME = icli_dhcp_relay_info_policy
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ip
+! 2: dhcp
+! 3: relay
+! 4: information
+! 5: policy
+! 6: drop
+! 7: keep
+! 8: replace
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_drop
+CMD_VAR = has_keep
+CMD_VAR = has_replace
+
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##ICLI_HELP_DHCP_RELAY
+HELP = ##HELP_DHCP_RELAY_INFO
+HELP = ##HELP_DHCP_RELAY_POLICY
+HELP = Drop the package when receive a DHCP message that already contains relay information
+HELP = Keep the original relay information when receive a DHCP message that already contains it
+HELP = Replace the original relay information when receive a DHCP message that already contains it
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    u32 val;
+VARIABLE_END
+
+CODE_BEGIN
+    val = DHCP4R_DEF_INFO_POLICY;
+
+    if (has_drop) {
+        val = DHCP_RELAY_INFO_POLICY_DROP;
+    }
+    if (has_keep) {
+        val = DHCP_RELAY_INFO_POLICY_KEEP;
+    }
+    if (has_replace) {
+        val = DHCP_RELAY_INFO_POLICY_REPLACE;
+    }
+
+    if (!DHCP_RELAY_ICLI_info_policy_set(session_id, val)) {
+        ICLI_PRINTF("%% Failed to configure DHCP relay information policy.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ip dhcp relay information policy
+
+DOC_CMD_DESC    = Use the ip dhcp relay information policy global configuration command to \
+                  restore the default DHCP relay information policy.
+DOC_CMD_DEFAULT = The DHCP relay information policy is keep the original DHCP information.
+DOC_CMD_USAGE   = Restore the default DHCP relay information policy.
+DOC_CMD_EXAMPLE = This example shows how to restore the default DHCP relay information drop policy:
+DOC_CMD_EXAMPLE = Switch(config)# no ip dhcp relay information policy
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show ip dhcp relay user EXEC command. 
+
+FUNC_NAME = icli_dhcp_relay_info_policy_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: ip
+! 3: dhcp
+! 4: relay
+! 5: information
+! 6: policy
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DHCP
+HELP = ##ICLI_HELP_DHCP_RELAY
+HELP = ##HELP_DHCP_RELAY_INFO
+HELP = ##HELP_DHCP_RELAY_POLICY
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!DHCP_RELAY_ICLI_info_policy_set(session_id, DHCP4R_DEF_INFO_POLICY)) {
+        ICLI_PRINTF("%% Failed to restore default DHCP relay information policy.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END

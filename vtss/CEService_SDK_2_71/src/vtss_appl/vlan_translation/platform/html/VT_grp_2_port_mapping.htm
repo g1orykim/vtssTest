@@ -1,0 +1,384 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>VLAN Translatin Group to Member Port mapping table</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+ var help_page = "/help/help_VT_grp_2_port_mapping.htm";
+var timerID;
+var timeOut = settingsRefreshInterval();
+
+var entryIdxArray = Array();
+var originalEntriesNum, newEntriesNum;
+var portcount = configNormalPortMax - configPortMin + 1;
+var maxEntriesNum = portcount;
+var prev_req = "";
+
+function addEntryIdx()
+{
+    var fld;
+
+    for (var i = 1; i <= maxEntriesNum; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newEntriesNum++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1]);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById('grp2portData').deleteRow(tr.rowIndex);
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tbody = document.getElementById("grp2portData");
+
+    if (originalEntriesNum ==0 && newEntriesNum == 0) {
+       clearChildNodes(tbody);
+       addTblHeader(frag);
+       // no entries found - Display that in the table
+           tr = CreateStyledElement("tr","config_even");
+           addTextCell(tr, "", "c");
+           addTextCell(tr, "No Group entries", "c");
+           addTextCell(tr, "", "c");
+           addTextCell(tr, "", "c");
+           frag.appendChild(tr);       // Add row to fragment
+       tbody.appendChild(frag);
+    }
+}
+
+function AddNewRow()
+{
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tbody = document.getElementById("grp2portData");
+
+    if (originalEntriesNum ==0 && newEntriesNum == 0) {
+       clearChildNodes(tbody);
+       addTblHeader(frag);
+       tbody.appendChild(frag);
+    }
+
+    if ((originalEntriesNum + newEntriesNum) == maxEntriesNum) {
+        alert("The maximum entries possible is " + maxEntriesNum);
+        return;
+    }
+    var entryIdx = addEntryIdx();
+    if (entryIdx == 0) {
+        alert("The maximum entries possible is " + maxEntriesNum);
+        return;
+    }
+
+    var tr = CreateStyledElement("tr", (originalEntriesNum + entryIdx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+
+    //Group ID
+    var edit_ctrl = addInputCell(tr, "", "cl", "grp_new_" + entryIdx, 2);
+    edit_ctrl.setAttribute("maxLength", 2); // 'camelCase' required for maxLength for this to work with IE.
+
+    //checkboxes
+    for(var i = configPortMin; i <= configNormalPortMax; i++) {
+        addRadioCell(tr, 0, "c", "grp_port_" + i, "mask_new_" + entryIdx + "_" + i);
+    }
+
+    addCell(tr, td, button);
+
+    frag.appendChild(tr);       // Add row to fragment
+
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+
+function addRow(index, frag, values)
+{
+  originalEntriesNum++;
+  var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+  //Delete checkbox
+  //addCheckBoxCell(tr, 0, "c", "delete_" + index);
+
+  //hidden Grp id field
+  var form_var = document.getElementById("grp2port_map_config");
+  addHiddenParam(form_var, "hiddenGrp_"+index, values[0]);
+
+  //Group ID
+  var txt = addTextCell(tr, values[0], "cl");
+
+  //Member ports
+  var checkboxAry = values[1].split("#");
+  for(var i = 0; i < checkboxAry.length; i++) {
+        if(checkboxAry[i] != "")
+            addRadioCell(tr, parseInt(checkboxAry[i]), "c", "grp_port_" + (i+1), "mask_" + index + "_" + (i+1));
+  }
+  addTextCell(tr, "", "c");
+  frag.appendChild(tr);       // Add row to fragment
+ }
+
+function processUpdate(req, ref)
+{
+    /*
+        Format: <Group Name 1><Group Name 2>...<Group Name n>,<Group Name i>/<Member port 1 status>#...<Member port max status>
+    */
+    //var valuesdommy = "1/1#1#1#1#1#1#1#1#1#1#1#0#0#0#0#0#0#0#0#0#0#0#0#0#|2/0#0#0#0#0#0#0#0#0#0#0#0#0#1#1#1#1#1#1#1#1#1#1#1#|";
+    var portconfig = req.responseText.split("|");
+    if (req != "" && req.responseText) {
+        /* take backup of previous req object */
+        prev_req = req;
+    }
+    /* create holder for accumulated tbody elements and text nodes */
+    var frag = document.createDocumentFragment();
+
+    addTblHeader(frag);
+    originalEntriesNum = newEntriesNum = 0;
+    if (portconfig != "") {
+        for(var i = 0; i < portconfig.length; i++) {
+            if(portconfig[i]) {
+                var pval = portconfig[i].split("/");
+                addRow(i, frag, pval);
+            }
+        }
+    } else {
+        /* no entries found - Display that in the table */
+        var tr = CreateStyledElement("tr","config_even");
+        addTextCell(tr, "", "c");
+        addTextCell(tr, "No Group entries", "c");
+        addTextCell(tr, "", "c");
+        addTextCell(tr, "", "c");
+        frag.appendChild(tr); /* Add row to fragment*/
+
+    }
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    updateFuncBar(1);
+}
+
+function addTblHeader(frag)
+{
+    var tr;
+    tr = CreateStyledElement("tr", "config_header");
+
+    addTextHeaderCell(tr, "", "hdrc", 1);
+
+    addTextHeaderCell(tr, "Port Members", "hdrc", portcount + 1);
+    frag.appendChild(tr);       // Add row to fragment
+
+    tr = CreateStyledElement("tr", "config_header");
+
+
+    addTextHeaderCell(tr,"Group ID","hdrc");
+    for (var i = configPortMin; i <= configNormalPortMax; i++ )
+        addTextHeaderCell(tr, configPortName(i, 0), "portno");
+
+    addTextHeaderCell(tr,"","hdrc");/* for delete button */
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function chkRefresh(fld) {
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate(0);
+    }
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading())
+        return;         // Bail out, navigation will trigger update
+    updateFuncBar(0);
+    loadXMLDoc(SpomAddSidArg("/config/grp2port_map_config"), processUpdate, 'grp2portData');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function checkForm()
+{
+    var VLANfld, fld1;
+    var GrpNamefld;
+    var deleteEntriesNum = 0;
+    var port_count = 0;
+
+/* check new entries */
+    for (var i = 1; i <= newEntriesNum; i++) {
+
+        GrpNamefld = document.getElementById("grp_new_" + i);
+        //Validate Group Name fields
+
+/* Group ID fld must not be empty & it must be a integer value. */
+        if (GrpNamefld.value != "") {
+                  if (!isInt(GrpNamefld.value) || GrpNamefld.value < configPortMin || GrpNamefld.value > configNormalPortMax) {
+              GiveAlert("Invalid Group ID value:" + GrpNamefld.value + ". Group ID must be a Integer value between " + configPortMin +" to " + configNormalPortMax);
+              GrpNamefld.select();
+                          return false;
+          }
+        } else {
+            GiveAlert("Group ID must be a Integer value between " + configPortMin + " to " + configNormalPortMax);
+            GrpNamefld.select();
+                    return false;
+        }
+
+/* check for unique group ID field by comparing with all original and new entries below current entry */
+        for (var iorg = 0; iorg < originalEntriesNum; iorg++) {//compare with all original entries
+            var curOrginal =  document.getElementById("hiddenGrp_" + iorg);
+            if (!checkGrpID (curOrginal, GrpNamefld)) return false;
+        }
+        /* compare current Group ID with group IDs in new entries below currently selected new entry */
+        for (var inext = i + 1; inext <= newEntriesNum; inext++) {
+            var curNxtEntry = document.getElementById("grp_new_" + inext);
+            if (!checkGrpID (curNxtEntry, GrpNamefld)) return false;
+        }
+    }/* Main for loop for validating new entries */
+}/* end of checkForm function */
+
+function checkGrpID (CurGrpID, CmpToGrpID) {
+    if (CurGrpID.value == CmpToGrpID.value) {
+        GiveAlert("Entry with Group ID: " +  CmpToGrpID.value + " already exists, Please give other Group ID value.");
+        CmpToGrpID.select();
+        return false;
+    } else {
+        return true;
+    }
+}
+function updateFuncBar(enable)
+{
+    if (enable) {
+        document.getElementById("refresh").style.visibility = "visible";
+        document.getElementById("update").style.visibility = "hidden";
+    } else {
+        document.getElementById("refresh").style.visibility = "hidden";
+        document.getElementById("update").style.visibility = "visible";
+    }
+}
+function resetForm()
+{
+    var tbl = document.getElementById("dscpConfig");
+    for (i=(tbl.rows.length - 1); i>=0; i--) {
+        if(!tbl.rows[i].cells[0].childNodes[0].nodeValue) { //Rows with input field as the first child.
+            newEntriesNum--;    //Maintain the count of newEntries left.
+            tbl.deleteRow(i);
+        } else {
+            break;
+        }
+    }
+    var form = document.getElementById("grp2port_map_config");
+    form.reset();
+}
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+<div class="refreshbar">
+<form action="#">
+<label for="autorefresh">Auto-refresh</label>
+<input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+ <input type="button" id="refresh" value="Refresh" onClick="requestUpdate(); this.blur(); " style="visibility:hidden">
+  <span id="update">&nbsp;Updating...</span>
+ </form>
+</div>
+
+<h1>Port to Group mapping Table <span id="display_sid"></span></h1>
+
+<form id="grp2port_map_config" method="POST" action="/config/grp2port_map_config" onsubmit="return checkForm();">
+
+<table id="dscpConfig" summary="QoS Port DSCP Configuration" class="config">
+ <tbody id="grp2portData">
+ </tbody>
+</table>
+<p>
+<input type="button" id="addNewEntry" value="Add New Entry" onclick="AddNewRow()">
+</p>
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm()">
+<!--<input type="reset" value="Reset" onClick="processUpdate(prev_req, 'grp2portData'); this.blur(); ">-->
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

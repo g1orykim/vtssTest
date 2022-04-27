@@ -1,0 +1,951 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "misc_api.h"
+#include "misc_icli_util.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+static void misc_icli_req_init(misc_icli_req_t *req, u32 session_id)
+{
+    memset(req, 0, sizeof(*req));
+    req->session_id = session_id;
+}
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug chip [ { 0 | 1 | all } ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! chip
+CMD_VAR = 
+RUNTIME = 
+HELP    = Select chip for debugging
+BYWORD  = 
+
+! 0
+CMD_VAR = has_0
+RUNTIME = 
+HELP    = Select first chip
+BYWORD  = 0 : Option
+
+! 1
+CMD_VAR = has_1
+RUNTIME = 
+HELP    = Select second chip
+BYWORD  = 1 : Option
+
+! all
+CMD_VAR = has_all
+RUNTIME = 
+HELP    = Select all chips
+BYWORD  = all : Option
+
+VARIABLE_BEGIN
+    misc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    misc_icli_req_init(&req, session_id);
+    req.chip_no = (has_0 ? 0 : has_1 ? 1 : has_all ? VTSS_CHIP_NO_ALL : MISC_CHIP_NO_NONE);
+    misc_icli_chip(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug api [ interface <port_type_list> ] [ { ail | cil } ] [ { init | misc | port | counters | phy | vlan | pvlan | mac-table | acl | qos | aggr | stp | mirror | evc | erps | eps | packet | fdma | ts | pts | wm | ipmc | stack | cmef | mplscore | mplsoam | vxlat | oam | sgpio | l3 | afi | macsec } ] [ full ] [ clear ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! api
+CMD_VAR = 
+RUNTIME = 
+HELP    = VTSS API
+BYWORD  = 
+
+! interface
+CMD_VAR = has_interface
+RUNTIME = 
+HELP    = Specify interface
+BYWORD  = interface : Option
+
+! <port_type_list>
+CMD_VAR = port_list
+RUNTIME = 
+HELP    = 
+BYWORD  = <PortList : port_type_list>
+
+! ail
+CMD_VAR = has_ail
+RUNTIME = 
+HELP    = Application Interface Layer
+BYWORD  = ail : Option
+
+! cil
+CMD_VAR = has_cil
+RUNTIME = 
+HELP    = Chip Interface Layer
+BYWORD  = cil : Option
+
+! init
+CMD_VAR = has_init
+RUNTIME = 
+HELP    = Inititialization group
+BYWORD  = init : Option
+
+! misc
+CMD_VAR = has_misc
+RUNTIME = 
+HELP    = Miscellaneous group
+BYWORD  = misc : Option
+
+! port
+CMD_VAR = has_port
+RUNTIME = 
+HELP    = Port group
+BYWORD  = port : Option
+
+! counters
+CMD_VAR = has_counters
+RUNTIME = 
+HELP    = Port counter group
+BYWORD  = counters : Option
+
+! phy
+CMD_VAR = has_phy
+RUNTIME = 
+HELP    = PHY group
+BYWORD  = phy : Option
+
+! vlan
+CMD_VAR = has_vlan
+RUNTIME = 
+HELP    = VLAN group
+BYWORD  = vlan : Option
+
+! pvlan
+CMD_VAR = has_pvlan
+RUNTIME = 
+HELP    = PVLAN group
+BYWORD  = pvlan : Option
+
+! mac-table
+CMD_VAR = has_mac_table
+RUNTIME = 
+HELP    = MAC address table group
+BYWORD  = mac-table : Option
+
+! acl
+CMD_VAR = has_acl
+RUNTIME = 
+HELP    = ACL group
+BYWORD  = acl : Option
+
+! qos
+CMD_VAR = has_qos
+RUNTIME = 
+HELP    = QoS group
+BYWORD  = qos : Option
+
+! aggr
+CMD_VAR = has_aggr
+RUNTIME = 
+HELP    = Link aggregation group
+BYWORD  = aggr : Option
+
+! stp
+CMD_VAR = has_stp
+RUNTIME = 
+HELP    = Spanning Tree group
+BYWORD  = stp : Option
+
+! mirror
+CMD_VAR = has_mirror
+RUNTIME = 
+HELP    = Mirror group
+BYWORD  = mirror : Option
+
+! evc
+CMD_VAR = has_evc
+RUNTIME = 
+HELP    = EVC group
+BYWORD  = evc : Option
+
+! erps
+CMD_VAR = has_erps
+RUNTIME = 
+HELP    = ERPS group
+BYWORD  = erps : Option
+
+! eps
+CMD_VAR = has_eps
+RUNTIME = 
+HELP    = EPS group
+BYWORD  = eps : Option
+
+! packet
+CMD_VAR = has_packet
+RUNTIME = 
+HELP    = Packet group
+BYWORD  = packet : Option
+
+! fdma
+CMD_VAR = has_fdma
+RUNTIME = 
+HELP    = FDMA group
+BYWORD  = fdma : Option
+
+! ts
+CMD_VAR = has_ts
+RUNTIME = 
+HELP    = Timestamp group
+BYWORD  = ts : Option
+
+! pts
+CMD_VAR = has_pts
+RUNTIME = 
+HELP    = PHY timestamp group
+BYWORD  = pts : Option
+
+! wm
+CMD_VAR = has_wm
+RUNTIME = 
+HELP    = Queue system water mark group
+BYWORD  = wm : Option
+
+! ipmc
+CMD_VAR = has_ipmc
+RUNTIME = 
+HELP    = IP multicast group
+BYWORD  = ipmc : Option
+
+! stack
+CMD_VAR = has_stack
+RUNTIME = 
+HELP    = Stacking group
+BYWORD  = stack : Option
+
+! cmef
+CMD_VAR = has_cmef
+RUNTIME = 
+HELP    = Stacking congestion control group
+BYWORD  = cmef : Option
+
+! mplscore
+CMD_VAR = has_mplscore
+RUNTIME = 
+HELP    = MPLS core group
+BYWORD  = mplscore : Option
+
+! mplsoam
+CMD_VAR = has_mplsoam
+RUNTIME = 
+HELP    = MPLS OAM group
+BYWORD  = mplsoam : Option
+
+! vxlat
+CMD_VAR = has_vxlat
+RUNTIME = 
+HELP    = VLAN translation group
+BYWORD  = vxlat : Option
+
+! oam
+CMD_VAR = has_oam
+RUNTIME = 
+HELP    = OAM group
+BYWORD  = oam : Option
+
+! sgpio
+CMD_VAR = has_sgpio
+RUNTIME = 
+HELP    = Serial GPIO group
+BYWORD  = sgpio : Option
+
+! l3
+CMD_VAR = has_l3
+RUNTIME = 
+HELP    = Layer 3 group
+BYWORD  = l3 : Option
+
+! afi
+CMD_VAR = has_afi
+RUNTIME = 
+HELP    = Automatic Frame Injection group
+BYWORD  = afi : Option
+
+! macsec
+CMD_VAR = has_macsec
+RUNTIME = 
+HELP    = MACSEC group
+BYWORD  = macsec : Option
+
+! full
+CMD_VAR = has_full
+RUNTIME = 
+HELP    = Show all information
+BYWORD  = full : Option
+
+! clear
+CMD_VAR = has_clear
+RUNTIME = 
+HELP    = Clear information (e.g. sticky bits)
+BYWORD  = clear : Option
+
+VARIABLE_BEGIN
+    misc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    misc_icli_req_init(&req, session_id);
+    req.dummy = has_interface;
+    req.port_list = port_list;
+    req.debug_info.layer = (has_ail ? VTSS_DEBUG_LAYER_AIL :
+                            has_cil ? VTSS_DEBUG_LAYER_CIL : VTSS_DEBUG_LAYER_ALL);
+    req.debug_info.group = (has_init ? VTSS_DEBUG_GROUP_INIT :
+                            has_misc ? VTSS_DEBUG_GROUP_MISC :   
+                            has_port ? VTSS_DEBUG_GROUP_PORT :
+                            has_counters ? VTSS_DEBUG_GROUP_PORT_CNT :
+                            has_phy ? VTSS_DEBUG_GROUP_PHY :
+                            has_vlan ? VTSS_DEBUG_GROUP_VLAN :
+                            has_pvlan ? VTSS_DEBUG_GROUP_PVLAN :
+                            has_mac_table ? VTSS_DEBUG_GROUP_MAC_TABLE :
+                            has_acl ? VTSS_DEBUG_GROUP_ACL :
+                            has_qos ? VTSS_DEBUG_GROUP_QOS :
+                            has_aggr ? VTSS_DEBUG_GROUP_AGGR :
+                            has_stp ? VTSS_DEBUG_GROUP_STP :
+                            has_mirror ? VTSS_DEBUG_GROUP_MIRROR :
+                            has_evc ? VTSS_DEBUG_GROUP_EVC :
+                            has_erps ? VTSS_DEBUG_GROUP_ERPS :
+                            has_eps ? VTSS_DEBUG_GROUP_EPS :
+                            has_packet ? VTSS_DEBUG_GROUP_PACKET :
+                            has_fdma ? VTSS_DEBUG_GROUP_FDMA :
+                            has_ts ? VTSS_DEBUG_GROUP_TS :
+                            has_pts ? VTSS_DEBUG_GROUP_PHY_TS :
+                            has_wm ? VTSS_DEBUG_GROUP_WM :
+                            has_ipmc ? VTSS_DEBUG_GROUP_IPMC :
+                            has_stack ? VTSS_DEBUG_GROUP_STACK :
+                            has_cmef ? VTSS_DEBUG_GROUP_CMEF :
+                            has_mplscore ? VTSS_DEBUG_GROUP_MPLS :
+                            has_mplsoam ? VTSS_DEBUG_GROUP_MPLS_OAM :
+                            has_vxlat ? VTSS_DEBUG_GROUP_VXLAT :
+                            has_oam ? VTSS_DEBUG_GROUP_OAM :
+                            has_sgpio ? VTSS_DEBUG_GROUP_SER_GPIO :
+                            has_l3 ? VTSS_DEBUG_GROUP_L3 :
+                            has_afi ? VTSS_DEBUG_GROUP_AFI :
+                            has_macsec ? VTSS_DEBUG_GROUP_MACSEC : VTSS_DEBUG_GROUP_ALL);
+    req.debug_info.full = has_full;
+    req.debug_info.clear = has_clear;
+    misc_icli_debug_api(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug suspend
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! suspend
+CMD_VAR = 
+RUNTIME = 
+HELP    = Suspend port thread
+BYWORD  = 
+
+VARIABLE_BEGIN
+    misc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    misc_icli_req_init(&req, session_id);
+    misc_icli_suspend_resume(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug resume
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! debug
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! resume
+CMD_VAR = 
+RUNTIME = 
+HELP    = Resume port thread
+BYWORD  = 
+
+VARIABLE_BEGIN
+    misc_icli_req_t req;
+VARIABLE_END
+
+CODE_BEGIN
+    misc_icli_req_init(&req, session_id);
+    req.resume = 1;
+    misc_icli_suspend_resume(&req);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug kr-conf [ cm1 <-32-31> ] [ c0 <-32-31> ] [ cp1 <-32-31> ] [ ampl <300-1275> ] [ { ps25 | ps35 | ps55 | ps70 | ps120 } ] [ en-ob | dis-ob ] [ ser-inv | ser-no-inv ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: debug
+! 2: kr-conf
+! 3: cm1
+! 4: <-32-31>
+! 5: c0
+! 6: <-32-31>
+! 7: cp1
+! 8: <-32-31>
+! 9: ampl
+! 10: <300-1275>
+! 11: ps25
+! 12: ps35
+! 13: ps55
+! 14: ps70
+! 15: ps120
+! 16: en-ob
+! 17: dis-ob
+! 18: ser-inv
+! 19: ser-no-inv
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_cm1
+CMD_VAR = cm_1
+CMD_VAR = has_c0
+CMD_VAR = c_0
+CMD_VAR = has_cp1
+CMD_VAR = c_1
+CMD_VAR = has_ampl
+CMD_VAR = amp_val
+CMD_VAR = has_ps25
+CMD_VAR = has_ps35
+CMD_VAR = has_ps55
+CMD_VAR = has_ps70
+CMD_VAR = has_ps120
+CMD_VAR = has_en_ob
+CMD_VAR = has_dis_ob
+CMD_VAR = has_ser_inv
+CMD_VAR = has_ser_no_inv
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Show or set the 10GBASE-KR parameters.
+HELP = Set the C-1 coefficient
+HELP = C-1 coefficient value, range [-32..31]
+HELP = Set the C0 coefficient
+HELP = C0 coefficient value, range [-32..31]
+HELP = Set the C+1 coefficient
+HELP = C+1 coefficient value, range [-32..31]
+HELP = Set the amplitude 
+HELP = Amplitude value in mV, range 300..1275
+HELP = Set Slew rate ctrl of OB to 25ps
+HELP = Set Slew rate ctrl of OB to 35ps
+HELP = Set Slew rate ctrl of OB to 55ps
+HELP = Set Slew rate ctrl of OB to 70ps
+HELP = Set Slew rate ctrl of OB to 120ps
+HELP = Enable output buffer and serializer
+HELP = Disable output buffer and serializer
+HELP = Invert input to serializer
+HELP = Do not invert input to serializer
+
+BYWORD = 
+BYWORD = 
+BYWORD = cm1 : Option
+BYWORD = <Cm1 : -32-31>
+BYWORD = c0 : Option
+BYWORD = <C0 : -32-31>
+BYWORD = cp1 : Option
+BYWORD = <C1 : -32-31>
+BYWORD = ampl : Option
+BYWORD = <AmpVal : 300-1275>
+BYWORD = ps25 : Option
+BYWORD = ps35 : Option
+BYWORD = ps55 : Option
+BYWORD = ps70 : Option
+BYWORD = ps120 : Option
+BYWORD = en-ob : Option
+BYWORD = dis-ob : Option
+BYWORD = ser-inv : Option
+BYWORD = ser-no-inv : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    misc_icli_10g_kr_conf(session_id, has_cm1, cm_1, has_c0, c_0, has_cp1, c_1, has_ampl, amp_val, 
+                has_ps25, has_ps35, has_ps55, has_ps70, has_ps120, has_en_ob, has_dis_ob, has_ser_inv, has_ser_no_inv, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_CHIP_10G_PHY)
+
+COMMAND = debug phy-10g loopback [ { a | b | c | d | e | f | g | h | j | k | h2 | h3 | h4 | h5 | h6 | l0 | l1 | l2 | l3 } { enable | disable } ]
+
+DOC_CMD_DESC    = Show or set 10g phy loopback mode
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = debug phy-10g loopback  a enable
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: debug
+! 2: phy-10g
+! 3: loopback
+! 4: a
+! 5: b
+! 6: c
+! 7: d
+! 8: e
+! 9: f
+! 10: g
+! 11: h
+! 12: j
+! 13: k
+! 14: h2
+! 15: h3
+! 16: h4
+! 17: h5
+! 18: h6
+! 19: l0
+! 20: l1
+! 21: l2
+! 22: l3
+! 23: enable
+! 24: disable
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_a
+CMD_VAR = has_b
+CMD_VAR = has_c
+CMD_VAR = has_d
+CMD_VAR = has_e
+CMD_VAR = has_f
+CMD_VAR = has_g
+CMD_VAR = has_h
+CMD_VAR = has_j
+CMD_VAR = has_k
+CMD_VAR = has_h2
+CMD_VAR = has_h3
+CMD_VAR = has_h4
+CMD_VAR = has_h5
+CMD_VAR = has_h6
+CMD_VAR = has_l0
+CMD_VAR = has_l1
+CMD_VAR = has_l2
+CMD_VAR = has_l3
+CMD_VAR = has_enable
+CMD_VAR = has_disable
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 10g Phy debug commands
+HELP = Show or set 10g phy loopback mode
+HELP = a: XFI  -> XS  -> XFI - deep
+HELP = b: XAUI -> XS -> XAUI - shallow
+HELP = c: XAUI -> XS -> XAUI - deep
+HELP = d: XFI  -> XS  -> XFI - shallow
+HELP = e: XAUI -> PCS FIFO -> XAUI
+HELP = f: XFI  -> PCS -> XFI (Venice equivalent: L2)
+HELP = g: XAUI -> PCS -> XAUI (Venice equivalent: H3)
+HELP = h: XFI  -> WIS -> XFI
+HELP = j: XAUI -> PMA -> XAUI (Venice equivalent: H4)
+HELP = k: XFI  -> PMA -> XFI
+HELP = Venice Host Loopback 2, 40-bit XAUI-PHY interface Mirror XAUI data
+HELP = Venice Host Loopback 3, 64-bit PCS after the gearbox FF00 repeating IEEE PCS system loopback
+HELP = Venice Host Loopback 4, 64-bit WIS FF00 repeating IEEE WIS system loopback
+HELP = Venice Host Loopback 5, 1-bit SFP+ after SerDes Mirror XAUI data IEEE PMA system loopback
+HELP = Venice Host Loopback 6, 32-bit XAUI-PHY interface Mirror XAUI data
+HELP = Venice Line Loopback 0, 4-bit XAUI before SerDes Mirror SFP+ data
+HELP = Venice Line Loopback 1, 4-bit XAUI after SerDes Mirror SFP+ data IEEE PHY-XS network loopback
+HELP = Venice Line Loopback 2, 64-bit XGMII after FIFO Mirror SFP+ data
+HELP = Venice Line Loopback 3, 64-bit PMA interface Mirror SFP+ data
+HELP = Enable loopback
+HELP = Disable loopback
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = a : Option
+BYWORD = b : Option
+BYWORD = c : Option
+BYWORD = d : Option
+BYWORD = e : Option
+BYWORD = f : Option
+BYWORD = g : Option
+BYWORD = h : Option
+BYWORD = j : Option
+BYWORD = k : Option
+BYWORD = h2 : Option
+BYWORD = h3 : Option
+BYWORD = h4 : Option
+BYWORD = h5 : Option
+BYWORD = h6 : Option
+BYWORD = l0 : Option
+BYWORD = l1 : Option
+BYWORD = l2 : Option
+BYWORD = l3 : Option
+BYWORD = enable : Option
+BYWORD = disable : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    misc_icli_10g_phy_loopback(session_id, has_a, has_b, has_c, has_d, has_e, has_f, has_g, has_h, 
+                has_j, has_k, has_h2, has_h3, has_h4, has_h5, has_h6, has_l0, has_l1, has_l2, has_l3, 
+                has_enable, has_disable, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_CHIP_10G_PHY) && defined(VTSS_FEATURE_SYNCE_10G)
+
+COMMAND = debug phy-10g rxckout [ { disable | rx-clock | tx-clock } ] [ { pcs-fault-squelch | no-pcs-fault-squelch } ] [ { lopc-squelch | no-lopc-squelch } ]
+
+DOC_CMD_DESC    = Show or set rxckout mode for a 10G phy.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = debug phy-10g rxckout rx-clock pcs-fault-squelch
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: debug
+! 2: phy-10g
+! 3: rxckout
+! 4: disable
+! 5: rx-clock
+! 6: tx-clock
+! 7: pcs-fault-squelch
+! 8: no-pcs-fault-squelch
+! 9: lopc-squelch
+! 10: no-lopc-squelch
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_disable
+CMD_VAR = has_rx_clock
+CMD_VAR = has_tx_clock
+CMD_VAR = has_pcs_fault_squelch
+CMD_VAR = has_no_pcs_fault_squelch
+CMD_VAR = has_lopc_squelch
+CMD_VAR = has_no_lopc_squelch
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 10g Phy debug commands
+HELP = Show or set rxckout mode for a 10G phy
+HELP = Disable (tristate) rxckout
+HELP = rxckout is derived from the line side rx clock
+HELP = rxckout is derived from the line side tx clock
+HELP = rxckout is squelched in case of PCS_FAULT
+HELP = rxckout is NOT squelched in case of PCS_FAULT
+HELP = rxckout is squelched in case of LOPC
+HELP = rxckout is NOT squelched in case of LOPC
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = disable : Option
+BYWORD = rx-clock : Option
+BYWORD = tx-clock : Option
+BYWORD = pcs-fault-squelch : Option
+BYWORD = no-pcs-fault-squelch : Option
+BYWORD = lopc-squelch : Option
+BYWORD = no-lopc-squelch : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    misc_icli_10g_phy_rxckout(session_id, has_disable, has_rx_clock, has_tx_clock, 
+        has_pcs_fault_squelch, has_no_pcs_fault_squelch, has_lopc_squelch, has_no_lopc_squelch, plist);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_CHIP_10G_PHY) && defined(VTSS_FEATURE_SYNCE_10G)
+
+COMMAND = debug phy-10g txckout [ { disable | rx-clock | tx-clock } ]
+
+DOC_CMD_DESC    = Show or set txckout mode for a 10G phy.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = debug phy-10g txckout tx-clock
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: debug
+! 2: phy-10g
+! 3: txckout
+! 4: disable
+! 5: rx-clock
+! 6: tx-clock
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_disable
+CMD_VAR = has_rx_clock
+CMD_VAR = has_tx_clock
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 10g Phy debug commands
+HELP = Show or set txckout mode for a 10G phy
+HELP = Disable (tristate) txckout
+HELP = txckout is derived from the line side rx clock
+HELP = txckout is derived from the line side tx clock
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = disable : Option
+BYWORD = rx-clock : Option
+BYWORD = tx-clock : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    misc_icli_10g_phy_txckout(session_id, has_disable, has_rx_clock, has_tx_clock, plist);
+CODE_END
+
+CMD_END
+

@@ -1,0 +1,295 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_led_pow_reduc_config.htm";
+
+
+
+//
+// Global variables
+//
+var reqObject;
+var led_pow_reduc_timers_cnt = 1; // The number of LED timers currently active
+var led_pow_reduc_times_max = 24; // The maximum number of timers allowed
+
+
+
+//
+// Creates the maintenance table header
+//
+function CreateMaintenanceTimeHeader(frag)
+{    
+    clearChildNodes(document.getElementById('MaintenanceTime')); // Delete table if it already exists
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "On time at link change", "hdrc", 2);
+    addTextHeaderCell(tr, "On at errors", "hdrc", 1);
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+//
+// Update the maintenance time table
+//
+function UpdateMaintenanceTime(ref, config) {
+    // Maintenance data splited by commas
+    maintenancetime_conf = config.split(",");
+
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateMaintenanceTimeHeader(frag);
+    var tr = CreateStyledElement("tr", "config_even"); // We only have one row.
+ 
+    addInputCell(tr, maintenancetime_conf[0], "c", "maintenance_time", 3);
+    addTextCell(tr, "Sec.", "c", "Sec");
+    addCheckBoxCell(tr, parseInt(maintenancetime_conf[1], 10), "c", "on_at_err");
+    frag.appendChild(tr);       // Add row to fragment
+    FinishTable(frag, ref);
+}
+
+
+//
+// Creates the Intensity table header
+//
+function CreateIntensityTableHeader(frag)
+{    
+
+    clearChildNodes(document.getElementById('intensityTable')); // Delete table if it already exists
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Delete", "hdrc");
+    addTextHeaderCell(tr, "Start Time", "hdrc", 1);
+    addTextHeaderCell(tr, "End Time", "hdrc", 1);
+    addTextHeaderCell(tr, "Intensity", "hdrc", 2);
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+//
+// Add a row to the intensity table
+//
+function addIntensityRow(frag, values_array, index) {
+    // Time - We only allows change at every whole hour.
+    var oT = Array("00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"); // Text
+    var oV = Array(); 
+    for (i = 0; i < 24; i++) {
+	oV[i] = i;
+    }
+
+    // Intensity data for a row is splited by commas
+    var timer_values = values_array.split(",");
+
+    // Intensity must be given in steps of 10%, so reounding up to nearst 10th.
+    var Intensity = Array("0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"); // Text & value
+    Intensity_roundup = parseInt(parseInt(timer_values[2] / 10, 10) * 10, 10);
+    
+    // Add the row
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addCheckBoxCell(tr,0, "c", "delete_" + index);
+    addSelectCell(tr, oT, oV, timer_values[0], "cr", "start_timer_" + index);
+    addSelectCell(tr, oT, oV, timer_values[1], "cr", "next_timer_" + index);
+    addSelectCell(tr, Intensity, Intensity, Intensity_roundup, "cr", "timer_intensity_" + index);
+    addTextCell(tr, "%", "c", "pct");
+    frag.appendChild(tr);       // Add row to fragment
+
+    led_pow_reduc_timers_cnt++;
+}
+
+
+//
+// Update the intensity table 
+//
+function UpdateIntensityTable(ref, config) {
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateIntensityTableHeader(frag);
+ 
+    // Conf split
+    var leds_conf = config.split("&");
+    
+    led_pow_reduc_timers_max = leds_conf[0];
+    var leds_intensities = leds_conf[1].split("#");
+
+    // Add all active timers
+    for (timer_index = 0;timer_index < leds_intensities.length; timer_index++) {
+	addIntensityRow(frag, leds_intensities[timer_index], timer_index);
+    }
+
+    FinishTable(frag, ref);
+}
+
+//
+// Update when web page is loaded
+//
+function processUpdate(req) {
+
+    if (reqObject != req){
+        reqObject = req;
+    }
+
+    if (req.responseText) {
+        // Get and set configurations settings
+        var config = req.responseText.split("|");
+	
+	var err_msg               = config[0];
+	var leds_intensity_conf   = config[1];
+	var maintenance_time_conf = config[2];
+	
+	
+	// Error message
+	if (err_msg !== "") {
+	    alert(err_msg);
+	}
+	UpdateIntensityTable("intensityTable", leds_intensity_conf); 
+        UpdateMaintenanceTime("MaintenanceTime", maintenance_time_conf); 
+    } 
+}
+
+
+//
+// For restting the form when the reset button is pressed
+//
+function resetForm()
+{
+    processUpdate(reqObject);
+}
+
+
+//
+// Adds a new intensity row (when the add button is pressed)
+//
+function AddNewRow ()
+{
+
+    // First row is for new inputs - make a dummy.
+    if (led_pow_reduc_timers_cnt === led_pow_reduc_times_max) {
+	alert("Maximum number of LED intensity timers is " + led_pow_reduc_timers_cnt);
+    } else {
+	var values  = "00:00,0";
+	var frag = document.createDocumentFragment(); 
+	addIntensityRow(frag,values,led_pow_reduc_timers_cnt);
+
+	var tbody = document.getElementById("intensityTable");
+
+	if (!tbody.appendChild(frag)) { // Add Frag to table body
+	    alert("This browser doesn't support dynamic tables.");
+	}
+    }
+}
+
+
+
+//
+// Check all input when "save" button is pressed.
+//
+function checkForm(form)
+{
+    // Check the maintenance time
+    if(!isWithinRange("maintenance_time" , 0 ,65535, "'Maintenance Time'", " Sec.")) {
+	return false;
+    }
+
+    return true;                // Feed the chickens and go home
+}
+
+
+//
+// Web page updated
+//
+function requestUpdate() {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/led_pow_reduc_config"), processUpdate, null);
+    SpomUpdateFormSid("submit_sid");
+}
+
+//
+// Check if the switch in the stack is changed.
+//
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+
+<body class="content" onload="requestUpdate();">
+
+<h1>LED Power Reduction Configuration</h1>
+
+<form name="ConfigForm" method="POST" action="/config/led_pow_reduc_config" onsubmit="return checkForm(this);">
+
+<h2>LED Intensity Timers</h2>
+
+<table id="intensityTableId" summary="LED Intensity Configuration" class="config">
+ <tbody id="intensityTable">
+ </tbody>
+</table>
+
+<p>
+<input type=button id="addNewEntry" value="Add Time" onclick="AddNewRow();">
+</p>
+
+
+<h2> Maintenance</h2>
+<table id="config" summary="Switch Port Configuration" class="config">
+ <tbody id="MaintenanceTime">
+ </tbody>
+</table>
+
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset" onclick="resetForm();">
+</p>
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

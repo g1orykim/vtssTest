@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7">
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>CPU Load</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_perf_cpuload.htm";
+
+var max_num_points = 120;  // maximum number of plot data points
+var cpu_data = new Array();
+var step = 600 / max_num_points;  // plot X division size
+
+function docLoad()
+{
+    if(navigator.appName && 
+       navigator.appName == 'Microsoft Internet Explorer' &&
+       navigator.userAgent.match("MSIE [78]")) {
+        var txt = document.getElementById("svg_msie");
+        if(txt)
+            txt.style.display = "";
+        var svg = document.getElementById("svg");
+        if(svg) {
+            svg.style.height = "90%";
+        }
+    }
+    requestUpdate();
+}
+
+function requestUpdate() {
+    document.getElementById("update").style.visibility = "";
+    loadXMLDoc("/stat/cpuload", contentUpdate, null);
+}
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = null;
+    } else
+        requestUpdate();
+}
+
+function get_stroke(ix)
+{
+    var path_data = "M 2 " + (298 - cpu_data[0][ix]);
+    var i;
+    for (i = 1; i < cpu_data.length; i++) {
+        var x = step * i;
+        var y_cpu = 298 - 2.975 * cpu_data[i][ix];
+        path_data += " L" + x + " " + y_cpu;
+    }
+    return path_data;
+}
+
+function contentUpdate(req, ref) {
+    var data = req.responseText.split('|');
+    if(cpu_data.length == max_num_points)
+        cpu_data.shift();       // Loose the first entry
+    cpu_data.push(data);        // Add to end
+    
+    if(cpu_data.length > 1) {
+        var SVGDoc = document.getElementById("svg").getSVGDocument();
+        SVGDoc.getElementById('collect_initial').setAttributeNS(null, 'visibility', 'hidden');
+        for(var j = 0; j < 3; j++) {
+            var elm = SVGDoc.getElementById('graph_txt_' + j);
+            if(elm)
+                elm.firstChild.data = Math.round(data[j]*10)/10 + '%';
+        }
+        for(var j = 0; j < 3; j++) {
+            var elm = SVGDoc.getElementById('graph_cpu_' + j);
+            if(elm)
+                elm.setAttributeNS(null, 'd', get_stroke(j));
+        }
+    }
+
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+ </script>
+</head>
+
+<body class="content" onload="docLoad();">
+
+<h1>CPU Load</h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" checked name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<div style="margin-left: 0px; margin-right: 1em;">
+ <object id="svg" type="image/svg+xml" data="perf_cpuload.svg" width="100%">
+  <param name="src" value="perf_cpuload.svg" />
+  <p id="svg_msie" style="display: none">
+  Microsoft Internet Explorer need the 
+  <a target="_blank" href="http://www.adobe.com/svg/viewer/install/">Adobe SVG Plugin</a>
+  to display this page.
+  </p>
+  <p class="alert">Your browser does not seem to support SVG.</p>
+ </object>
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

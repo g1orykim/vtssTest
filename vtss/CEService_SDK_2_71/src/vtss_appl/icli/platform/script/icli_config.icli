@@ -1,0 +1,2119 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG =
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include <stdlib.h>
+#include "icli_cmd_func.h"
+#if ( (defined(VTSS_SW_OPTION_SMB_IPMC) || defined(VTSS_SW_OPTION_MVR)) && defined(VTSS_SW_OPTION_IPMC_LIB) )
+#include "ipmc_lib.h"
+#endif
+
+#if defined(VTSS_SW_OPTION_RFC2544)
+#include "rfc2544_api.h"
+#endif /* VTSS_SW_OPTION_RFC2544 */
+
+#if defined(VTSS_SW_OPTION_SNMP)
+#include "vtss_snmp_api.h"
+#endif
+
+#if defined(VTSS_SW_OPTION_VLAN)
+#include "port_api.h"   //switch_iter_init(), port_iter_init()
+#include "vlan_api.h"
+#include "icli_porting_util.h"
+#endif
+
+#ifdef VTSS_SW_OPTION_DHCP_SERVER
+#include "dhcp_server_api.h"
+#endif
+
+#ifdef VTSS_SW_OPTION_SYSUTIL
+#include "sysutil_api.h"
+#endif
+
+#if VTSS_SWITCH_STACKABLE
+#include "topo_api.h"
+#endif
+
+#ifdef VTSS_SW_OPTION_IP2
+#include "ip2_api.h"
+#endif
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+/*
+    Warning: this API can be used only if mode is behind GLOBAL-CONFIG mode
+*/
+static void _submode_enter(
+    IN  u32                 session_id,
+    IN  icli_cmd_mode_t     mode
+)
+{
+    i32                 level;
+    icli_cmd_mode_t     current_mode;
+
+    if ( mode < ICLI_CMD_MODE_GLOBAL_CONFIG ) {
+        ICLI_PRINTF("%% mode %u is too small.\n\n", mode);
+        return;
+    }
+
+    /* get current mode */
+    if ( ICLI_MODE_GET(&current_mode) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to get current session mode.\n\n");
+        return;
+    }
+
+    if ( current_mode < ICLI_CMD_MODE_GLOBAL_CONFIG ) {
+        ICLI_PRINTF("%% current_mode %u is too small.\n\n", current_mode);
+        return;
+    }
+
+    /* go back to global config mode first */
+    if ( current_mode > ICLI_CMD_MODE_GLOBAL_CONFIG ) {
+        level = ICLI_MODE_EXIT();
+        if ( level != 1 ) {
+            ICLI_PRINTF("%% Fail to go back to global config mode.\n\n");
+            return;
+        }
+    }
+
+    /* enter then */
+    level = ICLI_MODE_ENTER( mode );
+    if ( level != 2 ) {
+        ICLI_PRINTF("%% Fail to enter mode %u.\n\n", mode);
+        return;
+    }
+}
+
+static void _vlan_mode_enter(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *vlan_list
+)
+{
+#if defined(VTSS_SW_OPTION_VLAN)
+    extern void VLAN_ICLI_vlan_mode_enter(u32 session_id, icli_unsigned_range_t *vlan_list);
+    VLAN_ICLI_vlan_mode_enter(session_id, vlan_list);
+#else
+    (void)vlan_list;
+#endif
+
+    /* go to submode */
+    _submode_enter( session_id, ICLI_CMD_MODE_CONFIG_VLAN );
+}
+
+static void _interface_port_mode_enter(
+    IN  u32                         session_id,
+    IN  icli_stack_port_range_t     *plist
+)
+{
+#if VTSS_SWITCH_STACKABLE
+    stack_config_t      conf;
+    BOOL                dirty;
+    u32                 i;
+    BOOL                b_title;
+    BOOL                b_first;
+    u16                 switch_id;
+    icli_port_type_t    port_type;
+    u32                 iport;
+    u32                 j;
+    u32                 n;
+
+    if ( vtss_stacking_enabled() ) {
+        b_title = TRUE;
+        b_first = TRUE;
+        n = 0;
+        switch_id = 0;
+        port_type = ICLI_PORT_TYPE_NONE;
+        for ( i = 0; i < plist->cnt; ++i ) {
+            if ( topo_stack_config_get(plist->switch_range[i].isid, &conf, &dirty) == VTSS_OK ) {
+                for ( j = 0; j < plist->switch_range[i].port_cnt; ++j ) {
+                    iport = plist->switch_range[i].begin_iport + j;
+                    if ( iport == conf.port_0 || iport == conf.port_1 ) {
+                        if ( b_title ) {
+                            ICLI_PRINTF("\n%% Notice: ");
+                            b_title = FALSE;
+                        }
+                        if ( b_first ) {
+                            b_first   = FALSE;
+                            switch_id = plist->switch_range[i].switch_id;
+                            port_type = plist->switch_range[i].port_type;
+                            ICLI_PRINTF("%s %u/%u", icli_port_type_get_name(port_type), switch_id, plist->switch_range[i].begin_port + j);
+                        } else {
+                            if ( port_type != plist->switch_range[i].port_type ) {
+                                switch_id = plist->switch_range[i].switch_id;
+                                port_type = plist->switch_range[i].port_type;
+                                ICLI_PRINTF(", %s %u/%u", icli_port_type_get_name(port_type), switch_id, plist->switch_range[i].begin_port + j);
+                            } else if ( switch_id != plist->switch_range[i].switch_id ) {
+                                switch_id = plist->switch_range[i].switch_id;
+                                ICLI_PRINTF(", %u/%u", switch_id, plist->switch_range[i].begin_port + j);
+                            } else {
+                                ICLI_PRINTF(",%u", plist->switch_range[i].begin_port + j);
+                            }
+                        }
+                        ++n;
+                    }
+                }
+            }
+        }
+        if ( n ) {
+            if ( n > 1 ) {
+                ICLI_PRINTF(" are stack interfaces, which can't be configured. All commands for these interfaces are silently ignored.\n");
+            } else {
+                ICLI_PRINTF(" is a stack interface, which can't be configured. All commands for this interface are silently ignored.\n");
+            }
+            ICLI_PRINTF("\n");
+        }
+    }
+#else
+    if ( plist ) {}
+#endif
+
+    /* go to submode */
+    _submode_enter( session_id, ICLI_CMD_MODE_INTERFACE_PORT_LIST );
+}
+
+static void _interface_vlan_enter(
+    IN  u32                   session_id,
+    IN  icli_unsigned_range_t *vlist
+)
+{
+    u32     i;
+    u32     vid;
+
+    /* enable VLAN */
+    for ( i = 0; i < vlist->cnt; ++i ) {
+        for ( vid = vlist->range[i].min; vid <= vlist->range[i].max; ++vid ) {
+            if ( icli_vlan_enable_set(vid, TRUE) != ICLI_RC_OK ) {
+                ICLI_PRINTF("%% Fail to enable interface vlan %u\n", vid);
+            }
+            if ( icli_vlan_enter_set(vid, TRUE) != ICLI_RC_OK ) {
+                ICLI_PRINTF("%% Fail to enter interface vlan %u\n", vid);
+            }
+        }
+    }
+
+    /* go to submode */
+    _submode_enter( session_id, ICLI_CMD_MODE_INTERFACE_VLAN );
+}
+
+static void _interface_vlan_disable(
+    IN  u32                     session_id,
+    IN  icli_unsigned_range_t   *vlist
+)
+{
+    u32     i;
+    u32     vid;
+
+    /* disable VLAN */
+    for ( i = 0; i < vlist->cnt; ++i ) {
+        for ( vid = vlist->range[i].min; vid <= vlist->range[i].max; ++vid ) {
+            if ( icli_vlan_enable_set(vid, FALSE) != ICLI_RC_OK ) {
+                ICLI_PRINTF("%% Fail to disable interface vlan %u\n", vid);
+            }
+            if ( icli_vlan_enter_set(vid, FALSE) != ICLI_RC_OK ) {
+                ICLI_PRINTF("%% Fail to leave interface vlan %u\n", vid);
+            }
+        }
+    }
+
+    /*------------------------------------------------------------------------
+     *
+     *  if the module's configuration will be changed when interface vlan is
+     *  disabled, then the actions should be took below.
+     *
+     *------------------------------------------------------------------------
+     */
+#ifdef VTSS_SW_OPTION_IP2
+    /* remove IP interfaces */
+    VTSS_ICLI_RANGE_FOREACH (vlist, u32, vlanid) {
+        if ( vtss_ip2_if_exists(vlanid) ) {
+            (void)vtss_ip2_if_conf_del( vlanid );
+        }
+    } VTSS_ICLI_RANGE_FOREACH_END();
+#endif
+}
+
+static void _line_mode_enter(
+    IN  u32     session_id
+)
+{
+    /* go to submode */
+    _submode_enter( session_id, ICLI_CMD_MODE_CONFIG_LINE );
+}
+
+#if ( (defined(VTSS_SW_OPTION_SMB_IPMC) || defined(VTSS_SW_OPTION_MVR)) && defined(VTSS_SW_OPTION_IPMC_LIB) )
+static void _ipmc_profile_mode_enter(
+    IN  u32     session_id,
+    IN  char    *profile_name
+)
+{
+    /* create IPMC profile */
+    ipmc_lib_profile_mem_t          *pf;
+    ipmc_lib_grp_fltr_profile_t     *fltr_profile;
+
+    if (!profile_name ||
+        !IPMC_LIB_NAME_CHECK(profile_name) || !IPMC_MEM_PROFILE_MTAKE(pf)) {
+        ICLI_PRINTF("%% Fail to enter IPMC Profile mode.\n\n");
+        return;
+    }
+    fltr_profile = &pf->profile;
+    memset(fltr_profile, 0x0, sizeof(ipmc_lib_grp_fltr_profile_t));
+    memcpy(fltr_profile->data.name, profile_name, sizeof(fltr_profile->data.name));
+    if (ipmc_lib_mgmt_fltr_profile_get(fltr_profile, TRUE) != VTSS_OK) {
+        /* create one */
+        if (ipmc_lib_mgmt_fltr_profile_set(IPMC_OP_ADD, fltr_profile) != VTSS_OK) {
+            IPMC_MEM_PROFILE_MGIVE(pf);
+            ICLI_PRINTF("%% No more IPMC profile available.\n\n");
+            return;
+        }
+    }
+    IPMC_MEM_PROFILE_MGIVE(pf);
+
+    /* go to submode */
+    _submode_enter( session_id, ICLI_CMD_MODE_IPMC_PROFILE );
+}
+#endif
+
+#ifdef VTSS_SW_OPTION_SNMP
+static void _snmp_server_host_mode_enter(
+    IN  u32     session_id,
+    IN  char    *conf_name
+)
+{
+    /* create SNMP server host */
+    vtss_trap_entry_t  trap_entry;
+
+    strncpy(trap_entry.trap_conf_name, conf_name, TRAP_MAX_NAME_LEN);
+    trap_entry.trap_conf_name[TRAP_MAX_NAME_LEN] = 0;
+    if ( VTSS_RC_OK != trap_mgmt_conf_get(&trap_entry)) {
+        trap_entry.valid = TRUE;
+        trap_mgmt_conf_default_get(&trap_entry);
+        if ( VTSS_RC_OK != trap_mgmt_conf_set(&trap_entry) ) {
+            ICLI_PRINTF("%% No more trap configurations available.\n\n");
+            return;
+        }
+    }
+
+    /* go to submode */
+    _submode_enter( session_id, ICLI_CMD_MODE_SNMPS_HOST );
+}
+#endif
+
+static void _stp_aggr_mode_enter(
+    IN  u32     session_id
+)
+{
+    /* go to submode */
+    _submode_enter( session_id, ICLI_CMD_MODE_STP_AGGR );
+}
+
+#ifdef VTSS_SW_OPTION_DHCP_SERVER
+static BOOL _dhcp_pool_create(
+    IN  u32     session_id,
+    IN  char    *pool_name
+)
+{
+    dhcp_server_pool_t    pool;
+    dhcp_server_rc_t      rc;
+
+    /* create pool */
+    (void)dhcp_server_pool_default( &pool );
+    (void)vtss_icli_str_cpy(pool.pool_name, pool_name);
+    if ( dhcp_server_pool_get(&pool) != DHCP_SERVER_RC_OK ) {
+        // not exist, create new one
+        rc = dhcp_server_pool_set( &pool );
+        switch ( rc ) {
+        case DHCP_SERVER_RC_OK:
+            break;
+
+        case DHCP_SERVER_RC_ERR_MEMORY:
+            ICLI_PRINTF("%% Fail to create DHCP pool because of memory insufficient.\n\n");
+            return FALSE;
+
+        case DHCP_SERVER_RC_ERR_FULL:
+            ICLI_PRINTF("%% Fail to create DHCP pool because pool is full.\n\n");
+            return FALSE;
+
+        case DHCP_SERVER_RC_ERR_PARAMETER:
+        case DHCP_SERVER_RC_ERROR:
+        case DHCP_SERVER_RC_ERR_NOT_EXIST:
+        case DHCP_SERVER_RC_ERR_DUPLICATE:
+        default:
+            ICLI_PRINTF("%% Fail to create DHCP pool.\n\n");
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+static void _dhcp_pool_mode_enter(
+    IN  u32     session_id,
+    IN  char    *pool_name
+)
+{
+    /* create DHCP pool */
+    if ( _dhcp_pool_create(session_id, pool_name) == FALSE ) {
+        return;
+    }
+
+    /* go to submode */
+    _submode_enter( session_id, ICLI_CMD_MODE_DHCP_POOL );
+}
+#endif // VTSS_SW_OPTION_DHCP_SERVER
+
+#ifdef VTSS_SW_OPTION_RFC2544
+static void _rfc2544_profile_mode_enter(IN u32 session_id, IN char *profile_name)
+{
+    rfc2544_profile_t profile;
+    vtss_rc           rc;
+
+    /* Create RFC2544 profile if it doesn't exist */
+    if (profile_name == NULL || profile_name[0] == '\0') {
+        ICLI_PRINTF("%% Invalid profile name.\n");
+        return;
+    }
+
+    if (rfc2544_mgmt_profile_get(profile_name, &profile) == RFC2544_ERROR_NO_SUCH_PROFILE) {
+        // The profile doesn't exist. Create a new with default values.
+        if (rfc2544_mgmt_profile_get(NULL, &profile) != VTSS_RC_OK) {
+            ICLI_PRINTF("%% Internal error.\n");
+            return;
+        }
+
+        // Now, we have a default profile in #profile. Give it a name and store it.
+        strcpy(profile.common.name, profile_name);
+        if ((rc = rfc2544_mgmt_profile_set(NULL, &profile)) != VTSS_RC_OK) {
+            ICLI_PRINTF("%% Error: %s.\n", error_txt(rc));
+            return;
+        }
+    }
+
+    /* go to submode */
+    _submode_enter(session_id, ICLI_CMD_MODE_RFC2544_PROFILE);
+}
+#endif
+FUNCTION_END
+
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//
+//  Caution:
+//      The following 4 commands, do <line>, end, exit, help, will be
+//      used for auto-generation so the location and sequence can not
+//      be changed. otherwise, it will cause error condition. If these
+//      must be changed, please contact with CP, cpwang@vitesse.com
+//
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = do <line>
+PRIVILEGE = ICLI_PRIVILEGE_0
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CMD_VAR   =
+CMD_VAR   = command
+
+BYWORD    =
+BYWORD    = LINE
+
+HELP      = ##ICLI_HELP_DO
+HELP      = ##ICLI_HELP_DO_LINE
+
+CODE_BEGIN
+    (void)ICLI_MODE_ENTER( ICLI_CMD_MODE_EXEC );
+    (void)ICLI_CMD_EXEC( command, TRUE );
+    (void)ICLI_MODE_EXIT();
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = end
+PRIVILEGE = ICLI_PRIVILEGE_0
+HELP      = ##ICLI_HELP_END
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+GOTO_MODE = ICLI_CMD_MODE_EXEC
+
+CODE_BEGIN
+    if ( icli_config_go_to_exec_mode(session_id) == FALSE ) {
+        ICLI_PRINTF("%% Fail to exit Configuration mode.\n\n");
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = exit
+PRIVILEGE = ICLI_PRIVILEGE_0
+HELP      = Exit from current mode
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+GOTO_MODE = ICLI_CMD_MODE_EXEC
+
+CODE_BEGIN
+    (void)ICLI_MODE_EXIT();
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = help
+PRIVILEGE = ICLI_PRIVILEGE_0
+HELP      = Description of the interactive help system
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+CODE_BEGIN
+    ICLI_PRINTF("Help may be requested at any point in a command by entering\n");
+    ICLI_PRINTF("a question mark '?'.  If nothing matches, the help list will\n");
+    ICLI_PRINTF("be empty and you must backup until entering a '?' shows the\n");
+    ICLI_PRINTF("available options.\n");
+    ICLI_PRINTF("Two styles of help are provided:\n");
+    ICLI_PRINTF("1. Full help is available when you are ready to enter a\n");
+    ICLI_PRINTF("   command argument (e.g. 'show ?') and describes each possible\n");
+    ICLI_PRINTF("   argument.\n");
+    ICLI_PRINTF("2. Partial help is provided when an abbreviated argument is entered\n");
+    ICLI_PRINTF("   and you want to know what arguments match the input\n");
+    ICLI_PRINTF("   (e.g. 'show pr?'.)\n");
+    ICLI_PRINTF("\n");
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = banner [motd] <line>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = banner
+
+BYWORD    =
+BYWORD    =
+BYWORD    = LINE
+
+HELP      = ##ICLI_HELP_BANNER
+HELP      = ##ICLI_HELP_MOTD
+HELP      = c banner-text c, where 'c' is a delimiting character
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    //for lint
+    if ( banner == NULL ) {
+        return ICLI_RC_ERROR;
+    }
+
+    if ( icli_config_user_str_get(session_id, ICLI_BANNER_MAX_LEN, banner) ) {
+        // ++ to skip the start delimiter
+        ++banner;
+        if ( icli_banner_motd_set(banner) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to set banner.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        ICLI_PRINTF("%% Fail to get banner.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no banner [motd]
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_BANNER
+HELP      = ##ICLI_HELP_MOTD
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( icli_banner_motd_set(NULL) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to clear banner.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_BANNER_LOGIN = Set login banner
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = banner login <line>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = banner
+
+BYWORD    =
+BYWORD    =
+BYWORD    = LINE
+
+HELP      = ##ICLI_HELP_BANNER
+HELP      = ##HELP_BANNER_LOGIN
+HELP      = c banner-text c, where 'c' is a delimiting character
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    //for lint
+    if ( banner == NULL ) {
+        return ICLI_RC_ERROR;
+    }
+
+    if ( icli_config_user_str_get(session_id, ICLI_BANNER_MAX_LEN, banner) ) {
+        // ++ to skip the start delimiter
+        ++banner;
+        if ( icli_banner_login_set(banner) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to set banner.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        ICLI_PRINTF("%% Fail to get banner.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no banner login
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_BANNER
+HELP      = ##HELP_BANNER_LOGIN
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( icli_banner_login_set(NULL) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to clear banner.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_BANNER_EXEC = Set EXEC process creation banner
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = banner exec <line>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = banner
+
+BYWORD    =
+BYWORD    =
+BYWORD    = LINE
+
+HELP      = ##ICLI_HELP_BANNER
+HELP      = ##HELP_BANNER_EXEC
+HELP      = c banner-text c, where 'c' is a delimiting character
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    //for lint
+    if ( banner == NULL ) {
+        return ICLI_RC_ERROR;
+    }
+
+    if ( icli_config_user_str_get(session_id, ICLI_BANNER_MAX_LEN, banner) ) {
+        // ++ to skip the start delimiter
+        ++banner;
+        if ( icli_banner_exec_set(banner) != ICLI_RC_OK ) {
+            ICLI_PRINTF("%% Fail to set banner.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        ICLI_PRINTF("%% Fail to get banner.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no banner exec
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_BANNER
+HELP      = ##HELP_BANNER_EXEC
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( icli_banner_exec_set(NULL) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to clear banner.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_HOSTNAME = Set system's network name
+HELP_HOSTNAME_WORD = This system's network name
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = hostname <kword255>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   = hostname
+
+RUNTIME   =
+
+BYWORD    =
+BYWORD    = WORD
+
+HELP      = ##HELP_HOSTNAME
+HELP      = ##HELP_HOSTNAME_WORD
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+#ifdef VTSS_SW_OPTION_SYSUTIL
+    system_conf_t       conf;
+#endif
+VARIABLE_END
+
+CODE_BEGIN
+#ifdef VTSS_SW_OPTION_SYSUTIL
+    if ( system_get_config(&conf) != VTSS_OK ) {
+        ICLI_PRINTF("%% Fail to get system configuration.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    (void)vtss_icli_str_cpy(conf.sys_name, hostname);
+    if ( system_set_config( &conf ) != VTSS_OK ) {
+        ICLI_PRINTF("%% Fail to set system configuration.\n\n");
+        return ICLI_RC_ERROR;
+    }
+#else
+    if ( icli_dev_name_set(hostname) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set hostname.\n\n");
+        return ICLI_RC_ERROR;
+    }
+#endif
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no hostname
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_HOSTNAME
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+#ifdef VTSS_SW_OPTION_SYSUTIL
+    system_conf_t       conf;
+#endif
+VARIABLE_END
+
+CODE_BEGIN
+#ifdef VTSS_SW_OPTION_SYSUTIL
+    if ( system_get_config(&conf) != VTSS_OK ) {
+        ICLI_PRINTF("%% Fail to get system configuration.\n\n");
+        return ICLI_RC_ERROR;
+    }
+
+    (void)vtss_icli_str_cpy(conf.sys_name, ICLI_DEFAULT_DEVICE_NAME);
+    if ( system_set_config( &conf ) != VTSS_OK ) {
+        ICLI_PRINTF("%% Fail to set system configuration.\n\n");
+        return ICLI_RC_ERROR;
+    }
+#else
+    if ( icli_dev_name_set(ICLI_DEFAULT_DEVICE_NAME) != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set hostname.\n\n");
+        return ICLI_RC_ERROR;
+    }
+#endif
+CODE_END
+
+CMD_END
+
+HELP_ENABLE       = Modify enable password parameters
+HELP_PASSWORD     = Assign the privileged level clear password
+HELP_LEVEL        = Set exec level password
+HELP_LEVEL_NUMBER = Level number
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = enable password [level <1-15>] <word32>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_level
+CMD_VAR   = priv
+CMD_VAR   = password
+
+RUNTIME   =
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = WORD
+
+HELP      = ##HELP_ENABLE
+HELP      = ##HELP_PASSWORD
+HELP      = ##HELP_LEVEL
+HELP      = ##HELP_LEVEL_NUMBER
+HELP      = The UNENCRYPTED (cleartext) password
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( b_level == FALSE ) {
+        priv = ICLI_PRIVILEGE_15;
+    }
+    if ( icli_enable_password_set(priv, password) == FALSE ) {
+        ICLI_PRINTF("%% Fail to set password.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no enable password [level <1-15>]
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_level
+CMD_VAR   = priv
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_ENABLE
+HELP      = ##HELP_PASSWORD
+HELP      = ##HELP_LEVEL
+HELP      = ##HELP_LEVEL_NUMBER
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    char    *default_password = NULL;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( b_level == FALSE ) {
+        priv = ICLI_PRIVILEGE_15;
+        default_password = ICLI_DEFAULT_ENABLE_PASSWORD;
+    }
+    if ( icli_enable_password_set(priv, default_password) == FALSE ) {
+        ICLI_PRINTF("%% Fail to clear password.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_SECRET   = Assign the privileged level secret
+HELP_SECRET_0 = Specifies an UNENCRYPTED password will follow
+HELP_SECRET_5 = Specifies an ENCRYPTED secret will follow
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = enable secret { 0 | 5 } [level <1-15>] <word32>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = defined( VTSS_SW_OPTION_MD5 )
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_0
+CMD_VAR   =
+CMD_VAR   = b_level
+CMD_VAR   = priv
+CMD_VAR   = password
+
+RUNTIME   =
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = WORD
+
+HELP      = ##HELP_ENABLE
+HELP      = ##HELP_SECRET
+HELP      = ##HELP_SECRET_0
+HELP      = ##HELP_SECRET_5
+HELP      = ##HELP_LEVEL
+HELP      = ##HELP_LEVEL_NUMBER
+HELP      = Password
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( b_level == FALSE ) {
+        priv = ICLI_PRIVILEGE_15;
+    }
+    if ( b_0 ) {
+        if ( icli_enable_secret_clear_set(priv, password) == FALSE ) {
+            ICLI_PRINTF("%% Fail to set password.\n");
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        if ( icli_enable_secret_set(priv, password) == FALSE ) {
+            ICLI_PRINTF("%% Fail to set password.\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no enable secret { [ 0 | 5 ] } [ level <1-15> ]
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = defined( VTSS_SW_OPTION_MD5 )
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_level
+CMD_VAR   = priv
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_ENABLE
+HELP      = ##HELP_SECRET
+HELP      = ##HELP_SECRET_0
+HELP      = ##HELP_SECRET_5
+HELP      = ##HELP_LEVEL
+HELP      = ##HELP_LEVEL_NUMBER
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    char    *default_password = NULL;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( b_level == FALSE ) {
+        priv = ICLI_PRIVILEGE_15;
+        default_password = ICLI_DEFAULT_ENABLE_PASSWORD;
+    }
+    if ( icli_enable_secret_set(priv, default_password) == FALSE ) {
+        ICLI_PRINTF("%% Fail to clear password.\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_VLAN      = VLAN commands
+HELP_VLAN_LIST = ISL VLAN IDs 1~4095
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = vlan <vlan_list>
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_VAR   =
+CMD_VAR   = vlist
+
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_VLAN_LIST
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+GOTO_MODE = ICLI_CMD_MODE_CONFIG_VLAN
+
+SUB_MODE  = 1
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _vlan_mode_enter( session_id, vlist );
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = interface <port_type_list>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_VAR   =
+CMD_VAR   = plist
+
+HELP      = ##ICLI_HELP_INTERFACE
+HELP      = ##ICLI_HELP_PORT_TYPE
+HELP      = ##ICLI_HELP_PORT_LIST
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+GOTO_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+SUB_MODE  = 1
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _interface_port_mode_enter( session_id, plist );
+CODE_END
+
+CMD_END
+
+HELP_INTERFACE_VLAN      = VLAN interface configurations
+HELP_INTERFACE_VLAN_LIST = List of VLAN interface numbers, 1~4095
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = interface vlan <vlan_list>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = vlist
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_INTERFACE
+HELP      = ##HELP_INTERFACE_VLAN
+HELP      = ##HELP_INTERFACE_VLAN_LIST
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+GOTO_MODE = ICLI_CMD_MODE_INTERFACE_VLAN
+
+SUB_MODE  = 1
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _interface_vlan_enter( session_id, vlist );
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no interface vlan <vlan_list>
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR  =
+
+CMD_VAR   =
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = vlist
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_INTERFACE
+HELP      = ##HELP_INTERFACE_VLAN
+HELP      = ##HELP_INTERFACE_VLAN_LIST
+
+CODE_BEGIN
+    _interface_vlan_disable( session_id, vlist );
+CODE_END
+
+CMD_END
+
+HELP_LINE_LIST = List of line numbers
+HELP_CONSOLE   = Console terminal line
+HELP_CONSOLE_0 = Console Line number
+HELP_VTY       = Virtual terminal
+HELP_VTY_LIST  = List of vty numbers
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = line { <0~16> | console 0 | vty <0~15> }
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_LINE
+HELP      = ##HELP_LINE_LIST
+HELP      = ##HELP_CONSOLE
+HELP      = ##HELP_CONSOLE_0
+HELP      = ##HELP_VTY
+HELP      = ##HELP_VTY_LIST
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+GOTO_MODE = ICLI_CMD_MODE_CONFIG_LINE
+
+SUB_MODE  = 1
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _line_mode_enter( session_id );
+CODE_END
+
+CMD_END
+
+HELP_PROFILE      = IPMC profile configuration
+HELP_PROFILE_NAME = Profile name in 16 char's
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = ipmc profile <word16>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+IF_FLAG   = ( (defined(VTSS_SW_OPTION_SMB_IPMC) || defined(VTSS_SW_OPTION_MVR)) && defined(VTSS_SW_OPTION_IPMC_LIB) )
+
+HELP      = ##ICLI_HELP_IPMC
+HELP      = ##HELP_PROFILE
+HELP      = ##HELP_PROFILE_NAME
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+GOTO_MODE = ICLI_CMD_MODE_IPMC_PROFILE
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = profile_name
+
+SUB_MODE  = 1
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _ipmc_profile_mode_enter( session_id, profile_name );
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = snmp-server host <word32>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+IF_FLAG   = defined(VTSS_SW_OPTION_SNMP)
+
+HELP      = ##ICLI_HELP_SNMP
+HELP      = ##ICLI_HELP_SNMP_HOST
+HELP      = ##ICLI_HELP_SNMP_HOST_NAME
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+GOTO_MODE = ICLI_CMD_MODE_SNMPS_HOST
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = conf_name
+
+SUB_MODE  = 1
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _snmp_server_host_mode_enter( session_id, conf_name );
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = spanning-tree aggregation
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+HELP      = ##ICLI_HELP_STP
+HELP      = ##ICLI_HELP_AGGREGATION
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+GOTO_MODE = ICLI_CMD_MODE_STP_AGGR
+
+SUB_MODE  = 1
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _stp_aggr_mode_enter( session_id );
+CODE_END
+
+CMD_END
+
+HELP_POOL = Configure DHCP address pools
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = ip dhcp pool <word32>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+IF_FLAG   = defined(VTSS_SW_OPTION_DHCP_SERVER)
+
+HELP      = ##ICLI_HELP_IP
+HELP      = ##ICLI_HELP_IP_DHCP
+HELP      = ##HELP_POOL
+HELP      = ##ICLI_HELP_DHCP_POOL_NAME
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+GOTO_MODE = ICLI_CMD_MODE_DHCP_POOL
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = pool_name
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = WORD
+
+SUB_MODE  = 1
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _dhcp_pool_mode_enter( session_id, pool_name );
+CODE_END
+
+CMD_END
+
+HELP_RFC2544              = RFC2544 performance tests
+HELP_RFC2544_PROFILE      = RFC2544 profile configuration
+HELP_RFC2544_PROFILE_NAME = Profile name up to 32 characters long
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = rfc2544 profile <word32>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+IF_FLAG   = defined(VTSS_SW_OPTION_RFC2544)
+
+HELP      = ##HELP_RFC2544
+HELP      = ##HELP_RFC2544_PROFILE
+HELP      = ##HELP_RFC2544_PROFILE_NAME
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+GOTO_MODE = ICLI_CMD_MODE_RFC2544_PROFILE
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = profile_name
+
+BYWORD    =
+BYWORD    =
+BYWORD    = <ProfileName : word32>
+
+SUB_MODE  = 1
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    _rfc2544_profile_mode_enter(session_id, profile_name);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug parsing
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      =
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+#if 1
+    (void)ICLI_CMD_PARSING_BEGIN();
+    (void)ICLI_CMD_EXEC("! go to interface mode", FALSE);
+    (void)ICLI_CMD_EXEC("interface vlan 1", FALSE);
+    (void)ICLI_CMD_EXEC_ERR_DISPLAY("debug mo", TRUE, "% error 1", TRUE);
+    (void)ICLI_CMD_EXEC("interface gi 1/1", FALSE);
+    (void)ICLI_CMD_EXEC("  ! go to interface mode", FALSE);
+    (void)ICLI_CMD_EXEC_ERR_DISPLAY("  debug m", FALSE, "% error 2", TRUE);
+    //(void)ICLI_CMD_EXEC(" exit", TRUE);
+    (void)ICLI_CMD_EXEC("   hostname test", FALSE);
+    (void)ICLI_CMD_EXEC(" interface ten 1/1", TRUE);
+    (void)ICLI_CMD_EXEC("  ! go to interface mode", FALSE);
+    //(void)ICLI_CMD_EXEC(" exit", FALSE);
+    //(void)ICLI_CMD_EXEC("end", FALSE);
+    //(void)ICLI_CMD_EXEC_ERR_DISPLAY("conf t", TRUE, NULL, TRUE);
+    (void)ICLI_CMD_EXEC("! go to interface mode", FALSE);
+    (void)ICLI_CMD_EXEC(" banner login test", TRUE);
+    (void)ICLI_CMD_EXEC("  ! go to line mode", FALSE);
+    (void)ICLI_CMD_EXEC_ERR_DISPLAY("  line 0,2,4,6,8-15", FALSE, "% error 3", TRUE);
+    (void)ICLI_CMD_PARSING_END();
+#else
+    (void)ICLI_CMD_PARSING_BEGIN();
+    (void)ICLI_CMD_EXEC("! go to interface mode", FALSE);
+    (void)ICLI_CMD_EXEC("interface vlan 1", FALSE);
+    (void)ICLI_CMD_EXEC_ERR_DISPLAY("debug mo", TRUE, "% error 1", TRUE);
+    (void)ICLI_CMD_EXEC("interface gi 1/1", FALSE);
+    (void)ICLI_CMD_EXEC("  ! go to interface mode", FALSE);
+    (void)ICLI_CMD_EXEC_ERR_DISPLAY("  debug m", FALSE, "% error 2", FALSE);
+    (void)ICLI_CMD_EXEC(" exit", TRUE);
+    (void)ICLI_CMD_EXEC("   hostname test", FALSE);
+    (void)ICLI_CMD_EXEC(" interface ten 1/1", TRUE);
+    (void)ICLI_CMD_EXEC("  ! go to interface mode", FALSE);
+    (void)ICLI_CMD_EXEC(" exit", FALSE);
+    (void)ICLI_CMD_EXEC("end", FALSE);
+    (void)ICLI_CMD_EXEC_ERR_DISPLAY("conf t", TRUE, NULL, TRUE);
+    (void)ICLI_CMD_EXEC("! go to interface mode", FALSE);
+    (void)ICLI_CMD_EXEC(" banner login test", TRUE);
+    (void)ICLI_CMD_EXEC("  ! go to interface mode", FALSE);
+    (void)ICLI_CMD_PARSING_END();
+#endif
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+
+COMMAND   = debug enable password
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  =
+
+HELP      = ##ICLI_HELP_DEBUG
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    icli_privilege_t    priv;
+    char                password[ICLI_PASSWORD_MAX_LEN + 1];
+VARIABLE_END
+
+CODE_BEGIN
+    for ( priv = 0; priv < ICLI_PRIVILEGE_MAX; ++priv ) {
+        if ( icli_enable_password_get(priv, password) == FALSE ) {
+            ICLI_PRINTF("%% Fail to get password at priv %d\n", priv);
+            continue;
+        }
+        ICLI_PRINTF("priv = %d -> %s, %s\n",
+            priv,
+            icli_enable_password_if_secret_get(priv)?"secret":"clear",
+            password);
+    }
+CODE_END
+
+CMD_END
+
+HELP_PRIV                   = Command privilege parameters
+HELP_PRIV_EXEC              = Exec mode
+HELP_PRIV_CONFIG            = Global configuration mode
+HELP_PRIV_CONFIG_VLAN       = VLAN Configuration Mode
+HELP_PRIV_CONFIG_LINE       = Line configuration mode
+HELP_PRIV_INTERFACE         = Port List Interface Mode
+HELP_PRIV_IF_VLAN           = VLAN Interface Mode
+HELP_PRIV_IPMC_PROFILE      = IPMC Profile Mode
+HELP_PRIV_SNMP_HOST         = SNMP Server Host Mode
+HELP_PRIV_STP_AGGR          = STP Aggregation Mode
+HELP_PRIV_DHCP_POOL         = DHCP Pool Configuration Mode
+HELP_PRIV_RFC2544_PROFILE   = RFC2544 Profile Mode
+HELP_PRIV_LEVEL             = Set privilege level of command
+HELP_PRIV_LEVEL_PRIV        = Privilege level
+HELP_PRIV_CMD               = Initial valid words and literals of the command to modify, in 128 char's
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = privilege { exec | configure | config-vlan | line | interface | if-vlan | ipmc-profile | snmps-host | stp-aggr | dhcp-pool | rfc2544-profile } level <0-15> <line128>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   = b_exec
+CMD_VAR   = b_configure
+CMD_VAR   = b_config_vlan
+CMD_VAR   = b_line
+CMD_VAR   = b_interface
+CMD_VAR   = b_if_vlan
+CMD_VAR   = b_ipmc_profile
+CMD_VAR   = b_snmps_host
+CMD_VAR   = b_stp_aggr
+CMD_VAR   = b_dhcp_pool
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = privilege
+CMD_VAR   = cmd
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = LINE
+
+HELP      = ##HELP_PRIV
+HELP      = ##HELP_PRIV_EXEC
+HELP      = ##HELP_PRIV_CONFIG
+HELP      = ##HELP_PRIV_CONFIG_VLAN
+HELP      = ##HELP_PRIV_CONFIG_LINE
+HELP      = ##HELP_PRIV_INTERFACE
+HELP      = ##HELP_PRIV_IF_VLAN
+HELP      = ##HELP_PRIV_IPMC_PROFILE
+HELP      = ##HELP_PRIV_SNMP_HOST
+HELP      = ##HELP_PRIV_STP_AGGR
+HELP      = ##HELP_PRIV_DHCP_POOL
+HELP      = ##HELP_PRIV_RFC2544_PROFILE
+HELP      = ##HELP_PRIV_LEVEL
+HELP      = ##HELP_PRIV_LEVEL_PRIV
+HELP      = ##HELP_PRIV_CMD
+
+VARIABLE_BEGIN
+    icli_priv_cmd_conf_t    conf;
+    i32                     rc;
+VARIABLE_END
+
+CODE_BEGIN
+    /* mode */
+    if ( b_exec ) {
+        conf.mode = ICLI_CMD_MODE_EXEC;
+    } else if ( b_configure ) {
+        conf.mode = ICLI_CMD_MODE_GLOBAL_CONFIG;
+    } else if ( b_config_vlan ) {
+        conf.mode = ICLI_CMD_MODE_CONFIG_VLAN;
+    } else if ( b_line ) {
+        conf.mode = ICLI_CMD_MODE_CONFIG_LINE;
+    } else if ( b_interface ) {
+        conf.mode = ICLI_CMD_MODE_INTERFACE_PORT_LIST;
+    } else if ( b_if_vlan ) {
+        conf.mode = ICLI_CMD_MODE_INTERFACE_VLAN;
+    } else if ( b_ipmc_profile ) {
+        conf.mode = ICLI_CMD_MODE_IPMC_PROFILE;
+    } else if ( b_snmps_host ) {
+        conf.mode = ICLI_CMD_MODE_SNMPS_HOST;
+    } else if ( b_stp_aggr ) {
+        conf.mode = ICLI_CMD_MODE_STP_AGGR;
+    } else if ( b_dhcp_pool ) {
+        conf.mode = ICLI_CMD_MODE_DHCP_POOL;
+    } else {
+        conf.mode = ICLI_CMD_MODE_RFC2544_PROFILE;
+    }
+
+    /* command string */
+    (void)icli_str_cpy( conf.cmd, cmd );
+
+    /* set privilege */
+    conf.privilege = privilege;
+
+    rc = icli_priv_set( &conf );
+    if ( rc != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Fail to set privilege ");
+        switch ( rc ) {
+        case ICLI_RC_ERR_MEMORY:
+            ICLI_PRINTF("as the database is full.\n");
+            break;
+        case ICLI_RC_ERR_INCOMPLETE:
+            ICLI_PRINTF("as command \"%s\" is incomplete.\n", conf.cmd);
+            break;
+        case ICLI_RC_ERR_MATCH:
+        default:
+            ICLI_PRINTF("as command \"%s\" is invalid.\n", conf.cmd);
+            break;
+        }
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no privilege { exec | configure | config-vlan | line | interface | if-vlan | ipmc-profile | snmps-host | stp-aggr | dhcp-pool | rfc2544-profile } level <0-15> <line128>
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_15
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+IF_FLAG   =
+
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = b_exec
+CMD_VAR   = b_configure
+CMD_VAR   = b_config_vlan
+CMD_VAR   = b_line
+CMD_VAR   = b_interface
+CMD_VAR   = b_if_vlan
+CMD_VAR   = b_ipmc_profile
+CMD_VAR   = b_snmps_host
+CMD_VAR   = b_stp_aggr
+CMD_VAR   = b_dhcp_pool
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   =
+CMD_VAR   = cmd
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = LINE
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_PRIV
+HELP      = ##HELP_PRIV_EXEC
+HELP      = ##HELP_PRIV_CONFIG
+HELP      = ##HELP_PRIV_CONFIG_VLAN
+HELP      = ##HELP_PRIV_CONFIG_LINE
+HELP      = ##HELP_PRIV_INTERFACE
+HELP      = ##HELP_PRIV_IF_VLAN
+HELP      = ##HELP_PRIV_IPMC_PROFILE
+HELP      = ##HELP_PRIV_SNMP_HOST
+HELP      = ##HELP_PRIV_STP_AGGR
+HELP      = ##HELP_PRIV_DHCP_POOL
+HELP      = ##HELP_PRIV_RFC2544_PROFILE
+HELP      = ##HELP_PRIV_LEVEL
+HELP      = ##HELP_PRIV_LEVEL_PRIV
+HELP      = ##HELP_PRIV_CMD
+
+VARIABLE_BEGIN
+    icli_priv_cmd_conf_t    conf;
+    i32                     rc;
+VARIABLE_END
+
+CODE_BEGIN
+    /* mode */
+    if ( b_exec ) {
+        conf.mode = ICLI_CMD_MODE_EXEC;
+    } else if ( b_configure ) {
+        conf.mode = ICLI_CMD_MODE_GLOBAL_CONFIG;
+    } else if ( b_config_vlan ) {
+        conf.mode = ICLI_CMD_MODE_CONFIG_VLAN;
+    } else if ( b_line ) {
+        conf.mode = ICLI_CMD_MODE_CONFIG_LINE;
+    } else if ( b_interface ) {
+        conf.mode = ICLI_CMD_MODE_INTERFACE_PORT_LIST;
+    } else if ( b_if_vlan ) {
+        conf.mode = ICLI_CMD_MODE_INTERFACE_VLAN;
+    } else if ( b_ipmc_profile ) {
+        conf.mode = ICLI_CMD_MODE_IPMC_PROFILE;
+    } else if ( b_snmps_host ) {
+        conf.mode = ICLI_CMD_MODE_SNMPS_HOST;
+    } else if ( b_stp_aggr ) {
+        conf.mode = ICLI_CMD_MODE_STP_AGGR;
+    } else if ( b_dhcp_pool ) {
+        conf.mode = ICLI_CMD_MODE_DHCP_POOL;
+    } else {
+        conf.mode = ICLI_CMD_MODE_RFC2544_PROFILE;
+    }
+
+    /* command string */
+    (void)icli_str_cpy( conf.cmd, cmd );
+
+    /* delete privilege */
+    rc = icli_priv_delete( &conf );
+    if ( rc != ICLI_RC_OK ) {
+        ICLI_PRINTF("%% Not exist\n");
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug mode
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   =
+
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      =
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_VLAN
+MODE_VAR  = vlist
+
+VARIABLE_BEGIN
+    u32     i;
+    u32     vid;
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_PRINTF("Current VLAN List is ");
+    for ( i = 0; i < vlist->cnt; ++i ) {
+        for ( vid = vlist->range[i].min; vid <= vlist->range[i].max; ++vid ) {
+            ICLI_PRINTF(" %u", vid);
+        }
+    }
+    ICLI_PRINTF("\n");
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug mode
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   =
+
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      =
+
+CMD_MODE  = ICLI_CMD_MODE_DHCP_POOL
+
+MODE_VAR  = pool_name
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_PRINTF("Current DHCP pool name is %s\n", pool_name);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug mode
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   =
+
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      =
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = list
+
+VARIABLE_BEGIN
+    u32     i;
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_PRINTF("Type                Switch ID  Port ID  Port Cnt  Usid  Uport  Isid  Iport\n");
+    ICLI_PRINTF("==================  =========  =======  ========  ====  =====  ====  =====\n");
+
+    for ( i = 0; i < list->cnt; ++i ) {
+        ICLI_PRINTF("%-18s %9u  %7u  %8u  %4u  %5u  %4u  %5u\n",
+            icli_port_type_get_name(list->switch_range[i].port_type),
+            list->switch_range[i].switch_id,
+            list->switch_range[i].begin_port,
+            list->switch_range[i].port_cnt,
+            list->switch_range[i].usid,
+            list->switch_range[i].begin_uport,
+            list->switch_range[i].isid,
+            list->switch_range[i].begin_iport);
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug mode
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   =
+
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      =
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_VLAN
+MODE_VAR  = vlist
+
+VARIABLE_BEGIN
+    u32     i;
+    u32     vid;
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_PRINTF("Current VLAN List is ");
+    for ( i = 0; i < vlist->cnt; ++i ) {
+        for ( vid = vlist->range[i].min; vid <= vlist->range[i].max; ++vid ) {
+            ICLI_PRINTF(" %u", vid);
+        }
+    }
+    ICLI_PRINTF("\n");
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug mode
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   =
+
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      =
+
+CMD_MODE  = ICLI_CMD_MODE_IPMC_PROFILE
+
+MODE_VAR  = profile_name
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_PRINTF("Current profile name is %s\n", profile_name);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug mode
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   =
+
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      =
+
+CMD_MODE  = ICLI_CMD_MODE_RFC2544_PROFILE
+
+MODE_VAR  = profile_name
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_PRINTF("Current RFC2544 profile name is %s\n", profile_name);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug mode
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   =
+
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      =
+
+CMD_MODE  = ICLI_CMD_MODE_SNMPS_HOST
+
+MODE_VAR  = conf_name
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_PRINTF("Current config name is %s\n", conf_name);
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug mode
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      =
+
+CMD_MODE  = ICLI_CMD_MODE_STP_AGGR
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_PRINTF("No mode parameter.\n");
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug mode
+PROPERTY  =
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   =
+
+CMD_VAR   =
+
+RUNTIME   =
+
+BYWORD    =
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      =
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_LINE
+
+MODE_VAR  = session_list
+MODE_VAR  = vty_list
+
+VARIABLE_BEGIN
+    u32     sid;
+    u32     i;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( session_list ) {
+        ICLI_PRINTF("Current line is Line ");
+        for ( i = 0; i < session_list->cnt; ++i ) {
+            for ( sid = session_list->range[i].min; sid <= session_list->range[i].max; ++sid ) {
+                ICLI_PRINTF(" %u", sid);
+            }
+        }
+        ICLI_PRINTF("\n");
+    } else if ( vty_list ) {
+        ICLI_PRINTF("Current line is VTY ");
+        for ( i = 0; i < vty_list->cnt; ++i ) {
+            for ( sid = vty_list->range[i].min; sid <= vty_list->range[i].max; ++sid ) {
+                ICLI_PRINTF(" %u", sid);
+            }
+        }
+        ICLI_PRINTF("\n");
+    } else {
+        ICLI_PRINTF("Current line is Console 0\n");
+    }
+CODE_END
+
+CMD_END

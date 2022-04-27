@@ -1,0 +1,2912 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_SNMP)
+
+INCLUDE_BEGIN
+#include "main.h"
+#include "icli_porting_util.h"
+#include "misc_api.h"
+#include "snmp_cli.h"
+#include "cli_trace_def.h"
+#include "vtss_snmp_api.h"
+#include "mibContextTable.h"
+#include "ifIndex_api.h"
+//#include "snmp_mib_redefine.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+
+typedef enum {
+    SYS_MODE_CMD,
+    SYS_VERSION_CMD,
+    SYS_ENGINEID_CMD,
+    SYS_CONTACT_CMD,
+    SYS_LOCATION_CMD,
+    SYS_READ_COMMUNITY_CMD,
+    SYS_WRITE_COMMUNITY_CMD,
+    SYS_CMD_END
+}SNMP_ICLI_system_cmd_t;
+
+#ifdef SNMP_SUPPORT_V3
+/* Parse raw text engine ID string */
+static BOOL cli_parse_engieid(u32 session_id, i8 *cmd, u32 *engineid_len, u8 *engineid)
+{
+    i32     slen = strlen(cmd);
+    i32     idx;
+    u32     pval;
+    i8      buf[4];
+
+    /* The format of 'Engine ID' may not be all zeros or all 'ff'H
+       and is restricted to 5 - 32 octet string */
+
+    for (idx = 0; idx < slen; idx++) {
+        if (!((cmd[idx] >= '0' && cmd[idx] <= '9') || (cmd[idx] >= 'A' && cmd[idx] <= 'F') || (cmd[idx] >= 'a' && cmd[idx] <= 'f'))) {
+            ICLI_PRINTF("The format of 'Engine ID' may not be all zeros or all 'ff'H and is restricted to 5 - 32 octet string\n");
+            return FALSE;
+        }
+    }
+
+    if ((slen % 2) || (slen < SNMPV3_MIN_ENGINE_ID_LEN * 2) || (slen > SNMPV3_MAX_ENGINE_ID_LEN * 2)) {
+        ICLI_PRINTF("The format of 'Engine ID' may not be all zeros or all 'ff'H and is restricted to 5 - 32 octet string\n");
+        return FALSE;
+    }
+
+    for (idx = 0; idx < slen; idx = idx + 2) {
+        memcpy(buf, cmd + idx, 2);
+        buf[2] = '\0';
+        (void) sscanf(buf, "%x", (unsigned int *)&pval);
+        engineid[idx / 2] = (u8)pval;
+    }
+    *engineid_len = slen / 2;
+
+    if (!snmpv3_is_valid_engineid(engineid, *engineid_len)) {
+        ICLI_PRINTF("The format of 'Engine ID' may not be all zeros or all 'ff'H and is restricted to 5 - 32 octet string\n");
+        return FALSE;
+    }
+
+    return TRUE;
+}
+#endif /* SNMP_SUPPORT_V3 */
+
+static void SNMP_ICLI_system_set(u32 session_id, SNMP_ICLI_system_cmd_t cmd, void* var, void* len)
+{
+    vtss_rc             rc;
+    snmp_conf_t         conf;
+    if ((rc = snmp_mgmt_snmp_conf_get(&conf)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+        return;
+    }
+
+    switch (cmd) {
+        case SYS_MODE_CMD:
+        {
+            BOOL  original_mode;
+            original_mode = conf.mode;
+            conf.mode = *(BOOL*)var ? 1: 0;
+            if (conf.mode != original_mode && (rc = snmp_mgmt_snmp_conf_set(&conf)) != VTSS_OK) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+            break;
+        }
+        case SYS_VERSION_CMD:
+        {
+            ulong tmp;
+            tmp = conf.version;
+            conf.version = *(ulong*)var;
+            if (conf.version != tmp && (rc = snmp_mgmt_snmp_conf_set(&conf)) != VTSS_OK) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+            break;
+        }
+#ifdef SNMP_SUPPORT_V3
+        case SYS_ENGINEID_CMD:
+        {
+            u8 tmp[SNMPV3_MAX_ENGINE_ID_LEN] = {0};
+            u32 len_tmp;
+            len_tmp = conf.engineid_len;
+            memcpy(tmp, conf.engineid, conf.engineid_len);
+            conf.engineid_len = *(u32*)len;
+            memcpy(conf.engineid, var, conf.engineid_len);
+            if ( (conf.engineid_len != len_tmp ||  memcmp(tmp, conf.engineid, len_tmp)) && (rc = snmp_mgmt_snmp_conf_set(&conf)) != VTSS_OK ) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+            break;
+        }
+#endif /* SNMP_SUPPORT_V3 */
+        case SYS_READ_COMMUNITY_CMD:
+        {
+            i8 tmp[SNMP_MGMT_INPUT_COMMUNITY_LEN + 1];
+            strcpy(tmp, conf.read_community);
+            strcpy(conf.read_community, var);
+
+            if ( strcmp(tmp, conf.read_community) && (rc = snmp_mgmt_snmp_conf_set(&conf)) != VTSS_OK ) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+            break;
+        }
+        case SYS_WRITE_COMMUNITY_CMD:
+        {
+            i8 tmp[SNMP_MGMT_INPUT_COMMUNITY_LEN + 1];
+            strcpy(tmp, conf.write_community);
+            strcpy(conf.write_community, var);
+
+            if ( strcmp(tmp, conf.write_community) && (rc = snmp_mgmt_snmp_conf_set(&conf)) != VTSS_OK ) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+            break;
+        }
+
+        default:
+            ICLI_PRINTF("undkown cmd %d\n", cmd);
+            break;
+    }
+
+}
+
+static void SNMP_ICLI_sysutil_set(u32 session_id, SNMP_ICLI_system_cmd_t cmd, void* var, void* len)
+{
+    vtss_rc       rc;
+    system_conf_t conf;
+
+    if ( (rc = system_get_config(&conf)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+        return;
+    }
+
+    switch (cmd) {
+        case SYS_CONTACT_CMD:
+        {
+            i8  str_tmp[VTSS_SYS_INPUT_STRING_LEN + 1]={0};
+            u32 str_len = strlen(conf.sys_contact);
+            strncpy( str_tmp, conf.sys_contact, str_len);
+            str_tmp[str_len] = 0;
+
+            if (var != NULL) {
+                strcpy(conf.sys_contact, var);
+            } else {
+                conf.sys_contact[0] = 0;
+            }
+
+            if ( (str_len  != *(u32*)len || strcmp(str_tmp, conf.sys_contact)) && (rc = system_set_config(&conf)) != VTSS_OK) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+
+            break;
+        }
+        case SYS_LOCATION_CMD:
+        {
+            i8  str_tmp[VTSS_SYS_INPUT_STRING_LEN + 1]={0};
+            u32 str_len = strlen(conf.sys_location);
+            strncpy( str_tmp, conf.sys_location, str_len);
+            str_tmp[str_len] = 0;
+
+            if (var != NULL) {
+                strcpy(conf.sys_location, var);
+            }else {
+                conf.sys_location[0] = 0;
+            }
+
+            if ( (str_len  != *(u32*)len || strcmp(str_tmp, conf.sys_location)) && (rc = system_set_config(&conf)) != VTSS_OK) {
+                ICLI_PRINTF("%s\n", error_txt(rc));
+            }
+
+            break;
+        }
+        default:
+            ICLI_PRINTF("undkown cmd %d\n", cmd);
+            break;
+    }
+}
+
+static void SNMP_ICLI_conf_show(u32 session_id)
+{
+    snmp_conf_t         conf;
+    vtss_rc             rc;
+
+    if ((rc = snmp_mgmt_snmp_conf_get(&conf)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+        return;
+    }
+
+    ICLI_PRINTF("SNMP Mode                     : %s\n", icli_bool_txt(conf.mode));
+    ICLI_PRINTF("SNMP Version                  : %s\n", conf.version == SNMP_SUPPORT_V1 ? "1" : conf.version == SNMP_SUPPORT_V2C ? "2c" : "3");
+    ICLI_PRINTF("Read Community                : %s\n", conf.read_community);
+    ICLI_PRINTF("Write Community               : %s\n", conf.write_community);
+    ICLI_PRINTF("Trap Mode                     : %s\n", icli_bool_txt(conf.trap_mode));
+    ICLI_PRINTF("Trap Version                  : %s\n",
+            conf.trap_version == SNMP_SUPPORT_V1 ? "1" : conf.trap_version == SNMP_SUPPORT_V2C ? "2c" : "3");
+
+}
+
+#ifdef SNMP_SUPPORT_V3
+static void SNMP_ICLI_community_show(u32 session_id, i8 *community)
+{
+    i8                  ip_buf[16];
+    snmpv3_communities_conf_t conf;
+    BOOL    exact = community == NULL ? FALSE: TRUE;
+
+    if ( community != NULL ) {
+        strcpy(conf.community, community);
+    } else {
+        strcpy(conf.community, "");
+    }
+
+    while ( snmpv3_mgmt_communities_conf_get( &conf, exact ? FALSE : TRUE ) == VTSS_OK ) {
+        ICLI_PRINTF("Community   : %s\n", conf.community);
+        ICLI_PRINTF("Source IP   : %s\n", misc_ipv4_txt(conf.sip, ip_buf));
+        ICLI_PRINTF("Source Mask : %s\n\n", misc_ipv4_txt(conf.sip_mask, ip_buf));
+        if ( TRUE == exact ) {
+            break;
+        }
+    }
+
+}
+
+
+static void SNMP_ICLI_user_show(u32 session_id, i8 *username, i8 *engineID)
+{
+    snmpv3_users_conf_t conf;
+    BOOL    exact = engineID == NULL ? FALSE: TRUE;
+
+    if ( TRUE == exact ) {
+        if ( FALSE == cli_parse_engieid(session_id, engineID, &conf.engineid_len, conf.engineid) ) {
+            return;
+        }
+        strcpy(conf.user_name, username);
+    } else {
+        strcpy(conf.user_name, "");
+    }
+
+    while ( (TRUE == exact &&  VTSS_RC_OK == snmpv3_mgmt_users_conf_get( &conf, FALSE) ) ||
+            (FALSE == exact && VTSS_RC_OK == snmpv3_mgmt_users_conf_get_next( &conf))) {
+        ICLI_PRINTF("User Name               : %s\n", conf.user_name);
+        ICLI_PRINTF("Engine ID               : %s\n", misc_engineid2str(conf.engineid, conf.engineid_len));
+        ICLI_PRINTF("Security Level          : %s\n", conf.security_level == SNMP_MGMT_SEC_LEVEL_NOAUTH ? "NoAuth, NoPriv" : conf.security_level == SNMP_MGMT_SEC_LEVEL_AUTHNOPRIV ? "Auth, NoPriv" : "Auth, Priv");
+        ICLI_PRINTF("Authentication Protocol : %s\n", conf.auth_protocol == SNMP_MGMT_AUTH_PROTO_NONE ? "None" : conf.auth_protocol == SNMP_MGMT_AUTH_PROTO_MD5 ? "MD5" : "SHA");
+        ICLI_PRINTF("Privacy Protocol        : %s\n", conf.priv_protocol == SNMP_MGMT_PRIV_PROTO_NONE ? "None" : "DES");
+        ICLI_PRINTF("\n");
+        if ( TRUE == exact ) {
+            break;
+        }
+    }
+
+}
+
+static void SNMP_ICLI_group_show(u32 session_id, u32 model, i8 *security_name)
+{
+    snmpv3_groups_conf_t conf;
+    BOOL    exact = security_name == NULL ? FALSE: TRUE;
+
+    if ( NULL != security_name ) {
+        conf.security_model = model;
+        strcpy(conf.security_name, security_name);
+    } else {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_ANY;
+        strcpy(conf.security_name, "");
+    }
+
+    while ( (TRUE == exact &&  VTSS_RC_OK == snmpv3_mgmt_groups_conf_get( &conf, FALSE) ) ||
+            (FALSE == exact && VTSS_RC_OK == snmpv3_mgmt_groups_conf_get_next( &conf))) {
+        ICLI_PRINTF("Security Model : %s\n", conf.security_model == SNMP_MGMT_SEC_MODEL_SNMPV1 ? "v1" : conf.security_model == SNMP_MGMT_SEC_MODEL_SNMPV2C ? "v2c" : "v3");
+        ICLI_PRINTF("Security Name  : %s\n", conf.security_name);
+        ICLI_PRINTF("Group Name     : %s\n", conf.group_name);
+        ICLI_PRINTF("\n");
+        if ( TRUE == exact ) {
+            break;
+        }
+    }
+
+}
+
+static void SNMP_ICLI_access_show(u32 session_id, i8 *group_name, u32 model, u32 level)
+{
+    snmpv3_accesses_conf_t conf;
+    BOOL    exact = group_name == NULL ? FALSE: TRUE;
+
+    if ( NULL != group_name ) {
+        strcpy(conf.group_name, group_name);
+        conf.security_model = model;
+        conf.security_level = level;
+    } else {
+        strcpy(conf.group_name, "");
+        conf.security_model = 0;
+        conf.security_level = 0;
+    }
+
+    while ( (TRUE == exact &&  VTSS_RC_OK == snmpv3_mgmt_accesses_conf_get( &conf, FALSE) ) ||
+            (FALSE == exact && VTSS_RC_OK == snmpv3_mgmt_accesses_conf_get_next( &conf))) {
+        ICLI_PRINTF("Group Name       : %s\n", conf.group_name);
+        ICLI_PRINTF("Security Model   : %s\n", 
+                conf.security_model == SNMP_MGMT_SEC_MODEL_ANY ? "any" : conf.security_model == SNMP_MGMT_SEC_MODEL_SNMPV1 ? "v1" : conf.security_model == SNMP_MGMT_SEC_MODEL_SNMPV2C ? "v2c" : "v3");
+        ICLI_PRINTF("Security Level   : %s\n", conf.security_level == SNMP_MGMT_SEC_LEVEL_NOAUTH ? "NoAuth, NoPriv" : conf.security_level == SNMP_MGMT_SEC_LEVEL_AUTHNOPRIV ? "Auth, NoPriv" : "Auth, Priv");
+        ICLI_PRINTF("Read View Name   : %s\n", strcmp(conf.read_view_name, SNMPV3_NONAME) ? conf.read_view_name: "<no readview specified>");
+        ICLI_PRINTF("Write View Name  : %s\n", strcmp(conf.write_view_name, SNMPV3_NONAME) ? conf.write_view_name : "<no writeview specified>");
+
+        ICLI_PRINTF("\n");
+        if ( TRUE == exact ) {
+            break;
+        }
+    }
+
+}
+
+static BOOL cli_parse_oid_subtree(u32 session_id, char *str, u32 *oidSubTree, u32 *oid_len, u8 *oid_mask, u32 *oid_mask_len)
+{
+    char *value_char;
+    int  num = 0;
+    u32  i, mask = 0x80, maskpos = 0;
+
+    value_char = str;
+    *oid_len = *oid_mask_len = 0;
+
+    //check if OID format .x.x.x
+    if (value_char[0] != '.') {
+        ICLI_PRINTF("first character must be '.'\n");
+        return FALSE;
+    }
+    for (i = 0; i < strlen(str); i++) {
+        if (((value_char[i] != '.') && (value_char[i] != '*')) &&
+            (value_char[i] < '0' || value_char[i] > '9')) {
+            ICLI_PRINTF("invalid character '%c'\n", value_char[i]);
+            return FALSE;
+        }
+
+        /* check ".*" format */
+        if (value_char[i] == '*') {
+            if ( value_char[i - 1] != '.') {
+                ICLI_PRINTF("invalid format '%c%c'\n", value_char[i-1], value_char[i]);
+                return FALSE;
+            }
+        }
+
+        if (value_char[i] == '.') {
+            if (i == strlen(str) - 1) {
+                /* the last character can't be '.' */
+                ICLI_PRINTF( "the last character can't be '.'\n");
+                return FALSE;
+            } else if (value_char[i + 1] == '.') {
+                /* invalid formatr ".." */
+                ICLI_PRINTF( "the last character can't be '..'\n");
+                return FALSE;
+            }
+            num++;
+            if (num > 128) {
+                ICLI_PRINTF( "maximun OID is 128\n");
+                return FALSE;
+            }
+        }
+    }
+    *oid_mask_len = *oid_len = num;
+
+    /* convert OID string (RFC1447)
+       Each bit of this bit mask corresponds to the (8*i - 7)-th
+       sub-identifier, and the least significant bit of the i-th
+       octet of this octet string corresponding to the (8*i)-th
+       sub-identifier, where i is in the range 1 through 16. */
+    for (i = 0; i < *oid_len; i++) {
+        if (!memcmp(value_char, ".*", 2)) {
+            oidSubTree[i] = 0;
+            oid_mask[maskpos] &= (~mask);
+            value_char = value_char + 2;
+        } else {
+            oid_mask[maskpos] |= mask;
+            (void) sscanf(value_char++, ".%d", &oidSubTree[i]);
+        }
+
+        if (i == *oid_len - 1) {
+            break; //last OID node
+        }
+        while (*value_char != '.') {
+            value_char++;
+        }
+
+        if (mask == 1) {
+            mask = 0x80;
+            maskpos++;
+        } else {
+            mask >>= 1;
+        }
+    }
+
+    return TRUE;
+}
+
+static void SNMP_ICLI_view_show(u32 session_id, i8 *view_name, i8 *subtree)
+{
+    snmpv3_views_conf_t conf;
+    BOOL    exact = view_name == NULL ? FALSE: TRUE;
+
+    if ( NULL != view_name ) {
+        strcpy(conf.view_name, view_name);
+        if ( FALSE == cli_parse_oid_subtree (session_id, subtree, conf.subtree, &conf.subtree_len, conf.subtree_mask, &conf.subtree_mask_len) ) {
+            return;
+        }
+    } else {
+        strcpy(conf.view_name, "");
+        conf.subtree_len = 0;
+    }
+
+    while ( (TRUE == exact &&  VTSS_RC_OK == snmpv3_mgmt_views_conf_get( &conf, FALSE) ) ||
+            (FALSE == exact && VTSS_RC_OK == snmpv3_mgmt_views_conf_get_next( &conf))) {
+        ICLI_PRINTF("View Name   : %s\n", conf.view_name);
+        ICLI_PRINTF("OID Subtree : %s\n", misc_oid2str(conf.subtree, conf.subtree_len, conf.subtree_mask, conf.subtree_mask_len));
+        ICLI_PRINTF("View Type   : %s\n", conf.view_type == SNMPV3_MGMT_VIEW_INCLUDED ? "included" : "excluded");
+        ICLI_PRINTF("\n");
+        if ( TRUE == exact ) {
+            break;
+        }
+    }
+
+}
+
+static BOOL snmpv3_mgmt_group_is_existent(u32 session_id, i8 *group_name)
+{
+    snmpv3_groups_conf_t group_conf;
+    BOOL found = FALSE;
+
+    strcpy(group_conf.security_name, SNMPV3_CONF_ACESS_GETFIRST);
+    while (snmpv3_mgmt_groups_conf_get(&group_conf, TRUE) == VTSS_OK) {
+        if (!strcmp(group_conf.group_name, group_name)) {
+            found = TRUE;
+            break;
+        }
+    }
+
+    if ( FALSE == found) {
+        ICLI_PRINTF("The group name '%s' is not exist\n", group_name);
+    }
+
+    return found;
+}
+
+static BOOL snmpv3_mgmt_view_is_existent(u32 session_id, i8 *view_name, i8 *write_name, i8 *notify_name)
+{
+    snmpv3_views_conf_t view_conf;
+    BOOL found = FALSE;
+
+    if (strcmp(view_name, "") &&
+        strcmp(view_name, SNMPV3_NONAME)) {
+        found = FALSE;
+        strcpy(view_conf.view_name, SNMPV3_CONF_ACESS_GETFIRST);
+        while (snmpv3_mgmt_views_conf_get(&view_conf, TRUE) == VTSS_OK) {
+            if (!strcmp(view_conf.view_name, view_name)) {
+                found = TRUE;
+                break;
+            }
+        }
+        if (!found) {
+            ICLI_PRINTF("The view name '%s' is not exist\n", view_name);
+            return found;
+        }
+    }
+
+    if (strcmp(write_name, "") &&
+        strcmp(write_name, SNMPV3_NONAME)) {
+        found = FALSE;
+        strcpy(view_conf.view_name, SNMPV3_CONF_ACESS_GETFIRST);
+        while (snmpv3_mgmt_views_conf_get(&view_conf, TRUE) == VTSS_OK) {
+            if (!strcmp(view_conf.view_name, write_name)) {
+                found = TRUE;
+                break;
+            }
+        }
+        if (!found) {
+            ICLI_PRINTF("The view name '%s' is not exist\n", write_name);
+            return found;
+        }
+    }
+
+    if (strcmp(notify_name, "") &&
+        strcmp(notify_name, SNMPV3_NONAME)) {
+        found = FALSE;
+        strcpy(view_conf.view_name, SNMPV3_CONF_ACESS_GETFIRST);
+        while (snmpv3_mgmt_views_conf_get(&view_conf, TRUE) == VTSS_OK) {
+            if (!strcmp(view_conf.view_name, notify_name)) {
+                found = TRUE;
+                break;
+            }
+        }
+        if (!found) {
+            ICLI_PRINTF("The view name '%s' is not exist\n", notify_name);
+            return found;
+        }
+    }
+
+    return TRUE;
+
+}
+#endif /* SNMP_SUPPORT_V3 */
+
+static BOOL v3_runtime_cb(u32    session_id,
+                                 icli_runtime_ask_t ask,
+                                 icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#ifdef SNMP_SUPPORT_V3
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif /* SNMP_SUPPORT_V3 */
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+#if 0 // It doesn't use in 3.40
+/* SNMP access type to string */
+static char *SNMP_ICLI_access_type_str_get(unsigned char access_type)
+{
+    char *txt;
+
+    switch (access_type) {
+    case SNMP_MIB_ACCESS_TYPE_NOT_IMPLEMENTED:
+        txt = "not-implemented";
+        break;
+    case SNMP_MIB_ACCESS_TYPE_RONLY:
+        txt = "read-only";
+        break;
+    case SNMP_MIB_ACCESS_TYPE_RWRITE:
+        txt = "read-write";
+        break;
+    case SNMP_MIB_ACCESS_TYPE_RCREATE:
+        txt = "read-create";
+        break;
+    default:
+        txt = "Unknown";
+        break;
+    }
+    return txt;
+}
+#endif
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_SHOW_SNMP = Display SNMP configurations
+HELP_SNMP = SNMP(Simple Network Management Protocol)
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show snmp
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: snmp
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Display SNMP configurations
+
+BYWORD = <HasShow : option>
+BYWORD = <HasSnmp : option>
+
+VARIABLE_BEGIN
+    ICLI_PRINTF("\nSNMP Configuration\n");
+    SNMP_ICLI_conf_show(session_id);
+#ifdef SNMP_SUPPORT_V3
+    ICLI_PRINTF("\nSNMPv3 Communities Table:\n");
+    SNMP_ICLI_community_show(session_id, NULL);
+    ICLI_PRINTF("\nSNMPv3 Users Table:\n");
+    SNMP_ICLI_user_show( session_id, NULL, NULL);
+    ICLI_PRINTF("\nSNMPv3 Groups Table;\n");
+    SNMP_ICLI_group_show( session_id, 0, NULL);
+    ICLI_PRINTF("\nSNMPv3 Accesses Table:\n");
+    SNMP_ICLI_access_show( session_id, NULL, 0, 0);
+    ICLI_PRINTF("\nSNMPv3 Views Table:\n");
+    SNMP_ICLI_view_show(session_id, NULL, NULL);
+#endif /* SNMP_SUPPORT_V3 */
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = show snmp community v3 [ <word127> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: snmp
+! 3: community
+! 4: v3
+! 5: <community:word127>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = community
+
+HELP = 
+HELP = Display SNMP configurations
+HELP = Community
+HELP = SNMPv3
+HELP = Specify community name
+
+BYWORD = <HasShow : option>
+BYWORD = <HasSnmp : option>
+BYWORD = <HasCommunity : option>
+BYWORD = <HasV3 : option>
+BYWORD = <Community : word127>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    SNMP_ICLI_community_show(session_id, community);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = show snmp user [ <word32> <word10-32> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: snmp
+! 3: user
+! 4: <username:word32>
+! 5: <engineID:word10-32>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = username
+CMD_VAR = engineID
+
+HELP = 
+HELP = Display SNMP configurations
+HELP = User 
+HELP = Security user name
+HELP = Security Engine ID
+
+BYWORD = <HasShow : option>
+BYWORD = <HasSnmp : option>
+BYWORD = <HasUser : option>
+BYWORD = <Username : word32>
+BYWORD = <Engiedid : word10-32>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    SNMP_ICLI_user_show( session_id, username, engineID);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+HELP_SNMP_SECURITY          = security-to-group configuration
+HELP_SNMP_SECURITY_MODEL    = security model
+HELP_SNMP_SECURITY_V1       = v1 security model
+HELP_SNMP_SECURITY_V2C      = v2c security model
+HELP_SNMP_SECURITY_V3       = v3 security model
+HELP_SNMP_SECURITY_ANY       = any security model
+HELP_SNMP_SECURITY_GROUP    = security group
+HELP_SNMP_SECURITY_GROUP_NAME    = security group name
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = show snmp security-to-group [ { v1 | v2c | v3 } <word32> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: snmp
+! 3: security-to-group
+! 4: v1
+! 5: v2c
+! 6: v3
+! 7: <security_name:word32>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_v1
+CMD_VAR = has_v2c
+CMD_VAR = 
+CMD_VAR = security_name
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##HELP_SHOW_SNMP
+HELP = ##HELP_SNMP_SECURITY
+HELP = ##HELP_SNMP_SECURITY_V1
+HELP = ##HELP_SNMP_SECURITY_V2C
+HELP = ##HELP_SNMP_SECURITY_V3
+HELP = ##HELP_SNMP_SECURITY_GROUP_NAME
+
+BYWORD = <HasShow : option>
+BYWORD = <HasSnmp : option>
+BYWORD = <HasSecurityToGroup : option>
+BYWORD = <HasV1 : option>
+BYWORD = <HasV2c : option>
+BYWORD = <HasV3 : option>
+BYWORD = <SecurityName : word32>
+
+VARIABLE_BEGIN
+    u32 model = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( TRUE == has_v1) {
+        model = SNMP_MGMT_SEC_MODEL_SNMPV1;
+    } else if ( TRUE == has_v2c) {
+        model = SNMP_MGMT_SEC_MODEL_SNMPV2C;
+    } else {
+        model = SNMP_MGMT_SEC_MODEL_USM;
+    }
+    SNMP_ICLI_group_show( session_id, model, security_name);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+HELP_SNMP_ACCESS            = access configuration
+HELP_SNMP_GROUP_NAME        = group name
+HELP_SNMP_ACCESS_AUTH       = authNoPriv Security Level
+HELP_SNMP_ACCESS_NOAUTH     = noAuthNoPriv Security Level
+HELP_SNMP_ACCESS_priv       = authPriv Security Level
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = show snmp access [ <word32> { v1 | v2c | v3 | any } { auth | noauth | priv } ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: snmp
+! 3: access
+! 4: <group_name:word32>
+! 5: v1
+! 6: v2c
+! 7: v3
+! 8: any
+! 9: auth
+! 10: noauth
+! 11: priv
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = group_name
+CMD_VAR = has_v1
+CMD_VAR = has_v2c
+CMD_VAR = has_v3
+CMD_VAR = 
+CMD_VAR = has_auth
+CMD_VAR = has_noauth
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##HELP_SHOW_SNMP
+HELP = ##HELP_SNMP_ACCESS
+HELP = ##HELP_SNMP_GROUP_NAME
+HELP = ##HELP_SNMP_SECURITY_V1
+HELP = ##HELP_SNMP_SECURITY_V2C
+HELP = ##HELP_SNMP_SECURITY_V3
+HELP = ##HELP_SNMP_SECURITY_ANY
+HELP = ##HELP_SNMP_ACCESS_AUTH
+HELP = ##HELP_SNMP_ACCESS_NOAUTH
+HELP = ##HELP_SNMP_ACCESS_priv
+
+BYWORD = <HasShow : option>
+BYWORD = <HasSnmp : option>
+BYWORD = <HasAccess : option>
+BYWORD = <GroupName : word32>
+BYWORD = <HasV1 : option>
+BYWORD = <HasV2c : option>
+BYWORD = <HasV3 : option>
+BYWORD = <HasAny : option>
+BYWORD = <HasAuth : option>
+BYWORD = <HasNoauth : option>
+BYWORD = <HasPriv : option>
+
+VARIABLE_BEGIN
+    u32 model = 0, level = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( NULL != group_name) {
+        if ( TRUE == has_v1) {
+            model = SNMP_MGMT_SEC_MODEL_SNMPV1;
+        } else if ( TRUE == has_v2c) {
+            model = SNMP_MGMT_SEC_MODEL_SNMPV2C;
+        } else if ( TRUE == has_v3) {
+            model = SNMP_MGMT_SEC_MODEL_USM;
+        } else {
+            model = SNMP_MGMT_SEC_MODEL_ANY;
+        }
+
+        if ( TRUE == has_auth) {
+            level = SNMP_MGMT_SEC_LEVEL_AUTHNOPRIV;
+        } else if ( TRUE == has_noauth) {
+            level = SNMP_MGMT_SEC_LEVEL_NOAUTH;
+        } else {
+            level = SNMP_MGMT_SEC_LEVEL_AUTHPRIV;
+        }
+
+    }
+    SNMP_ICLI_access_show( session_id, group_name, model, level);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+HELP_SNMP_VIEW              = MIB view configuration
+HELP_SNMP_VIEW_NAME         = MIB view name
+HELP_SNMP_VIEW_MIB          = MIB view OID
+HELP_SNMP_VIEW_EXCLUDED     = Excluded type from the view
+HELP_SNMP_VIEW_IXCLUDED     = Ixcluded type from the view
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = show snmp view [ <word32> <word255> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: snmp
+! 3: view
+! 4: <view_name:word32>
+! 5: <oid_subtree:word255>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = view_name
+CMD_VAR = oid_subtree
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##HELP_SHOW_SNMP
+HELP = ##HELP_SNMP_VIEW
+HELP = ##HELP_SNMP_VIEW_NAME 
+HELP = ##HELP_SNMP_VIEW_MIB
+
+BYWORD = <HasShow : option>
+BYWORD = <HasSnmp : option>
+BYWORD = <HasView : option>
+BYWORD = <ViewName : word32>
+BYWORD = <OidSubtree : word255>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    SNMP_ICLI_view_show(session_id, view_name, oid_subtree);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = snmp-server
+
+DOC_CMD_DESC    = Enable SNMP server.
+DOC_CMD_DEFAULT = SNMP server is enabled.
+DOC_CMD_USAGE   = The command can enable SNMP server on SNMPv1, SNMPv2c, or SNMPv3.
+DOC_CMD_EXAMPLE = Switch(config)# snmp-server
+
+NO_FORM_DOC_CMD_DESC    = Disable SNMP server.
+NO_FORM_DOC_CMD_DEFAULT = SNMP server is enabled.
+NO_FORM_DOC_CMD_USAGE   = The command can disable SNMP server on SNMPv1, SNMPv2c, or SNMPv3.
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# no snmp-server
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: snmp-server
+
+CMD_VAR = 
+
+HELP = Enable SNMP server
+
+BYWORD = <HasSnmpServer : option>
+
+VARIABLE_BEGIN
+    BOOL mode = TRUE;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode = FALSE;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    /* enable global mode */
+    SNMP_ICLI_system_set(session_id, SYS_MODE_CMD, &mode, NULL);
+CODE_END
+
+// (Optional)
+// The no form of this command
+NO_FORM_CODE_BEGIN
+    /* disable global mode */
+    SNMP_ICLI_system_set(session_id, SYS_MODE_CMD, &mode, NULL);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = snmp-server engine-id local <word10-32>
+
+DOC_CMD_DESC    = To specify SNMP server's engine ID.
+DOC_CMD_DEFAULT = 800007e5017f000001
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = Switch(config)# snmp-server engineID local 00000009000000A1616
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_13
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: snmp-server
+! 2: engine-id
+! 3: local
+! 4: <engineID:word10-32>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = engineID
+
+HELP = ##HELP_SNMP
+HELP = Set SNMP engine ID
+HELP = Set SNMP local engine ID
+HELP = local engine ID
+
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasEngineid : option>
+BYWORD = <HasLocal : option>
+BYWORD = <Engineid : word10-32>
+
+VARIABLE_BEGIN
+    u8       tmp[SNMPV3_MAX_ENGINE_ID_LEN]= {0};
+    u32      len;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( FALSE == cli_parse_engieid(session_id, engineID, &len, tmp)) {
+        return FALSE;
+    }
+    SNMP_ICLI_system_set(session_id, SYS_ENGINEID_CMD, tmp, &len);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = no snmp-server engined-id local
+
+DOC_CMD_DESC    = To set SNMP server's engine ID to default value.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = Switch(config)# snmp-server engineID local 00000009000000A1616
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: snmp-server
+! 3: engined-id
+! 4: local
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = ##HELP_SNMP
+HELP = Set SNMP engine ID
+HELP = Set SNMP local engine ID
+
+BYWORD = <HasNo : option>
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasEnginedid : option>
+BYWORD = <HasLocal : option>
+
+VARIABLE_BEGIN
+    u8       default_engineid[] = SNMPV3_DEFAULT_ENGINE_ID;
+    u8       tmp[SNMPV3_MAX_ENGINE_ID_LEN]= {0};
+    u32      len;
+
+VARIABLE_END
+
+CODE_BEGIN
+
+    memcpy(tmp, default_engineid, sizeof(default_engineid));
+    len = sizeof (default_engineid);
+    SNMP_ICLI_system_set(session_id, SYS_ENGINEID_CMD, tmp, &len);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = snmp-server version { v1 | v2c | v3 }
+
+DOC_CMD_DESC    = Set the SNMP server version to SNMPv1, SNMPv2c or SNMPv3.
+DOC_CMD_DEFAULT = SNMPv2c
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = Switch(config)# snmp-server version v3
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = v3_runtime_cb
+
+! 1: snmp-server
+! 2: version
+! 3: v1
+! 4: v2c
+! 5: v3
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_v1
+CMD_VAR = has_v2c
+CMD_VAR = 
+
+HELP = ##HELP_SNMP
+HELP = Set the SNMP server's version
+HELP = SNMPv1
+HELP = SNMPv2c
+HELP = SNMPv3
+
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasVersion : option>
+BYWORD = <HasV1 : option>
+BYWORD = <HasV2c : option>
+BYWORD = <HasV3 : option>
+
+VARIABLE_BEGIN
+    ulong version;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( TRUE == has_v1 ) {
+        version = SNMP_SUPPORT_V1;
+    } else if ( TRUE == has_v2c ) {
+        version = SNMP_SUPPORT_V2C;
+#ifdef SNMP_SUPPORT_V3
+    } else {
+        version = SNMP_SUPPORT_V3;
+#endif /* SNMP_SUPPORT_V3 */
+    }
+    SNMP_ICLI_system_set(session_id, SYS_VERSION_CMD, &version, NULL);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no snmp-server version
+
+DOC_CMD_DESC    = Set SNMP server's version to default setting.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = Switch(config)# no snmp-server version
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: snmp-server
+! 3: version
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = ##HELP_SNMP
+HELP = Set the SNMP server's version
+
+BYWORD = <HasNo : option>
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasVersion : option>
+
+VARIABLE_BEGIN
+    ulong version;
+VARIABLE_END
+
+CODE_BEGIN
+    version = SNMP_DEFAULT_VER;
+    SNMP_ICLI_system_set(session_id, SYS_VERSION_CMD, &version, NULL);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = snmp-server community v2c <word127> [ ro | rw ] 
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: snmp-server
+! 2: community
+! 3: v2c
+! 4: ro
+! 5: rw
+! 6: <comm:word127>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = comm
+CMD_VAR = has_ro
+CMD_VAR = has_rw
+
+HELP = ##HELP_SNMP
+HELP = Set the SNMP community 
+HELP = SNMPv2c 
+HELP = Community word
+HELP = Read only
+HELP = Read write
+
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasCommunity : option>
+BYWORD = <HasV2c : option>
+BYWORD = <HasRo : option>
+BYWORD = <HasRw : option>
+BYWORD = <Comm : word127>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( TRUE == has_ro || FALSE == has_rw) {
+        SNMP_ICLI_system_set(session_id, SYS_READ_COMMUNITY_CMD, comm, NULL);
+    } else if ( TRUE == has_rw) {
+        SNMP_ICLI_system_set(session_id, SYS_WRITE_COMMUNITY_CMD, comm, NULL);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = snmp-server community v3 <word127> [ <ipv4_addr> <ipv4_netmask> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: snmp-server
+! 2: community
+! 3: v3
+! 4: <v3_comm:word127>
+! 5: <ipv4_addr>
+! 6: <ipv4_netmask>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v3_comm
+CMD_VAR = v_ipv4_addr
+CMD_VAR = v_ipv4_netmask
+
+HELP = ##HELP_SNMP
+HELP = Set the SNMP community 
+HELP = SNMPv3 
+HELP = Community word
+HELP = IPv4 address
+HELP = IPv4 netmask
+
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasCommunity : option>
+BYWORD = <HasV3 : option>
+BYWORD = <V3Comm : word127>
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    snmpv3_communities_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf, 0, sizeof(conf));
+
+    if (v3_comm != NULL) {
+        strcpy(conf.community, v3_comm);
+    } else  {
+        strcpy(conf.community, "");
+    }
+    conf.valid = TRUE;
+    conf.sip = v_ipv4_addr;
+    if (  0 == v_ipv4_addr) {
+        conf.sip_mask = 0;
+    } else {
+        conf.sip_mask = v_ipv4_netmask;
+    }
+
+    conf.storage_type = SNMP_MGMT_STORAGE_PERMANENT;
+    conf.status = SNMP_MGMT_ROW_ACTIVE;
+    if (conf.sip_mask == 0xFFFFFFFF) {
+        ICLI_PRINTF("Parameter <ipv4_netmask> doesn't allow 255.255.255.255\n");
+        return 1;
+    }
+    if (snmpv3_mgmt_communities_conf_set(&conf) != VTSS_OK) {
+        ICLI_PRINTF("snmpv3_mgmt_communities_conf_set(%s): failed\n",
+                conf.community);
+    }
+
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+COMMAND = no snmp-server community v2c
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: snmp-server
+! 3: community
+! 4: v2c
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = ##HELP_SNMP
+HELP = Set the SNMP community
+HELP = SNMPv2c
+
+BYWORD = <HasNo : option>
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasCommunity : option>
+BYWORD = <HasV3 : option>
+
+VARIABLE_BEGIN
+    i8      read_community[SNMP_MGMT_MAX_COMMUNITY_LEN];
+    i8      write_community[SNMP_MGMT_MAX_COMMUNITY_LEN];
+
+VARIABLE_END
+
+CODE_BEGIN
+    strcpy(read_community, SNMP_DEFAULT_RO_COMMUNITY);
+    strcpy(write_community, SNMP_DEFAULT_RW_COMMUNITY);
+    SNMP_ICLI_system_set(session_id, SYS_READ_COMMUNITY_CMD, read_community, NULL);
+    SNMP_ICLI_system_set(session_id, SYS_WRITE_COMMUNITY_CMD, write_community, NULL);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = no snmp-server community v3 <word127> 
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: snmp-server
+! 3: community
+! 4: v3
+! 5: <community:word127>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = community
+
+HELP = 
+HELP = ##HELP_SNMP
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = <HasNo : option>
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasCommunity : option>
+BYWORD = <HasV3 : option>
+BYWORD = <Community : word127>
+
+VARIABLE_BEGIN
+    snmpv3_communities_conf_t conf;
+    vtss_rc rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (community != NULL) {
+        strcpy(conf.community, community);
+    } else {
+        strcpy(conf.community, "");
+    }
+
+    if ( snmpv3_mgmt_communities_conf_get(&conf, FALSE) != VTSS_OK) {
+        return 1;
+    }
+    conf.valid = FALSE;
+    if ((rc = snmpv3_mgmt_communities_conf_set(&conf)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = snmp-server user <word32> engine-id <word10-32> [ {md5 <word8-32> | sha <word8-40> } [ priv { des | aes } <word8-32> ] ] 
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: snmp-server
+! 2: user
+! 3: <username:word32>
+! 4: engine-id
+! 5: <engineID:word10-32>
+! 6: md5
+! 7: <md5_passwd:word8-32>
+! 8: sha
+! 9: <sha_passwd:word8-40>
+! 10: priv
+! 11: des
+! 12: aes
+! 13: <word8-32>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = username
+CMD_VAR = 
+CMD_VAR = engineID
+CMD_VAR = has_md5
+CMD_VAR = md5_passwd
+CMD_VAR = has_sha
+CMD_VAR = sha_passwd
+CMD_VAR = has_priv
+CMD_VAR = has_des
+CMD_VAR = 
+CMD_VAR = priv_passwd
+
+HELP = ##HELP_SNMP
+HELP = Set the SNMPv3 user's configurations
+HELP = Username
+HELP = engine ID
+HELP = Engine ID octet string
+HELP = Set MD5 protocol
+HELP = MD5 password
+HELP = Set SHA protocol
+HELP = SHA password
+HELP = Set Privacy 
+HELP = Set DES protocol
+HELP = Set AES protocol
+HELP = Set privacy password
+
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasUser : option>
+BYWORD = <Username : word32>
+BYWORD = <HasEngineId : option>
+BYWORD = <Engineid : word10-32>
+BYWORD = <HasMd5 : option>
+BYWORD = <Md5Passwd : word8-32>
+BYWORD = <HasSha : option>
+BYWORD = <ShaPasswd : word8-40>
+BYWORD = <HasPriv : option>
+BYWORD = <HasDes : option>
+BYWORD = <HasAes : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+    snmpv3_users_conf_t conf;
+    vtss_rc             rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( FALSE == cli_parse_engieid(session_id, engineID, &conf.engineid_len, conf.engineid) ) {
+        return 1;
+    }
+
+    if ( NULL == username) {
+        return 1;
+    }
+    strcpy(conf.user_name, username);
+
+    if ( !strcmp(conf.user_name, SNMPV3_NONAME)) {
+        ICLI_PRINTF("The user name of 'None' is reserved\n");
+    }
+
+    if ( VTSS_OK == snmpv3_mgmt_users_conf_get(&conf, FALSE) ) {
+        conf.valid = FALSE;
+        (void) snmpv3_mgmt_users_conf_set( &conf );
+    }
+
+    if ( TRUE == has_md5 && NULL != md5_passwd) {
+        strcpy(conf.auth_password, md5_passwd);
+    } else if ( TRUE == has_sha && NULL != sha_passwd) {
+        strcpy(conf.auth_password, sha_passwd);
+    } 
+
+    if ( TRUE == has_priv && NULL != priv_passwd) { 
+        strcpy(conf.priv_password, priv_passwd);
+    }
+
+    if ( FALSE == has_md5 && FALSE == has_sha) {
+        conf.auth_protocol = SNMP_MGMT_AUTH_PROTO_NONE;
+        conf.security_level = SNMP_MGMT_SEC_LEVEL_NOAUTH;
+        memset(conf.auth_password, 0, SNMPV3_MAX_SHA_PASSWORD_LEN + 1);
+    } else {
+        conf.auth_protocol = (TRUE == has_md5) ? SNMP_MGMT_AUTH_PROTO_MD5:SNMP_MGMT_AUTH_PROTO_SHA;
+        conf.security_level = (TRUE == has_priv)? SNMP_MGMT_SEC_LEVEL_AUTHPRIV:SNMP_MGMT_SEC_LEVEL_AUTHNOPRIV ;
+    }
+    
+    if (conf.security_level != SNMP_MGMT_SEC_LEVEL_AUTHPRIV) {
+        memset(conf.priv_password, 0, SNMPV3_MAX_DES_PASSWORD_LEN + 1);
+        conf.priv_protocol = SNMP_MGMT_PRIV_PROTO_NONE;
+    } else {
+        conf.priv_protocol = (TRUE == has_des) ? SNMP_MGMT_PRIV_PROTO_DES: SNMP_MGMT_PRIV_PROTO_AES;
+    }
+
+    conf.storage_type = SNMP_MGMT_STORAGE_PERMANENT;
+    conf.status = SNMP_MGMT_ROW_ACTIVE;
+    conf.valid = TRUE;
+
+    if ( VTSS_RC_OK != (rc = snmpv3_mgmt_users_conf_set( &conf )) ) {
+        ICLI_PRINTF( "%s", snmp_error_txt (rc));
+    }
+
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = no snmp-server user <word32> engine-id <word10-32>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: snmp-server
+! 3: user
+! 4: <username:word32>
+! 5: engine-id
+! 6: <engineID:word10-32>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = username
+CMD_VAR = 
+CMD_VAR = engineID
+
+HELP = 
+HELP = ##HELP_SNMP
+HELP = user who can access SNMP server 
+HELP = name of user 
+HELP = engine ID
+HELP = engine ID octet string
+
+BYWORD = <HasNo : option>
+BYWORD = <HasSnmpServer : option> 
+BYWORD = <HasUser : option>
+BYWORD = <Username : word32>
+BYWORD = <HasEngineId : option>
+BYWORD = <Engineid : word10-32>
+
+VARIABLE_BEGIN
+    snmpv3_users_conf_t conf;
+    vtss_rc             rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( FALSE == cli_parse_engieid(session_id, engineID, &conf.engineid_len, conf.engineid) || NULL == username ) {
+        return 1;
+    }
+    strcpy(conf.user_name, username);
+
+    if ( VTSS_OK != snmpv3_mgmt_users_conf_get(&conf, FALSE) ) {
+        return 1;
+    }
+    conf.valid = FALSE;
+
+    if ( VTSS_RC_OK != (rc = snmpv3_mgmt_users_conf_set( &conf )) ) {
+        ICLI_PRINTF( "%s", snmp_error_txt (rc));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = snmp-server security-to-group model { v1 | v2c | v3 } name <word32> group <word32>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: snmp-server
+! 2: security-to-group
+! 3: model
+! 4: v1
+! 5: v2c
+! 6: v3
+! 7: name
+! 8: <security_name:word32>
+! 9: group
+! 10: <group_name:word32>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_v1
+CMD_VAR = has_v2c
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = security_name
+CMD_VAR = 
+CMD_VAR = group_name
+
+HELP = ##HELP_SNMP
+HELP = ##HELP_SNMP_SECURITY
+HELP = ##HELP_SNMP_SECURITY_MODEL
+HELP = ##HELP_SNMP_SECURITY_V1 
+HELP = ##HELP_SNMP_SECURITY_V2C
+HELP = ##HELP_SNMP_SECURITY_V3
+HELP = security user
+HELP = security user name
+HELP = ##HELP_SNMP_SECURITY_GROUP
+HELP = ##HELP_SNMP_SECURITY_GROUP_NAME
+
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasSecurityToGroup : option>
+BYWORD = <HasModel : option>
+BYWORD = <HasV1 : option>
+BYWORD = <HasV2c : option>
+BYWORD = <HasV3 : option>
+BYWORD = <HasName : option>
+BYWORD = <SecurityName : word32>
+BYWORD = <HasGroup : option>
+BYWORD = <GroupName : word32>
+
+VARIABLE_BEGIN
+    snmpv3_groups_conf_t conf;
+    vtss_rc              rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( NULL == security_name || NULL == group_name ) {
+        return 1;
+    }
+    if ( TRUE == has_v1 ) {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_SNMPV1; 
+    } else if  ( TRUE == has_v2c) { 
+        conf.security_model = SNMP_MGMT_SEC_MODEL_SNMPV2C;
+    } else {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_USM;
+    }
+
+    strcpy(conf.security_name, security_name);
+    strcpy(conf.group_name, group_name);
+    conf.valid = TRUE;
+    conf.storage_type = SNMP_MGMT_STORAGE_PERMANENT;
+    conf.status = SNMP_MGMT_ROW_ACTIVE;
+
+    if ( VTSS_RC_OK != (rc = snmpv3_mgmt_groups_conf_set( &conf )) ) {
+        ICLI_PRINTF( "%s", snmp_error_txt (rc));
+    }
+
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = no snmp-server security-to-group model { v1 | v2c | v3 } name <word32>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: snmp-server
+! 3: security-to-group
+! 4: model
+! 5: v1
+! 6: v2c
+! 7: v3
+! 8: name
+! 9: <security_name:word32>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_v1
+CMD_VAR = has_v2c
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = security_name
+
+HELP = 
+HELP = ##HELP_SNMP
+HELP = ##HELP_SNMP_SECURITY
+HELP = ##HELP_SNMP_SECURITY_MODEL
+HELP = ##HELP_SNMP_SECURITY_V1 
+HELP = ##HELP_SNMP_SECURITY_V2C
+HELP = ##HELP_SNMP_SECURITY_V3
+HELP = security user
+HELP = security user name
+
+BYWORD = <HasNo : option>
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasSecurityToGroup : option>
+BYWORD = <HasModel : option>
+BYWORD = <HasV1 : option>
+BYWORD = <HasV2c : option>
+BYWORD = <HasV3 : option>
+BYWORD = <HasName : option>
+BYWORD = <SecurityName : word32>
+
+VARIABLE_BEGIN
+    snmpv3_groups_conf_t conf;
+    vtss_rc              rc;
+VARIABLE_END
+
+CODE_BEGIN
+
+    if ( NULL == security_name) {
+        return 1;
+    }
+    if ( TRUE == has_v1 ) {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_SNMPV1;
+    } else if  ( TRUE == has_v2c) {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_SNMPV2C;
+    } else {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_USM;
+    }
+
+    strcpy(conf.security_name, security_name);
+
+    conf.valid = FALSE;
+
+    if ( VTSS_RC_OK != (rc = snmpv3_mgmt_groups_conf_set( &conf )) ) {
+        ICLI_PRINTF( "%s\n", snmp_error_txt (rc));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = snmp-server access <word32> model { v1 | v2c | v3 | any } level { auth | noauth | priv } [ read <word255> ] [ write <word255> ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: snmp-server
+! 2: access
+! 3: <group_name:word32>
+! 4: model
+! 5: v1
+! 6: v2c
+! 7: v3
+! 8: any
+! 9: level
+! 10: auth
+! 11: noauth
+! 12: priv
+! 13: read
+! 14: <view_name:word255>
+! 15: write
+! 16: <write_name:word255>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = group_name
+CMD_VAR = 
+CMD_VAR = has_v1
+CMD_VAR = has_v2c
+CMD_VAR = has_v3
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_auth
+CMD_VAR = has_noauth
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = view_name
+CMD_VAR = 
+CMD_VAR = write_name
+
+HELP = ##HELP_SNMP
+HELP = ##HELP_SNMP_ACCESS
+HELP = ##HELP_SNMP_GROUP_NAME
+HELP = security model
+HELP = ##HELP_SNMP_SECURITY_V1
+HELP = ##HELP_SNMP_SECURITY_V2C
+HELP = ##HELP_SNMP_SECURITY_V3
+HELP = ##HELP_SNMP_SECURITY_ANY
+HELP = security level
+HELP = ##HELP_SNMP_ACCESS_AUTH
+HELP = ##HELP_SNMP_ACCESS_NOAUTH
+HELP = ##HELP_SNMP_ACCESS_priv
+HELP = specify a read view for the group
+HELP = read view name 
+HELP = specify a write view for the group
+HELP = write view name
+
+BYWORD = 
+BYWORD = 
+BYWORD = <GroupName : word32>
+BYWORD = 
+BYWORD = <V1 : option>
+BYWORD = <V2c : option>
+BYWORD = <V3 : option>
+BYWORD = <Any : option>
+BYWORD = 
+BYWORD = <Auth : option>
+BYWORD = <Noauth : option>
+BYWORD = <Priv : option>
+BYWORD = <Read : option>
+BYWORD = <ViewName : word255>
+BYWORD = <Write : option>
+BYWORD = <WriteName : word255>
+
+VARIABLE_BEGIN
+    snmpv3_accesses_conf_t conf;
+    vtss_rc              rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( NULL == group_name) {
+        return 1;
+    }
+    memset(&conf, 0, sizeof(conf));
+    strcpy(conf.group_name, group_name);
+
+    if ( FALSE == snmpv3_mgmt_group_is_existent( session_id, conf.group_name) ) {
+        return 1;
+    }
+
+    if ( TRUE == has_v1) {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_SNMPV1;
+    } else if ( TRUE == has_v2c) {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_SNMPV2C;
+    } else if ( TRUE == has_v3) {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_USM;
+    } else {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_ANY;
+    }
+
+    if ( TRUE == has_auth) {
+        conf.security_level = SNMP_MGMT_SEC_LEVEL_AUTHNOPRIV;
+    } else if ( TRUE == has_noauth) {
+        conf.security_level = SNMP_MGMT_SEC_LEVEL_NOAUTH;
+    } else {
+        conf.security_level = SNMP_MGMT_SEC_LEVEL_AUTHPRIV;
+    }
+
+    if ( NULL != view_name ) {
+        strcpy(conf.read_view_name, view_name);
+    } else if ( NULL == view_name ) {
+        strcpy(conf.read_view_name, SNMPV3_NONAME);
+    }
+
+    if ( NULL != write_name ) {
+        strcpy(conf.write_view_name, write_name);
+    } else if ( NULL == write_name ) {
+        strcpy(conf.write_view_name, SNMPV3_NONAME);
+    }
+
+    strcpy(conf.notify_view_name, SNMPV3_NONAME);
+
+    if ( FALSE == snmpv3_mgmt_view_is_existent(session_id, conf.read_view_name, conf.write_view_name, conf.notify_view_name) ) {
+        return 1;
+    }
+
+    conf.context_match = SNMPV3_MGMT_CONTEX_MATCH_EXACT;
+    conf.storage_type = SNMP_MGMT_STORAGE_PERMANENT;
+    conf.status = SNMP_MGMT_ROW_ACTIVE;
+    conf.valid = TRUE;
+
+    if ( (rc = snmpv3_mgmt_accesses_conf_set(&conf)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", snmp_error_txt(rc));
+    }
+
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = no snmp-server access <word32> model { v1 | v2c | v3 | any } level { auth | noauth | priv }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: snmp-server
+! 3: access
+! 4: <group_name:word32>
+! 5: model
+! 6: v1
+! 7: v2c
+! 8: v3
+! 9: any
+! 10: level
+! 11: auth
+! 12: noauth
+! 13: priv
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = group_name
+CMD_VAR = 
+CMD_VAR = has_v1
+CMD_VAR = has_v2c
+CMD_VAR = has_v3
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_auth
+CMD_VAR = has_noauth
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##HELP_SNMP
+HELP = ##HELP_SNMP_ACCESS
+HELP = ##HELP_SNMP_GROUP_NAME
+HELP = security model
+HELP = ##HELP_SNMP_SECURITY_V1
+HELP = ##HELP_SNMP_SECURITY_V2C
+HELP = ##HELP_SNMP_SECURITY_V3
+HELP = ##HELP_SNMP_SECURITY_ANY
+HELP = security level
+HELP = ##HELP_SNMP_ACCESS_AUTH
+HELP = ##HELP_SNMP_ACCESS_NOAUTH
+HELP = ##HELP_SNMP_ACCESS_priv
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <GroupName : word32>
+BYWORD = 
+BYWORD = <V1 : option>
+BYWORD = <V2c : option>
+BYWORD = <V3 : option>
+BYWORD = <Any : option>
+BYWORD = 
+BYWORD = <Auth : option>
+BYWORD = <Noauth : option>
+BYWORD = <Priv : option>
+
+VARIABLE_BEGIN
+    snmpv3_accesses_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( NULL == group_name) {
+        return 1;
+    }
+    memset(&conf, 0, sizeof(conf));
+    strcpy(conf.group_name, group_name);
+
+    if ( TRUE == has_v1) {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_SNMPV1;
+    } else if ( TRUE == has_v2c) {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_SNMPV2C;
+    } else if ( TRUE == has_v3) {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_USM;
+    } else {
+        conf.security_model = SNMP_MGMT_SEC_MODEL_ANY;
+    }
+
+    if ( TRUE == has_auth) {
+        conf.security_level = SNMP_MGMT_SEC_LEVEL_AUTHNOPRIV;
+    } else if ( TRUE == has_noauth) {
+        conf.security_level = SNMP_MGMT_SEC_LEVEL_NOAUTH;
+    } else {
+        conf.security_level = SNMP_MGMT_SEC_LEVEL_AUTHPRIV;
+    }
+
+    conf.valid = FALSE;
+    (void) snmpv3_mgmt_accesses_conf_set(&conf);
+
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = snmp-server view <word32> <word255> { include | exclude }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: snmp-server
+! 2: view
+! 3: <view_name:word32>
+! 4: <oid_subtree:word255>
+! 5: include
+! 6: exclude
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = view_name
+CMD_VAR = oid_subtree
+CMD_VAR = has_include
+CMD_VAR = 
+
+HELP = ##HELP_SNMP
+HELP = ##HELP_SNMP_VIEW
+HELP = ##HELP_SNMP_VIEW_NAME 
+HELP = ##HELP_SNMP_VIEW_MIB
+HELP = ##HELP_SNMP_VIEW_IXCLUDED
+HELP = ##HELP_SNMP_VIEW_EXCLUDED
+
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasView : option>
+BYWORD = <ViewName : word32>
+BYWORD = <OidSubtree : word255>
+BYWORD = <HasInclude : option>
+BYWORD = <HasExclude : option>
+
+VARIABLE_BEGIN
+    snmpv3_views_conf_t conf;
+    vtss_rc             rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( NULL == view_name) {
+        return 1;
+    }
+    strcpy(conf.view_name, view_name);
+
+    if ( FALSE == cli_parse_oid_subtree (session_id, oid_subtree, conf.subtree, &conf.subtree_len, conf.subtree_mask, &conf.subtree_mask_len) ) {
+        return 1;
+    }
+    if ( TRUE == has_include) {
+        conf.view_type = SNMPV3_MGMT_VIEW_INCLUDED;
+    } else {
+        conf.view_type = SNMPV3_MGMT_VIEW_EXCLUDED;
+    }
+
+    conf.valid = TRUE;
+    conf.storage_type = SNMP_MGMT_STORAGE_PERMANENT;
+    conf.status = SNMP_MGMT_ROW_ACTIVE;
+
+    if ( (rc = snmpv3_mgmt_views_conf_set(&conf)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(SNMP_SUPPORT_V3)
+
+COMMAND = no snmp-server view <word32> <word255>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: snmp-server
+! 3: view
+! 4: <view_name:word32>
+! 5: <oid_subtree:word255>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = view_name
+CMD_VAR = oid_subtree
+
+HELP = ##ICLI_HELP_NO
+HELP = ##HELP_SNMP
+HELP = ##HELP_SNMP_VIEW
+HELP = ##HELP_SNMP_VIEW_NAME 
+HELP = ##HELP_SNMP_VIEW_MIB
+
+BYWORD = <HasNo : option>
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasView : option>
+BYWORD = <ViewName : word32>
+BYWORD = <OidSubtree : word255>
+
+VARIABLE_BEGIN
+    snmpv3_views_conf_t conf;
+    vtss_rc             rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if ( NULL == view_name) {
+        return 1;
+    }
+    strcpy(conf.view_name, view_name);
+    if ( FALSE == cli_parse_oid_subtree (session_id, oid_subtree, conf.subtree, &conf.subtree_len, conf.subtree_mask, &conf.subtree_mask_len) ) {
+        return 1;
+    }
+
+    conf.valid = FALSE;
+
+    if ( (rc = snmpv3_mgmt_views_conf_set(&conf)) != VTSS_OK) {
+        ICLI_PRINTF("%s\n", error_txt(rc));
+    }
+
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = snmp-server contact <line255>
+
+DOC_CMD_DESC    = To specify the system contact string.
+DOC_CMD_DEFAULT = No contact string is set.
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = Switch(config)# snmp-server contact contact to "111"
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: snmp-server
+! 2: contact
+! 3: <line255>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_line255
+
+HELP = Set the SNMP server's configurations
+HELP = Set the SNMP server's contact string
+HELP = contact string
+
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasContact : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+    u32 len_tmp;
+VARIABLE_END
+
+CODE_BEGIN
+    if (v_line255) {
+        len_tmp = strlen(v_line255);
+        SNMP_ICLI_sysutil_set(session_id, SYS_CONTACT_CMD, v_line255, &len_tmp);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no snmp-server contact
+
+DOC_CMD_DESC    = To clear the system contact string.
+DOC_CMD_DEFAULT = No contact string is set.
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = Switch(config)# no snmp-server contact
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: snmp-server
+! 3: contact
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Set the SNMP server's configurations
+HELP = Clear the SNMP server's contact string
+
+BYWORD = <HasNo : option>
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasContact : option>
+
+VARIABLE_BEGIN
+    u32 len = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    SNMP_ICLI_sysutil_set(session_id, SYS_CONTACT_CMD, NULL, &len);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = snmp-server location <line255>
+
+DOC_CMD_DESC    = To specify the system location string.
+DOC_CMD_DEFAULT = No location string is set.
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = Switch(config)# snmp-server location Building floord
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: snmp-server
+! 2: location
+! 3: <line255>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_line255
+
+HELP = Set the SNMP server's configurations
+HELP = Set the SNMP server's location string
+HELP = location string
+
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasLocation : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+    u32 len_tmp;
+VARIABLE_END
+
+CODE_BEGIN
+    if (v_line255) {
+        len_tmp = strlen(v_line255);
+        SNMP_ICLI_sysutil_set(session_id, SYS_LOCATION_CMD, v_line255, &len_tmp);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no snmp-server location
+
+DOC_CMD_DESC    = To specify the system location string.
+DOC_CMD_DEFAULT = No location string is set.
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = Switch(config)# no snmp-server location
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: snmp-server
+! 3: location
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Set the SNMP server's configurations
+HELP = Clear the SNMP server's location string
+
+BYWORD = <HasNo : option>
+BYWORD = <HasSnmpServer : option>
+BYWORD = <HasLocation : option>
+
+VARIABLE_BEGIN
+    u32 len_tmp = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    SNMP_ICLI_sysutil_set(session_id, SYS_LOCATION_CMD, NULL, &len_tmp);
+CODE_END
+
+CMD_END
+
+
+HELP_MIB         = MIB(Management Information Base)
+HELP_MIB_CONTEXT = MIB context
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show snmp mib context
+
+DOC_CMD_DESC    = Use the show snmp mib context user EXEC command to display \
+                  the supported MIBs in the switch.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Expressions are case sensitive. For example, if you enter | exclude output, the lines that contain output do not appear, but the lines that contain Output appear.
+DOC_CMD_EXAMPLE = This is an example of output from the show snmp mib context command:
+DOC_CMD_EXAMPLE = Switch# show snmp mib context
+DOC_CMD_EXAMPLE = BRIDGE-MIB :
+DOC_CMD_EXAMPLE =     - dot1dBase (.1.3.6.1.2.1.17.1)
+DOC_CMD_EXAMPLE =     - dot1dTp (.1.3.6.1.2.1.17.4)
+DOC_CMD_EXAMPLE = ENTITY-MIB :
+DOC_CMD_EXAMPLE =     - entityMIBObjects (.1.3.6.1.2.1.47.1)
+
+FUNC_NAME = icli_snmp_supported_mibs_show
+FUNC_REUSE =  
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: snmp
+! 3: mib
+! 4: context
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP    = ##ICLI_HELP_SHOW
+HELP    = ##HELP_SNMP
+HELP    = ##HELP_MIB
+HELP    = ##HELP_MIB_CONTEXT
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    mibContextTable_entry_t entry;
+    char                    mib_name[MIBCONTEXTTABLE_STR_LEN_MAX + 1];
+    char                    *delimit = ":", *ch_p;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&entry, 0, sizeof(entry));
+    mib_name[0] = '\0';
+    while (!mibContextTableEntry_getnext_by_mib_name(&entry)) {
+        if (strcmp(mib_name, entry.mib_name)) {
+            strcpy(mib_name, entry.mib_name);
+                ICLI_PRINTF("%s:\n", entry.mib_name);
+        }
+        (void)strtok(entry.descr, delimit);    //ignore MIB name
+        if ((ch_p = strtok(NULL, delimit)) != NULL) {   //get OID name
+            ICLI_PRINTF("    -%s (%s)\n",
+                        ch_p,
+                        misc_oid2str((ulong *)entry.oid, entry.oid_len, NULL, 0));
+        }
+    }
+CODE_END
+
+CMD_END
+
+
+HELP_IF_MIB  = IF-MIB
+HELP_IFINDEX = The IfIndex that is defined in IF-MIB
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show snmp mib ifmib ifIndex
+
+DOC_CMD_DESC    = Use the show snmp mib ifmib ifIndex user EXEC command to \
+                  display the SNMP ifIndex(defined in IF-MIB) mapping \
+                  information in the switch.                  
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Expressions are case sensitive. For example, if you enter | exclude output, the lines that contain output do not appear, but the lines that contain Output appear.
+DOC_CMD_EXAMPLE = This is an example of output from the show snmp mib ifmib ifIndex command:
+DOC_CMD_EXAMPLE = Switch# show snmp mib ifmib ifIndex
+DOC_CMD_EXAMPLE = ifIndex     ifDescr                                Interface
+DOC_CMD_EXAMPLE = ----------  -------------------------------------  ---------
+DOC_CMD_EXAMPLE =          1  Switch  1 - Port  0                    GigabitEthernet 1/1
+DOC_CMD_EXAMPLE =          2  Switch  1 - Port  1                    GigabitEthernet 1/2
+DOC_CMD_EXAMPLE =      50001  VLAN    1                              vlan 1
+DOC_CMD_EXAMPLE =      50002  VLAN    2                              vlan 2
+DOC_CMD_EXAMPLE =      51000  VLAN 1000                              vlan 1000
+DOC_CMD_EXAMPLE =      60001  IP Interface 1                         vlan 1
+FUNC_NAME = icli_snmp_ifindex_show
+FUNC_REUSE =  
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: snmp
+! 3: mib
+! 4: ifmib
+! 5: ifIndex
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP    = ##ICLI_HELP_SHOW
+HELP    = ##HELP_SNMP
+HELP    = ##HELP_MIB
+HELP    = ##HELP_IF_MIB
+HELP    = ##HELP_IFINDEX
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD =
+
+VARIABLE_BEGIN
+    iftable_info_t  info;
+    BOOL            first = TRUE;
+    char            str_buf[64];
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&info, 0, sizeof(info));
+    while (ifIndex_get_next(&info)) {
+        if (first) {
+           icli_table_header(session_id, "ifIndex     ifDescr                                Interface");
+           first = FALSE;
+        }
+
+        //The IfIndex description is the same as "mib-2 : interfaces : ifTable : ifDescr"
+        //Refer to \snmp\platform\rfc1213_mib2.c\get_ifTable_entry()
+        switch(info.type) {
+            case IFTABLE_IFINDEX_TYPE_PORT:
+            sprintf(str_buf, "Switch %2d - Port %2u", topo_isid2usid(info.isid), iport2uport(info.if_id));
+                break;
+            case IFTABLE_IFINDEX_TYPE_LLAG:
+                sprintf(str_buf, "Switch %2d - Local Link Aggregations %2u", topo_isid2usid(info.isid), info.if_id);
+                break;
+            case IFTABLE_IFINDEX_TYPE_GLAG:
+                sprintf(str_buf, "Global Link Aggregations %u", info.if_id);
+                break;
+            case IFTABLE_IFINDEX_TYPE_VLAN:
+                sprintf(str_buf, "VLAN %4d", info.if_id);
+                break;
+            case IFTABLE_IFINDEX_TYPE_IP:
+                sprintf(str_buf, "IP Interface %u", info.if_id);
+                break;
+            default:
+                break;
+        }
+        ICLI_PRINTF("%10ld  %-38s ", info.ifIndex, str_buf);
+        if (info.type == IFTABLE_IFINDEX_TYPE_PORT) {
+            ICLI_PRINTF("%s", icli_port_info_txt(topo_isid2usid(info.isid), iport2uport(info.if_id), str_buf));
+        } else if (info.type == IFTABLE_IFINDEX_TYPE_VLAN || info.type == IFTABLE_IFINDEX_TYPE_IP) {
+            ICLI_PRINTF("vlan %d", info.if_id);
+        }
+        ICLI_PRINTF("\n");
+    }
+CODE_END
+
+CMD_END
+
+
+HELP_MIB_REDEFINE = The different definitions from the standard MIBs 
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 0
+
+COMMAND = show snmp mib redefine
+
+DOC_CMD_DESC    = Use the show snmp mib redefine user EXEC command to display \
+                  the redefined MIBs in the switch, that are different \
+                  definitions from the standard MIBs. 
+                   
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Expressions are case sensitive. For example, if you enter | exclude output, the lines that contain output do not appear, but the lines that contain Output appear.
+DOC_CMD_EXAMPLE = This is an example of output from the show snmp mib redefine command:
+DOC_CMD_EXAMPLE = Switch# show snmp mib redefine
+DOC_CMD_EXAMPLE = Object                              Syntax     Access      Redefine Access   Redefine Size
+DOC_CMD_EXAMPLE = ----------------------------------  ---------  ----------  ---------------   -------------
+DOC_CMD_EXAMPLE = SNMP-USER-BASED-SM-MIB :
+DOC_CMD_EXAMPLE =   usmUserPublic                    OCTET_STR   read-create  read-only
+DOC_CMD_EXAMPLE =   usmUserStorageType               INTEGER     read-create  read-only        {4 permanent}
+DOC_CMD_EXAMPLE =   usmUserStatus                    INTEGER     read-create  read-only        {1 active}
+
+FUNC_NAME = icli_snmp_redefine_mibs_show
+FUNC_REUSE =  
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: snmp
+! 3: mib
+! 4: redefine
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP    = ##ICLI_HELP_SHOW
+HELP    = ##HELP_SNMP
+HELP    = ##HELP_MIB
+HELP    = ##HELP_MIB_REDEFINE
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    snmp_mib_redefine_entry_t   entry;
+    BOOL                        first = TRUE;
+    char                        object_name[SNMP_MIB_REDEFINE_STR_LEN_MAX + 1];
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&entry, 0, sizeof(entry));
+    object_name[0] = '\0';
+    while (!snmp_mib_redefine_entry_get_next(&entry)) {
+        if (first) {
+           icli_table_header(session_id, "Object                             Syntax           Access       Redefine Access   Redefine Size");
+           first = FALSE;
+        }
+
+        if (strcmp(object_name, entry.mib_name)) {
+            strcpy(object_name, entry.mib_name);
+                ICLI_PRINTF("%s:\n", entry.mib_name);
+        }
+        ICLI_PRINTF(" %-32s  %-15s  %-11s  %-15s  %s\n",
+                    entry.oid_name,
+                    /* SNMP_ICLI_var_type_str_get(entry.var_type), */
+                    entry.syntax,
+                    entry.standard_access_type != entry.redefine_access_type ? SNMP_ICLI_access_type_str_get(entry.standard_access_type) : "",
+                    entry.standard_access_type != entry.redefine_access_type ? SNMP_ICLI_access_type_str_get(entry.redefine_access_type) : "",
+                    entry.redefine_size ? entry.redefined_descr : "");
+    }
+CODE_END
+
+CMD_END

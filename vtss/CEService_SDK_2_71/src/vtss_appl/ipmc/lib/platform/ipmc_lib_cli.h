@@ -1,0 +1,51 @@
+/*
+
+ Vitesse Switch API software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+*/
+
+#ifndef _IPMC_LIB_CLI_H_
+#define _IPMC_LIB_CLI_H_
+
+enum {
+    PRIO_IPMC_LIB_PROFILE_CONF,
+    PRIO_IPMC_LIB_PROFILE_STATE,
+
+    PRIO_IPMC_LIB_FLTR_ENTRY_TBL,
+    PRIO_IPMC_LIB_FLTR_ENTRY_ADD,
+    PRIO_IPMC_LIB_FLTR_ENTRY_DEL,
+    PRIO_IPMC_LIB_FLTR_ENTRY_UPD,
+    PRIO_IPMC_LIB_FLTR_PROFILE_TBL,
+    PRIO_IPMC_LIB_FLTR_PROFILE_ADD,
+    PRIO_IPMC_LIB_FLTR_PROFILE_DEL,
+    PRIO_IPMC_LIB_FLTR_PROFILE_UPD,
+    PRIO_IPMC_LIB_FLTR_RULE_ADD,
+    PRIO_IPMC_LIB_FLTR_RULE_DEL,
+    PRIO_IPMC_LIB_FLTR_RULE_UPD,
+
+    PRIO_IPMC_LIB_CLI_END
+};
+
+void ipmc_lib_cli_req_init(void);
+
+#endif /* _IPMC_LIB_CLI_H_ */

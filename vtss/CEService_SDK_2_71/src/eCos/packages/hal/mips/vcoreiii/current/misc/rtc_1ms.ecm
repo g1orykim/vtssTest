@@ -1,0 +1,84 @@
+# Real-time clock denominator
+#
+cdl_option CYGNUM_HAL_RTC_DENOMINATOR {
+    # Flavor: data
+    # No user value, uncomment the following line to provide one.
+    user_value 1000
+    # value_source user
+    # Default value: 100
+
+    # The following properties are affected by this value
+    # option CYGNUM_HAL_RTC_PERIOD
+    #     DefaultValue: ((CYGNUM_HAL_ARM_VCOREIII_TIMER_CLOCK/(CYGNUM_HAL_ARM_VCOREIII_TIMER_DIVIDER)/CYGNUM_HAL_RTC_DENOMINATOR))
+};
+
+# >
+# Delay in kernel clocks of tickle loop
+# The default is 50, which will usually mean a delay between
+# tests for 'stuck' devices of 500mS, that is half a second.
+# The overhead only applies if no network activity occurred,
+# so it may be acceptable to make this value very small,
+# where high CPU load does not matter during network idle
+# periods, or very large if your application tries often to
+# send packets itself.
+#
+cdl_option CYGNUM_NET_FAST_THREAD_TICKLE_DEVS_DELAY {
+    # Flavor: data
+    # No user value, uncomment the following line to provide one.
+    user_value 500
+    # value_source default
+    # Default value: 50
+};
+
+# >
+# Number of clock ticks between timeslices
+# Assuming timeslicing is enabled, how frequently should it
+# take place? The value of this option corresponds to the
+# number of clock ticks that should occur before a timeslice
+# takes place, so increasing the value reduces the frequency
+# of timeslices.
+#
+cdl_option CYGNUM_KERNEL_SCHED_TIMESLICE_TICKS {
+    # Flavor: data
+    # No user value, uncomment the following line to provide one.
+    user_value 50
+    # value_source default
+    # Default value: 5
+    # Legal values: 1 to 65535
+};
+
+# Implement counters using a single list
+# There are two different implementations of the counter
+# objects. The first implementation stores all alarms in a
+# single linked list. The alternative implementation uses a
+# table of linked lists. A single list is more efficient in
+# terms of memory usage and is generally adequate when the
+# application only makes use of a small number of alarms.
+#
+cdl_option CYGIMP_KERNEL_COUNTERS_SINGLE_LIST {
+    # Flavor: bool
+    # No user value, uncomment the following line to provide one.
+    user_value 0
+    # value_source default
+    # Default value: 1
+};
+
+# Implement counters using a table of lists
+# There are two different implementations of the counter
+# objects. The first implementation stores all alarms in a
+# single linked list. The alternative implementation uses a
+# table of linked lists, with the size of the table being a
+# separate configurable option. For more complicated
+# operations it is better to have a table of lists since this
+# reduces the amount of computation whenever the timer goes
+# off. Assuming a table size of 8 (the default value) on
+# average the timer code will only need to check 1/8 of the
+# pending alarms instead of all of them.
+#
+cdl_component CYGIMP_KERNEL_COUNTERS_MULTI_LIST {
+    # Flavor: bool
+    # No user value, uncomment the following line to provide one.
+    user_value 1
+    # value_source default
+    # Default value: 0
+};

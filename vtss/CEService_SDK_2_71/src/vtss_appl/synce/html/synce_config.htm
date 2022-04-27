@@ -1,0 +1,521 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>SyncE Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_synce_config.htm";
+
+var reqObject;
+var oTPriority = genArrayStr(0, configSyncePrioMax-1);
+var oVPriority = genArrayInt(0, configSyncePrioMax-1);
+var oTSource = genArrayStr(1, configSynceNormMax);
+//var oTSource = new Array("1","2","Clk_in" );
+var oVSource = genArrayInt(1, configSynceNormMax);
+var oTMasterSlaveMode = new Array ("Prefered Master","Slave");
+var oVMasterSlaveMode = new Array(0, 1);
+var oTSelectionMode = new Array ("Manual","Manual To Selected","Auto NonRevertive","Auto Revertive","Forced Holdover","Forced Free Run");
+var oVSelectionMode = new Array(0, 1, 2, 3, 4, 5);
+var selectorState = new Array ("Locked","Holdover","Free Run");
+var baseTMode = new Array ("Slave","Master");
+var oTSSM_over = new Array ("QL NONE","QL PRC","QL SSUA","QL SSUB","QL EEC2","QL EEC1");
+var oVSSM_over = new Array(0, 1, 2, 3, 4, 5);
+var oTaneg = new Array ("None","Prefer Slave","Prefer Master","Forced Slave");
+var oVaneg = new Array(0, 1, 2, 3);
+var oTHoldoff = new Array ("Disabled","300ms","400ms","500ms","600ms","700ms","800ms","900ms","1000ms","1100ms","1200ms","1300ms","1400ms","1500ms","1600ms","1700ms","1800ms","Test");
+var oVHoldoff = new Array(0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 100);
+var oTSSM_unlock = new Array ("QL NONE","QL PRC","QL SSUA","QL SSUB","QL EEC2","QL EEC1","QL DNU","QL_INV");
+var oVSSM_unlock = new Array(0, 1, 2, 3, 4, 5, 6, 7);
+var oTEEC_option = new Array (new Array ("1","2"), new Array ("1"), new Array ("None"));
+var oVEEC_option = new Array (new Array(0, 1), new Array(0), new Array(0));
+var rx_tx_ssm = new Array ("QL NONE","QL PRC","QL SSUA","QL SSUB","QL EEC2","QL EEC1","QL DNU","QL INV","QL FAIL","QL LINK");
+var oTWTR = new Array("Disable", "1M", "2M", "3M", "4M", "5M", "6M", "7M", "8M", "9M", "10M", "11M", "12M");
+var oVWTR = new Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+var oTClearWtr = new Array ("none","clear");
+var oVClearWtr = new Array(0, 1);
+/* Station clock input modes: index 0 = Full features, 1 = PCB104, 2 = others */
+var oTStationClockModeIn = new Array (new Array ("Disabled","1.544 MHz","2.048 MHz","10.00 MHz"),new Array ("Disabled","10.00 MHz"),new Array ("Disabled"));
+var oVStationClockModeIn = new Array(new Array(0, 1, 2, 3), new Array(0, 3), new Array(0));
+/* Station clock output modes */
+var oTStationClockModeOut = new Array (new Array ("Disabled","1.544 MHz","2.048 MHz","10.00 MHz"), new Array ("Disabled","2.048 MHz","10.00 MHz"), new Array ("Disabled"));
+var oVStationClockModeOut = new Array (new Array(0, 1, 2, 3), new Array(0, 2, 3), new Array(0));
+var synceConfig = Array();
+
+
+
+function resetForm()
+{
+    processUpdate(reqObject);
+}
+
+function addNomRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var inx = 0;
+
+    var port_cnt = parseInt(values[inx++]);
+    var oTPort12 = new Array(port_cnt);
+    var oVPort12 = new Array(port_cnt);
+
+    for (i=0; i<port_cnt; ++i)
+    {
+        oTPort12[i] = values[inx];
+        oVPort12[i] = parseInt(values[inx++]);
+    }
+
+    //source
+//    var source = parseInt(values[inx+0]);
+    var source = oTSource[index];
+    addTextCell(tr, String(source), "cr");
+
+    //nominated
+    addCheckBoxCell(tr, parseInt(values[inx+1]), "c", "nom_" + source);
+    
+    //port
+    addSelectCell(tr, oTPort12, oVPort12, parseInt(values[inx+2]), "cr", "port_" + source);
+
+    //priority
+    addSelectCell(tr, oTPriority, oVPriority, parseInt(values[inx+3]), "cr", "pri_" + source);
+
+    //SSM Overwrite
+    addSelectCell(tr, oTSSM_over, oVSSM_over, parseInt(values[inx+4]), "cr", "ssmO_" + source);
+
+    //Hold Off time
+    addSelectCell(tr, oTHoldoff, oVHoldoff, parseInt(values[inx+5]), "cr", "hold_" + source);
+
+    //ANEG mode
+    addSelectCell(tr, oTaneg, oVaneg, parseInt(values[inx+6]), "cr", "aneg_" + source);
+
+    //Divider cell
+    addTextCell(tr, "   ", "cr");
+    
+    // LOS
+    link = values[inx+7];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+
+    // FOS
+//    link = values[8];
+//    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+
+    // SSM
+    link = values[inx+9];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+
+    // WTR
+    link = values[inx+10];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+    
+    // Clear WTR
+    addSelectCell(tr, oTClearWtr, oVClearWtr, parseInt(values[inx+11]), "cr", "wtrC_" + source);
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addSelectionMode(frag, values)
+{
+    var tr = CreateStyledElement("tr", "config_even");
+    
+    //mode
+    addSelectCell(tr, oTSelectionMode, oVSelectionMode, parseInt(values[0]), "cr", "selM");
+
+    //source
+    addSelectCell(tr, oTSource, oVSource, parseInt(values[1]), "cr", "selS");
+
+    //wtr time
+    addSelectCell(tr, oTWTR, oVWTR, parseInt(values[2]), "cr", "wtrT");
+
+    //SSM Hold Over
+    addSelectCell(tr, oTSSM_unlock, oVSSM_unlock, parseInt(values[3]), "cr", "ssmHo");
+
+    //SSM Free Run
+    addSelectCell(tr, oTSSM_unlock, oVSSM_unlock, parseInt(values[4]), "cr", "ssmFr");
+
+    //EEC option
+    if (values[5] >= 3) values[5] = 2;
+    addSelectCell(tr, oTEEC_option[values[5]], oVEEC_option[values[5]], parseInt(values[6]), "cr", "eecOpt");
+
+    //Divider cell
+    addTextCell(tr, "   ", "cr");
+    
+    // Selector state
+    state = parseInt(values[7]);
+    addTextCell(tr, selectorState[state], "cr");
+
+    // Clock Source
+    if (selectorState[state] == "Free Run")  addTextCell(tr, "", "cr");
+    else
+    if (selectorState[state] == "Holdover")  addTextCell(tr, "", "cr");
+    else                                     addTextCell(tr, values[8], "cr");
+
+    // LOSX
+//    link = values[9];
+//    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+
+    // LOL
+    link = values[10];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+
+    // DHOLD
+    link = values[11];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addStationClock(frag, values)
+{
+    var tr = CreateStyledElement("tr", "config_even");
+    
+    //Clock input mode
+    if (values[0] >= 3) values[0] = 2;
+    addSelectCell(tr, oTStationClockModeIn[values[0]], oVStationClockModeIn[values[0]], parseInt(values[1]), "cr", "clkIn");
+
+    //Clock output mode
+    addSelectCell(tr, oTStationClockModeOut[values[0]], oVStationClockModeOut[values[0]], parseInt(values[2]), "cr", "clkOut");
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addPortRow(index, enabled, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var value;
+    var enab;
+    
+    enab = parseInt(values[1]);
+    if ((!enabled && !enab) || (enabled && enab))
+    {
+        //port
+        var port = parseInt(values[0]);
+        addTextCell(tr, String(port), "cr");
+
+        //SSM enable
+        enabled = parseInt(values[1]);
+        addCheckBoxCell(tr, enab, "c", "ssmE_" + port);
+        
+        //Tx SSM
+        value = parseInt(values[2]);
+        if (enabled) addTextCell(tr, rx_tx_ssm[value], "cr");
+        else         addTextCell(tr, "", "cr");
+        
+        //Rx SSM
+        value = parseInt(values[3]);
+        if (enabled) addTextCell(tr, rx_tx_ssm[value], "cr");
+        else         addTextCell(tr, "", "cr");
+
+        //1000BaseT mode
+        value = parseInt(values[4]);
+        addTextCell(tr, baseTMode[value], "cr");
+
+        frag.appendChild(tr);       // Add row to fragment
+    }
+}
+
+function processUpdate(req)
+{
+    if (redirectOnError(req))
+        return;
+
+    var reset=0;
+
+    if (reqObject != req)   reqObject = req;
+    else                    reset = 1;
+
+    if (req.responseText)
+    {
+        var input = req.responseText;
+
+        synceConfig = input.split("|");
+        
+        var source_no = parseInt(synceConfig[0]);
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        var offset = 1;
+        
+        for (var i = 0; i < source_no; i++)
+        {
+            if (synceConfig[offset+i])
+            {
+                var pval = synceConfig[offset+i].split("/");
+                addNomRow(i, frag, pval);
+            }
+        }
+
+        var tbody = document.getElementById('synceConfigData');
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag))
+        { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+
+        var offset = offset + i;
+        
+        if (synceConfig[offset] && (synceConfig[offset] != "SYNCE_RC_OK") && (reset == 0))
+        {
+            if (synceConfig[offset] == "SYNCE_RC_INVALID_PARAMETER" )
+                alert("Invalid parameter detected");
+            else
+            if (synceConfig[offset] == "SYNCE_RC_NOM_PORT" )
+                alert("Port nominated to a clock source is already nominated");
+            else
+            if (synceConfig[offset] == "SYNCE_RC_SELECTION" )
+                alert("NOT possible to make Manual To Selected if not in locked mode");
+            else
+            if (synceConfig[offset] == "SYNCE_RC_INVALID_PORT" )
+                alert("The selected port is not valid");
+            else
+                alert("Unknown error returned from SYNCE - " + synceConfig[offset]);
+        }
+        
+        var pval = synceConfig[offset+1].split("/");
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+
+        addSelectionMode(frag, pval);
+        
+        var tbody = document.getElementById('synceSelectionData');
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag))
+        { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+        
+        if (synceConfig[offset+2] && (synceConfig[offset+2] != "SYNCE_RC_OK") && (reset == 0))
+        {
+            if (synceConfig[offset+2] == "SYNCE_RC_SELECTION" )
+                alert("NOT possible to make Manual To Selected if not in locked mode");
+            else
+                alert("Unknown error returned from SYNCE - " + synceConfig[offset+2]);
+        }
+
+        var pval = synceConfig[offset+3].split("/");
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+
+        addStationClock(frag, pval);
+        
+        var tbody = document.getElementById('stationClockData');
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag))
+        { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+        
+        if (synceConfig[offset+4] && (synceConfig[offset+4] != "SYNCE_RC_OK") && (reset == 0))
+        {
+            if (synceConfig[offset+4] == "SYNCE_RC_SELECTION" )
+                alert("NOT possible to make Manual To Selected if not in locked mode");
+            else
+                alert("Unknown error returned from SYNCE - " + synceConfig[offset+4]);
+        }
+        
+        
+        var port_no = parseInt(synceConfig[offset+5]);
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        var offset = offset+6;
+        
+        for (var i=0; i<port_no; i++)
+        {
+            if (synceConfig[offset+i])
+            {
+                var pval = synceConfig[offset+i].split("/");
+                addPortRow(i, 1, frag, pval);
+            }
+        }
+
+        for (var i=0; i<port_no; i++)
+        {
+            if (synceConfig[offset+i])
+            {
+                var pval = synceConfig[offset+i].split("/");
+                addPortRow(i, 0, frag, pval);
+            }
+        }
+
+        var tbody = document.getElementById('syncePortState');
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag))
+        { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+    else
+    {
+        SpomHandleError();
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate()
+{
+    // Format: [source]/[nominated]/[Port]/[priority]/[master] |...
+    document.getElementById("update").style.visibility = "visible";
+    if (SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+    loadXMLDoc(SpomAddSidArg("/config/synceConfig"), processUpdate, null);
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function checkForm(form)
+{
+    return true;                // Feed the chickens and go home
+}
+
+
+ </script>
+</head>
+
+
+
+<body class="content" onload="requestUpdate();">
+
+<h1>SyncE Configuration <span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<form name="synceConfigForm" method="POST" action="/config/synceConfig" onsubmit="return checkForm(this);">
+
+<h2>Clock Source Nomination and State</h2>
+
+<table id="synceConfig" summary="SyncE Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowSpan=2>Clock Source</th>
+   <th rowSpan=2>Nominated</th>
+   <th rowSpan=2>Port</th>
+   <th rowSpan=2>Priority</th>
+   <th rowSpan=2>SSM Overwrite</th>
+   <th rowSpan=2>Hold Off</th>
+   <th rowSpan=2>ANEG mode</th>
+   <th rowSpan=2>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>
+   <th rowSpan=2>LOCS</th>
+   <th rowSpan=2>SSM</th>
+   <th rowSpan=2>WTR</th>
+   <th rowSpan=2>Clear WTR</th>
+   </tr>
+ </thead>
+ <tbody id="synceConfigData">
+ </tbody>
+</table>
+
+<h2>Clock Selection Mode and State</h2>
+
+<table id="selectionMode" summary="SyncE Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowSpan=2>Mode</th>
+   <th rowSpan=2>Source</th>
+   <th rowSpan=2>WTR Time</th>
+   <th rowSpan=2>SSM Hold Over</th>
+   <th rowSpan=2>SSM Free Run</th>
+   <th rowSpan=2>EEC Option</th>
+   <th rowSpan=2>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>
+   <th rowSpan=2>State</th>
+   <th rowSpan=2>Clock Source</th>
+   <th rowSpan=2>LOL</th>
+   <th rowSpan=2>DHOLD</th>
+   </tr>
+ </thead>
+ <tbody id="synceSelectionData">
+ </tbody>
+</table>
+
+<h2>Station Clock Configuration</h2>
+
+<table id="stationClock" summary="SyncE Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowSpan=2>Clock input frequency</th>
+   <th rowSpan=2>Clock output frequency</th>
+   </tr>
+ </thead>
+ <tbody id="stationClockData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+<h2>SyncE Ports</h2>
+
+<table id="portState" summary="SyncE Ports" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowSpan=2>Port</th>
+   <th rowSpan=2>SSM Enable</th>
+   <th rowSpan=2>Tx SSM</th>
+   <th rowSpan=2>Rx SSM</th>
+   <th rowSpan=2>1000BaseT Mode</th>
+   </tr>
+ </thead>
+ <tbody id="syncePortState">
+ </tbody>
+</table>
+
+</form>
+
+<!-- IE caching bug -->
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

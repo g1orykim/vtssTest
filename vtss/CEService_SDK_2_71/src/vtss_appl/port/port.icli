@@ -1,0 +1,949 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL)
+
+INCLUDE_BEGIN
+#include "port_icli_functions.h"
+#include "icli_porting_util.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = show interface <port_type_list> statistics [ { packets | bytes | errors | discards | filtered | { priority [<0~7>] } } ] [ { up | down } ]
+
+DOC_CMD_DESC    = Shows the statistics for the interface.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Use to show the statistics for the interface.
+DOC_CMD_EXAMPLE = show interface GigabitEthernet 1/1 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = port_icli_runtime_qos_queues
+RUNTIME = port_icli_runtime_qos_queues
+RUNTIME = 
+RUNTIME = 
+ 
+! 1: show
+! 2: interface
+! 3: <port_type_list>
+! 4: statistics
+! 5: packets
+! 6: bytes
+! 7: errors
+! 8: discards
+! 9: filtered
+! 10: priority
+! 11: <0~7>
+! 12: up
+! 13: down
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list              
+CMD_VAR = 
+CMD_VAR = has_packets
+CMD_VAR = has_bytes
+CMD_VAR = has_errors
+CMD_VAR = has_discards
+CMD_VAR = has_filtered
+CMD_VAR = has_priority
+CMD_VAR = priority_v_0_to_7
+CMD_VAR = has_up
+CMD_VAR = has_down
+
+HELP = Display statistics counters. 
+HELP = Interface.
+HELP = Interface list.
+HELP = Display statistics counters. 
+HELP = Show packet statistics.
+HELP = Show byte statistics.
+HELP = Show error statistics.
+HELP = Show discard statistics.
+HELP = Show filtered statistics.
+HELP = Show priority statistics.
+HELP = Priority of the queue(s) to show statistics for.
+HELP = Show ports which are up
+HELP = Show ports which are down
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Packets : option>
+BYWORD = <Bytes : option>
+BYWORD = <Errors : option>
+BYWORD = <Discards : option>
+BYWORD = <Filtered : option>
+BYWORD = <Priority : option>
+BYWORD = 
+BYWORD = <Up : option>
+BYWORD = <Down : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_statistics(session_id, v_port_type_list, has_packets, has_bytes, has_errors, has_discards, has_filtered, has_priority, priority_v_0_to_7, has_up, has_down));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_UI_OPT_VERIPHY) 
+
+COMMAND = show interface <port_type_list> veriphy 
+
+DOC_CMD_DESC    = Run and display cable diagnostics.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Use to run and display cable diagnostics.
+DOC_CMD_EXAMPLE = show veriphy
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: veriphy
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list              
+
+
+HELP = Show 
+HELP = Interface
+HELP = Interface list.
+HELP = Run cable diagnostics and show result.
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_veriphy(session_id, v_port_type_list));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = clear statistics [interface] <port_type_list>
+
+DOC_CMD_DESC    = Clears the statistics for the interface.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Use to clear the statistics for the interface.
+DOC_CMD_EXAMPLE = clear statistics GigabitEthernet 1/1 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: clear
+! 2: statistics
+! 3: interface
+! 4: <port_type_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+
+HELP = Clear
+HELP = Clear statistics for one or more given interfaces
+HELP = Interface
+HELP = Interface list
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_statistics_clear(session_id, v_port_type_list));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = show interface <port_type_list> capabilities
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: interface
+! 3: <port_type_list>
+! 4: capabilities
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+CMD_VAR = 
+
+HELP = Display interface capabilities.
+HELP = Interface.
+HELP = Interface list.
+HELP = Display capabilities. 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_capabilities(session_id, v_port_type_list));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = show interface <port_type_list> status
+
+DOC_CMD_DESC    = Display status for the interface.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Use to display status for the interface.
+DOC_CMD_EXAMPLE = show interface status
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: interface
+! 3: <port_type_list>
+! 4: status
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+CMD_VAR = 
+
+HELP = Display interface status.
+HELP = Interface.
+HELP = Interface list.
+HELP = Display status. 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_status(session_id, v_port_type_list));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = mtu <'VTSS_MAX_FRAME_LENGTH_STANDARD'-'VTSS_MAX_FRAME_LENGTH_MAX'>
+
+DOC_CMD_DESC    = Use mtu to specify maximum frame size (1518-9600 bytes).
+DOC_CMD_DEFAULT = mtu is 9600 bytes
+DOC_CMD_USAGE   = Use to specify maximum frame size (1518-9600 bytes).
+DOC_CMD_EXAMPLE = mtu 1518
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: mtu
+! 2: <1518-9600>
+
+CMD_VAR = 
+CMD_VAR = max_length
+
+HELP = Maximum transmission unit
+HELP = Maximum frame size in bytes.
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_mtu(session_id, max_length, plist, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = no mtu
+
+DOC_CMD_DESC    = Use no mtu to set maximum frame size to default.
+DOC_CMD_DEFAULT = mtu is 9600.
+DOC_CMD_USAGE   = Use to set maximum frame size to default.
+DOC_CMD_EXAMPLE = no mtu
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: mtu
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = Set to default value.
+HELP = Maximum transmission unit
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_mtu(session_id, VTSS_MAX_FRAME_LENGTH_MAX, plist, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = shutdown
+
+DOC_CMD_DESC    = Use shutdown to shutdown the interface.
+DOC_CMD_DEFAULT = Interface is up.
+DOC_CMD_USAGE   = Use to shutdown the interface.
+DOC_CMD_EXAMPLE = shutdown
+
+NO_FORM_DOC_CMD_DESC    = Use "no shutdown" to power up the interface.
+NO_FORM_DOC_CMD_DEFAULT = Interface is up.
+NO_FORM_DOC_CMD_USAGE   = Use to power up the interface.
+NO_FORM_DOC_CMD_EXAMPLE = no shutdown
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: shutdown
+
+CMD_VAR = 
+
+HELP = Shutdown of the interface.
+
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_shutdown(session_id, plist, FALSE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(port_icli_shutdown(session_id, plist, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = speed { 10g | 2500 | 1000 | 100 | 10 | auto {[10] [100] [1000]} }
+
+PORT_SPEED_HELP = Configures interface speed. If you use 10, 100, or 1000 keywords with the auto keyword the port will only advertise the specified speeds.
+
+DOC_CMD_DESC    = ##PORT_SPEED_HELP
+DOC_CMD_DEFAULT = Speed is auto.
+DOC_CMD_USAGE   = ##PORT_SPEED_HELP
+DOC_CMD_EXAMPLE = speed 100
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: speed
+! 3: 10g
+! 3: 2500
+! 4: 1000
+! 5: 100
+! 6: 10
+! 7: auto
+! 8: 10
+! 9: 100
+! 10: 1000
+
+RUNTIME = 
+RUNTIME = port_icli_runtime_10g
+RUNTIME = port_icli_runtime_2g5
+
+HELP = ##PORT_SPEED_HELP
+HELP = 10Gbps
+HELP = 2.5Gbps
+HELP = 1Gbps
+HELP = 100Mbps
+HELP = 10Mbps
+HELP = Auto negotiation
+HELP = 10Mbps
+HELP = 100Mbps
+HELP = 1Gbps
+
+CMD_VAR = 
+CMD_VAR = has_speed_10g
+CMD_VAR = has_speed_2g5
+CMD_VAR = has_speed_1g
+CMD_VAR = has_speed_100m
+CMD_VAR = has_speed_10m
+CMD_VAR = has_speed_auto
+CMD_VAR = has_neg_10
+CMD_VAR = has_neg_100
+CMD_VAR = has_neg_1000
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_speed(session_id, plist, has_speed_10g, has_speed_2g5, has_speed_1g, has_speed_100m, has_speed_10m, has_speed_auto, has_neg_10, has_neg_100, has_neg_1000, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = no speed
+
+DOC_CMD_DESC    = Use "no speed" to configure interface to default speed.
+DOC_CMD_DEFAULT = Speed is auto.
+DOC_CMD_USAGE   = Use to configure interface speed to default.
+DOC_CMD_EXAMPLE = no speed
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: speed
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = Configure to default.
+HELP = Configure speed to default.
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_speed(session_id, plist, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = duplex { half | full | auto [ half | full ] }
+
+DOC_CMD_DESC    = Use duplex to configure interface duplex mode.
+DOC_CMD_DEFAULT = duplex is auto.
+DOC_CMD_USAGE   = Use to configure interface duplex mode.
+DOC_CMD_EXAMPLE = duplex full
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: duplex
+! 2: half
+! 3: full
+! 4: auto
+! 5: half
+! 6: full
+
+CMD_VAR = 
+CMD_VAR = has_half
+CMD_VAR = has_full
+CMD_VAR = has_auto
+CMD_VAR = has_advertise_hdx
+CMD_VAR = has_advertise_fdx
+
+HELP = Interface duplex
+HELP = Forced half duplex.
+HELP = Forced full duplex.
+HELP = Auto negotiation of duplex mode.
+HELP = Advertise half duplex.
+HELP = Advertise full duplex.
+
+BYWORD = 
+BYWORD = <Half : option>
+BYWORD = <Full : option>
+BYWORD = <Auto : option>
+BYWORD = <Half : option>
+BYWORD = <Full : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_duplex(session_id, plist, has_half, has_full, has_auto, has_advertise_hdx, has_advertise_fdx, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = no duplex
+
+DOC_CMD_DESC    = Use "no duplex" to set duplex to default.
+DOC_CMD_DEFAULT = duplex is auto.
+DOC_CMD_USAGE   = Use to set duplex to default.
+DOC_CMD_EXAMPLE = no duplex.
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: duplex
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = Set duplex to default.
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_duplex(session_id, plist, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = media-type { rj45 | sfp | dual }
+
+DOC_CMD_DESC    = Use media-type to configure the interface media type.
+DOC_CMD_DEFAULT = media-type is rj45
+DOC_CMD_USAGE   = Use to configure the interface media type.
+DOC_CMD_EXAMPLE = media-type sfp
+
+NO_FORM_DOC_CMD_DESC    = Use to configure the interface media-type type to default.
+NO_FORM_DOC_CMD_DEFAULT = media-type is rj45.
+NO_FORM_DOC_CMD_USAGE   = Use to configure the interface media-type type to default.
+NO_FORM_DOC_CMD_EXAMPLE = no media-type
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: media-type
+! 2: rj45
+! 3: sfp
+
+CMD_VAR = 
+CMD_VAR = has_rj45
+CMD_VAR = has_sfp
+CMD_VAR = has_dual
+
+HELP = Media type.
+HELP = rj45 interface (copper interface).
+HELP = sfp interface (fiber interface).
+HELP = Dual media interface (cu & fiber interface).
+
+BYWORD = 
+BYWORD = <Rj45 : option>
+BYWORD = <Sfp : option>
+BYWORD = <Dual : option>
+
+CODE_BEGIN
+   // Dual media mean both SFP and cu     
+   if (has_dual) {
+      has_sfp = TRUE;
+      has_rj45 = TRUE;
+   } 
+   VTSS_RC(port_icli_media_type(session_id, plist, has_rj45, has_sfp, FALSE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = no media-type 
+
+FORM_DOC_CMD_DESC    = Use to configure the interface media-type type to default.
+FORM_DOC_CMD_DEFAULT = media-type is rj45.
+FORM_DOC_CMD_USAGE   = Use to configure the interface media-type type to default.
+FORM_DOC_CMD_EXAMPLE = no media-type
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: media-type
+! 2: rj45
+! 3: sfp
+
+HELP =
+HELP = Set media type to default (dual for dual-media interfaces, rj45 for interfaces only supporting rj45, sfp for interfaces only supporting sfp).
+
+
+BYWORD = 
+BYWORD = <Rj45 : option>
+BYWORD = <Sfp : option>
+BYWORD = <Dual : option>
+
+CODE_BEGIN
+   VTSS_RC(port_icli_media_type(session_id, plist, TRUE, TRUE, TRUE));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = flowcontrol { on | off }
+
+DOC_CMD_DESC    = Use flowcontrol to configure flow control for the interface.
+DOC_CMD_DEFAULT = flow control receive and send is off.
+DOC_CMD_USAGE   = Use to configure flow control the interface.
+DOC_CMD_EXAMPLE = flowcontrol receive on
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: flowcontrol
+! 2: receive
+! 3: send
+! 4: on
+! 5: off
+
+CMD_VAR = 
+!CMD_VAR = has_receive
+!CMD_VAR = has_send
+CMD_VAR = has_on
+CMD_VAR = has_off
+
+HELP = Traffic flow control.
+!HELP = Switch response upon receiving pause frames from link partner.
+!HELP = Switch transmission of pause frames in case of traffic overflow. 
+!HELP = For receive - switch stops transmitting traffic when receiving pause request from link partner. For send - switch will transmit pause requests in case of traffic overflow.
+!HELP = For receive - switch ignores pause requests from link partner.. For send - no pause request is transmitted.
+HELP = Enable flow control.
+HELP = Disable flow control.
+
+BYWORD = 
+!BYWORD = <Receive : option>
+!BYWORD = <Send : option>
+BYWORD = <On : option>
+BYWORD = <Off : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_flow_control(session_id, plist, TRUE, TRUE, has_on, has_off, FALSE));    
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = no flowcontrol
+
+DOC_CMD_DESC    = Use no flowcontrol to set flow control to default.
+DOC_CMD_DEFAULT = flowcontrol is off.
+DOC_CMD_USAGE   = Use to set flow control to default configuration.
+DOC_CMD_EXAMPLE = no flowcontrol
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: flowcontrol
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = Set to default
+HELP = Configure flow control.
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_flow_control(session_id, plist, TRUE, TRUE, TRUE, TRUE, TRUE));    
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_PORT_CONTROL) 
+
+COMMAND = excessive-restart
+
+DOC_CMD_DESC    = Use excessive-restart to configure backoff algorithm in half duplex mode.
+DOC_CMD_DEFAULT = excessive-restart is no excessive-restart (Discard frame after 16 collisions).
+DOC_CMD_USAGE   = Use to configure backoff algorithm in half duplex mode.
+DOC_CMD_EXAMPLE = excessive-restart.
+
+NO_FORM_DOC_CMD_DESC    = Use no excessive-restart to configure backoff algorithm in half duplex mode to default.
+NO_FORM_DOC_CMD_DEFAULT = excessive-restart is no excessive-restart (Discard frame after 16 collisions).
+NO_FORM_DOC_CMD_USAGE   = Use to configure backoff algorithm in half duplex mode to default.
+NO_FORM_DOC_CMD_EXAMPLE = no excessive-restart
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: excessive-restart
+
+CMD_VAR = 
+
+HELP = Restart backoff algorithm after 16 collisions (No excessive-restart means discard frame after 16 collisions)
+
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    VTSS_RC(port_icli_excessive_restart(session_id, plist, FALSE));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    VTSS_RC(port_icli_excessive_restart(session_id, plist, TRUE));
+NO_FORM_CODE_END
+
+CMD_END
+

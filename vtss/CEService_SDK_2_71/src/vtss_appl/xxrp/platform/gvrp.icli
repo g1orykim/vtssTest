@@ -1,0 +1,593 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include <xxrp_icli.h>
+#include "../base/src/vtss_gvrp.h"
+
+extern void gvrp_dump_msti_state(void);
+
+INCLUDE_END
+
+FUNCTION_BEGIN
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug gvrp protocol-state interface <port_type_list> vlan <vlan_list>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: debug
+! 2: gvrp
+! 3: protocol-state
+! 4: interface
+! 5: <port_type_list>
+! 6: vlan
+! 7: <vlan_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Debug for the GVRP protocol 
+HELP = State of Applicant, Registrar and LeaveAll state machines
+HELP = 
+HELP = port or ports for which informations shall be shown
+HELP = 
+HELP = vlan or vlans for which informations shall be shown
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+gvrp_protocol_state(v_port_type_list, v_vlan_list);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug gvrp msti
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: debug
+! 2: gvrp
+! 3: msti
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = msti state
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+gvrp_dump_msti_state();
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = debug gvrp statistic
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! 1: debug
+! 2: gvrp
+! 3: msti
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = 
+HELP = statistic
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+vtss_gvrp_internal_statistic();
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = gvrp
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: gvrp
+
+CMD_VAR = 
+
+RUNTIME = 
+
+HELP = Enable GVRP feature
+
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+gvrp_global_enable(1/*enable*/, 20);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+gvrp_global_enable(0/*enable*/, 20);
+NO_FORM_CODE_END
+
+CMD_END
+       
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = gvrp time { [ join-time <1-20> ] [ leave-time <60-300> ] [ leave-all-time <1000-5000> ] }*1
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: gvrp
+! 2: time
+! 3: join-time
+! 4: <1-20>
+! 5: leave-time
+! 6: <60-300>
+! 7: leave-all-time
+! 8: <1000-5000>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_join_time
+CMD_VAR = jointime
+CMD_VAR = has_leave_time
+CMD_VAR = leavetime
+CMD_VAR = has_leave_all_time
+CMD_VAR = leavealltime
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Config GARP protocol timer parameters. IEEE 802.1D-2004, clause 12.11.
+HELP = Set GARP protocol parameter JoinTime. See IEEE 802.1D-2004, clause 12.11
+HELP = join-time in units of centi seconds. Range is 1-20. Default is 20.
+HELP = Set GARP protocol parameter LeaveTime. See IEEE 802.1D-2004, clause 12.11
+HELP = leave-time in units of centi seconds. Range is 60-300. Default is 60.
+HELP = Set GARP protocol parameter LeaveAllTime. See IEEE 802.1D-2004, clause 12.11
+HELP = leave-all-time in units of centi seconds Range is 1000-5000. Default is 1000.
+
+BYWORD = 
+BYWORD = Config protocol times
+BYWORD = join-time : Option
+BYWORD = <Jointime : 1-20>
+BYWORD = leave-time : Option
+BYWORD = <Leavetime : 60-300>
+BYWORD = leave-all-time : Option
+BYWORD = <Leavealltime : 1000-5000>
+
+VARIABLE_BEGIN
+    int rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_join_time) {
+        rc = vtss_gvrp_set_timer(GARP_TC__transmitPDU, jointime);
+        if (rc) {
+            ICLI_PRINTF("Failed: Set join-time");
+        }
+    }
+    if (has_leave_time) {
+        rc = vtss_gvrp_set_timer(GARP_TC__leavetimer, leavetime);
+        if (rc) {
+            ICLI_PRINTF("Failed: Set Leave-time");
+        }
+    }
+    if (has_leave_all_time) {
+        rc = vtss_gvrp_set_timer(GARP_TC__leavealltimer, leavealltime);
+        if (rc) {
+            ICLI_PRINTF("Failed: Set LeaveAll-time");
+        }
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    // Avoid lint warning 438: Last value assigned to to variable 'bla-bla' not used.
+    (void)has_join_time;
+    (void)has_leave_time;
+    (void)has_leave_all_time;
+    (void)jointime;
+    (void)leavetime;
+    (void)leavealltime;
+
+    (void)vtss_gvrp_set_timer(GARP_TC__transmitPDU, 20);
+    (void)vtss_gvrp_set_timer(GARP_TC__leavetimer, 60);
+    (void)vtss_gvrp_set_timer(GARP_TC__leavealltimer, 1000);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = gvrp max-vlans <1-4095>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! 1: gvrp
+! 2: max-vlans
+! 3: <1-4095>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = maxvlans
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = 
+HELP = Number of simultaniously VLANs that GVRP can control
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    gvrp_global_enable(1/*enable*/, maxvlans);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    gvrp_global_enable(0/*disable*/, maxvlans);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = gvrp
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: gvrp
+
+CMD_VAR = 
+
+RUNTIME = 
+
+HELP = Enable GVRP on port(s) 
+
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+  gvrp_port_enable(plist, 1);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+  gvrp_port_enable(plist, 0);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = gvrp join-request vlan <vlan_list>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: gvrp
+! 2: join-request
+! 3: vlan
+! 4: <vlan_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = GVRP command for test
+HELP = Emit a Join-Request for test purpose 
+HELP = 
+HELP = List of VLANs
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    gvrp_join_request(plist,v_vlan_list);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = gvrp leave-request vlan <vlan_list>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! 1: gvrp
+! 2: leave-request
+! 3: vlan
+! 4: <vlan_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_vlan_list
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+
+HELP = GVRP command for test
+HELP = Emit a Leave-Request for test purpose 
+HELP = keyword 'vlan'
+HELP = List of VLANs
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    gvrp_leave_request(plist,v_vlan_list);
+CODE_END
+
+CMD_END

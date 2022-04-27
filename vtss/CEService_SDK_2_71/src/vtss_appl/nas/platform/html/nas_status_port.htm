@@ -1,0 +1,816 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Network Access Server Port Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Refresh timer
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_nas_status_port.htm";
+var selectedPort = configPortMin;
+var AdminStateTyp = Array("Globally Disabled", "Force Authorized", "802.1X", "Force Unauthorized", "MAC-based Auth.", "Single 802.1X", "Multi 802.1X");
+
+// This piece of code makes sure that a specific port can be selected
+// directly, when navigating from a hyperlink on a different page.
+var arg_idx = document.URL.indexOf('?');
+if (arg_idx != -1) {
+  var args = document.URL.substring(arg_idx+1, document.URL.length);
+  var tups = args.split('&');
+  var i;
+  for (i = 0; i < tups.length; i++) {
+    var tup = tups[i].split('=');
+    if (tup.length == 2) {
+      if (tup[0] == 'port') {
+        selectedPort = parseInt(tup[1], 10);
+      }
+    }
+  }
+}
+
+var ADMIN_STATE_FORCE_AUTH        = 1;
+var ADMIN_STATE_DOT1X_PORT_BASED  = 2;
+var ADMIN_STATE_FORCE_UNAUTH      = 3;
+var ADMIN_STATE_MAC_BASED         = 4;
+var ADMIN_STATE_DOT1X_SINGLE      = 5;
+var ADMIN_STATE_DOT1X_MULTI       = 6;
+
+var PORT_STATE_LINK_DOWN          = 0;
+var PORT_STATE_AUTHORIZED         = 1;
+var PORT_STATE_UNAUTHORIZED       = 2;
+var PORT_STATE_GLOBALLY_DISABLED  = 3;
+// >= 4 => auth/unauth count.
+
+var PARM_IDX_authEntersConnecting                 =  0;
+var PARM_IDX_authEapLogoffsWhileConnecting        =  1;
+var PARM_IDX_authEntersAuthenticating             =  2;
+var PARM_IDX_authAuthSuccessesWhileAuthenticating =  3;
+var PARM_IDX_authAuthTimeoutsWhileAuthenticating  =  4;
+var PARM_IDX_authAuthFailWhileAuthenticating      =  5;
+var PARM_IDX_authAuthEapStartsWhileAuthenticating =  6;
+var PARM_IDX_authAuthEapLogoffWhileAuthenticating =  7;
+var PARM_IDX_authAuthReauthsWhileAuthenticated    =  8;
+var PARM_IDX_authAuthEapStartsWhileAuthenticated  =  9;
+var PARM_IDX_authAuthEapLogoffWhileAuthenticated  = 10;
+var PARM_IDX_dot1xAuthEapolFramesRx               = 11;
+var PARM_IDX_dot1xAuthEapolFramesTx               = 12;
+var PARM_IDX_dot1xAuthEapolStartFramesRx          = 13;
+var PARM_IDX_dot1xAuthEapolLogoffFramesRx         = 14;
+var PARM_IDX_dot1xAuthEapolRespIdFramesRx         = 15;
+var PARM_IDX_dot1xAuthEapolRespFramesRx           = 16;
+var PARM_IDX_dot1xAuthEapolReqIdFramesTx          = 17;
+var PARM_IDX_dot1xAuthEapolReqFramesTx            = 18;
+var PARM_IDX_dot1xAuthInvalidEapolFramesRx        = 19;
+var PARM_IDX_dot1xAuthEapLengthErrorFramesRx      = 20;
+var PARM_IDX_dot1xAuthLastEapolFrameVersion       = 21;
+var PARM_IDX_EAPOL_CNT                            = 22;
+
+var PARM_IDX_backendResponses                     =  0;
+var PARM_IDX_backendAccessChallenges              =  1;
+var PARM_IDX_backendOtherRequestsToSupplicant     =  2; // Not counting for MAC-based authentication
+var PARM_IDX_backendAuthSuccesses                 =  3;
+var PARM_IDX_backendAuthFails                     =  4;
+var PARM_IDX_BACKEND_CNT                          =  5;
+
+// Maps to nas_port_status_t;
+var PortStateTyp = Array("Link Down", "Authorized", "Unauthorized", "Globally Disabled");
+
+//****************************************
+// Debug only
+//****************************************
+function my_alert(txt, exp, act)
+{
+  alert("Expected " + exp + " " + txt + " elements, got " + act);
+}
+
+//****************************************
+//****************************************
+function create_tr(row)
+{
+  return CreateStyledElement("tr", (row % 2) ? "display_odd" : "display_even");
+}
+
+//****************************************
+//****************************************
+function create_stat_table_row(row, txt1, val1, txt2, val2)
+{
+  var tr = create_tr(row);
+  addTextCell(tr, txt1, "displaytext");
+  addTextCell(tr, val1, "cr");
+  addTextCell(tr, txt2, "displaytext");
+  addTextCell(tr, val2, "cr");
+  return tr;
+}
+
+//****************************************
+// Port-state: Link Down = 0, Authorized = 1, Unauthorized = 2, Globally Disabled = 3
+//****************************************
+function build_port_state_table(admin_state, backend_qos_support, vlan_support, port_state, qos_class, vid)
+{
+  var tr;
+  var frag = document.createDocumentFragment();
+  var row = 0;
+
+  // Admin State
+  tr = create_tr(row++);
+  addTypedTextCell(tr, "td", "Admin State", "param_label");
+  addTextCell(tr, AdminStateTyp[admin_state], "cl");
+  frag.appendChild(tr);
+
+  tr = create_tr(row++);
+  addTypedTextCell(tr, "td", "Port State", "param_label");
+
+  // Port State (Link Down = 0, Authorized = 1, Unauthorized = 2, Disabled = 3).
+  // If value >= 4 it's interpreted as the number of authenticated and unauthenticated clients on this port.
+  if (port_state >= PortStateTyp.length) {
+    var unauth_clients = 0;
+    var auth_clients   = 0;
+    // Multi-client. The port_state is encoded as follows: Upper 16 bits = # of unauthorized clients + 1, Lower 16 bits = # of authorized clients + 1
+    unauth_clients = ((port_state >> 16) & 0xFFFF) - 1;
+    auth_clients   = ((port_state >>  0) & 0xFFFF) - 1;
+    addTextCell(tr, auth_clients + " Auth/" + unauth_clients + " Unauth", "cl");
+  } else {
+    addTextCell(tr, PortStateTyp[port_state], "cl");
+  }
+  frag.appendChild(tr);
+
+  if (backend_qos_support) {
+    tr = create_tr(row++);
+    addTypedTextCell(tr, "td", "QoS Class", "param_label");
+    addTextCell(tr, qos_class, "cl");
+    frag.appendChild(tr);
+  }
+
+  if (vlan_support) {
+    tr = create_tr(row++);
+    addTypedTextCell(tr, "td", "Port VLAN ID", "param_label");
+    addTextCell(tr, vid, "cl");
+    frag.appendChild(tr);
+  }
+
+  var tbody = document.getElementById('port_state_tbody');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag);
+}
+
+//****************************************
+// [client]           = identity/mac_addr/vid/state/last_auth_time
+// [eapol_counters]   = eapol_cnt1/eapol_cnt2/.../eapol_cnt22         (non-empty for BPDU-based protocols)
+// [backend_counters] = backend_cnt1/backend_cnt2/.../backend_cnt5    (non-empty for backend-based protocols)
+// [client_data]      = [client]|[eapol_counters]|[backend_counters]
+//****************************************
+function build_counter_table(admin_state, port_state, client_data, is_port_counters)
+{
+  var table_name, div_name, show_table = true, what;
+  var client, eapol_counters, backend_counters;
+  what = is_port_counters ? "summed" : "specific";
+  var style_mac      = "cr mac";
+  var style_identity = "cr";
+
+  if (is_port_counters) {
+    // Building a table for port counter
+    div_name   = "port_counters";
+    table_name = "port_counters_tbody";
+    show_table = port_state != PORT_STATE_LINK_DOWN && port_state != PORT_STATE_GLOBALLY_DISABLED;
+  } else {
+    // Building a table for a specific client
+    div_name   = "specific_counters";
+    table_name = "specific_counters_tbody";
+    show_table = (admin_state == ADMIN_STATE_MAC_BASED || admin_state == ADMIN_STATE_DOT1X_MULTI) && port_state >= PortStateTyp.length;
+  }
+
+  // Check data
+  if (show_table) {
+    if (client_data.length !== 0) {
+      if (client_data.length != 3) {
+        my_alert(what, 3, client_data.length);
+        show_table = false;
+      }
+      client = client_data[0].split("/");
+      if (client.length != 5) {
+        my_alert(what + ".client", 5, client.length);
+        show_table = false;
+      }
+
+      // Do not show EAPOL counters for MAC-based authentication
+      if (String(client_data[1]) === "" || admin_state == ADMIN_STATE_MAC_BASED) {
+        eapol_counters = Array();
+      } else {
+        eapol_counters = client_data[1].split("/");
+        if (eapol_counters.length != PARM_IDX_EAPOL_CNT) {
+          my_alert(what + ".eapol_counters", PARM_IDX_EAPOL_CNT, eapol_counters.length);
+          show_table = false;
+        }
+      }
+
+      // Do not show Backend counters for Force Auth and Force Unauth
+      if (String(client_data[2]) === "" || admin_state == ADMIN_STATE_FORCE_AUTH || admin_state == ADMIN_STATE_FORCE_UNAUTH) {
+        backend_counters = Array();
+      } else {
+        backend_counters = client_data[2].split("/");
+        if (backend_counters.length != PARM_IDX_BACKEND_CNT) {
+          my_alert(what + ".backend_counters", PARM_IDX_BACKEND_CNT, backend_counters.length);
+          show_table = false;
+        }
+      }
+    } else {
+      // We gotta create dummy eapol and backend counters for multi state machines
+      // if this is a specific but none is selected.
+      if (!is_port_counters && (admin_state == ADMIN_STATE_DOT1X_MULTI || admin_state == ADMIN_STATE_MAC_BASED)) {
+        client           = Array();
+        eapol_counters   = Array();
+        backend_counters = Array();
+
+        var i;
+        var n;
+        for (i = 0; i < 5; i++) {
+          client.push("");
+        }
+
+        if (admin_state == ADMIN_STATE_MAC_BASED) {
+          i = 1;
+          n = "client";
+        } else {
+          i = 0;
+          n = "supplicant";
+        }
+        client[i] = "No " + n + " selected";
+        style_mac = style_identity = "cr notice";
+
+        if (admin_state == ADMIN_STATE_DOT1X_MULTI) {
+          for (i = 0; i < PARM_IDX_EAPOL_CNT; i++) {
+            eapol_counters.push("");
+          }
+        }
+
+        for (i = 0; i < PARM_IDX_BACKEND_CNT; i++) {
+          backend_counters.push("");
+        }
+      } else {
+        show_table = false;
+      }
+    }
+  }
+
+  if (show_table) {
+    if (eapol_counters.length === 0 && backend_counters.length === 0) {
+      show_table = false;
+    }
+  }
+
+  var div_elem = document.getElementById(div_name);
+  if (show_table) {
+    div_elem.style.visibility = "visible";
+  } else {
+    div_elem.style.visibility = "hidden";
+    return;
+  }
+
+  var frag = document.createDocumentFragment();
+  var tr, row;
+
+  if (eapol_counters.length) {
+    // Needs EAPOL counters.
+    tr = CreateStyledElement("tr", "display_header");
+    addTextHeaderCell(tr, "Receive EAPOL Counters", "", 2);
+    addTextHeaderCell(tr, "Transmit EAPOL Counters", "", 2);
+    frag.appendChild(tr);
+
+    row = 0;
+    frag.appendChild(create_stat_table_row(row++, "Total",          eapol_counters[PARM_IDX_dot1xAuthEapolFramesRx],          "Total",      eapol_counters[PARM_IDX_dot1xAuthEapolFramesTx]));
+    frag.appendChild(create_stat_table_row(row++, "Response ID",    eapol_counters[PARM_IDX_dot1xAuthEapolRespIdFramesRx],    "Request ID", eapol_counters[PARM_IDX_dot1xAuthEapolReqIdFramesTx]));
+    frag.appendChild(create_stat_table_row(row++, "Responses",      eapol_counters[PARM_IDX_dot1xAuthEapolRespFramesRx],      "Requests",   eapol_counters[PARM_IDX_dot1xAuthEapolReqFramesTx]));
+    frag.appendChild(create_stat_table_row(row++, "Start",          eapol_counters[PARM_IDX_dot1xAuthEapolStartFramesRx],     "",           ""));
+    frag.appendChild(create_stat_table_row(row++, "Logoff",         eapol_counters[PARM_IDX_dot1xAuthEapolLogoffFramesRx],    "",           ""));
+    frag.appendChild(create_stat_table_row(row++, "Invalid Type",   eapol_counters[PARM_IDX_dot1xAuthInvalidEapolFramesRx],   "",           ""));
+    frag.appendChild(create_stat_table_row(row++, "Invalid Length", eapol_counters[PARM_IDX_dot1xAuthEapLengthErrorFramesRx], "",           ""));
+  }
+
+  if (backend_counters.length) {
+    tr = CreateStyledElement("tr", "display_header");
+    addTextHeaderCell(tr, "Receive Backend Server Counters", "", 2);
+    addTextHeaderCell(tr, "Transmit Backend Server Counters", "", 2);
+    frag.appendChild(tr);
+
+    row = 0;
+    frag.appendChild(create_stat_table_row(row++, "Access Challenges", backend_counters[PARM_IDX_backendAccessChallenges],         "Responses", backend_counters[PARM_IDX_backendResponses]));
+    // "Other Requests" are not incremented for MAC-based authentication. Skip it in that case.
+    if (admin_state != ADMIN_STATE_MAC_BASED) {
+      frag.appendChild(create_stat_table_row(row++, "Other Requests",    backend_counters[PARM_IDX_backendOtherRequestsToSupplicant], "", ""));
+    }
+    frag.appendChild(create_stat_table_row(row++, "Auth. Successes",   backend_counters[PARM_IDX_backendAuthSuccesses],             "",         ""));
+    frag.appendChild(create_stat_table_row(row++, "Auth. Failures",    backend_counters[PARM_IDX_backendAuthFails],                 "",         ""));
+  }
+
+  var title = "";
+  if (is_port_counters) {
+    // Summed, overall, port-counters
+    if (admin_state == ADMIN_STATE_DOT1X_PORT_BASED || admin_state == ADMIN_STATE_DOT1X_MULTI) {
+      title = "Last Supplicant Info";
+    } else if (admin_state == ADMIN_STATE_MAC_BASED) {
+      title = "Last Client Info";
+    } else if (admin_state == ADMIN_STATE_DOT1X_SINGLE) {
+      title = "Supplicant Info";
+    }
+    // Do not show supplicant info for Force (Un)Auth.
+  } else {
+    // For specific MAC address/Supplicant.
+    if (admin_state == ADMIN_STATE_MAC_BASED) {
+      title = "Client Info";
+    } else if (admin_state == ADMIN_STATE_DOT1X_MULTI) {
+      title = "Supplicant Info";
+    }
+  }
+
+  if (title !== "") {
+    tr = CreateStyledElement("tr", "display_header");
+    addTextHeaderCell(tr, title, "", 4);
+    frag.appendChild(tr);
+
+    row = 0;
+    tr = create_tr(row++);
+    addTextCell(tr, "MAC Address", "displaytext");
+    addTextCell(tr, client[1], style_mac, 3);
+    frag.appendChild(tr);
+
+    tr = create_tr(row++);
+    var vid = client[2];
+    if (vid === 0) {
+      vid = "";
+    }
+    addTextCell(tr, "VLAN ID", "displaytext");
+    addTextCell(tr, vid, "cr", 3);
+    frag.appendChild(tr);
+
+    if (admin_state != ADMIN_STATE_MAC_BASED) {
+      tr = create_tr(row++);
+      addTextCell(tr, "Version", "displaytext");
+      addTextCell(tr, eapol_counters[PARM_IDX_dot1xAuthLastEapolFrameVersion], "cr", 3);
+      frag.appendChild(tr);
+
+      tr = create_tr(row++);
+      addTextCell(tr, "Identity", "displaytext");
+      addTextCell(tr, unescape(client[0]), style_identity, 3);
+      frag.appendChild(tr);
+    }
+  }
+
+  var table_elem = document.getElementById(table_name);
+  clearChildNodes(table_elem);
+  table_elem.appendChild(frag);
+}
+
+// Predeclaration of a function to avoid JSLint warning.
+var requestUpdateMac;
+
+//****************************************
+//****************************************
+function build_clients_table(admin_state, port_state, port_number, clients)
+{
+  var show_table = (admin_state == ADMIN_STATE_DOT1X_MULTI || admin_state == ADMIN_STATE_MAC_BASED) && port_state >= PortStateTyp.length;
+  var div_elem = document.getElementById("attached_clients");
+
+  if (show_table) {
+    div_elem.style.visibility = "visible";
+  } else {
+    div_elem.style.visibility = "hidden";
+    return;
+  }
+
+  var frag = document.createDocumentFragment();
+  var tr = CreateStyledElement("tr", "display_header");
+  var col_cnt = 4;
+  var name    = "clients";
+  var style   = "c mac";
+  if (admin_state == ADMIN_STATE_DOT1X_MULTI) {
+    addTextHeaderCell(tr, "Identity");
+    col_cnt = 5;
+    name    = "supplicants";
+    style   = "cl";
+  }
+  addTextHeaderCell(tr, "MAC Address");
+  addTextHeaderCell(tr, "VLAN ID");
+  addTextHeaderCell(tr, "State");
+  addTextHeaderCell(tr, "Last Authentication");
+  frag.appendChild(tr);
+
+  if (clients.length) {
+    var i;
+    for (i = 0; i < clients.length; i++) {
+      // [client] = identity/mac_addr/vid/state/last_auth_time
+      var client = clients[i].split("/");
+      if (client.length != 5) {
+        my_alert("attached.client #" + (i + 1), 5, client.length);
+        break;
+      }
+
+      tr = CreateStyledElement("tr", i % 2 ? "display_odd" : "display_even");
+
+      // MAC address or Identity with href.
+      var identity  = unescape(client[0]);
+      var mac       = client[1];
+      var vid       = client[2];
+      var hyper_txt = mac;
+      if (admin_state == ADMIN_STATE_DOT1X_MULTI) {
+        hyper_txt = identity;
+      }
+      var td = CreateStyledElement("td", style);
+      var txt  = document.createTextNode(hyper_txt);
+      var link = document.createElement("a");
+      link.href = "/stat/nas_status_port.htm?port=" + port_number + "&mac=" + mac + "&vid=" + vid;
+      link.onclick = requestUpdateMac;
+      link.appendChild(txt);
+      td.appendChild(link);
+      tr.appendChild(td);
+
+      if (admin_state == ADMIN_STATE_DOT1X_MULTI) {
+        addTextCell(tr, mac, "c mac");
+      }
+      addTextCell(tr, vid, "cr");
+      addTextCell(tr, PortStateTyp[client[3]], "cl");
+      addTextCell(tr, client[4], "cl");
+      frag.appendChild(tr);
+    }
+  } else {
+    tr = CreateStyledElement("tr", "notice");
+    addTextCell(tr, "No " + name + " attached", "cl", col_cnt);
+    frag.appendChild(tr);
+  }
+
+  if (admin_state == ADMIN_STATE_MAC_BASED) {
+    document.getElementById("attached_name").innerHTML = "Clients";
+  }
+  var table_elem = document.getElementById("attached_clients_tbody");
+  clearChildNodes(table_elem);
+  table_elem.appendChild(frag);
+}
+
+//****************************************
+//****************************************
+function contentUpdate(req, ref)
+{
+  // Format:
+  //   [port_cfg]#[summed]#[specific]#[attached_clients]
+  // Where
+  //   [port_cfg]         = port_number/protocols/options/admin_state/qos_class/vlan_type/vid (always non-empty)
+  //   [client]           = identity/mac_addr/vid/state/last_auth_time
+  //   [eapol_counters]   = eapol_cnt1/eapol_cnt2/.../eapol_cnt22                             (non-empty for BPDU-based protocols)
+  //   [backend_counters] = backend_cnt1/backend_cnt2/.../backend_cnt5                        (non-empty for backend-based protocols)
+  //   [client_data]      = [client]|[eapol_counters]|[backend_counters]
+  //   [summed]           = [client_data]                                                     (always non-empty)
+  //   [specific]         = [client_data]                                                     (may be non-empty for multi-clients)
+  //   [attached_clients] = [client1]|[client2]|...|[clientN]                                 (may be non-empty for multi-clients)
+
+  document.getElementById("update").style.visibility = "hidden";
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  var values = req.responseText.split("#");
+  if (values.length != 4) {
+    my_alert("major", 4, values.length);
+    return;
+  }
+
+  var port_cfg = values[0].split("/");
+  if (port_cfg.length != 7) {
+    my_alert("port_cfg", 7, port_cfg.length);
+    return;
+  }
+
+  var port_number              =  port_cfg[0];
+  var dot1x_port_based_support = (port_cfg[1] & 0x1) !== 0;
+  var mac_based_support        = (port_cfg[1] & 0x2) !== 0;
+  var dot1x_single_support     = (port_cfg[1] & 0x4) !== 0;
+  var dot1x_multi_support      = (port_cfg[1] & 0x8) !== 0;
+  var backend_qos_support      = (port_cfg[2] & 0x1) !== 0;
+  var backend_vlan_support     = (port_cfg[2] & 0x2) !== 0;
+  var guest_vlan_support       = (port_cfg[2] & 0x4) !== 0;
+  var admin_state              =  port_cfg[3];
+  var qos_class                =  port_cfg[4];
+  // var vlan_type                =  port_cfg[5];
+  var vid                      =  port_cfg[6];
+
+  // RADIUS-assigned QoS and VLAN only supported on Single-client ports
+  if (admin_state != ADMIN_STATE_DOT1X_PORT_BASED && admin_state != ADMIN_STATE_DOT1X_SINGLE) {
+    backend_qos_support  = false;
+    backend_vlan_support = false;
+  }
+
+  if (admin_state != ADMIN_STATE_DOT1X_PORT_BASED && admin_state != ADMIN_STATE_DOT1X_SINGLE && admin_state != ADMIN_STATE_DOT1X_MULTI) {
+    guest_vlan_support = false;
+  }
+
+  var vlan_support = backend_vlan_support || guest_vlan_support;
+
+  var summed = values[1].split("|");
+  if (summed.length != 3) {
+    my_alert("summed", 3, summed.length);
+    return;
+  }
+  var summed_client = summed[0].split("/");
+  if (summed_client.length != 5) {
+    my_alert("summed.client", 5, summed_client.length);
+    return;
+  }
+  var port_state = summed_client[3];
+
+  var specific;
+  if (String(values[2]) === "") {
+    specific = Array();
+  } else {
+    specific = values[2].split("|");
+    if (specific.length != 3) {
+      my_alert("specific", 3, specific.length);
+      return;
+    }
+  }
+
+  var attached_clients;
+  if (String(values[3]) === "") {
+    attached_clients = Array();
+  } else {
+    attached_clients = values[3].split("|");
+  }
+
+  if (dot1x_port_based_support && (dot1x_single_support || dot1x_multi_support)) {
+    // Emphasize that it's port-based 802.1X when at least
+    // one of the other 802.1X types are defined.
+    AdminStateTyp[2] = "Port-based 802.1X";
+  } else {
+    AdminStateTyp[2] = "802.1X";
+  }
+
+  build_port_state_table(admin_state, backend_qos_support, vlan_support, port_state, qos_class, vid);
+  build_counter_table(admin_state, port_state, summed,   true);
+  build_counter_table(admin_state, port_state, specific, false);
+  build_clients_table(admin_state, port_state, port_number, attached_clients);
+
+  // The Clear Specific button also needs to pass the MAC address and VID
+  var clear_specific_button = document.getElementById('clear_specific_button');
+  var url_params_without_clear = "port=" + selectedPort;
+  if (specific.length) {
+    var specific_client = specific[0].split("/");
+    url_params_without_clear += "&mac=" + specific_client[1] + "&vid=" + specific_client[2];
+  }
+  clear_specific_button.setAttribute("url_params", url_params_without_clear + "&clear=1");
+
+  // The Clear Specific button is not visible for single-client modes and is grayed out if
+  // no specific client is selected.
+  var is_multi_client = admin_state == ADMIN_STATE_MAC_BASED || admin_state == ADMIN_STATE_DOT1X_MULTI;
+  clear_specific_button.style.visibility = is_multi_client && port_state >= PortStateTyp.length ? "visible" : "hidden";
+  clear_specific_button.disabled         = !specific.length;
+
+  // The Clear All button needs to say "Clear" in single-client modes and "Clear All" in multi-client modes.
+  var clear_all_button = document.getElementById('clear_all_button');
+  clear_all_button.style.visibility = port_state == PORT_STATE_GLOBALLY_DISABLED || port_state == PORT_STATE_LINK_DOWN ? "hidden" : "visible";
+  clear_all_button.value            = is_multi_client ? "Clear All" : "Clear";
+
+  // Update the "Port Y" part of "802.1X Statistics for Switch X Port Y".
+  document.getElementById("port").innerHTML = "Port " + port_number;
+
+  // Update the timer
+  var autorefresh = document.getElementById('autorefresh');
+  autorefresh.setAttribute("url_params", url_params_without_clear);
+  if (autorefresh.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = setTimeout('requestTimerUpdate()', settingsRefreshInterval());
+  }
+}
+
+//****************************************
+//****************************************
+function doRequestUpdate(params) {
+  if (SpomNavigationLoading()) {
+    return;                 // Bail out, navigation will trigger update
+  }
+
+  document.getElementById("update").style.visibility = "visible";
+  loadXMLDoc(SpomAddSidArg("/stat/nas_status_port?" + params), contentUpdate, null);
+  SpomUpdateDisplaySid("sid_display");
+}
+
+//****************************************
+// This function is pre-declared to avoid
+// JSLint error: 'requestUpdateMac' was
+// used before it was defined.
+// This is necessary because it uses
+// doRequestUpdate(), which in turn uses
+// contentUpdate(), which in turn uses this
+// function in an onclick handler.
+//****************************************
+requestUpdateMac = function()
+{
+  // When this function is called, the user clicked
+  // one of the MAC addresses. The "URL" is not
+  // a real URL, so clicking it won't cause any data
+  // to be retrieved. Instead we need to parse the
+  // string and request the data manually.
+  if (!this) {
+    return false;
+  }
+
+  // this.href is a string like this: "http://10.10.132.28/stat/nas_status_port.htm?port=1&mac=00-01-02-03-04-05&vid=1234
+  // Get the part after the '?'
+  /*jslint regexp: false */
+  // Tolerate . and [^...]. in /RegExp
+  var parameterString = this.href.replace(/.*\?(.*)/, "$1");
+  /*jslint regexp: true */
+  // And use that in the call to loadXMLDoc():
+  doRequestUpdate(parameterString);
+  return false; // Avoid that browser attempts to open the URL.
+};
+
+//****************************************
+//****************************************
+function requestTimerUpdate()
+{
+  // When this function is called, the user
+  // clicked the refresh button or a timeout
+  // occurred.
+  // The url_params include the MAC address and VID
+  // when it's a multi-client mode and it's set in
+  // the contentUpdate() function
+  var autorefresh = document.getElementById('autorefresh');
+  var url_params = autorefresh.getAttribute("url_params");
+  if (!url_params) {
+    url_params = "port=" + selectedPort;
+  }
+  doRequestUpdate(url_params);
+}
+
+//****************************************
+//****************************************
+function requestUpdate() {
+  doRequestUpdate("port=" + selectedPort);
+}
+
+//****************************************
+//****************************************
+function requestClearAll()
+{
+  doRequestUpdate("clear=1&port=" + selectedPort);
+}
+
+//****************************************
+//****************************************
+function requestClearSpecific()
+{
+  // The url_params include the MAC address and VID when
+  // it's a multi client and it's set in the contentUpdate() function
+  var clear_specific_button = document.getElementById("clear_specific_button");
+  var url_params = clear_specific_button.getAttribute("url_params");
+  if (!url_params) {
+    requestClearAll();
+  } else {
+    doRequestUpdate(url_params);
+  }
+}
+
+//****************************************
+//****************************************
+function PortSelect(sel)
+{
+  selectedPort = sel.options[sel.selectedIndex].value;
+  requestUpdate();
+}
+
+//****************************************
+//****************************************
+function chkRefresh(fld)
+{
+  if (!fld.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = null;
+  } else {
+    requestTimerUpdate();
+  }
+}
+
+//****************************************
+//****************************************
+function SpomSidSelectorUpdate(sid, max_port_cnt)
+{
+  SpomSetCurrentSid(sid); // Save current SID
+  // Change selected port if currently selected port is not supported on new SID.
+  selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+  requestUpdate();        // Update page to reflect selector
+}
+
+//****************************************
+// Called only once. Used to fill in the port selector
+//****************************************
+function docLoad()
+{
+  selectedPort = SpomUpdatePortSelector("portselect", selectedPort);
+  requestUpdate();
+}
+
+ </script>
+</head>
+
+  <body class="content" onload="docLoad();">
+
+    <h1>NAS Statistics<span>&nbsp;</span><span id="sid_display"></span><span>&nbsp;</span><span id="port"></span></h1>
+
+    <div class="refreshbar">
+      <form action="#">
+        <select id="portselect" onchange="PortSelect(this);">
+          <option value="1">Port 1</option>
+          <option value="99">Port 99</option>
+        </select>
+        <label for="autorefresh">Auto-refresh</label>
+        <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+        <input type="button" value="Refresh"    onclick="requestTimerUpdate();   this.blur();">
+        <input type="button" value="Clear All"  onclick="requestClearAll();      this.blur();" id="clear_all_button">
+        <input type="button" value="Clear This" onclick="requestClearSpecific(); this.blur();" id="clear_specific_button">
+        <img id="update" alt="" src="images/updating.gif">
+     </form>
+    </div>
+
+    <h2>Port State</h2>
+    <table summary="Port State" class="display">
+      <tbody id="port_state_tbody"></tbody>
+    </table>
+
+    <!-- This page needs to be built dynamically, because it must support -->
+    <!-- different kinds of views depending on the admin state.           -->
+    <table summary="Counters">
+      <tbody>
+        <tr>
+          <td>
+            <div id="port_counters">
+              <h2>Port Counters</h2>
+              <table summary="Port Counters" class="display">
+                <tbody id="port_counters_tbody"></tbody>
+              </table>
+            </div>
+          </td>
+          <td>
+            <div id="specific_counters">
+              <h2>Selected Counters</h2>
+              <table summary="Summed Counters" class="display">
+                <tbody id="specific_counters_tbody"></tbody>
+              </table>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div id="attached_clients">
+      <h2>Attached<span>&nbsp;</span><span id="attached_name">Supplicants</span></h2>
+      <table summary="Attached Clients" class="display">
+        <tbody id="attached_clients_tbody"></tbody>
+      </table>
+    </div>
+
+  </body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

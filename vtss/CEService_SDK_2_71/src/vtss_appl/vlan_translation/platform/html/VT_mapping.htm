@@ -1,0 +1,429 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Protocol Group to VLAN mapping table</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+ var help_page = "/help/help_VT_mapping.htm";
+var timerID;
+var timeOut = settingsRefreshInterval();
+var maxEntriesNum = configVlanTranslationMax;
+var maxEntriesVlan = configVlanEntryCnt;
+var entryIdxArray = Array();
+var originalEntriesNum, newEntriesNum;
+/* common attributes of Group ID, VLAN ID fields */
+var VIDSizeLength = 4;
+var GroupIDSizeLength = 3;
+/************************************************/
+
+function addEntryIdx()
+{
+    var fld;
+    if (originalEntriesNum+newEntriesNum >= maxEntriesNum) {
+        return 0;
+    }
+    for (var i = 1; i <= maxEntriesVlan; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newEntriesNum++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1]);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById('VTDataTbl').deleteRow(tr.rowIndex);
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tbody = document.getElementById("VTDataTbl");
+
+    if (originalEntriesNum ==0 && newEntriesNum == 0) {
+       clearChildNodes(tbody);
+       addTblHeader(frag);
+       // no entries found - Display that in the table
+           tr = CreateStyledElement("tr","config_even");
+           addTextCell(tr, "", "c");
+           addTextCell(tr, "No VLAN Translation entry found", "c");
+           addTextCell(tr, "", "c");
+           addTextCell(tr, "", "c");
+           frag.appendChild(tr);       // Add row to fragment
+       tbody.appendChild(frag);
+    }
+}
+
+function AddNewRow()
+{
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tbody = document.getElementById("VTDataTbl");
+
+    if (originalEntriesNum ==0 && newEntriesNum == 0) {
+       clearChildNodes(tbody);
+       addTblHeader(frag);
+       tbody.appendChild(frag);
+    }
+
+    var entryIdx = addEntryIdx();
+    if (entryIdx == 0) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return;
+    }
+
+    var tr = CreateStyledElement("tr", (originalEntriesNum + entryIdx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+
+    //Group ID
+    var edit_ctrl = addInputCell(tr, "", "cl", "grp_id_new_" + entryIdx, GroupIDSizeLength);
+    edit_ctrl.setAttribute("maxLength", GroupIDSizeLength); // 'camelCase' required for maxLength for this to work with IE.
+    //VLAN ID
+    var edit_ctrl_name = addInputCell(tr, "", "cl", "vid_new_" + newEntriesNum, VIDSizeLength);
+    edit_ctrl_name.setAttribute("maxLength", VIDSizeLength);
+
+    //Tanslated to VID
+    var edit_ctrl_name = addInputCell(tr, "", "c", "vt_vid_new_" + newEntriesNum, VIDSizeLength);
+    edit_ctrl_name.setAttribute("maxLength", VIDSizeLength);
+
+    frag.appendChild(tr);       // Add row to fragment
+
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+
+function addRow(index, frag, values)
+{
+  originalEntriesNum++;
+  var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+  //Delete checkbox
+  addCheckBoxCell(tr, 0, "c", "delete_" + index);
+
+  //hidden Group ID field
+  var form_var = document.getElementById("grp_2_vlan_map_form");
+  addHiddenParam(form_var, "hiddenGrp_"+index, values[0]);
+
+  //hidden VID field
+  addHiddenParam(form_var, "hiddenVID_"+index, values[1]);
+
+  //Group ID
+  var txt = addTextCell(tr, values[0], "cl");
+
+  //VID
+  var txt = addTextCell(tr, values[1], "cl");
+
+  //Translated to VID
+  var Input = addInputCell(tr, values[2], "c", "vt_vid_" + index, VIDSizeLength);
+  Input.setAttribute("maxLength", VIDSizeLength);
+
+  frag.appendChild(tr);       // Add row to fragment
+ }
+
+var prev_req = "";
+function processUpdate(req, ref)
+{
+    /* Format: <Group ID i>/<VID i>/<Translated to VID i>| */
+    //var valuesdommy = "1/1/1|2/11/23|";
+    var portconfig = req.responseText.split("|");    
+    if (req != "") {
+        /* take backup of previous req object */
+        prev_req = req;
+    }
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    addTblHeader(frag);
+    originalEntriesNum = newEntriesNum = 0;
+    if (portconfig != "") {
+        for(var i = 0; i < portconfig.length; i++) {
+            if(portconfig[i]) {
+                var pval = portconfig[i].split("/");
+                addRow(i, frag, pval);
+            }
+        }
+    } else {
+        /* if no entries found - Display that in the table */
+        var tr = CreateStyledElement("tr","config_even");
+        addTextCell(tr, "", "c");
+        addTextCell(tr, "No VLAN Translation entry found", "c");
+        addTextCell(tr, "", "c");
+        addTextCell(tr, "", "c");
+        frag.appendChild(tr);       // Add row to fragment
+
+    }
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    updateFuncBar(1);
+}
+
+function addTblHeader(frag)
+{
+    var tr;
+    tr = CreateStyledElement("tr", "config_header");
+    tr.setAttribute("wrap", "nowrap");
+    addTextHeaderCell(tr, "Delete", "hdrc");
+    var ele = addTextHeaderCell(tr, "Group ID", "hdrc");
+    ele.setAttribute("wrap", "nowrap");
+    ele = addTextHeaderCell(tr, "VLAN ID", "hdrc");
+    ele.setAttribute("wrap", "nowrap");
+    ele = addTextHeaderCell(tr, "Translated to VID", "hdrc");
+    ele.setAttribute("wrap", "nowrap");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function chkRefresh(fld) {
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate(0);
+    }
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading())
+        return;         // Bail out, navigation will trigger update
+    updateFuncBar(0);
+    loadXMLDoc(SpomAddSidArg("/config/vt_table"), processUpdate, 'VTDataTbl');
+    SpomUpdateFormSid("submit_sid");
+
+
+
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function checkForm()
+{
+    var VLANfld, VT_VIDFld_new, VT_VIDFld_old, fld1, VIDFld;
+    var CurGrpIDfld;
+    var deleteEntriesNum = 0;
+    var port_count = 0;
+
+    //counter delete entries number
+    for (var i = 0; i < originalEntriesNum; i++) {
+        fld1 = document.getElementById("delete_" + i);
+        VT_VIDFld_old = document.getElementById("vt_vid_" + i);
+        VIDFld = document.getElementById("hiddenVID_" + i);
+        //check if VID and Trans_vid are same.
+        if (parseInt(VT_VIDFld_old.value) == parseInt(VIDFld.value)) {
+            GiveAlert("VLAN ID and Translated VLAN ID cannot be same.");
+            return false;
+        }
+        if (fld1.checked) {
+            deleteEntriesNum++;
+        }
+
+        /* check: is old VT VID field value still valid */
+        if (!isValideInt(VT_VIDFld_old)) return false;
+
+        //VID Range check
+        if(!isWithinRange("vt_vid_"+ i, 1, 4095, "'VLAN ID'")) {
+            return false;
+        }
+    }
+
+    //check new entries
+    for (var i = 1; i <= newEntriesNum; i++) {
+        VLANfld = document.getElementById("vid_new_" + entryIdxArray[i - 1]);
+        VT_VIDFld_new = document.getElementById("vt_vid_new_" + entryIdxArray[i - 1]);
+        CurGrpIDfld = document.getElementById("grp_id_new_" + entryIdxArray[i - 1]);
+
+        //check if VID and Trans_vid are same.
+        if (parseInt(VLANfld.value) == parseInt(VT_VIDFld_new.value)) {
+            GiveAlert("VLAN ID and Translated VLAN ID cannot be same.");
+            return false;
+        }
+        //Validate Group Name fields
+        if (CurGrpIDfld.value != "") {
+            if (!isInt(CurGrpIDfld.value) || CurGrpIDfld.value < configPortMin || CurGrpIDfld.value > configNormalPortMax) {
+                GiveAlert("Invalid input. Please give a interger Group ID value between 1 to " + configNormalPortMax);
+                CurGrpIDfld.select();
+                return false;
+            }
+        } else {
+            GiveAlert("Group ID field can not be empty. Please check help page for correct Group ID format.");
+            CurGrpIDfld.select();
+            return false;
+        }
+
+        /* check duplicate VT entries by compare current GrpID && VID value to old values */
+        for (var j = 0; j < originalEntriesNum; j++) {
+            var orgGrpIDfld = document.getElementById("hiddenGrp_" + j);
+            var orgVIDfld = document.getElementById("hiddenVID_" + j);
+            if (!isMutualExclusiveEntry (CurGrpIDfld, VLANfld, orgGrpIDfld, orgVIDfld)) return false;
+        }
+
+        /* compare current entry with new entries below it */
+        for (var j = i + 1; j <= newEntriesNum; j++) {
+            var newGrpIDfld = document.getElementById("grp_id_new_" + entryIdxArray[j - 1]);
+            var newVIDfld = document.getElementById("vid_new_" + entryIdxArray[j - 1]);
+            if (!isMutualExclusiveEntry (CurGrpIDfld, VLANfld, newGrpIDfld, newVIDfld)) return false;
+        }
+
+        /* Check whether the vid added is an integer */
+        if (!isValideInt(VLANfld)) return false;
+
+        //vid
+        if(!isWithinRange("vid_new_"+ entryIdxArray[i - 1], 1, 4095, "'VLAN ID'")) {
+            return false;
+        }
+
+        /* is VT VID is valide check */
+        if (!isValideInt(VT_VIDFld_new)) return false;
+
+        //VID Range check
+        if(!isWithinRange("vt_vid_new_"+ entryIdxArray[i - 1], 1, 4095, "'VLAN ID'")) {
+            return false;
+        }
+    }//Main for loop for validating new entries
+}
+
+function isMutualExclusiveEntry (CurrentGrdFld, CurrentVIDFld, CmpToGrpFld, CmptoVIDFld) {
+    if (CurrentGrdFld.value == CmpToGrpFld.value && CurrentVIDFld.value == CmptoVIDFld.value) {
+        GiveAlert("Group ID " + CmpToGrpFld.value + " and VID: " + CmptoVIDFld.value + " combination \
+is already in use. Please update existing entry instead \
+of adding it again!", CmpToGrpFld);
+        return false;
+    } else {
+        return true;
+    }
+}
+
+function isValideInt (fld) {
+    if (fld.value != "") {
+        if (!isInt(fld.value)) {
+            GiveAlert("Invalid VLAN ID " + fld.value);
+
+        } else {
+            return true;
+        }
+    } else {
+        GiveAlert("This field can not be empy, enter a valid VID value");
+    }
+    fld.select();
+        return false;
+}
+
+function updateFuncBar(enable)
+{
+    if (enable) {
+        document.getElementById("refresh").style.visibility = "visible";
+        document.getElementById("update").style.visibility = "hidden";
+    } else {
+        document.getElementById("refresh").style.visibility = "hidden";
+        document.getElementById("update").style.visibility = "visible";
+    }
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+<div class="refreshbar">
+<form action="#">
+<label for="autorefresh">Auto-refresh</label>
+<input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+ <input type="button" id="refresh" value="Refresh" onClick="requestUpdate(); this.blur(); " style="visibility:hidden">
+  <span id="update">&nbsp;Updating...</span>
+ </form>
+</div>
+
+<h1>VLAN Translation Table</h1>
+
+<form id="grp_2_vlan_map_form" method="POST" action="/config/vt_table" onsubmit="return checkForm();">
+
+<table id="dscpConfig" summary="QoS Port DSCP Configuration" class="config">
+ <tbody id="VTDataTbl">
+ </tbody>
+</table>
+<p>
+<input type="button" id="addNewEntry" value="Add New Entry" onclick="AddNewRow()">
+</p>
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset" onClick="processUpdate(prev_req, 'VTDataTbl'); this.blur(); ">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

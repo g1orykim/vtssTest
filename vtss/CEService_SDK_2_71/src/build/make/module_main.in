@@ -1,0 +1,100 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_main := $(DIR_APPL)/main
+
+OBJECTS_main := main.o flash_mgmt.o dumpbuffer.o vtss_api_if.o version.o \
+  $(if $(MODULE_VCLI),control_cli.o) \
+  $(if $(MODULE_WEB),control_web.o)
+
+$(OBJECTS_main): %.o: $(DIR_main)/%.c
+	$(call compile_c, $@, $<)
+
+INCLUDES += -I$(DIR_main)
+
+host_name := $(shell hostname -f)
+
+# Always link
+.PHONY: always
+
+# Module target list
+TARGETS_main := $(OBEJCTS) $(PERSONALITY).elf $(PERSONALITY).bin $(PERSONALITY).gz $(PERSONALITY).dat
+
+$(PERSONALITY).dat: always
+
+# Make image and copy to TFTP server directory
+%.dat: %.gz
+	$(call what,Generating compressed firmware image - $@)
+	$(Q)perl -I$(TOP)/build/lib $(TOP)/build/make/mkimage.pl -t 0x1 -C $(VTSS_PRODUCT_CHIP) -T $(TARGET_CPU) -P $(VTSS_SOFTWARE_ID):$(VTSS_PRODUCT_STACKABLE) -f $<
+	$(Q)if [ -d /tftpboot/$(USER) ] ; then         \
+	cp -v $@ /tftpboot/$(USER)                    ;\
+	ln -sf $@ /tftpboot/$(USER)/new.dat           ;\
+	chmod 664 /tftpboot/$(USER)/$@ /tftpboot/$(USER)/new.dat ;\
+	fi
+
+# Compressed image from flat image - maintain src
+%.gz: %.bin
+	$(call what,Compressing binary to $@)
+	$(Q)gzip -c $^ > $@
+
+# Libs
+LIB_LINK_FLAGS = $(patsubst lib%.a,-l%,$(LIB_FILES))
+
+# Specific rules - main target
+$(PERSONALITY).elf:: $(OBJECTS) $(LIB_FILES)
+	$(call what,Linking $@)
+	$(Q)$(XLD) $(LDFLAGS) -L. -Wl,-Map -Wl,$(basename $@).txt $(OBJECTS) $(LIB_LINK_FLAGS) -o $@ 
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_main)/html
+
+# Lint files
+LINT_FILES_main += $(addprefix $(DIR_main)/,control_cli.c dumpbuffer.c)
+
+# Style files
+VTSS_CODE_STYLE_CHK_FILES_main += $(addprefix $(DIR_main)/,dumpbuffer.c)
+
+# Build ID - internal to VTSS, but can be enforced from outside (e.g. through release scripts).
+ifneq ($(findstring vitesse.com,$(host_name)),)
+BUILD_NUMBER  ?= $(shell curl -sf http://soft02.dk.vitesse.com/cgi-bin/SW-buildno)
+CODE_REVISION ?= $(shell hg id)
+endif
+
+CTIME           := $(shell perl -w ../make/compile_time.pl)
+# Find the name of the configuration file.
+CONFIG_FILE     := Config:$(shell basename `readlink ../config.mk`)
+RELEASE_VERSION ?= dev-build by $(USER)@$(host_name) $(CTIME) $(CONFIG_FILE)
+
+# If BUILD_NUMBER is empty, it must be undefined for version.c to show correct version information.
+ifneq ($(BUILD_NUMBER),)
+version.o: CFLAGS += -DBUILD_NUMBER="$(BUILD_NUMBER)"
+endif
+# The rest can be defined whether empty or not without problems.
+version.o: CFLAGS += -DCODE_REVISION="$(CODE_REVISION)" -DCOMPILE_TIME="$(CTIME)" -DSW_RELEASE="$(RELEASE_VERSION)"
+
+# Always compile version
+version.o: always
+

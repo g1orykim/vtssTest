@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>SNMPv3 Users Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>SNMPv3 User Configuration Help</h1>
+
+<h2><a href="glossary.htm#snmp" class="glossary">SNMP</a>v3 User Configuration</h2>
+
+<p>Configure SNMPv3 user table on this page. The entry index keys are <samp>Engine ID</samp> and <samp>User Name</samp>.</p>
+
+<dl>
+ <dt>Delete</dt>
+ <dd>
+ Check to delete the entry. It will be deleted during the next save.
+ </dd>
+
+ <dt>Engine ID</dt>
+ <dd>
+ An octet string identifying the engine ID that this entry should belong to.
+ The string must contain an even number(in hexadecimal format) with number of digits between 10 and 64, but all-zeros and all-'F's are not allowed.
+ The SNMPv3 architecture uses the User-based Security Model (USM) for message security
+ and the View-based Access Control Model (VACM) for access control.
+ For the USM entry, the usmUserEngineID and usmUserName are the entry's keys.
+ In a simple agent, usmUserEngineID is always that agent's own snmpEngineID value.
+ The value can also take the value of the snmpEngineID of a remote SNMP engine
+ with which this user can communicate.
+ In other words, if user engine ID equal system engine ID then it is local user; otherwise it's remote user.
+ </dd>
+
+ <dt>User Name</dt>
+ <dd>
+ A string identifying the user name that this entry should belong to.
+ The allowed string length is 1 to 32, and the allowed content is ASCII characters from 33 to 126.
+ </dd>
+
+ <dt>Security Level</dt>
+ <dd>
+ Indicates the security model that this entry should belong to. Possible security models are:
+ <br><samp>NoAuth, NoPriv</samp>: No authentication and no privacy.
+ <br><samp>Auth, NoPriv</samp>: Authentication and no privacy.
+ <br><samp>Auth, Priv</samp>: Authentication and privacy.
+ <br>The value of security level cannot be modified if entry already exists. That means it must first be ensured that the value is set correctly.
+ </dd>
+
+ <dt>Authentication Protocol</dt>
+ <dd>
+ Indicates the authentication protocol that this entry should belong to. Possible authentication protocols are:
+ <br><samp>None</samp>: No authentication protocol.
+ <br><samp><a href="glossary.htm#md5" class="glossary">MD5</a></samp>: An optional flag to indicate that this user uses MD5 authentication protocol.
+ <br><samp><a href="glossary.htm#sha" class="glossary">SHA</a></samp>: An optional flag to indicate that this user uses SHA authentication protocol.
+ <br>The value of security level cannot be modified if entry already exists. That means must first ensure that the value is set correctly.
+ </dd>
+
+ <dt>Authentication Password</dt>
+ <dd>
+ A string identifying the authentication password phrase.
+ For MD5 authentication protocol, the allowed string length is 8 to 32.
+ For SHA authentication protocol, the allowed string length is 8 to 40.
+ The allowed content is ASCII characters from 33 to 126.
+ </dd>
+
+ <dt>Privacy Protocol</dt>
+ <dd>
+ Indicates the privacy protocol that this entry should belong to. Possible privacy protocols are:
+ <br><samp>None</samp>: No privacy protocol.
+ <br><samp><a href="glossary.htm#des" class="glossary">DES</a></samp>: An optional flag to indicate that this user uses DES authentication protocol.
+ <br><samp><a href="glossary.htm#aes" class="glossary">AES</a></samp>: An optional flag to indicate that this user uses AES authentication protocol.
+ </dd>
+
+ <dt>Privacy Password</dt>
+ <dd>
+ A string identifying the privacy password phrase.
+ The allowed string length is 8 to 32, and the allowed content is ASCII characters from 33 to 126.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Add New Entry ">: Click to add a new user entry.</p>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Rate Limit Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_qos_queue_policers.htm";
+
+var oTRateUnit = ["kbps", "Mbps"];
+var oVRateUnit = [0, 1];
+
+var portCnt = 0; // The number of ports shown on the web page are determined at runtime
+var queueCnt = 0; // The number of queues shown on the web page are determined at runtime
+
+function showHide(queue, show) {
+    // Show or hide all elements with class my_showN
+    $$('.my_show' + queue).each( function(item) {
+            item.setStyle('display', show ? '' : 'none');
+        });
+
+    // Modify various parts of elements with class my_txtN
+    $$('.my_txt' + queue).each( function(item) {
+            if (show) {
+                item.setProperty('text', 'E');
+                item.setStyle('text-align');
+                item.addClass('no_padding');
+            } else {
+                item.setProperty('text', 'Enable');
+                item.setStyle('text-align', 'left');
+                item.removeClass('no_padding');
+            }
+        });
+
+    // Modify colSpan in elements with class my_spanN
+    $$('.my_span' + queue).each( function(item) {
+            item.setProperty('colSpan', show ? '3' : '1');
+        });
+}
+
+function updateTable(queue) {
+    var i;
+    var show = false;
+    if (queue === undefined) { // If called without a parameter we loop through all queues
+        for (i = 0; i < queueCnt; i++) {
+            updateTable(i);
+        }
+    }
+    // Loop through every checkbox (except the MasterControl)
+    // and show Rate and Unit if one of the checkboxed are enabled
+    $$('input[id^="enabled_' + queue + '_"]').each( function(item) {
+            if (item.checked) {
+                show = true;
+            }
+        });
+    showHide(queue, show);
+}
+
+function addSelectEvents() {
+    var i;
+    var helper = function(queue) {
+        return function(e) {
+            updateTable(queue);
+        };
+    };
+    for (i = 0; i < queueCnt; i++) {
+        $$('.my_evt' + i).addEvent('click', helper(i));
+    }
+}
+
+// Create QoS Queue Policer Header
+function addHeader() {
+    var frag;
+    var tr;
+    var queue;
+    var elem;
+
+    frag = document.createDocumentFragment();
+
+    tr = document.createElement("tr");
+    addTextHeaderCell(tr, "Port", "c", 1, 2);
+    for (queue = 0; queue < queueCnt; queue++) {
+        addTextHeaderCell(tr, "Queue " + queue, "c my_span" + queue, 3);
+    }
+    frag.appendChild(tr);
+
+    tr = document.createElement("tr");
+    for (queue = 0; queue < queueCnt; queue++) {
+        addTextHeaderCell(tr, "E", "c no_padding my_txt" + queue);
+        addTextHeaderCell(tr, "Rate", "c no_padding my_show" + queue);
+        addTextHeaderCell(tr, "Unit", "c no_padding my_show" + queue);
+    }
+    frag.appendChild(tr);
+
+    elem = document.getElementById("policer_thead");
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+}
+
+function api2DisplayRate(rate)
+{
+    if (rate < 10000) {
+        return rate;
+    }
+    else {
+        return Math.floor(rate/1000);
+   }
+}
+
+function api2DisplayRateUnit(rate)
+{
+    if (rate < 10000) {
+        return 0; // ~ kbps
+    }
+    else {
+        return 1; // ~ Mbps
+    }
+}
+
+function addRow(index, frag, values) {
+    var pdata  = values.split("#");
+    var portno = parseInt(pdata[0], 10);
+    var queues = pdata[1].split("/");
+    var queue;
+    var enabled;
+    var rate;
+    var q;
+    var append;
+    
+    // The "rate_q_p" is not shown directly on the user interface
+    // Instead we convert it to the more user friendly "display_rate_q_p" and display_rate_unit_q_p"
+    // When the form is submitted the values are converted back to the one that the API expects
+    var tr_hidden = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addTextCell(tr, configPortName(portno, 0), "cr"); // Port number
+    for (q = 0; q < queueCnt; q++) {
+        queue = queues[q].split("|");
+        enabled = parseInt(queue[0], 10);
+        rate = parseInt(queue[1], 10);
+        append = q + "_" + index; // String to append on each element id
+        addHiddenInputCell(tr_hidden, rate, "cr no_padding", "rate_" + append);
+        addCheckBoxCell(tr, enabled, "cl no_padding my_evt" + q, "enabled_" + append);
+        addInputCell(tr, api2DisplayRate(rate), "cr no_padding my_show" + q, "display_rate_" + append, 5, 7);
+        addSelectCell(tr, oTRateUnit, oVRateUnit, api2DisplayRateUnit(rate), "cr no_padding my_show" + q, "display_rate_unit_" + append);
+    }
+    frag.appendChild(tr_hidden); // Add (hidden) row to fragment
+    frag.appendChild(tr);        // Add row to fragment
+}
+
+/* Format:
+ * <port 1>,<port 2>,<port 3>,...<port n>
+ * 
+ * port x :== <port_no>#<queues>
+ *   port_no :== 1..max
+ *   queues  :== <queue 0>/<queue 1>/<queue 2>/...<queue n>
+ *     queue x :== <enabled>|<rate>
+ *       enabled :== 0..1           // 0: no, 1: yes
+ *       rate    :== 0..0xffffffff  // bit rate
+ */
+
+function processUpdate(req, ref)
+{
+    var values;
+    var frag;
+    var i;
+    var tbody;
+    var cBar;
+    var append;
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        values = req.responseText.split(",");
+        frag = document.createDocumentFragment();
+        portCnt = values.length;
+        queueCnt = values[0].split("#")[1].split("/").length; // sneak out the number of queues from the first entry
+
+        addHeader();
+
+        for (i = 0; i < portCnt; i++) {
+            addRow(i, frag, values[i]);
+        }
+        tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        tbody.appendChild(frag);
+
+        cBar = new MasterControlBar([{text: "*", className: "cr"}]); 
+        for (i = 0; i < queueCnt; i++) {
+            append = i + "_"; // String to append on each element id
+            cBar.extend([{name: "enabled_" + append},
+                         {name: "display_rate_" + append},
+                         {name: "display_rate_unit_" + append}]);
+        }
+
+        cBar.construct(ref);
+        updateTable();
+        addSelectEvents();
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate() {
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/qos_queue_policers"), processUpdate, 'policer_tbody');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm(form)
+{
+    var p;
+    var q;
+    var append;
+
+    // Validate display_rate_q_p and display_rate_unit_q_p and convert back to the values expected by the API
+    for (p = 0; p < portCnt; p++) {
+        for (q = 0; q < queueCnt; q++) {
+            append = q + "_" + p; // String to append on each element id
+
+            switch (document.getElementById("display_rate_unit_" + append).value) {
+            case "0": // kbps
+                if (!isWithinRange("display_rate_" + append, configQosBitRateMin, 1000000,
+                                   "'Queue Policer Rate'",
+                                   " when the Unit is specified in 'kbps'.\nSelect the 'Mbps' unit for a coarser granularity for rates that need to be greater than 1 Gbps (1000000 kbps).")) {
+                    return false;
+                }
+                document.getElementById("rate_" + append).value = document.getElementById("display_rate_" + append).value;
+                break;
+            case "1": // Mbps
+                if (!isWithinRange("display_rate_" + append, 1, configQosBitRateMax / 1000,
+                                   "'Queue Policer Rate'",
+                                   " Mbps.\nSelect the 'kbps' unit for a finer granularity.")) {
+                    return false;
+                }
+                document.getElementById("rate_" + append).value = document.getElementById("display_rate_" + append).value * 1000;
+                break;
+            default:
+                // Shall never hapen
+                return GiveAlert("The value is not valid", document.getElementById("display_rate_unit_" + append));
+            }
+        }
+    }
+    return true;
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function resetForm(form)
+{
+    form.reset();
+    updateTable();
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>QoS Ingress Queue Policers <span id="display_sid"></span></h1>
+
+<form method="POST" action="/config/qos_queue_policers" onsubmit="return checkForm(this);"> 
+
+<table summary="QoS Queue Policers" cellspacing="0" class="config">
+ <thead id="policer_thead">
+ </thead>
+ <tbody id="policer_tbody">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">    
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm(this.form);">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

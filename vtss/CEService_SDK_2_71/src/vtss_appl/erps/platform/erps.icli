@@ -1,0 +1,2305 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG =
+
+INCLUDE_BEGIN
+#include "erps_api.h"
+#include "erps.h"
+#include "cli_api.h"
+#include "topo_api.h"
+#include "msg_api.h"
+#include "icli_porting_util.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+#define RAPS_GUARD_TIMEOUT_MAX_MILLISECONDS    SECS_TO_MS(RAPS_GUARD_TIMEOUT_MAX_SECONDS)
+#define RAPS_HOLD_OFF_TIMEOUT_MIN_MILLISECONDS SECS_TO_MS(RAPS_HOLD_OFF_TIMEOUT_MIN_SECONDS)
+#define RAPS_HOLD_OFF_TIMEOUT_MAX_MILLISECONDS SECS_TO_MS(RAPS_HOLD_OFF_TIMEOUT_MAX_SECONDS)
+
+#define VTSS_ALLOC_MODULE_ID VTSS_MODULE_ID_ERPS
+
+static void erps_print_error(u32 session_id, u32 group, vtss_rc error)
+{
+    const char *msg = NULL;
+    switch(error) {
+        case ERPS_ERROR_VLAN_ALREADY_PARTOF_GROUP:
+            msg = "VLAN is already a group member";
+            break;
+        case ERPS_ERROR_INVALID_REMOTE_EVENT:
+            msg = "Invalid remote event";
+            break;
+        case ERPS_ERROR_INVALID_LOCAL_EVENT:
+            msg = "Invalid local event";
+            break;
+        case ERPS_ERROR_INCORRECT_ERPS_PDU_SIZE:
+            msg = "Incorrect ERPS PDU size";
+            break;
+        case ERPS_ERROR_RAPS_PARSING_FAILED:
+            msg = "RAPS parsing error";
+            break;
+        case ERPS_ERROR_FAILED_IN_SETTING_VLANMAP:
+            msg = "Can not set VLAN map";
+            break;
+        case ERPS_ERROR_MOVING_TO_NEXT_STATE:
+            msg = "Can not change state";
+            break;
+        case ERPS_ERROR_RAPS_ENABLE_FORWARDING_FAILED:
+            msg = "Failed to enable RAPS forwarding";
+            break;
+        case ERPS_ERROR_RAPS_DISABLE_FORWARDING_FAILED:
+            msg = "Failed to disable RAPS forwarding";
+            break;
+        case ERPS_ERROR_RAPS_DISABLE_RAPS_TX_FAILED:
+            msg = "Failed to disable RAPS transmission";
+            break;
+        case ERPS_ERROR_RAPS_ENABLE_RAPS_TX_FAILED:
+            msg = "Failed to enable RAPS transmission";
+            break;
+        case ERPS_ERROR_SF_DERIGISTER_FAILED:
+            msg = "Could not de-register from SF";
+            break;
+        case ERPS_ERROR_SF_RIGISTER_FAILED:
+            msg = "Could not register for SF";
+            break;
+        case ERPS_ERROR_MOVING_TO_FORWARDING:
+            msg = "Could not enter forwarding state";
+            break;
+        case ERPS_ERROR_MOVING_TO_DISCARDING:
+            msg = "Could not enter discard state";
+            break;
+        case ERPS_ERROR_CANTBE_IC_NODE:
+            msg = "Can not be an interconnected node";
+            break;
+        case ERPS_ERROR_NOT_AN_INTERCONNECTED_NODE:
+            msg = "Not an interconnected node";
+            break;
+        case ERPS_ERROR_CANNOTBE_INTERCONNECTED_SUB_NODE:
+            msg = "Can not be an interconnected sub-node";
+            break;
+        case ERPS_PRIORITY_LOGIC_FAILED:
+            msg = "Error in priority logic processing";
+            break;
+        case ERPS_ERROR_PG_CREATION_FAILED:
+            msg = "Protection group creation failed";
+            break;
+        case ERPS_ERROR_GROUP_NOT_EXISTS:
+            msg = "Given protection group does not exist";
+            break;
+        case ERPS_ERROR_GROUP_ALREADY_EXISTS:
+            msg = "Given protection group already created";
+            break;
+        case ERPS_ERROR_INVALID_PGID:
+            msg = "Invalid protection group ID";
+            break;
+        case ERPS_ERROR_CANNOT_SET_RPL_OWNER_FOR_ACTIVE_GROUP:
+            msg = "RPL owner can not be set when a group is active";
+            break;
+        case ERPS_ERROR_NODE_ALREADY_RPL_OWNER:
+            msg = "This node is RPL owner for given protection group";
+            break;
+        case ERPS_ERROR_PG_IN_INACTIVE_STATE:
+            msg = "Protection group not in active state";
+            break;
+        case ERPS_ERROR_NODE_NON_RPL:
+            msg = "This node is not RPL for given protection group";
+            break;
+        case ERPS_ERROR_SETTING_RPL_BLOCK:
+            msg = "Failed setting RPL block";
+            break;
+        case ERPS_ERROR_VLANS_CANNOT_BE_ADDED:
+            msg = "VLANs can not be added for this protection group";
+            break;
+        case ERPS_ERROR_VLANS_CANNOT_BE_DELETED:
+            msg = "VLANs can not be deleted for this protection group";
+            break;
+        case ERPS_ERROR_CONTROL_VID_PART_OF_ANOTHER_GROUP:
+            msg = "Control VLAN ID is part of another group";
+            break;
+        case ERPS_ERROR_EAST_AND_WEST_ARE_SAME:
+            msg = "Port 0 and port 1 are the same";
+            break;
+        case ERPS_ERROR_CANNOT_ASSOCIATE_GROUP:
+            msg = "Group association failed";
+            break;
+        case ERPS_ERROR_ALREADY_NEIGHBOUR_FOR_THISGROUP:
+            msg = "Node is configured as neighbour for given group, can not set as RPL";
+            break;
+        case ERPS_ERROR_GROUP_IN_ACTIVE_MODE:
+            msg = "Cannot configure when group is in active mode";
+            break;
+        case ERPS_ERROR_GIVEN_PORT_NOT_EAST_OR_WEST:
+            msg = "Given port is not configured either port 0 or 1 for this group";
+            break;
+        case ERPS_ERROR:
+            msg = "Generic error occurred";
+            break;
+        case ERPS_ERROR_MAXIMUM_PVIDS_REACHED:
+            msg = "Maximum number of VLANs already configured for protection group";
+            break;
+        default:
+            ICLI_PRINTF("%% ERPS group %u: Unexpected error code: %u\n", group, error);
+            break;
+    }
+    if (msg) {
+        ICLI_PRINTF("%% ERPS group %u: %s\n", group, msg);
+    }
+}
+
+#define CHECK_RC(expr) \
+    do { \
+        vtss_rc ret = (expr); \
+        if (ret != VTSS_RC_OK) { \
+            erps_print_error(session_id, group, ret); \
+            return FALSE; \
+        } \
+    } while (0)
+
+// Some of the below funcs are lifted from erps_cli.c and modified a bit
+
+static void erps_print_protected_vlans(u32 session_id, const vtss_vid_t pvids[])
+{
+    u32 i, count = 0;
+    ICLI_PRINTF("    Protected VLANS:\n    ");
+    for (i = 0; i < PROTECTED_VLANS_MAX; i++) {
+        if (pvids[i]) {
+            ICLI_PRINTF("%6d", pvids[i]);
+            if (!(++count%12)) {
+                ICLI_PRINTF("\n    ");
+            }
+        }
+    }
+    if (!count) {
+        ICLI_PRINTF("  None");
+    }
+    ICLI_PRINTF("\n");
+}
+
+static char *req_calc(u16 req)
+{
+    switch (req) {
+        case 14: return("Event ");
+        case 13: return("FS ");
+        case 11: return("SF ");
+        case 07: return("MS ");
+        case 00: return("NR ");
+        default: return("NR ");
+    }
+}
+
+static void erps_display_group_brief(u32 session_id, const vtss_erps_mgmt_conf_t *conf_req, BOOL first)
+{
+    const vtss_erps_config_erpg_t *erpg  = NULL;
+    const vtss_erps_fsm_stat_t    *ferpg = NULL;
+    vtss_usid_t                   usid   = topo_isid2usid(msg_master_isid());
+    char                          port0[20], port1[20];
+    BOOL                          is_rpl;
+    const char                    *rpl_port, *rpl_block, *rpl_role, *fsm_state;
+    const char                    *type;
+    char                          major[10];
+
+    erpg  = &conf_req->data.get.erpg;
+    ferpg = &conf_req->data.get.stats;
+
+    is_rpl    = erpg->rpl_owner || erpg->rpl_neighbour;
+    rpl_role  = erpg->rpl_owner ? "Ownr" : "Nbor";
+    rpl_port  = erpg->rpl_owner_port == erpg->east_port ? "Port0" : "Port1";
+    rpl_block = ferpg->rpl_blocked == RAPS_RPL_BLOCKED ? "Y" : "N";
+    sprintf(major, "%d", erpg->major_ring_id);
+
+    if (erpg->ring_type == ERPS_RING_TYPE_MAJOR) {
+        type = erpg->inter_connected_node ? "M-I" : "Maj";
+    } else {
+        type = erpg->inter_connected_node ? "S-I" : "Sub";
+    }
+    
+    switch (ferpg->state) {
+    case ERPS_STATE_NONE:          fsm_state = "NONE"; break;
+    case ERPS_STATE_IDLE:          fsm_state = "IDLE"; break;
+    case ERPS_STATE_PROTECTED:     fsm_state = "PROT"; break;
+    case ERPS_STATE_FORCED_SWITCH: fsm_state = "FS";   break;
+    case ERPS_STATE_MANUAL_SWITCH: fsm_state = "MS";   break;
+    case ERPS_STATE_PENDING:       fsm_state = "PEND"; break;
+    default:                       fsm_state = "UNKN";
+    }
+
+    (void) icli_port_info_txt_short(usid, erpg->east_port, port0);
+
+    if (erpg->ring_type == ERPS_RING_TYPE_SUB && erpg->inter_connected_node) {
+        strcpy(port1, "-");
+    } else {
+        (void) icli_port_info_txt_short(usid, erpg->west_port, port1);
+    }
+
+    if (first) {
+                  // Max port name: "2.5G 99/99" == 10 chars
+                  // ............................................................................... <= 79
+                  // .2 .3. 1 .3. ..10...... 1 1 ..10...... 1 1 .3. ..4. ..5.. ..4. ..5.. .2 .2 .3.
+        ICLI_PRINTF("(L=Link Up/Down; B=Blocked/Unblocked)      Maj RPL  RPL   RPL  FSM   R-APS    \n");
+        ICLI_PRINTF("Gr Typ V Rev Port 0     L B Port 1     L B Grp Role Port  Blck State TX RX FOP\n");
+        ICLI_PRINTF("--+---+-+---+----------+-+-+----------+-+-+---+----+-----+----+-----+--+--+---\n");
+    }
+
+    ICLI_PRINTF("%2d %-3s %s %-3s %-10s %s %s %-10s %s %s %-3s %-4s %-5s %-4s %-5s %-2s %s%s %-2s\n",
+            conf_req->group_id,
+            type,
+            erpg->version == ERPS_VERSION_V1 ? "1" : "2",
+            erpg->revertive ? "Rev" : "N-R",
+            port0, ferpg->east_port_state == ERPS_PORT_STATE_OK ? "U" : "D", ferpg->east_blocked ? "B" : "U",
+            port1, ferpg->west_port_state == ERPS_PORT_STATE_OK ? "U" : "D", ferpg->west_blocked ? "B" : "U",
+            erpg->ring_type == ERPS_RING_TYPE_SUB && erpg->inter_connected_node ? major : "-",
+		    is_rpl ? rpl_role  : "-",
+            is_rpl ? rpl_port  : "-",
+            is_rpl ? rpl_block : "-",
+            fsm_state,
+            ferpg->tx ? "Y" : "N",
+            ferpg->rx[0] ? "0" : " ", ferpg->rx[1] ? "1" : " ",
+            ferpg->fop_alarm ? "Y" : "N");
+}
+
+static void erps_display_group_detail(u32 session_id, const vtss_erps_mgmt_conf_t *conf_req, BOOL first)
+{
+    const vtss_erps_config_erpg_t *erpg  = NULL;
+    const vtss_erps_fsm_stat_t    *ferpg = NULL;
+    vtss_usid_t                   usid   = topo_isid2usid(msg_master_isid());
+    char                          port0[40], port1[40];
+    BOOL                          is_rpl;
+    const char                    *rpl_port, *rpl_block, *rpl_role, *fsm_state;
+
+    erpg  = &conf_req->data.get.erpg;
+    ferpg = &conf_req->data.get.stats;
+
+    is_rpl    = erpg->rpl_owner || erpg->rpl_neighbour;
+    rpl_role  = erpg->rpl_owner ? "Owner" : "Neighbor";
+    rpl_port  = erpg->rpl_owner_port == erpg->east_port ? "Port 0" : "Port 1";
+    rpl_block = ferpg->rpl_blocked == RAPS_RPL_BLOCKED ? "Blocked" : "Not Blocked";
+
+    (void) icli_port_info_txt_short(usid, erpg->east_port, port0);
+
+    if (erpg->ring_type == ERPS_RING_TYPE_SUB && erpg->inter_connected_node) {
+        strcpy(port1, "-");
+    } else {
+        (void) icli_port_info_txt_short(usid, erpg->west_port, port1);
+    }
+
+              // ..4.  ..13.........  ..13.........  ..9......  ..6...  ..11........
+    ICLI_PRINTF("Grp#  Port 0         Port 1         RPL:Role   Port    Blocking\n");
+    ICLI_PRINTF("%4d  %-13s  %-13s  %-9s  %-6s  %s\n", conf_req->group_id, port0, port1,
+		    is_rpl ? rpl_role  : "-",
+            is_rpl ? rpl_port  : "-",
+            is_rpl ? rpl_block : "-");
+
+    erps_print_protected_vlans(session_id, erpg->protected_vlans);
+
+    ICLI_PRINTF("    Protection Group State             :%s\n",   (ferpg->active == TRUE) ? "Active" : "Not Active" );
+    ICLI_PRINTF("    Port 0 SF MEP                      :%d\n",   conf_req->data.mep.east_mep_id);
+    ICLI_PRINTF("    Port 1 SF MEP                      :%d\n",   conf_req->data.mep.west_mep_id);
+    ICLI_PRINTF("    Port 0 APS MEP                     :%d\n",   conf_req->data.mep.raps_eastmep);
+    ICLI_PRINTF("    Port 1 APS MEP                     :%d\n",   conf_req->data.mep.raps_westmep);
+    ICLI_PRINTF("    WTR Timeout                        :%llu\n", erpg->wtr_time);
+    ICLI_PRINTF("    WTB Timeout                        :%u\n",   erpg->wtb_time);
+    ICLI_PRINTF("    Hold-Off Timeout                   :%llu\n", erpg->hold_off_time);
+    ICLI_PRINTF("    Guard Timeout                      :%llu\n", erpg->guard_time);
+    if (erpg->ring_type == ERPS_RING_TYPE_MAJOR) {
+        ICLI_PRINTF("    Node Type                          :Major%s\n", erpg->inter_connected_node ? "-Interconnected" : "");
+    } else {
+        if (erpg->inter_connected_node) {
+            ICLI_PRINTF("    Node Type                          :Sub-Interconnected\n");
+            ICLI_PRINTF("    Major Ring ID                      :%d\n", erpg->major_ring_id);
+            ICLI_PRINTF("    Topology change propagation        :%s\n", erpg->topology_change ? "Enabled" : "Disabled");
+        } else {
+            ICLI_PRINTF("    Node Type                          :Sub\n");
+        }
+        ICLI_PRINTF("    Virtual Channel                    :%s\n", erpg->virtual_channel ? "Yes" : "No");
+    }
+    ICLI_PRINTF("    Reversion                          :%s\n", erpg->revertive ? "Revertive" : "Non-revertive");
+    ICLI_PRINTF("    Version                            :%s\n", erpg->version == ERPS_VERSION_V1 ? "1" : "2");
+    ICLI_PRINTF("    ERPSv2 Administrative Command      :%s\n", ferpg->admin_cmd == 2 ? "Forced Switch" : (ferpg->admin_cmd == 1 ? "Manual Switch" : "None"));
+
+    ICLI_PRINTF("\n");
+
+    switch (ferpg->state) {
+    case ERPS_STATE_NONE:          fsm_state = "NONE";           break;
+    case ERPS_STATE_IDLE:          fsm_state = "IDLE";           break;
+    case ERPS_STATE_PROTECTED:     fsm_state = "PROTECTED";      break;
+    case ERPS_STATE_FORCED_SWITCH: fsm_state = "FORCED_SWITCH";  break;
+    case ERPS_STATE_MANUAL_SWITCH: fsm_state = "MANUAL_SWITCH";  break;
+    case ERPS_STATE_PENDING:       fsm_state = "PENDING";        break;
+    default:                       fsm_state = "Unknown";
+    }
+
+    ICLI_PRINTF("    FSM State                          :%s\n", fsm_state);
+
+    if (ferpg->wtr_remaining_time) {
+        ICLI_PRINTF("    WTR Timeout Remaining              :%llu\n", ferpg->wtr_remaining_time);
+    }
+    ICLI_PRINTF("    Port 0 Link Status                 :Link %s\n", ferpg->east_port_state == ERPS_PORT_STATE_OK ? "Up" : "Down");
+    ICLI_PRINTF("    Port 1 Link Status                 :Link %s\n", ferpg->west_port_state == ERPS_PORT_STATE_OK ? "Up" : "Down");
+
+    ICLI_PRINTF("    Port 0 Block Status                :%s\n", ferpg->east_blocked ? "BLOCKED" : "UNBLOCKED");
+    ICLI_PRINTF("    Port 1 Block Status                :%s\n", ferpg->west_blocked ? "BLOCKED" : "UNBLOCKED");
+
+    if (!ferpg->tx) {
+        ICLI_PRINTF("    R-APS Transmission                 :STOPPED\n");
+    } else
+        ICLI_PRINTF("    R-APS Transmission                 :%s%s%s%s\n",
+                req_calc(ferpg->tx_req),
+                ferpg->tx_rb  ? "RB "   : "",
+                ferpg->tx_dnf ? "DNF "  : "",
+                ferpg->tx_bpr ? "BPR 1" : "BPR 0");
+
+    if (!ferpg->rx[0]) {
+        ICLI_PRINTF("    R-APS Port 0 Reception             :NONE\n");
+    } else
+        ICLI_PRINTF("    R-APS Port 0 Reception             :%s%s%s%s%02X-%02X-%02X-%02X-%02X-%02X\n",
+                req_calc(ferpg->rx_req[0]),
+                ferpg->rx_rb[0]  ? "RB "    : "",
+                ferpg->rx_dnf[0] ? "DNF "   : "",
+                ferpg->rx_bpr[0] ? "BPR 1 " : "BPR 0 ",
+                ferpg->rx_node_id[0][0], ferpg->rx_node_id[0][1],
+                ferpg->rx_node_id[0][2], ferpg->rx_node_id[0][3],
+                ferpg->rx_node_id[0][4], ferpg->rx_node_id[0][5]);
+
+    if (!ferpg->rx[1]) {
+        ICLI_PRINTF("    R-APS Port 1 Reception             :NONE\n");
+    } else
+        ICLI_PRINTF("    R-APS Port 1 Reception             :%s%s%s%s%02X-%02X-%02X-%02X-%02X-%02X\n",
+                req_calc(ferpg->rx_req[1]),
+                ferpg->rx_rb[1]  ? "RB "    : "",
+                ferpg->rx_dnf[1] ? "DNF "   : "",
+                ferpg->rx_bpr[1] ? "BPR 1 " : "BPR 0 ",
+                ferpg->rx_node_id[1][0], ferpg->rx_node_id[1][1],
+                ferpg->rx_node_id[1][2], ferpg->rx_node_id[1][3],
+                ferpg->rx_node_id[1][4], ferpg->rx_node_id[1][5]);
+
+    ICLI_PRINTF("    FOP Alarm                          :%s\n", ferpg->fop_alarm ? "ON" : "OFF");
+}
+
+static void erps_display_group_statistics(u32 session_id, const vtss_erps_mgmt_conf_t *conf_req, BOOL first)
+{
+    if (first) {
+              // ............................................................................... <= 79
+              // .3. ..12........ ..12........ ..9...... ..9...... ..9...... ..9...... ..9......
+        ICLI_PRINTF("Grp      RAPS RX    RAPS Drop      L-SF   L-SF Cl   R-SF RX   R-FS RX     NR TX\n");
+        ICLI_PRINTF("---+------------+------------+---------+---------+---------+---------+---------\n");
+    }
+    ICLI_PRINTF("%3d %12llu %12llu %9llu %9llu %9llu %9llu %9llu\n",
+            conf_req->group_id,
+            conf_req->data.get.raps_stats.raps_rcvd,
+            conf_req->data.get.raps_stats.raps_rx_dropped,
+            conf_req->data.get.raps_stats.local_sf,
+            conf_req->data.get.raps_stats.local_sf_cleared,
+            conf_req->data.get.raps_stats.remote_sf,
+            conf_req->data.get.raps_stats.remote_fs,
+            conf_req->data.get.raps_stats.event_nr);
+}
+
+static void erps_clear_group_statistics(u32 session_id, const vtss_erps_mgmt_conf_t *in_conf_req, BOOL dummy)
+{
+    vtss_erps_mgmt_conf_t conf_req;
+    vtss_rc               ret;
+
+    if (dummy) { }  // Quiet lint
+
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type = ERPS_CMD_CLEAR_STATISTICS;
+    conf_req.group_id = in_conf_req->group_id;
+
+    ret = erps_mgmt_set_protection_group_request(&conf_req);
+
+    if (ret != VTSS_RC_OK) {
+        erps_print_error(session_id, in_conf_req->group_id, ret);
+    }
+}
+
+typedef void (*erps_group_op)(u32 session_id, const vtss_erps_mgmt_conf_t *conf_req, BOOL first);
+
+static void erps_groups_iterate(u32 session_id, icli_signed_range_t *groups, erps_group_op op)
+{
+    vtss_erps_mgmt_conf_t conf_req;
+    vtss_rc               rc;
+    BOOL                  first    = TRUE;
+    u32                   instance = 0;
+
+    if (!groups) {
+        // All
+        memset(&conf_req, 0, sizeof(conf_req));
+        while (instance <= ERPS_MAX_PROTECTION_GROUPS  &&  erps_mgmt_getnext_protection_group_request(&conf_req) == VTSS_RC_OK) {
+            (*op)(session_id, &conf_req, first);
+            instance = conf_req.group_id;
+            memset(&conf_req, 0, sizeof(conf_req));
+            conf_req.group_id = instance;
+            first = FALSE;
+        }
+        if (first) {
+            ICLI_PRINTF("%% No ERPS groups configured.\n");
+        }
+    } else {
+        // Specific
+        VTSS_ICLI_RANGE_FOREACH(groups, i32, id) {
+            memset(&conf_req, 0, sizeof(conf_req));
+            conf_req.group_id = id - 1;
+            rc = erps_mgmt_getexact_protection_group_by_id(&conf_req);
+            if (rc != VTSS_RC_OK) {
+                ICLI_PRINTF("%% No such ERPS group: %d\n", id);
+                continue;
+            }
+            (*op)(session_id, &conf_req, first);
+            first = FALSE;
+        } VTSS_ICLI_RANGE_FOREACH_END()
+    }
+}
+
+// Note: Modifies current_vids[].
+static BOOL erps_modify_vlan(u32 session_id, u32 group, vtss_vid_t current_vids[], vtss_vid_t vid, BOOL add_flag)
+{
+    vtss_erps_mgmt_conf_t conf_req;
+    vtss_rc               ret;
+    u32                   i;
+    BOOL                  exists;
+
+    for (i = 0; i < PROTECTED_VLANS_MAX  &&  current_vids[i] != vid; i++) {
+        // find existing entry for VID
+    }
+    exists = i < PROTECTED_VLANS_MAX;
+
+    if (exists == add_flag) {
+        // Don't add what already exists; don't delete what isn't there
+        return TRUE;
+    }
+
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.req_type          = add_flag ? ERPS_CMD_ADD_VLANS : ERPS_CMD_DEL_VLANS;
+    conf_req.group_id          = group;
+    conf_req.data.vid.num_vids = 1;
+    conf_req.data.vid.p_vid    = vid;
+
+    ret = erps_mgmt_set_protection_group_request(&conf_req);
+
+    if (ret != VTSS_RC_OK) {
+        erps_print_error(session_id, group, ret);
+        return FALSE;
+    }
+
+    if (add_flag) {
+        for (i = 0; i < PROTECTED_VLANS_MAX  &&  current_vids[i]; i++) {
+            // find empty slot in array for VID
+        }
+    } else {
+        vid = 0;
+    }
+    if (i >= PROTECTED_VLANS_MAX) {
+        T_D("No space in VLAN array; invariant breach");
+        return FALSE;
+    }
+    current_vids[i] = vid;
+    return TRUE;
+}
+
+static BOOL port1_runtime_helper(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime, BOOL sf)
+{
+    icli_variable_value_t *v;
+    u32                   group;
+    vtss_erps_mgmt_conf_t conf_req;
+    BOOL                  ok;
+
+    if (ask != ICLI_ASK_PRESENT) {
+        return FALSE;
+    }
+
+    v = (icli_variable_value_t *)VTSS_MALLOC(sizeof(*v));
+    if (!v) {
+        return FALSE;
+    }
+
+    ok    = icli_session_cmd_value_get(session_id, 1, v) == ICLI_RC_OK;
+    group = (u32) v->u.u_range_int;
+    VTSS_FREE(v);
+
+    if (ok) {
+        memset(&conf_req, 0, sizeof(conf_req));
+        conf_req.group_id = group - 1;
+        ok = erps_mgmt_getexact_protection_group_by_id(&conf_req) == VTSS_RC_OK;
+
+        if (conf_req.data.get.erpg.ring_type == ERPS_RING_TYPE_SUB && conf_req.data.get.erpg.inter_connected_node) {
+            runtime->present = sf ? FALSE : conf_req.data.get.erpg.virtual_channel;
+        } else {
+            runtime->present = TRUE;
+        }
+    }
+
+    // In case the ICLI var or ERPS group lookup fails we allow the token; doesn't do any harm:
+    
+    return ok;
+}
+
+static BOOL port1_runtime(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return port1_runtime_helper(session_id, ask, runtime, FALSE);
+}
+
+static BOOL port1_runtime_sf(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return port1_runtime_helper(session_id, ask, runtime, TRUE);
+}
+
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+ERPS_HELP        = Ethernet Ring Protection Switching
+GROUP_HELP       = ERPS group number
+GROUP_RANGE_HELP = Zero or more ERPS group numbers
+PORT0_HELP       = ERPS Port 0 interface
+PORT1_HELP       = ERPS Port 1 interface
+INTERFACE_HELP   = Ethernet interface
+SF_HELP          = Signal Fail
+APS_HELP         = Automatic Protection Switching
+RPL_HELP         = Ring Protection Link
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show erps [ <'ERPS_MIN_PROTECTION_GROUPS'~'ERPS_MAX_PROTECTION_GROUPS'> ] [ detail | statistics ]
+
+DOC_CMD_DESC    = Show information about ERPS groups.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! show
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'~'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = groups
+RUNTIME = 
+HELP    = ##GROUP_RANGE_HELP
+BYWORD  = <Groups : 'ERPS_MIN_PROTECTION_GROUPS'~'ERPS_MAX_PROTECTION_GROUPS'>
+
+! detail
+CMD_VAR = has_detail
+RUNTIME = 
+HELP    = Show detailed information
+BYWORD  = detail : Option
+
+! statistics
+CMD_VAR = has_statistics
+RUNTIME = 
+HELP    = Show statistics
+BYWORD  = statistics : Option
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_statistics) {
+        erps_groups_iterate(session_id, groups, erps_display_group_statistics);
+    } else if (has_detail) {
+        erps_groups_iterate(session_id, groups, erps_display_group_detail);
+    } else {
+        erps_groups_iterate(session_id, groups, erps_display_group_brief);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear erps [ <'ERPS_MIN_PROTECTION_GROUPS'~'ERPS_MAX_PROTECTION_GROUPS'> ] statistics
+
+DOC_CMD_DESC    = Clear statistics for ERPS groups.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! clear
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'~'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = groups
+RUNTIME = 
+HELP    = ##GROUP_RANGE_HELP
+BYWORD  = <Groups : 'ERPS_MIN_PROTECTION_GROUPS'~'ERPS_MAX_PROTECTION_GROUPS'>
+
+! statistics
+CMD_VAR = 
+RUNTIME = 
+HELP    = Clear ERPS statistics
+BYWORD  = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    erps_groups_iterate(session_id, groups, erps_clear_group_statistics);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> major port0 interface <port_type_id> port1 interface <port_type_id> [ interconnect ]
+
+DOC_CMD_DESC    = Create ERPS group.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! major
+CMD_VAR =
+RUNTIME = 
+HELP    = Major ring
+BYWORD  =
+
+! port0
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##PORT0_HELP
+BYWORD  = 
+
+! interface
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##INTERFACE_HELP
+BYWORD  = 
+
+! <port_type_id>
+CMD_VAR = port0
+RUNTIME = 
+HELP    = 
+BYWORD  = <Port0 : port_type_id>
+
+! port1
+CMD_VAR =
+RUNTIME =
+HELP    = ##PORT1_HELP
+BYWORD  =
+
+! interface
+CMD_VAR =
+RUNTIME =
+HELP    = ##INTERFACE_HELP
+BYWORD  =
+
+! <port_type_id>
+CMD_VAR = port1
+RUNTIME =
+HELP    =
+BYWORD  = <Port1 : port_type_id>
+
+! interconnect
+CMD_VAR = has_interconnect
+RUNTIME =
+HELP    = Major ring is interconnected
+BYWORD  = interconnect : Option
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type                    = ERPS_CMD_PROTECTION_GROUP_ADD;
+    conf_req.group_id                    = group;
+    conf_req.data.create.east_port       = port0.begin_uport;
+    conf_req.data.create.west_port       = port1.begin_uport;
+    conf_req.data.create.ring_type       = ERPS_RING_TYPE_MAJOR;
+    conf_req.data.create.interconnected  = has_interconnect;
+    conf_req.data.create.major_ring_id   = 0;
+    conf_req.data.create.virtual_channel = FALSE;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> sub port0 interface <port_type_id> { { port1 interface <port_type_id> } | { interconnect <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> [ virtual-channel ] } }
+
+DOC_CMD_DESC    = Create ERPS group.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+! erps
+CMD_VAR =
+RUNTIME =
+HELP    = ##ERPS_HELP
+BYWORD  =
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME =
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! sub
+CMD_VAR =
+RUNTIME =
+HELP    = Sub-ring
+BYWORD  =
+
+! port0
+CMD_VAR =
+RUNTIME =
+HELP    = ##PORT0_HELP
+BYWORD  =
+
+! interface
+CMD_VAR =
+RUNTIME =
+HELP    = ##INTERFACE_HELP
+BYWORD  =
+
+! <port_type_id>
+CMD_VAR = port0
+RUNTIME =
+HELP    =
+BYWORD  = <Port0 : port_type_id>
+
+! port1
+CMD_VAR = has_port1
+RUNTIME =
+HELP    = ##PORT1_HELP
+BYWORD  =
+
+! interface
+CMD_VAR =
+RUNTIME =
+HELP    = ##INTERFACE_HELP
+BYWORD  =
+
+! <port_type_id>
+CMD_VAR = port1
+RUNTIME =
+HELP    =
+BYWORD  = <Port1 : port_type_id>
+
+! interconnect
+CMD_VAR = has_interconnect
+RUNTIME =
+HELP    = Sub-ring is interconnected
+BYWORD  = interconnect : Option
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = major_ring_id
+RUNTIME =
+HELP    = Major ring group number
+BYWORD  = <MajorRingId : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! virtual-channel
+CMD_VAR = has_virtual_channel
+RUNTIME =
+HELP    = Enable virtual channel for sub-ring
+BYWORD  = virtual-channel : Option
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type                    = ERPS_CMD_PROTECTION_GROUP_ADD;
+    conf_req.group_id                    = group;
+    conf_req.data.create.east_port       = port0.begin_uport;
+    conf_req.data.create.west_port       = has_port1 ? port1.begin_uport : 0;
+    conf_req.data.create.ring_type       = ERPS_RING_TYPE_SUB;
+    conf_req.data.create.interconnected  = has_interconnect;
+    conf_req.data.create.major_ring_id   = has_interconnect ? major_ring_id : 0;
+    conf_req.data.create.virtual_channel = has_virtual_channel;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+DOC_CMD_DESC    = Delete ERPS group.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+! Property cannot be loose -- otherwise "no erps 1 mars attacks" will destroy the group
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t      conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type = ERPS_CMD_PROTECTION_GROUP_DELETE;
+    conf_req.group_id = group;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> mep port0 sf <1-'VTSS_MEP_INSTANCE_MAX'> aps <1-'VTSS_MEP_INSTANCE_MAX'> port1 sf <1-'VTSS_MEP_INSTANCE_MAX'> aps <1-'VTSS_MEP_INSTANCE_MAX'>
+
+DOC_CMD_DESC    = Configure MEPs for ERPS group.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = MEP
+BYWORD  = 
+
+! port0
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##PORT0_HELP
+BYWORD  = 
+
+! sf
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##SF_HELP
+BYWORD  = 
+
+! <1-'VTSS_MEP_INSTANCE_MAX'>
+CMD_VAR = p0_sf
+RUNTIME = 
+HELP    = Index of Port 0 SignalFail MEP
+BYWORD  = <Port0SignalFail : 1-'VTSS_MEP_INSTANCE_MAX'>
+
+! aps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##APS_HELP
+BYWORD  = 
+
+! <1-'VTSS_MEP_INSTANCE_MAX'>
+CMD_VAR = p0_aps
+RUNTIME = 
+HELP    = Index of Port 0 APS MEP
+BYWORD  = <Port0APS : 1-'VTSS_MEP_INSTANCE_MAX'>
+
+! port1
+CMD_VAR =
+RUNTIME = port1_runtime
+HELP    = ##PORT1_HELP
+BYWORD  =
+
+! sf
+CMD_VAR =
+RUNTIME = port1_runtime_sf
+HELP    = ##SF_HELP
+BYWORD  =
+
+! <1-'VTSS_MEP_INSTANCE_MAX'>
+CMD_VAR = p1_sf
+RUNTIME = port1_runtime_sf
+HELP    = Index of Port 1 SignalFail MEP
+BYWORD  = <Port1SignalFail : 1-'VTSS_MEP_INSTANCE_MAX'>
+
+! aps
+CMD_VAR =
+RUNTIME = port1_runtime
+HELP    = ##APS_HELP
+BYWORD  =
+
+! <1-'VTSS_MEP_INSTANCE_MAX'>
+CMD_VAR = p1_aps
+RUNTIME = port1_runtime
+HELP    = Index of Port 1 APS MEP
+BYWORD  = <Port1APS : 1-'VTSS_MEP_INSTANCE_MAX'>
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+
+    p1_sf  = 0;
+    p1_aps = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type              = ERPS_CMD_ADD_MEP_ASSOCIATION;
+    conf_req.group_id              = group;
+    conf_req.data.mep.east_mep_id  = p0_sf;
+    conf_req.data.mep.west_mep_id  = p1_sf;
+    conf_req.data.mep.raps_eastmep = p0_aps;
+    conf_req.data.mep.raps_westmep = p1_aps;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> mep
+
+DOC_CMD_DESC    = Reset ERPS MEP configuration.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! mep
+CMD_VAR = 
+RUNTIME = 
+HELP    = MEP
+BYWORD  = 
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type              = ERPS_CMD_DEL_MEP_ASSOCIATION;
+    conf_req.group_id              = group;
+    conf_req.data.mep.east_mep_id  = 0;
+    conf_req.data.mep.west_mep_id  = 0;
+    conf_req.data.mep.raps_eastmep = 0;
+    conf_req.data.mep.raps_westmep = 0;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> version { 1 | 2 }
+
+DOC_CMD_DESC    = Set ERPS version.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! version
+CMD_VAR = 
+RUNTIME = 
+HELP    = Version
+BYWORD  = 
+
+! 1
+CMD_VAR = has_1
+RUNTIME = 
+HELP    = ERPS version 1
+BYWORD  = 1 : Option
+
+! 2
+CMD_VAR =
+RUNTIME = 
+HELP    = ERPS version 2
+BYWORD  = 2 : Option
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type = has_1 ? ERPS_CMD_ENABLE_VERSION_1_COMPATIBLE : ERPS_CMD_DISABLE_VERSION_1_COMPATIBLE;
+    conf_req.group_id = group;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> version
+
+DOC_CMD_DESC    = Reset ERPS version.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! version
+CMD_VAR = 
+RUNTIME = 
+HELP    = Version
+BYWORD  = 
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type = ERPS_CMD_DISABLE_VERSION_1_COMPATIBLE;   // Defaults to v2
+    conf_req.group_id = group;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> rpl { owner | neighbor } { port0 | port1 }
+
+DOC_CMD_DESC    = Configure ERPS Ring Protection Link.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! rpl
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##RPL_HELP
+BYWORD  = 
+
+! owner
+CMD_VAR = has_owner
+RUNTIME = 
+HELP    = Owner role
+BYWORD  = owner : Option
+
+! neighbor
+CMD_VAR =
+RUNTIME = 
+HELP    = Neighbor role
+BYWORD  = neighbor : Option
+
+! port0
+CMD_VAR = has_port0
+RUNTIME = 
+HELP    = ##PORT0_HELP
+BYWORD  = port0 : Option
+
+! port1
+CMD_VAR = 
+RUNTIME =
+HELP    = ##PORT1_HELP
+BYWORD  = port1 : Option
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+    vtss_port_no_t        port;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.group_id = group - 1;
+    CHECK_RC(erps_mgmt_getexact_protection_group_by_id(&conf_req));
+    port = has_port0 ? conf_req.data.get.erpg.east_port : conf_req.data.get.erpg.west_port;
+
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.group_id                = group;
+    conf_req.req_type                = has_owner ? ERPS_CMD_SET_RPL_BLOCK : ERPS_CMD_SET_RPL_NEIGHBOUR;
+    conf_req.data.rpl_block.rpl_port = port;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> rpl
+
+DOC_CMD_DESC    = Reset Ring Protection Link configuration.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! rpl
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##RPL_HELP
+BYWORD  = 
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+    BOOL                  owner;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.group_id = group - 1;
+    CHECK_RC(erps_mgmt_getexact_protection_group_by_id(&conf_req));
+
+    if (!conf_req.data.get.erpg.rpl_owner  &&  !conf_req.data.get.erpg.rpl_neighbour) {
+        return ICLI_RC_OK;
+    }
+
+    owner = conf_req.data.get.erpg.rpl_owner;
+
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.group_id = group;
+    conf_req.req_type = owner ? ERPS_CMD_UNSET_RPL_BLOCK : ERPS_CMD_UNSET_RPL_NEIGHBOUR;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+! NOTE: Resides in privileged exec for now; requires API changes to support
+!       as configuration command. This also removes the 'no' form.
+
+IF_FLAG = 
+
+! COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> command { force | manual } { port0 | port1 }
+COMMAND   = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> command { force | manual | clear } { port0 | port1 }
+
+DOC_CMD_DESC    = Set/clear ERPS administrative command.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+! CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! command
+CMD_VAR = 
+RUNTIME = 
+HELP    = Administrative Command
+BYWORD  = 
+
+! force
+CMD_VAR = has_force
+RUNTIME =
+HELP    = Force command
+BYWORD  = force : Option
+
+! manual
+CMD_VAR =
+RUNTIME =
+HELP    = Manual command
+BYWORD  = manual : Option
+
+! clear
+CMD_VAR = has_clear
+RUNTIME =
+HELP    = Clear command
+BYWORD  = clear : Option
+
+! port0
+CMD_VAR = has_port0
+RUNTIME = 
+HELP    = ##PORT0_HELP
+BYWORD  = port0 : Option
+
+! port1
+CMD_VAR =
+RUNTIME =
+HELP    = ##PORT1_HELP
+BYWORD  = port1 : Option
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+    vtss_port_no_t        port;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.group_id = group - 1;
+    CHECK_RC(erps_mgmt_getexact_protection_group_by_id(&conf_req));
+    port = has_port0 ? conf_req.data.get.erpg.east_port : conf_req.data.get.erpg.west_port;
+
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.group_id              = group;
+    conf_req.req_type              = has_clear ? ERPS_CMD_CLEAR : (has_force ? ERPS_CMD_FORCED_SWITCH : ERPS_CMD_MANUAL_SWITCH);
+    conf_req.data.create.east_port = port;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 0
+
+COMMAND = no erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> command [ port0 ] [ port1 ]
+
+DOC_CMD_DESC    = Clear ERPS administrative command.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! command
+CMD_VAR = 
+RUNTIME = 
+HELP    = Command
+BYWORD  = 
+
+! port0
+CMD_VAR = has_port0
+RUNTIME =
+HELP    = ##PORT0_HELP
+BYWORD  = port0 : Option
+
+! port1
+CMD_VAR = has_port1
+RUNTIME =
+HELP    = ##PORT1_HELP
+BYWORD  = port1 : Option
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+    vtss_port_no_t        e_port, w_port;
+VARIABLE_END
+
+CODE_BEGIN
+    if (!(has_port0 || has_port1)) {
+        has_port0 = has_port1 = TRUE;
+    }
+
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.group_id = group - 1;
+    CHECK_RC(erps_mgmt_getexact_protection_group_by_id(&conf_req));
+    e_port = conf_req.data.get.erpg.east_port;
+    w_port = conf_req.data.get.erpg.west_port;
+
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.group_id = group;
+    conf_req.req_type = ERPS_CMD_CLEAR;
+
+    if (has_port0) {
+        conf_req.data.create.east_port = e_port;
+        CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+    }
+
+    if (has_port1) {
+        conf_req.data.create.west_port = w_port;
+        CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> holdoff <'RAPS_HOLD_OFF_TIMEOUT_MIN_MILLISECONDS'-'RAPS_HOLD_OFF_TIMEOUT_MAX_MILLISECONDS'>
+
+DOC_CMD_DESC    = Configure ERPS holdoff time.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! holdoff
+CMD_VAR = 
+RUNTIME = 
+HELP    = Holdoff
+BYWORD  = 
+
+! <'RAPS_HOLD_OFF_TIMEOUT_MIN_MILLISECONDS'-'RAPS_HOLD_OFF_TIMEOUT_MAX_MILLISECONDS'>
+CMD_VAR = holdoff_time_ms
+RUNTIME = 
+HELP    = Holdoff time in ms
+BYWORD  = <HoldoffTimeMs : 'RAPS_HOLD_OFF_TIMEOUT_MIN_MILLISECONDS'-'RAPS_HOLD_OFF_TIMEOUT_MAX_MILLISECONDS'>
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    if (holdoff_time_ms % 100 != 0) {
+        holdoff_time_ms = (holdoff_time_ms / 100) * 100;
+        ICLI_PRINTF("%% Holdoff time rounded to %d ms\n", holdoff_time_ms);
+    }
+
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type        = ERPS_CMD_HOLD_OFF_TIMER;
+    conf_req.group_id        = group;
+    conf_req.data.timer.time = holdoff_time_ms;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> holdoff
+
+DOC_CMD_DESC    = Reset ERPS holdoff time.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! holdoff
+CMD_VAR = 
+RUNTIME = 
+HELP    = Holdoff
+BYWORD  = 
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type        = ERPS_CMD_HOLD_OFF_TIMER;
+    conf_req.group_id        = group;
+    conf_req.data.timer.time = 0;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> guard <'RAPS_GUARD_TIMEOUT_MIN_MILLISECONDS'-'RAPS_GUARD_TIMEOUT_MAX_MILLISECONDS'>
+
+DOC_CMD_DESC    = Configure ERPS guard time.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! guard
+CMD_VAR = 
+RUNTIME = 
+HELP    = Guard
+BYWORD  = 
+
+! <'RAPS_GUARD_TIMEOUT_MIN_MILLISECONDS'-'RAPS_GUARD_TIMEOUT_MAX_MILLISECONDS'>
+CMD_VAR = guard_time_ms
+RUNTIME = 
+HELP    = Guard time in ms
+BYWORD  = <GuardTimeMs : 'RAPS_GUARD_TIMEOUT_MIN_MILLISECONDS'-'RAPS_GUARD_TIMEOUT_MAX_MILLISECONDS'>
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type        = ERPS_CMD_GUARD_TIMER;
+    conf_req.group_id        = group;
+    conf_req.data.timer.time = guard_time_ms;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> guard
+
+DOC_CMD_DESC    = Reset ERPS guard time.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! guard
+CMD_VAR = 
+RUNTIME = 
+HELP    = Guard
+BYWORD  = 
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+
+    conf_req.req_type        = ERPS_CMD_GUARD_TIMER;
+    conf_req.group_id        = group;
+    conf_req.data.timer.time = RAPS_GUARDTIMEOUT_DEFAULT_MILLISECONDS;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> revertive <'RAPS_WTR_TIMEOUT_MIN_MINUTES'-'RAPS_WTR_TIMEOUT_MAX_MINUTES'>
+
+DOC_CMD_DESC    = Enable ERPS revertive and set timeout.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME =
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! revertive
+CMD_VAR = 
+RUNTIME = 
+HELP    = Revertive
+BYWORD  = 
+
+! <'RAPS_WTR_TIMEOUT_MIN_MINUTES'-'RAPS_WTR_TIMEOUT_MAX_MINUTES'>
+CMD_VAR = wtr_time_minutes
+RUNTIME = 
+HELP    = Wait-to-restore time in minutes
+BYWORD  = <WtrTimeMinutes : 'RAPS_WTR_TIMEOUT_MIN_MINUTES'-'RAPS_WTR_TIMEOUT_MAX_MINUTES'>
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.req_type = ERPS_CMD_DISABLE_NON_REVERTIVE;
+    conf_req.group_id = group;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+
+    memset(&conf_req,0,sizeof(conf_req));
+    conf_req.req_type         = ERPS_CMD_WTR_TIMER;
+    conf_req.group_id         = group;
+    conf_req.data.timer.time  = MIN_TO_MS(wtr_time_minutes);
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> revertive
+
+DOC_CMD_DESC    = Disable ERPS revertive.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! revertive
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.req_type = ERPS_CMD_ENABLE_NON_REVERTIVE;
+    conf_req.group_id = group;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+
+    memset(&conf_req,0,sizeof(conf_req));
+    conf_req.req_type         = ERPS_CMD_WTR_TIMER;
+    conf_req.group_id         = group;
+    conf_req.data.timer.time  = MIN_TO_MS(1);
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> topology-change propagate
+
+DOC_CMD_DESC    = Configure ERPS topology change propagation.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! topology-change
+CMD_VAR = 
+RUNTIME = 
+HELP    = Topology Change
+BYWORD  = 
+
+! propagate
+CMD_VAR = 
+RUNTIME = 
+HELP    = Propagate
+BYWORD  = 
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t conf_req;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.req_type = ERPS_CMD_TOPOLOGY_CHANGE_PROPAGATE;
+    conf_req.group_id = group;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.req_type = ERPS_CMD_TOPOLOGY_CHANGE_NO_PROPAGATE;
+    conf_req.group_id = group;
+
+    CHECK_RC(erps_mgmt_set_protection_group_request(&conf_req));
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+! NOTE: Some options are deactivated until 4k VLAN support is added
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+! COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> vlan { all | none | [ add | remove | except ] <vlan_list> }
+COMMAND = erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> vlan { none | [ add | remove ] <vlan_list> }
+
+DOC_CMD_DESC    = Configure set of protected VLANs in ERPS group.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! vlan
+CMD_VAR = 
+RUNTIME = 
+HELP    = VLAN
+BYWORD  = 
+
+! all
+! CMD_VAR = has_all
+! RUNTIME =
+! HELP    = Include all VLANs
+! BYWORD  = all : Option
+
+! none
+CMD_VAR = has_none
+RUNTIME = 
+HELP    = Do not include any VLANs
+BYWORD  = none : Option
+
+! add
+CMD_VAR = has_add
+RUNTIME = 
+HELP    = Add to set of included VLANs
+BYWORD  = add : Option
+
+! remove
+CMD_VAR = has_remove
+RUNTIME = 
+HELP    = Remove from set of included VLANs
+BYWORD  = remove : Option
+
+! except
+! CMD_VAR = has_except
+! RUNTIME =
+! HELP    = Include all VLANs except those specified
+! BYWORD  = except : Option
+
+! <vlan_list>
+CMD_VAR = vlans
+RUNTIME = 
+HELP    = List of VLANs
+BYWORD  = 
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t   conf_req;
+    vtss_erps_config_erpg_t *erpg;
+    u32                     i;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.group_id = group - 1;
+    CHECK_RC(erps_mgmt_getexact_protection_group_by_id(&conf_req));
+    erpg = &conf_req.data.get.erpg;
+
+    if (has_none) {
+        // Delete all
+        for (i = 0; i < PROTECTED_VLANS_MAX; i++) {
+            if (erpg->protected_vlans[i]) {
+                if (!erps_modify_vlan(session_id, group, erpg->protected_vlans, erpg->protected_vlans[i], FALSE)) {
+                    return ICLI_RC_ERROR;
+                }
+            }
+        }
+    } else if (!has_add  &&  !has_remove) {
+        // Replace full set of VLANs. First delete those that have been removed,
+        // then add all those given on the cmd. For existing VIDs that's a no-op.
+
+        for (i = 0; i < PROTECTED_VLANS_MAX; i++) {
+            if (erpg->protected_vlans[i]) {
+                BOOL do_delete = TRUE;
+                VTSS_ICLI_RANGE_FOREACH(vlans, vtss_vid_t, vid) {
+                    if (erpg->protected_vlans[i] == vid) {
+                        do_delete = FALSE;
+                    }
+                } VTSS_ICLI_RANGE_FOREACH_END()
+                if (do_delete  &&  !erps_modify_vlan(session_id, group, erpg->protected_vlans, erpg->protected_vlans[i], FALSE)) {
+                    return ICLI_RC_ERROR;
+                }
+            }
+        }
+
+        VTSS_ICLI_RANGE_FOREACH(vlans, vtss_vid_t, vid) {
+            if (!erps_modify_vlan(session_id, group, erpg->protected_vlans, vid, TRUE)) {
+                return ICLI_RC_ERROR;
+            }
+        } VTSS_ICLI_RANGE_FOREACH_END()
+    } else {
+        // Add or remove specific
+        VTSS_ICLI_RANGE_FOREACH(vlans, vtss_vid_t, vid) {
+            if (!erps_modify_vlan(session_id, group, erpg->protected_vlans, vid, has_add)) {
+                return ICLI_RC_ERROR;
+            }
+        } VTSS_ICLI_RANGE_FOREACH_END()
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no erps <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'> vlan
+
+DOC_CMD_DESC    = Clear set of protected VLANs in ERPS group.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+! no
+CMD_VAR = 
+RUNTIME = 
+HELP    = 
+BYWORD  = 
+
+! erps
+CMD_VAR = 
+RUNTIME = 
+HELP    = ##ERPS_HELP
+BYWORD  = 
+
+! <'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+CMD_VAR = group
+RUNTIME = 
+HELP    = ##GROUP_HELP
+BYWORD  = <Group : 'ERPS_MIN_PROTECTION_GROUPS'-'ERPS_MAX_PROTECTION_GROUPS'>
+
+! vlan
+CMD_VAR = 
+RUNTIME = 
+HELP    = VLAN
+BYWORD  = 
+
+VARIABLE_BEGIN
+    vtss_erps_mgmt_conf_t   conf_req;
+    vtss_erps_config_erpg_t *erpg;
+    u32                     i;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&conf_req, 0, sizeof(conf_req));
+    conf_req.group_id = group - 1;
+    CHECK_RC(erps_mgmt_getexact_protection_group_by_id(&conf_req));
+    erpg = &conf_req.data.get.erpg;
+
+    for (i = 0; i < PROTECTED_VLANS_MAX; i++) {
+        if (erpg->protected_vlans[i]) {
+            if (!erps_modify_vlan(session_id, group, erpg->protected_vlans, erpg->protected_vlans[i], FALSE)) {
+                return ICLI_RC_ERROR;
+            }
+        }
+    }
+CODE_END
+
+CMD_END
+

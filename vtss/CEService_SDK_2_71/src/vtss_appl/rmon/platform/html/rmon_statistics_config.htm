@@ -1,0 +1,358 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RMON Statistics Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_rmon_statistics_config.htm";
+
+var reqObject;
+var entryIdxArray = Array();
+var receiveEntryName = Array();
+var emptyConfigForm = true;
+var originalCnt = 0;
+var newCreateCnt = 0;
+var maxCreateCnt = 128;
+
+var oVNormal = Array(0, 1);
+
+function isSnmpAdminString(str) {
+    var myReg;
+
+    myReg = /^[!-~]{1,}$/;
+
+    return myReg.test(str);
+}
+
+function addEntryIdx()
+{
+    var fld;
+
+    for (var i = 1; i <= maxCreateCnt; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newCreateCnt++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newCreateCnt; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newCreateCnt; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newCreateCnt--;
+    document.getElementById("rmonStatisticsData").removeChild(tr);
+}
+
+function addNewRow() {
+    var delCnt = 0;
+    for (var idx = 0; idx < receiveEntryName.length; idx++) {
+        if (document.getElementById("del_" + receiveEntryName[idx]).checked) {
+            delCnt++;
+        }
+    }
+
+    if (originalCnt - delCnt + newCreateCnt >= maxCreateCnt) {
+        alert("The maximum number of entries is " + maxCreateCnt);
+        return;
+    }
+
+    // Search for a new free name for this row.
+    var new_idx = addEntryIdx();
+    if (new_idx === 0) {
+        alert("The maximum number of entries is " + maxCreateCnt);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalCnt + new_idx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + new_idx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+
+    var td_id_new = addInputCell(tr, "", "cr", "new_id_" + new_idx, 5);
+    td_id_new.setAttribute("maxLength", 5);
+    var td_datasource_new = addInputCellWithText(tr, "0", "cr", "new_datasource_" + new_idx, 5, 5, "", ".1.3.6.1.2.1.2.2.1.1.");
+    td_datasource_new.setAttribute("maxLength", 15);
+
+    frag.appendChild(tr);       // Add row to fragment
+    var tbody = document.getElementById("rmonStatisticsData");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function addRow(index, frag, values) {
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    originalCnt++;
+    receiveEntryName[index] = values[0];
+
+    addCheckBoxCell(tr, 0, "c", "del_" + values[0]);
+    addTextCell(tr, values[0], "cr");
+    var td = addInputCellWithText(tr, values[1], "cr", "datasource_" + values[0], 5, 5, "", ".1.3.6.1.2.1.2.2.1.1.");
+    td.setAttribute("maxLength", 15);
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function checkIfIndex(datasource) {
+    var stack_a, stack_b, ports, sel_sid, opt;
+    var ifIndex = parseInt(datasource.value, 10);
+    var usid = (ifIndex - ifIndex%if_switch_interval)/if_switch_interval +1;
+    var port_id = ifIndex%if_switch_interval;
+    var llagid_end, found = 0;
+
+    //alert(" if_glag_start " + if_glag_start + " if_llag_start " + if_llag_start + " if_glag_cnt " + if_glag_cnt + " if_llag_cnt " + if_llag_cnt );
+
+    if(SpomStackPortCount() !== 0 && usid <= configSidMax ) {
+        var sel = SpomGetSelector();
+        if(sel && sel.selectedIndex >= 0) {
+            for( var i = 0; i < sel.options.length; i++) {
+                opt = sel.options[i];
+                sel_sid = opt.value;
+                if(sel_sid == usid) {
+                    stack_a = parseInt(opt.get('stack_a'), 10);
+                    stack_b = parseInt(opt.get('stack_b'), 10);
+                    ports = parseInt(opt.get('ports'), 10) - SpomStackPortCount();
+                    found = 1;
+                    break;
+                }
+            }
+            if(found === 0) {
+                alert("invalid 'datasource', switch ID doesn't exit");
+                return false;
+            }
+        } else {
+            alert("SpomGetSelector fail");
+            return false;
+        }
+    } else if (SpomStackPortCount() !== 0 || usid > configSidMax){
+        glagid_end = if_glag_start + if_glag_cnt - 1; 
+        if( 0 === if_glag_cnt || ifIndex < if_glag_start || ifIndex > glagid_end ) {
+            alert("invalid 'datasource', invalid glag");
+            return false;
+        }
+        return true;
+    } else {
+        // Standalone device or stackable device with stack disabled
+        sel_sid = SpomGetCurrentSid();
+        if ( usid != sel_sid ) {
+            alert("invalid 'datasource', switch ID doesn't exit");
+            return false;
+        }
+        stack_a = 0;
+        stack_b = 0;
+        ports   =SpomCurrentPorts();
+    }
+
+    llagid_end = if_llag_start + if_llag_cnt - 1; 
+
+    if ( port_id > ports + SpomStackPortCount() && (0 === if_llag_cnt || port_id < if_llag_start || port_id > llagid_end )) {
+        alert("invalid 'datasource', invalid llag");
+        return false;
+    }
+
+    if ( port_id < configPortMin) {
+        alert("invalid 'datasource', invalid port ID");
+        return false;
+    }
+    return true;
+}
+
+
+
+function checkForm() {
+    var fld, idx, new_idx;
+
+    if (emptyConfigForm && !newCreateCnt) {
+        document.location.href = "rmon_statistics_config.htm";
+        return false;
+    }
+
+    if (!emptyConfigForm) {
+        for (idx = 0; idx < receiveEntryName.length; idx++) {
+            //data source
+            if(!isWithinRange("datasource_" + receiveEntryName[idx], 1, 0xFFFFFFFF, "'Data Source'")) {
+                return false;
+            }
+            var datasource = document.getElementById("datasource_" + receiveEntryName[idx]);
+//            var ifIndex = parseInt(datasource.value);
+
+            if(checkIfIndex(datasource) === false) {
+                return false;
+            }
+
+        }
+    }
+
+    if (newCreateCnt) {
+        for (new_idx = 0; new_idx < newCreateCnt; new_idx++) {
+            //id
+            if(!isWithinRange("new_id_" + entryIdxArray[new_idx], 1, 65535, "'ID'")) {
+                return false;
+            }
+
+            //data source
+            if(!isWithinRange("new_datasource_" + entryIdxArray[new_idx], 1, 0xFFFFFFFF, "'Data Source'")) {
+                return false;
+            }
+
+            var datasource_new = document.getElementById("new_datasource_" + entryIdxArray[new_idx]);
+
+            if(checkIfIndex(datasource_new) === false) {
+                return false;
+            }
+
+            //check if repeated community
+            var new_community = document.getElementById("new_id_" + entryIdxArray[new_idx]);
+            for (idx = 0; idx < receiveEntryName.length; idx++) {
+                if (document.getElementById("del_" + receiveEntryName[idx]).checked) {
+                    continue;
+                }
+                if (new_community.value == receiveEntryName[idx]) {
+                    GiveAlert("The entry '" + new_community.value + "' already exists", new_community);
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;                // Feed the chickens and go home
+}
+
+function processUpdate(req, ref) {
+
+    if (redirectOnError(req)) {
+        return;
+    }
+    var frag = document.createDocumentFragment();
+    if (reqObject != req) {
+        reqObject = req;
+    }
+    if (req.responseText) {
+        var snmpv3Config = req.responseText.split("|");
+        //if (1) {
+        //var snmpv3Config = req.split("|");
+
+        snmpv3Config[0] = snmpv3Config[0].replace(/^\n/, "");
+        // create holder for accumulated tbody elements and text nodes
+        for (var i = 0; i < snmpv3Config.length; i++) {
+            if (snmpv3Config[i]) {
+                var receiveData = snmpv3Config[i].split("/");
+                receiveData[0] = unescape(receiveData[0]);
+                addRow(i, frag, receiveData);
+                emptyConfigForm = false;
+            }
+        }
+    }
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    newCreateCnt = 0;
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "rmonStatisticsData");
+}
+
+function requestUpdate() {
+    //Format: <community_name>/<sip>/<sip_mask>,...
+    //var req="public/192.168.1.1/255.255.255.0|private/192.168.1.1/255.255.255.0";
+    //processUpdate(req, "snmpv3Data");
+    loadXMLDoc("/config/rmon_statistics_config", processUpdate, "rmonStatisticsData");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>RMON Statistics Configuration</h1>
+
+<form name="rmonStatisticsConfigForm" method="POST" action="/config/rmon_statistics_config" onsubmit="return checkForm();">
+
+<table summary="RMON Statistics Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th>Delete</th>
+   <th>ID</th>
+   <th>Data Source</th>
+  </tr>
+ </thead>
+  <tbody id="rmonStatisticsData"></tbody>
+</table>
+
+<p>
+  <input type="button" id="addNewEntry" value="Add New Entry" onclick="addNewRow();">&nbsp;&nbsp;&nbsp;&nbsp;
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,216 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RADIUS Server Overview</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Refresh timer
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_auth_status_radius_overview.htm";
+
+var ServerStateTyp  = Array("Disabled", "Not Ready", "Ready", "Dead");
+
+var PARM_IDX_IP_ADDR             = 0;
+var PARM_IDX_UDP_PORT            = 1;
+var PARM_IDX_SERVER_STATE        = 2;
+var PARM_IDX_DEAD_TIME_LEFT_SECS = 3;
+var PARM_CNT_PER_SERVER          = (PARM_IDX_DEAD_TIME_LEFT_SECS + 1);
+
+// Helper function to add a row of server state.
+function add_server_row(idx, frag, vals)
+{
+  var tr = CreateStyledElement("tr", idx % 2 ? "display_odd" : "display_even");
+  var server = idx + 1;
+  if(vals.length != PARM_CNT_PER_SERVER) {
+    return false;
+  }
+
+  var state = vals[PARM_IDX_SERVER_STATE];
+
+  // Server number with href.
+  var td   = CreateStyledElement("td", "cr");
+  var txt  = document.createTextNode(server);
+  var link = document.createElement("a");
+  link.href = "auth_status_radius_details.htm?server=" + server;
+  link.appendChild(txt);
+  td.appendChild(link);
+  tr.appendChild(td);
+
+  // Server's IP address.
+  addTextCell(tr, vals[PARM_IDX_IP_ADDR] + ":" + vals[PARM_IDX_UDP_PORT], "cl");
+
+  // Server State (0 = Disabled, 1 = Active, 2 = Dead)
+  if(state != 3) {
+    addTextCell(tr, ServerStateTyp[state], "cl");
+  } else {
+    addTextCell(tr, ServerStateTyp[state] + " (" + vals[PARM_IDX_DEAD_TIME_LEFT_SECS] + " seconds left)", "cl");
+  }
+
+  frag.appendChild(tr); // Add row to fragment
+  return true;
+}
+
+function processUpdate(req, ref)
+{
+  // Format: <auth_servers>|<acct_servers>
+  // Format <auth_servers> and <acct_servers>: <server_state_1>#<server_state_2>#...#<server_state_N>
+  var values = req.responseText.split("|");
+  var frag_server, s, tbody;
+
+  document.getElementById("update").style.visibility = "hidden";
+
+  if(redirectOnError(req)) {
+    return;
+  }
+
+  if(values.length === 0) {
+    return;
+  }
+
+  var server_auth = values[0].split("#");
+  var server_acct = values[1].split("#");
+
+  // Authentication Server state:
+  frag_server = document.createDocumentFragment();
+  for(s = 0; s < server_auth.length; s++) {
+    if(!add_server_row(s, frag_server, server_auth[s].split("/"))) {
+      return; // Invalid values
+    }
+  }
+
+  tbody = document.getElementById('server_state');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag_server);
+
+  // Accounting Server state (can be empty if accounting isn't included):
+  if ((server_acct.length > 0) && (server_acct[0].split("/").length > 1)) {
+    frag_server = document.createDocumentFragment();
+    for(s = 0; s < server_acct.length; s++) {
+      if(!add_server_row(s, frag_server, server_acct[s].split("/"))) {
+        return; // Invalid values
+      }
+    }
+
+    tbody = document.getElementById('server_acct_state');
+    clearChildNodes(tbody);
+    tbody.appendChild(frag_server);
+
+    SetVisible("div_radius_acct", 1);
+  }
+  else {
+    SetVisible("div_radius_acct", 0);
+  }
+
+  // Update the timer
+  var autorefresh = document.getElementById('autorefresh');
+  if(autorefresh.checked) {
+    if(timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+  }
+}
+
+function requestUpdate() {
+  document.getElementById("update").style.visibility = "visible";
+  loadXMLDoc("/stat/auth_status_radius_overview", processUpdate, null);
+}
+
+function chkRefresh(fld)
+{
+  if(!fld.checked) {
+    if(timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = null;
+  } else {
+    requestUpdate();
+  }
+}
+
+ </script>
+</head>
+
+  <body class="content" onload="requestUpdate();">
+
+    <h1>RADIUS Authentication Server Status Overview</h1>
+
+    <div class="refreshbar">
+      <form action="#">
+        <label for="autorefresh">Auto-refresh</label>
+        <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+        <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+        <img id="update" alt="" src="images/updating.gif">
+     </form>
+    </div>
+
+    <table summary="RADIUS Authentication Server Status Overview" class="display">
+      <thead>
+        <tr class="display_header">
+          <th>#</th>
+          <th style="width: 10em;">IP Address</th>
+          <th style="width: 10em;">Status</th>
+        </tr>
+      </thead>
+      <tbody id="server_state">
+    </table>
+
+    <div id="div_radius_acct" style="display:none">
+     <h1>RADIUS Accounting Server Status Overview</h1>
+
+     <table summary="RADIUS Accounting Server Status Overview" class="display">
+      <thead>
+        <tr class="display_header">
+          <th>#</th>
+          <th style="width: 10em;">IP Address</th>
+          <th style="width: 10em;">Status</th>
+        </tr>
+      </thead>
+      <tbody id="server_acct_state">
+     </table>
+    </div>
+
+  </body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

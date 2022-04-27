@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Control List Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="../lib/config.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.dplMax').set('text', configQosDplMax);
+     $$('span.policyMax').set('text', configPolicyMax);
+   });
+ </script>
+</head>
+
+<body>
+<h1>QoS Control List Configuration Help</h1>
+
+<h2>QoS Control List Configuration</h2>
+
+<p>This page allows to edit|insert a single QoS Control Entry at a time. A QCE consists of several parameters. These parameters vary according to the frame type that you select.
+</p>
+
+<dl>
+ <dt class="SPOM_only">Switch#</dt>
+ <dd class="SPOM_only">
+  Select the switch member the QCE will be added.
+  It can be any specific switch by switch ID or 'Any' in which case QCE will be applied to all the switches in the stack.
+ </dd>
+ <dt>Port Members</dt>
+ <dd>
+  Check the checkbox button to include the port in the QCL entry. By default all ports are included.
+ </dd>
+
+ <dt>Key Parameters</dt>
+ <dd>
+  <p>Key configuration is described as below:</p>
+
+  <samp>DMAC</samp> Destination MAC address: Possible values are 'Unicast', 'Multicast', 'Broadcast'<span class="has_arch_serval">, 'Specific' (xx-xx-xx-xx-xx-xx)</span> or 'Any'.<br>
+  <samp>SMAC</samp> Source MAC address:
+   <span class="has_qcl_smac_24_bit">xx-xx-xx (24 MS bits OUI)</span>
+   <span class="has_qcl_smac_48_bit">xx-xx-xx-xx-xx-xx</span> or 'Any'.
+   <span class="has_arch_luton26">If a port is configured to match on DMAC/DIP, this field is the Destination MAC address.</span><br>
+  <samp>Tag</samp> Value of Tag field can be 'Untagged', 'Tagged'<span class="has_arch_serval">, 'C-Tagged', 'S-Tagged'</span> or 'Any'.<br>
+  <samp>VID</samp> Valid value of VLAN ID can be any value in the range 1-4095 or 'Any'; user can enter either a specific value or a range of VIDs.<br>
+  <samp>PCP</samp> Valid value PCP are specific (0, 1, 2, 3, 4, 5, 6, 7) or range (0-1, 2-3, 4-5, 6-7, 0-3, 4-7) or 'Any'.<br>
+  <samp>DEI</samp> Valid value of DEI can be '0', '1' or 'Any'.<br>
+  <span class="has_arch_serval">
+  <samp>Inner Tag</samp> Value of Inner Tag field can be 'Untagged', 'Tagged', 'C-Tagged', 'S-Tagged' or 'Any'.<br>
+  <samp>Inner VID</samp> Valid value of Inner VLAN ID can be any value in the range 1-4095 or 'Any'; user can enter either a specific value or a range of VIDs.<br>
+  <samp>Inner PCP</samp> Valid value of Inner PCP are specific (0, 1, 2, 3, 4, 5, 6, 7) or range (0-1, 2-3, 4-5, 6-7, 0-3, 4-7) or 'Any'.<br>
+  <samp>Inner DEI</samp> Valid value of Inner DEI can be '0', '1' or 'Any'.<br>
+  </span>
+  <samp>Frame Type</samp> Frame Type can have any of the following values:
+  <ol>
+   <li><samp>Any</samp></li>
+   <li><samp>EtherType</samp></li>
+   <li><samp>LLC</samp></li>
+   <li><samp>SNAP</samp></li>
+   <li><samp>IPv4</samp></li>
+   <li><samp>IPv6</samp></li>
+  </ol>
+  <p>Note: All frame types are explained below.</p>
+ </dd>
+ <dt>1. Any</dt>
+ <dd>
+  Allow all types of frames.
+ </dd>
+ <dt>2. EtherType</dt>
+ <dd>
+  <samp>Ether Type</samp> Valid Ether Type can be 0x600-0xFFFF excluding 0x800(IPv4) and 0x86DD(IPv6) or 'Any'.
+ </dd>
+ <dt>3. LLC</dt>
+ <dd>
+  <samp>SSAP Address</samp> Valid SSAP(Source Service Access Point) can vary from 0x00 to 0xFF or 'Any'.<br>
+  <samp>DSAP Address</samp> Valid DSAP(Destination Service Access Point) can vary from 0x00 to 0xFF or 'Any'.<br>
+  <samp>Control</samp> Valid Control field can vary from 0x00 to 0xFF or 'Any'.
+ </dd>
+ <dt>4. SNAP</dt>
+ <dd>
+  <samp>PID</samp> Valid PID(a.k.a Ether Type) can be 0x0000-0xFFFF or 'Any'.
+ </dd>
+ <dt>5. IPv4</dt>
+ <dd>
+  <samp>Protocol</samp> IP protocol number: (0-255, 'TCP' or 'UDP') or 'Any'.<br>
+  <samp>Source IP</samp>  Specific Source IP address in value/mask format or 'Any'.
+   IP and Mask are in the format x.y.z.w where x, y, z, and w are decimal numbers between 0 and 255.
+   When Mask is converted to a 32-bit binary string and read from left to right,
+   all bits following the first zero must also be zero.
+   <span class="has_arch_luton26">If a port is configured to match on DMAC/DIP, this field is the Destination IP address.</span><br>
+  <span class="has_arch_serval">
+  <samp>Destination IP</samp>  Specific Destination IP address in value/mask format or 'Any'.<br>
+  </span>
+  <samp>IP Fragment</samp> IPv4 frame fragmented option: 'Yes', 'No' or 'Any'.<br>
+  <samp>DSCP</samp> Diffserv Code Point value (DSCP): It can be a specific value, range of values or 'Any'.
+   DSCP values are in the range 0-63 including BE, CS1-CS7, EF or AF11-AF43.<br>
+  <samp>Sport</samp> Source TCP/UDP port:(0-65535) or 'Any', specific or port range applicable for IP protocol UDP/TCP.<br>
+  <samp>Dport</samp> Destination TCP/UDP port:(0-65535) or 'Any', specific or port range applicable for IP protocol UDP/TCP.
+ </dd>
+ <dt>6. IPv6</dt>
+ <dd>
+  <samp>Protocol</samp> IP protocol number: (0-255, 'TCP' or 'UDP') or 'Any'.<br>
+  <samp>Source IP</samp> 32 LS bits of IPv6 source address in value/mask format or 'Any'.
+   <span class="has_arch_luton26">If a port is configured to match on DMAC/DIP, this field is the Destination IP address.</span><br>
+  <span class="has_arch_serval">
+  <samp>Destination IP</samp>  Specific Destination IP address in value/mask format or 'Any'.<br>
+  </span>
+  <samp>DSCP</samp> Diffserv Code Point value (DSCP): It can be a specific value, range of values or 'Any'.
+   DSCP values are in the range 0-63 including BE, CS1-CS7, EF or AF11-AF43.<br>
+  <samp>Sport</samp> Source TCP/UDP port:(0-65535) or 'Any', specific or port range applicable for IP protocol UDP/TCP.<br>
+  <samp>Dport</samp> Destination TCP/UDP port:(0-65535) or 'Any', specific or port range applicable for IP protocol UDP/TCP.
+ </dd>
+ <dt>Action Parameters</dt>
+ <dd>
+  <samp>CoS</samp> <a href="glossary.htm#qos_class" class="glossary">Class of Service</a>: (0-7) or 'Default'.<br>
+  <samp>DP</samp> <a href="glossary.htm#dpl" class="glossary">Drop Precedence Level</a>: (0-<span class="dplMax">?</span>) or 'Default'.<br>
+  <samp>DSCP</samp> <a href="glossary.htm#dscp" class="glossary">DSCP</a>: (0-63, BE, CS1-CS7, EF or AF11-AF43) or 'Default'.<br>
+  <span class="has_arch_serval">
+  <samp>PCP</samp> <a href="glossary.htm#PCP" class="glossary">PCP</a>: (0-7) or 'Default'. Note: PCP and DEI cannot be set individually.<br>
+  <samp>DEI</samp> <a href="glossary.htm#DEI" class="glossary">DEI</a>: (0-1) or 'Default'.<br>
+  <samp>Policy</samp> ACL Policy number: (0-<span class="policyMax">?</span>) or 'Default' (empty field).<br>
+  </span>
+  <p>'Default' means that the default classified value is not modified by this QCE.</p>
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save the configuration and move to main QCL page.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+<p><input type="button" value=" Cancel ">: Return to the previous page without saving the configuration change.</p>
+
+</body>
+</html>

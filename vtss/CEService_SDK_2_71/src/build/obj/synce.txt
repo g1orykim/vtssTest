@@ -1,0 +1,28 @@
+clear network-clock clk-source <clk_list> 
+network-clock clk-source <clk_list> nominate { clk-in | { interface <port_type> <port> } } 
+network-clock clk-source <clk_src> aneg-mode { master | slave | forced } 
+network-clock clk-source <clk_src> hold-timeout <v_3_to_18> 
+network-clock clk-source <clk_src> priority <prio> 
+network-clock clk-source <clk_src> ssm-overwrite { prc | ssua | ssub | eec2 | eec1 | dnu } 
+network-clock input-source { 1544khz | 2048khz | 10mhz } 
+network-clock option { eec1 | eec2 } 
+network-clock output-source { 1544khz | 2048khz | 10mhz } 
+network-clock selector { { manual clk-source <v_uint> } | selected | nonrevertive | revertive | holdover | freerun } 
+network-clock ssm-freerun { prc | ssua | ssub | eec2 | eec1 | dnu | inv } 
+network-clock ssm-holdover { prc | ssua | ssub | eec2 | eec1 | dnu | inv } 
+network-clock synchronization ssm 
+network-clock wait-to-restore <wtr_value> 
+no network-clock clk-source <clk_list> nominate 
+no network-clock clk-source <clk_src> aneg-mode 
+no network-clock clk-source <clk_src> hold-timeout 
+no network-clock clk-source <clk_src> priority 
+no network-clock clk-source <clk_src> ssm-overwrite 
+no network-clock input-source 
+no network-clock option 
+no network-clock output-source 
+no network-clock selector 
+no network-clock ssm-freerun 
+no network-clock ssm-holdover 
+no network-clock synchronization ssm 
+no network-clock wait-to-restore 
+show network-clock 

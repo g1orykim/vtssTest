@@ -1,0 +1,187 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>L2CP Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_evc_l2cp.htm";
+
+var selectedPort = configPortMin;
+var pageArgs = searchArgs(window.location.search);
+if (pageArgs['port']) {
+    selectedPort = parseInt(pageArgs['port'], 10);
+}
+
+var oTL2cpMode = Array("Peer", "Forward", "Discard");
+var oVL2cpMode = Array(4, 1, 2);
+
+
+function UpdateSelect(unitMax)
+{
+    selectedPort = SpomUpdatePortSelector("port", selectedPort, true);
+}
+
+function PortSelect(sel)
+{
+    selectedPort = sel.options[sel.selectedIndex].value; 
+    requestUpdate();
+}
+
+function CreateTableHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "DMAC", "param_label");
+    addTextHeaderCell(tr, "L2CP Mode", "param_label");
+    frag.appendChild(tr);
+    elem = document.getElementById("portHead");
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+}
+
+function addRow(frag, i, values)
+{
+    var tr = CreateStyledElement("tr", i % 2 ? "config_odd" : "config_even");
+    var hex = Number(i < 16 ? i : (i + 16)).toString(16).toUpperCase(); //GARP start at 01-80-C2-00-00-20
+    if (hex.length == 1) { 
+        hex = "0" + hex;
+    }
+    addTextCell(tr, "01-80-C2-00-00-" + hex, "cl");
+    addSelectCell(tr, oTL2cpMode, oVL2cpMode, parseInt(values[0], 10), "c", "l2cp_mode_" + i);
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    UpdateSelect(configNormalPortMax);
+
+    if (req.responseText) {
+        var portConfigData = req.responseText.split("/");
+
+        // Create Table Header
+        var frag = document.createDocumentFragment();
+        CreateTableHeader(frag);
+
+        // Create Table Body
+        frag = document.createDocumentFragment();
+        for (var i = 0; i < portConfigData.length; i++) {
+            if (portConfigData[i]) {
+                addRow(frag, i, portConfigData[i]);
+            }
+        }
+
+        var tbody = document.getElementById("portConfTable");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+        var cBar;
+        cBar = new MasterControlBar([{text: "*", className: "cr"},
+                                     {name: "mode_"}
+                                        ]);
+        cBar.construct('portsCtrl','config_odd');
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate()
+{
+    // Format: [l2cp_mode]/...
+
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    loadXMLDoc(SpomAddSidArg("/config/evc_l2cp?port=" + selectedPort), processUpdate, "");
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    selectedPort = SpomUpdatePortSelector("port", selectedPort);
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/evc_l2cp">
+
+<h1>L2CP Port Configuration <span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+  <select id="port" name="port" onchange="PortSelect(this);">
+    <option value="1">Port 1</option>
+    <option value="99">Port 99</option>
+  </select>
+  <input type="button" value="Refresh" onClick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+</div>
+
+<table summary="L2CP Port Configuration" cellspacing="0" class="config">
+ <thead id="portHead">
+ </thead>
+ <tbody id="portsCtrl">
+ </tbody>
+ <tbody id="portConfTable">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

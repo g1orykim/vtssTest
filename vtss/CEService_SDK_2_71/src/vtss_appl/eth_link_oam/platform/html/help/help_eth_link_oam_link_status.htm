@@ -1,0 +1,201 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Link OAM Link Event Status Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+ window.addEvent('domready', function() {
+         $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+         });
+</script>
+</head>
+
+<body>
+<h1>Link OAM Link Event Status Help</h1>
+
+<p>This page allows the user to inspect the
+current <a href="glossary.htm#OAM" class="glossary">Link OAM</a> Link Event
+configurations, and change them as well.</p>
+
+<p class="SPOM_only">The Link OAM Link Event status relate to the currently
+selected stack unit, as reflected by the page header.</p>
+
+<p> The left pane displays the Event status for the Local OAM unit while the right pane 
+displays the status for the Peer for the respective port. </p>
+<dl>
+ <dt>Port</dt>
+ <dd>
+   The switch port number.
+ </dd>
+
+ <dt>Sequence Number</dt>
+ <dd>
+     This two-octet field indicates the total number of events occurred at the remote end.
+ </dd>
+
+ <dt>Frame Error Event Timestamp</dt>
+ <dd>
+     This two-octet field indicates the time reference when the event was generated,
+     in terms of 100 ms intervals.
+ </dd>
+
+ <dt>Frame error event window</dt>
+ <dd>
+     This two-octet field indicates the duration of the period in terms of 100 ms
+     intervals.
+     1) The default value is one second.
+     2) The lower bound is one second.
+     3) The upper bound is one minute.
+ </dd>
+
+ <dt>Frame error event threshold</dt>
+ <dd>
+ This four-octet field indicates the number of detected errored frames in
+ the period is required to be equal to or greater than in order for the event to be generated.
+ 1) The default value is one frame error.
+ 2) The lower bound is zero frame errors.
+ 3) The upper bound is unspecified.
+ </dd>
+
+ <dt>Frame errors</dt>
+ <dd>
+ This four-octet field indicates the number of detected errored frames in the period.
+ </dd>
+
+ <dt>Total frame errors</dt>
+ <dd>
+ This eight-octet field indicates the sum of errored frames that have been
+ detected since the OAM sublayer was reset.
+ </dd>
+ <dt>Total frame error events</dt>
+ <dd>
+ This four-octet field indicates the number of Errored Frame Event TLVs that
+ have been generated since the OAM sublayer was reset.
+ </dd>
+ <dt>Frame Period Error Event Timestamp</dt>
+ <dd>
+ This two-octet field indicates the time reference when the event was generated,
+ in terms of 100 ms intervals.
+ </dd>
+ <dt>Frame Period Error Event Window</dt>
+ <dd>
+ This four-octet field indicates the duration of period in terms of frames.
+ </dd>
+ <dt>Frame Period Error Event Threshold</dt>
+ <dd>
+ This four-octet field indicates the number of errored frames in the
+ period is required to be equal to or greater than in order for the event to be generated.
+ </dd>
+ <dt>Frame Period Errors</dt>
+ <dd>
+ This four-octet field indicates the number of frame errors in the period.
+ </dd>
+ <dt>Total frame period errors</dt>
+ <dd>
+ This eight-octet field indicates the sum of frame errors that have been
+ detected since the OAM sublayer was reset.
+ </dd>
+ <dt>Total frame period error events</dt>
+ <dd>
+ This four-octet field indicates the number of Errored Frame Period Event
+ TLVs that have been generated since the OAM sublayer was reset.
+ </dd>
+ <dt>Symbol Period Error Event Timestamp</dt>
+ <dd>
+ This two-octet field indicates the time reference when the event was generated,
+ in terms of 100 ms intervals.
+ </dd>
+ <dt>Symbol Period Error Event Window</dt>
+ <dd>
+ This eight-octet field indicates the number of symbols in the period.
+ </dd>
+ <dt>Symbol Period Error Event Threshold</dt>
+ <dd>
+ This eight-octet field indicates the number of errored symbols in the
+ period is required to be equal to or greater than in order for the event to be generated.
+ </dd>
+ <dt>Symbol Period Errors</dt>
+ <dd>
+ This eight-octet field indicates the number of symbol errors in the period.
+ </dd>
+ <dt>Symbol frame period errors</dt>
+ <dd>
+ This eight-octet field indicates the sum of symbol errors since the OAM
+ sublayer was reset.
+ </dd>
+ <dt>Symbol frame period error events</dt>
+ <dd>
+ This four-octet field indicates the number of Errored Symbol Period Event
+ TLVs that have been generated since the OAM sublayer was reset.
+ </dd>
+ <dt>Event Seconds Summary Time Stamp</dt>
+ <dd>
+ This two-octet field indicates the time reference when the event was generated,
+ in terms of 100 ms intervals, encoded as a 16-bit unsigned integer.
+ </dd>
+ <dt>Event Seconds Summary Window</dt>
+ <dd>
+ This two-octet field indicates the duration of the period
+ in terms of 100 ms intervals, encoded as a 16-bit unsigned integer.
+ </dd>
+ <dt>Event Seconds Summary Threshold</dt>
+ <dd>
+ This two-octet field indicates the number of errored
+ frame seconds in the period is required to be equal to or greater than in order for the event to be
+ generated, encoded as a 16-bit unsigned integer. 
+ </dd>
+ <dt>Event Seconds Summary Events</dt>
+ <dd>
+ This two-octet field indicates the number of errored frame
+ seconds in the period, encoded as a 16-bit unsigned integer.
+ </dd>
+ <dt>Event Seconds Summary Error Total</dt>
+ <dd>
+ This four-octet field indicates the sum of errored frame seconds that have
+ been detected since the OAM sublayer was reset.
+ </dd>
+ <dt>Event Seconds Summary Event Total</dt>
+ <dd>
+ This four-octet field indicates the number of Errored Frame Seconds
+ Summary Event TLVs that have been generated since the OAM sublayer was reset, encoded as a 32bit
+ unsigned integer.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><i>The port select box determines which port is affected by clicking the buttons.</i></p>
+<p>Auto-refresh<input type="checkbox" disabled>: Check this box to enable an automatic refresh. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value="Refresh " disabled>: Click to refresh the page.</p>
+<p><input type="button" value="Clear " disabled>: Click to clear the data.</p>
+
+</body>
+</html>
+

@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>RMON Statistics Status Overview</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+
+// Help page magic
+var help_page = "/help/help_rmon_statistics_status.htm";
+
+var    LastCtrlId = 0;
+var    LastDataId = 0;
+function addRow(index, frag, values) {
+    var tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+    for(var i = 0; i < values.length; i++) {
+        var td = CreateStyledElement("td", "cr");
+        var entryno = parseInt(values[0], 10);
+        if(i === 0) {
+            var txt = document.createTextNode(configIndexName(entryno, 0));
+            var link = document.createElement("a");
+            link.href = "rmon_statistics_detailed.htm?index=" + entryno;
+            link.appendChild(txt); // Add Text
+            td.appendChild(link); // Add link to cell
+	    tr.appendChild(td);         // Add cell to row
+        } else {
+            var txt_value = document.createTextNode(values[i]);
+            td.appendChild(txt_value); // Add text to cell
+	    tr.appendChild(td);         // Add cell to row
+        }
+
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format: <StartCtrlId>,<NumberOfEntries>,1/0/2/0/128/0/0/0/0/1|2/175/19/23597/234/3518/0/0/0/0|...
+    if(req.responseText)  {
+        var count = req.responseText.split(",");
+        UpdateIdValue("StartCtrlId", count[0]);
+        UpdateIdValue("NumberOfEntries", count[1]);
+
+        var frag = document.createDocumentFragment();
+        if(count[2] == "NoEntries")
+        {
+            var tr = CreateStyledElement("tr", "notice");
+            addTextCell(tr, "No more entries", "cl", 19);
+            frag.appendChild(tr);
+        }
+        else
+        {
+            var values = count[2].split("|");
+            for(var i = 0; i < values.length; i++) {
+                if (values[i]) {
+                    var pval = values[i].split("/");
+                    LastCtrlId = pval[0];
+                    addRow(i, frag, pval);
+                }
+            }
+        }
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+        var autorefresh = document.getElementById('autorefresh');
+	if(autorefresh.checked) {
+            if(timerID) {
+                clearTimeout(timerID);
+            }
+            timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+        }
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate(type) {
+    document.getElementById("update").style.visibility = "visible";
+    if(type == "NextEntries")
+    {
+        loadXMLDoc("/stat/rmon_statistics_status?GetNextEntry=1&StartCtrlId=" + LastCtrlId + 
+                                "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value, processUpdate, 'rmonStatisticsData');
+    }
+    else if(type == "Refresh")
+    {
+        loadXMLDoc("/stat/rmon_statistics_status?GetNextEntry=0&StartCtrlId=" + document.getElementById("StartCtrlId").value + 
+                                "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value, processUpdate, 'rmonStatisticsData');
+    }
+    else
+    {
+        loadXMLDoc("/stat/rmon_statistics_status?GetNextEntry=0&StartCtrlId=0"+ 
+                    "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value, processUpdate, 'rmonStatisticsData');
+    }
+}
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>RMON Statistics Status Overview</h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate('Refresh'); this.blur();">
+  <input type="button" value=" |<< "   title="First page" onclick="requestUpdate(); this.blur();">
+  <input type="button" value=" >> "    title="Next page" onclick="requestUpdate('NextEntries'); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<form action="#">
+  <p>
+    <span class="displaytext">Start from Control Index</span>
+    <input type="text" id="StartCtrlId" name="StartCtrlId" maxlength="5" value="1" size = "5">
+    <span class="displaytext"> with </span>
+    <input type="text" id="NumberOfEntries" name="NumberOfEntries" maxlength="3" value = "20" size = "3">
+    <span class="displaytext"> entries per page. </span>
+  </p>
+</form>
+
+
+<table id="portStats" summary="RMON Statistics Overview" class="display">
+ <thead>
+  <tr class="display_header">
+   <th>ID</th>
+   <th>Data<br>Source<br>(ifIndex)</th>
+   <th>Drop</th>
+   <th>Octets</th>
+   <th>Pkts</th>
+   <th>Broad-<br>cast</th>
+   <th>Multi-<br>cast</th>
+   <th>CRC<br>Errors</th>
+   <th>Under-<br>size</th>
+   <th>Over-<br>size</th>
+   <th>Frag.</th>
+   <th>Jabb.</th>
+   <th>Coll.</th>
+   <th>64<br>Bytes</th>
+   <th>65<br>~<br>127</th>
+   <th>128<br>~<br>255</th>
+   <th>256<br>~<br>511</th>
+   <th>512<br>~<br>1023</th>
+   <th>1024<br>~<br>1588</th>
+  </tr>
+ </thead>
+ <tbody id="rmonStatisticsData">
+ </tbody>
+</table>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,23 @@
+clear erps [ <groups> ] statistics 
+erps <group> command { force | manual | clear } { port0 | port1 } 
+erps <group> guard <guard_time_ms> 
+erps <group> holdoff <holdoff_time_ms> 
+erps <group> major port0 interface <port_type> <port0> port1 interface <port_type> <port1> [ interconnect ] 
+erps <group> mep port0 sf <p0_sf> aps <p0_aps> port1 sf <p1_sf> aps <p1_aps> 
+erps <group> revertive <wtr_time_minutes> 
+erps <group> rpl { owner | neighbor } { port0 | port1 } 
+erps <group> sub port0 interface <port_type> <port0> { { port1 interface <port_type> <port1> } | { interconnect <major_ring_id> [ virtual-channel ] } } 
+erps <group> topology-change propagate 
+erps <group> version { 1 | 2 } 
+erps <group> vlan { none | [ add | remove ] <vlans> } 
+no erps <group> 
+no erps <group> command [ port0 ] [ port1 ] 
+no erps <group> guard 
+no erps <group> holdoff 
+no erps <group> mep 
+no erps <group> revertive 
+no erps <group> rpl 
+no erps <group> topology-change propagate 
+no erps <group> version 
+no erps <group> vlan 
+show erps [ <groups> ] [ detail | statistics ] 

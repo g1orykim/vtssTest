@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+
+// Help page magic
+var help_page = "/help/help_fan_config.htm";
+
+
+//
+// Update when web page is loaded
+//
+function processUpdate(req, ref)
+{
+    // Format: 
+    //  <err_msg>|<t_max>|<t_on>
+    
+    if(redirectOnError(req)) {
+        return;
+    }
+
+    if(req.responseText) {
+        // Get and set configurations settings
+        var config = req.responseText.split("|");
+
+
+	var err_msg            = config[0];
+	var fan_t_max          = config[1]; // Temperature at which fan shall be at full speed.
+	var fan_t_on           = config[2]; // Temperature at which fan shall be at full stop.
+	
+        // Error message
+	if (err_msg !== "") {
+	    alert(err_msg);
+	}
+	
+        fld = document.getElementById("t_max");
+        fld.value = fld.defaultValue = parseInt(fan_t_max, 10);
+
+        fld = document.getElementById("t_on");
+        fld.value = fld.defaultValue = parseInt(fan_t_on, 10);
+    } else {
+        SpomHandleError();   
+    }
+}
+
+//
+// Check all input when "save" button is pressed.
+//
+function checkForm(form)
+{
+    if(!isWithinRange("t_max" , -127 , 127, "'Max Temperature'", " \u00B0C")) {
+	return false;
+    }
+
+    if(!isWithinRange("t_on" , -127 , 127, "'On Temperature'",  " \u00B0C")) {
+	return false;
+    }
+    return true;                // Feed the chickens and go home
+}
+
+
+//
+// Web page updated
+//
+function requestUpdate() {
+
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/fan_config"), processUpdate, 'config');
+    SpomUpdateFormSid("submit_sid");
+}
+
+//
+// Check if the switch in the stack is changed.
+//
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+</script>
+</head>
+<body class="content" onload="requestUpdate();">
+<h1>Fan Configuration</h1>
+<form name="ConfigForm" method="POST" action="/config/fan_config" onsubmit="return checkForm(this);">
+
+<table summary="Fan Control" cellspacing="0" class="config">
+  <tr class="display_even">
+    <td class="param_label">Max Temperature</td>
+    <td><input type="text" id="t_max" name="t_max" maxlength="4" size="4"> &deg;C</td>
+  </tr>
+   
+  <tr class="display_odd">
+    <td class="param_label">On Temperature</td>
+    <td><input type="text"  id="t_on" name="t_on" maxlength="4" size="4"> &deg;C</td>
+  </tr>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+</form>
+</body>
+</html>
+     
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

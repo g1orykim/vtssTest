@@ -1,0 +1,352 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>SNMPv3 Group Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_snmpv3_groups.htm";
+
+var reqObject;
+var entryIdxArray = Array();
+var receiveEntryName = Array();
+var securityCommunity = Array();
+var securityUser = Array();
+var emptyConfigForm = true;
+var originalCnt = 0;
+var newCreateCnt = 0;
+var maxCreateCnt = 16;
+
+var oTModel = Array("v1", "v2c", "usm");
+var oVModel = Array(1, 2, 3);
+
+function isSnmpAdminString(str)
+{
+    var myReg;
+
+    myReg = /^[!-~]{1,}$/;
+
+    return myReg.test(str);
+}
+
+function changeModel()
+{
+    var new_idx;
+
+    for (new_idx = 1; new_idx <= maxCreateCnt; new_idx++) {
+        if (this.id == ("new_model_" + new_idx)) {
+            break;
+        }
+    }
+    var security_sel = document.getElementById("new_security_" + new_idx);
+    clearChildNodes(security_sel);
+
+    var security_name = Array();
+    if (this.value == 3) { //usm
+        security_name = securityUser;
+    } else { //v1, v2c
+        security_name = securityCommunity;
+    }
+
+    for (var idx = 0; idx < security_name.length; idx++) {
+        var opt = document.createElement("option");
+        opt.appendChild(document.createTextNode(security_name[idx]));
+        opt.setAttribute("value", security_name[idx]);
+        security_sel.appendChild(opt);
+    }
+}
+
+function addEntryIdx()
+{
+    var fld;
+
+    for (var i = 1; i <= maxCreateCnt; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newCreateCnt++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newCreateCnt; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newCreateCnt; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newCreateCnt--;
+    document.getElementById("snmpv3Data").removeChild(tr);
+}
+
+function addNewRow()
+{
+    if (securityCommunity.length === 0 && securityUser.length === 0) {
+        alert("No available security name, please add community or user first.");
+        return;
+    }
+
+    var delCnt = 0;
+    for (var idx = 0; idx < receiveEntryName.length; idx++) {
+        if (document.getElementById("del_" + receiveEntryName[idx]).checked) {
+            delCnt++;
+        }
+    }
+
+    if (originalCnt - delCnt + newCreateCnt >= maxCreateCnt) {
+        alert("The maximum number of entries is " + maxCreateCnt);
+        return;
+    }
+
+    // Search for a new free name for this row.
+    var new_idx = addEntryIdx();
+    if (parseInt(new_idx, 10) === 0) {
+        alert("The maximum number of entries is " + maxCreateCnt);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalCnt + new_idx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + new_idx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+
+    td = addSelectCell(tr, oTModel, oVModel, oVModel[0], "cr", "new_model_" + new_idx);
+    td.onchange = changeModel;
+    if (securityCommunity.length) {
+        addSelectCell(tr, securityCommunity, securityCommunity, securityCommunity[0], "cr", "new_security_" + new_idx);
+    } else {
+        addSelectCell(tr, securityUser, securityUser, securityUser[0], "cr", "new_security_" + new_idx);
+    }
+    td = addInputCell(tr, "", "cr", "new_group_" + new_idx, 32);
+    td.setAttribute("maxLength", 32);
+
+    frag.appendChild(tr);       // Add row to fragment
+    var tbody = document.getElementById("snmpv3Data");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+
+    originalCnt++;
+    receiveEntryName[index] = values[0] + values[1];
+
+    addCheckBoxCell(tr, 0, "c", "del_" + values[0] + values[1]);
+    addTextCell(tr, oTModel[parseInt(values[0], 10) -1 ], "cr");
+    addTextCell(tr, values[1], "cr");
+    var td = addInputCell(tr, values[2], "cr", "group_" + values[0] + values[1], 32);
+    td.setAttribute("maxLength", 32);
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function checkForm(form)
+{
+    var fld, idx, new_idx;
+
+    if (emptyConfigForm && !newCreateCnt) {
+        document.location.href = "snmpv3_groups.htm";
+        return false;
+    }
+
+    if (!emptyConfigForm) {
+        for (idx = 0; idx < receiveEntryName.length; idx++) {
+            //group_name
+            fld = document.getElementById("group_" + receiveEntryName[idx]);
+            if (fld.value.length < 1 || fld.value.length > 32) {
+                GiveAlert("The length of 'Group Name' is restricted to 1 - 32", fld);
+                return false;
+            }
+        }
+    }
+
+    if (newCreateCnt) {
+        for (new_idx = 0; new_idx < newCreateCnt; new_idx++) {
+            //group_name
+            fld = document.getElementById("new_group_" + entryIdxArray[new_idx]);
+            if (fld.value.length < 1 || fld.value.length > 32) {
+                GiveAlert("The length of 'Group Name' is restricted to 1 - 32", fld);
+                return false;
+            }
+            if (!isSnmpAdminString(fld.value)) {
+                GiveAlert("The 'Group Name' is restricted to ASCII characters from 33 to 126", fld);
+                return false;
+            }
+
+            //check if repeated security model and security name
+            var new_model = document.getElementById("new_model_" + entryIdxArray[new_idx]);
+            var new_security = document.getElementById("new_security_" + entryIdxArray[new_idx]);
+            for (idx = 0; idx < receiveEntryName.length; idx++) {
+                if (document.getElementById("del_" + receiveEntryName[idx]).checked) {
+                    continue;
+                }
+                if ((new_model.value + new_security.value) == receiveEntryName[idx]) {
+                    alert("The entry '" + oTModel[new_model.value - 1] + ", " + new_security.value + "' already exists");
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;                // Feed the chickens and go home
+}
+
+function processUpdate(req, ref)
+{
+    if (reqObject != req) {
+        reqObject = req;
+    }
+    if (req.responseText) {
+        var i, j, values = req.responseText.split(",");
+        //if (1) {
+        //var values = req.split(",");
+
+        var securityName = values[0].split("|");
+        securityName[0] = securityName[0].replace(/^\n/, "");
+        for (i = 0; i < securityName.length; i++) {
+            if (securityName[i]) {
+                securityCommunity[i] = unescape(securityName[i]);
+            }
+        }
+
+        securityName = values[1].split("|");
+        for (i = 0; i < securityName.length; i++) {
+            if (securityName[i]) {
+                var found_security_name = 0;
+                for (j = 0; j < securityUser.length; j++) {
+                    if (securityUser[j] == unescape(securityName[i])) {
+                        found_security_name = 1;
+                        break;
+                    }
+                }
+                if (!found_security_name) {
+                    securityUser[securityUser.length] = unescape(securityName[i]);
+                }
+            }
+        }
+
+        var snmpv3Config = values[2].split("|");
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        for (i = 0; i < snmpv3Config.length; i++) {
+            if (snmpv3Config[i]) {
+                var receiveData = snmpv3Config[i].split("/");
+                receiveData[1] = unescape(receiveData[1]);
+                receiveData[2] = unescape(receiveData[2]);
+                addRow(i, frag, receiveData);
+                emptyConfigForm = false;
+            }
+        }
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        newCreateCnt = 0;
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+}
+
+function requestUpdate()
+{
+    //Format: <community1>|<community2>|...,<user1>|<user2>|...,<model>/<security_name>/<group_name>,...
+    //var req="public|private|,admin|guest|,1/public/group1|2/private/group2|3/admin/group3";
+    //processUpdate(req, "snmpv3Data");
+    loadXMLDoc("/config/snmpv3_groups", processUpdate, "snmpv3Data");
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "snmpv3Data");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>SNMPv3 Group Configuration</h1>
+
+<form name="snmpv3ConfigForm" method="POST" action="/config/snmpv3_groups" onsubmit="return checkForm(this);">
+
+<table summary="SNMPv3 Group Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th>Delete</th>
+   <th>Security Model</th>
+   <th>Security Name</th>
+   <th>Group Name</th>
+  </tr>
+ </thead>
+  <tbody id="snmpv3Data"></tbody>
+</table>
+
+<p>
+  <input type="button" id="addNewEntry" value="Add New Entry" onclick="addNewRow();">&nbsp;&nbsp;&nbsp;&nbsp;
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm();">
+  <!-- Avoid both checkedbox are none checked -->
+  <input type="hidden" name="dummy">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

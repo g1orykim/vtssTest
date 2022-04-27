@@ -1,0 +1,3345 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<!-- Number of commands
+0047
+-->
+
+<html>
+
+<head>
+<title></title>
+<link href="vtss.css" rel="stylesheet" type="text/css">
+</head>
+
+<body lang=EN-US>
+
+<!-- Title -->
+<div class=Title>
+<p class=NewLine>&nbsp;</p>
+<p class=Title>
+CLI Command Reference Guide
+</p>
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<!-- Reference Link -->
+<div class=RefLink>
+<hr>
+<p class=NewLine>&nbsp;</p>
+
+<p class=RefLink>
+<a href="#cr0002">
+clear mep &lt;inst&gt; { lm | dm | tst } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0003">
+mep &lt;inst&gt; [ mip ] { up | down } domain { port | evc | vlan } [ vid &lt;vid&gt; ] flow &lt;flow&gt; level &lt;level&gt; interface &lt;port_type&gt; &lt;port&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0044">
+mep &lt;inst&gt; ais [ fr1s | fr1m ] [ protect ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0039">
+mep &lt;inst&gt; aps &lt;prio&gt; [ multi | uni ] { laps | { raps [ octet &lt;octet&gt; ] } } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0016">
+mep &lt;inst&gt; cc &lt;prio&gt; [ fr300s | fr100s | fr10s | fr1s | fr6m | fr1m | fr6h ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0041">
+mep &lt;inst&gt; client domain { evc | vlan } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0042">
+mep &lt;inst&gt; client flow &lt;cflow&gt; level &lt;level&gt; [ ais-prio [ &lt;aisprio&gt; | ais-highest ] ] [ lck-prio [ &lt;lckprio&gt; | lck-highest ] ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0020">
+mep &lt;inst&gt; dm &lt;prio&gt; [ multi | { uni mep-id &lt;mepid&gt; } ] [ single | dual ] [ rdtrp | flow ] interval &lt;interval&gt; last-n &lt;lastn&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0024">
+mep &lt;inst&gt; dm ns 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0022">
+mep &lt;inst&gt; dm overflow-reset 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0028">
+mep &lt;inst&gt; dm proprietary 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0026">
+mep &lt;inst&gt; dm syncronized 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0032">
+mep &lt;inst&gt; lb &lt;prio&gt; [ dei ] [ multi | { uni { { mep-id &lt;mepid&gt; } | { mac &lt;mac&gt; } } } ] count &lt;count&gt; size &lt;size&gt; interval &lt;interval&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0046">
+mep &lt;inst&gt; lck [ fr1s | fr1m ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0009">
+mep &lt;inst&gt; level &lt;level&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0018">
+mep &lt;inst&gt; lm &lt;prio&gt; [ multi | uni ] [ single | dual ] [ fr10s | fr1s | fr6m | fr1m | fr6h ] [ flr &lt;flr&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0030">
+mep &lt;inst&gt; lt &lt;prio&gt; { { mep-id &lt;mepid&gt; } | { mac &lt;mac&gt; } } ttl &lt;ttl&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0005">
+mep &lt;inst&gt; meg-id &lt;megid&gt; { itu | itu-cc | { ieee [ name &lt;name&gt; ] } } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0006">
+mep &lt;inst&gt; mep-id &lt;mepid&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0014">
+mep &lt;inst&gt; peer-mep-id &lt;mepid&gt; [ mac &lt;mac&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0007">
+mep &lt;inst&gt; performance-monitoring 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0034">
+mep &lt;inst&gt; tst &lt;prio&gt; [ dei ] mep-id &lt;mepid&gt; [ sequence ] [ all-zero | all-one | one-zero ] rate &lt;rate&gt; size &lt;size&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0037">
+mep &lt;inst&gt; tst rx 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0035">
+mep &lt;inst&gt; tst tx 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0010">
+mep &lt;inst&gt; vid &lt;vid&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0012">
+mep &lt;inst&gt; voe 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0004">
+no mep &lt;inst&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0045">
+no mep &lt;inst&gt; ais 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0040">
+no mep &lt;inst&gt; aps 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0017">
+no mep &lt;inst&gt; cc 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0043">
+no mep &lt;inst&gt; client-flow { &lt;cflow&gt; | all } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0021">
+no mep &lt;inst&gt; dm 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0025">
+no mep &lt;inst&gt; dm ns 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0023">
+no mep &lt;inst&gt; dm overflow-reset 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0029">
+no mep &lt;inst&gt; dm proprietary 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0027">
+no mep &lt;inst&gt; dm syncronized 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0033">
+no mep &lt;inst&gt; lb 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0047">
+no mep &lt;inst&gt; lck 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0019">
+no mep &lt;inst&gt; lm 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0031">
+no mep &lt;inst&gt; lt 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0015">
+no mep &lt;inst&gt; peer-mep-id { &lt;mepid&gt; | all } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0008">
+no mep &lt;inst&gt; performance-monitoring 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0038">
+no mep &lt;inst&gt; tst rx 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0036">
+no mep &lt;inst&gt; tst tx 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0011">
+no mep &lt;inst&gt; vid 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0013">
+no mep &lt;inst&gt; voe 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0001">
+show mep [ &lt;inst&gt; ] [ peer | cc | lm | dm | lt | lb | tst | aps | client | ais | lck ] [ detail ] 
+</a></p>
+
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0002">
+clear mep &lt;inst&gt; { lm | dm | tst } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+clear
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lm
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tst
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0003">
+mep &lt;inst&gt; [ mip ] { up | down } domain { port | evc | vlan } [ vid &lt;vid&gt; ] flow &lt;flow&gt; level &lt;level&gt; interface &lt;port_type&gt; &lt;port&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+mip
+</p>
+<p class=CmdSubDesc2>
+This MEP instance is a half-MIP.
+</p>
+<p class=CmdSubTitle2>
+up
+</p>
+<p class=CmdSubDesc2>
+This MEP is a UP-MEP.
+</p>
+<p class=CmdSubTitle2>
+down
+</p>
+<p class=CmdSubDesc2>
+This MEP is a Down-MEP.
+</p>
+<p class=CmdSubTitle2>
+domain
+</p>
+<p class=CmdSubDesc2>
+The domain of the MEP.
+</p>
+<p class=CmdSubTitle2>
+port
+</p>
+<p class=CmdSubDesc2>
+This MEP is a Port domain MEP.
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+This MEP is a EVC domain MEP.
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+This MEP is a VLAN domain MEP.
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+In case the MEP is a port Up-MEP or a EVC customer MIP the VID must be given.
+</p>
+<p class=CmdSubTitle2>
+&lt;vid&gt;
+</p>
+<p class=CmdSubDesc2>
+The port Domain MEP VID. This is required for a Port Up-MEP.
+</p>
+<p class=CmdSubTitle2>
+flow
+</p>
+<p class=CmdSubDesc2>
+The flow instance that the MEP is related to.
+</p>
+<p class=CmdSubTitle2>
+&lt;flow&gt;
+</p>
+<p class=CmdSubDesc2>
+The flow instance number when not in the port domain.
+</p>
+<p class=CmdSubTitle2>
+level
+</p>
+<p class=CmdSubDesc2>
+The MEG level of the MEP.
+</p>
+<p class=CmdSubTitle2>
+&lt;level&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEG level value.
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+The recidence port of the MEP.
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;port&gt;
+</p>
+<p class=CmdSubDesc2>
+Port ID in the format of switch-no/port-no
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0044">
+mep &lt;inst&gt; ais [ fr1s | fr1m ] [ protect ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+ais
+</p>
+<p class=CmdSubDesc2>
+Alarm Indication Signal
+</p>
+<p class=CmdSubTitle2>
+fr1s
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 1 f/s.
+</p>
+<p class=CmdSubTitle2>
+fr1m
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 1 f/min.
+</p>
+<p class=CmdSubTitle2>
+protect
+</p>
+<p class=CmdSubDesc2>
+The AIS can be used for protection. At the point of state change three AIS PDU is transmitted as fast as possible.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0039">
+mep &lt;inst&gt; aps &lt;prio&gt; [ multi | uni ] { laps | { raps [ octet &lt;octet&gt; ] } } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+aps
+</p>
+<p class=CmdSubDesc2>
+Automatic Protection Switching protocol.
+</p>
+<p class=CmdSubTitle2>
+&lt;prio&gt;
+</p>
+<p class=CmdSubDesc2>
+Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+</p>
+<p class=CmdSubTitle2>
+multi
+</p>
+<p class=CmdSubDesc2>
+OAM PDU is transmitted with multicast MAC. Must me 'multi' in case of RAPS.
+</p>
+<p class=CmdSubTitle2>
+uni
+</p>
+<p class=CmdSubDesc2>
+OAM PDU is transmitted with unicast MAC. The MAC is taken from peer MEP MAC database. Only possible in case of LAPS.
+</p>
+<p class=CmdSubTitle2>
+laps
+</p>
+<p class=CmdSubDesc2>
+Linear Automatic Protection Switching protocol.
+</p>
+<p class=CmdSubTitle2>
+raps
+</p>
+<p class=CmdSubDesc2>
+Ring Automatic Protection Switching protocol.
+</p>
+<p class=CmdSubTitle2>
+octet
+</p>
+<p class=CmdSubDesc2>
+Then last OCTET in the multivast MAC. Only possible in case of RAPS.
+</p>
+<p class=CmdSubTitle2>
+&lt;octet&gt;
+</p>
+<p class=CmdSubDesc2>
+Last OCTET value
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0016">
+mep &lt;inst&gt; cc &lt;prio&gt; [ fr300s | fr100s | fr10s | fr1s | fr6m | fr1m | fr6h ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+cc
+</p>
+<p class=CmdSubDesc2>
+Continuity Check.
+</p>
+<p class=CmdSubTitle2>
+&lt;prio&gt;
+</p>
+<p class=CmdSubDesc2>
+Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+</p>
+<p class=CmdSubTitle2>
+fr300s
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 300 f/s.
+</p>
+<p class=CmdSubTitle2>
+fr100s
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 100 f/s.
+</p>
+<p class=CmdSubTitle2>
+fr10s
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 10 f/s.
+</p>
+<p class=CmdSubTitle2>
+fr1s
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 1 f/s.
+</p>
+<p class=CmdSubTitle2>
+fr6m
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 6 f/min.
+</p>
+<p class=CmdSubTitle2>
+fr1m
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 1 f/min.
+</p>
+<p class=CmdSubTitle2>
+fr6h
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 6 f/hour.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0041">
+mep &lt;inst&gt; client domain { evc | vlan } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+client
+</p>
+<p class=CmdSubDesc2>
+Transport layer Client.
+</p>
+<p class=CmdSubTitle2>
+domain
+</p>
+<p class=CmdSubDesc2>
+Domain.
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+EVC Domain.
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+Vlan Domain
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0042">
+mep &lt;inst&gt; client flow &lt;cflow&gt; level &lt;level&gt; [ ais-prio [ &lt;aisprio&gt; | ais-highest ] ] [ lck-prio [ &lt;lckprio&gt; | lck-highest ] ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+client
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+flow
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;cflow&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+level
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;level&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ais-prio
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;aisprio&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ais-highest
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lck-prio
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;lckprio&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lck-highest
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0020">
+mep &lt;inst&gt; dm &lt;prio&gt; [ multi | { uni mep-id &lt;mepid&gt; } ] [ single | dual ] [ rdtrp | flow ] interval &lt;interval&gt; last-n &lt;lastn&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement.
+</p>
+<p class=CmdSubTitle2>
+&lt;prio&gt;
+</p>
+<p class=CmdSubDesc2>
+Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+</p>
+<p class=CmdSubTitle2>
+multi
+</p>
+<p class=CmdSubDesc2>
+OAM PDU is transmitted with multicast MAC.
+</p>
+<p class=CmdSubTitle2>
+uni
+</p>
+<p class=CmdSubDesc2>
+OAM PDU is transmitted with unicast MAC. The MAC is taken from peer MEP MAC database.
+</p>
+<p class=CmdSubTitle2>
+mep-id
+</p>
+<p class=CmdSubDesc2>
+Peer MEP-ID for unicast DM. The MAC is taken from peer MEP MAC database.
+</p>
+<p class=CmdSubTitle2>
+&lt;mepid&gt;
+</p>
+<p class=CmdSubDesc2>
+Peer MEP-ID value.
+</p>
+<p class=CmdSubTitle2>
+single
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement based on DMM/DMR PDU.
+</p>
+<p class=CmdSubTitle2>
+dual
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement based on 1DM PDU transmission.
+</p>
+<p class=CmdSubTitle2>
+rdtrp
+</p>
+<p class=CmdSubDesc2>
+The two way delay is calculated as round trip delay. The far end residence time is not subtracted.
+</p>
+<p class=CmdSubTitle2>
+flow
+</p>
+<p class=CmdSubDesc2>
+The two way delay is calculated as round trip symmetrical flow delay. The far end residence time is subtracted.
+</p>
+<p class=CmdSubTitle2>
+interval
+</p>
+<p class=CmdSubDesc2>
+Interval between PDU transmission in 10ms. Min value is 10.
+</p>
+<p class=CmdSubTitle2>
+&lt;interval&gt;
+</p>
+<p class=CmdSubDesc2>
+Interval value.
+</p>
+<p class=CmdSubTitle2>
+last-n
+</p>
+<p class=CmdSubDesc2>
+The last N dalays used for average last N calculation. Min value is 10.
+</p>
+<p class=CmdSubTitle2>
+&lt;lastn&gt;
+</p>
+<p class=CmdSubDesc2>
+The last N value.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0024">
+mep &lt;inst&gt; dm ns 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement.
+</p>
+<p class=CmdSubTitle2>
+ns
+</p>
+<p class=CmdSubDesc2>
+Nano Seconds
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0022">
+mep &lt;inst&gt; dm overflow-reset 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement.
+</p>
+<p class=CmdSubTitle2>
+overflow-reset
+</p>
+<p class=CmdSubDesc2>
+Reset all Delay Measurement results on total delay counter overflow.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0028">
+mep &lt;inst&gt; dm proprietary 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement.
+</p>
+<p class=CmdSubTitle2>
+proprietary
+</p>
+<p class=CmdSubDesc2>
+Proprietary Delay Measurement.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0026">
+mep &lt;inst&gt; dm syncronized 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement.
+</p>
+<p class=CmdSubTitle2>
+syncronized
+</p>
+<p class=CmdSubDesc2>
+Near enad and far end is real time syncronized.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0032">
+mep &lt;inst&gt; lb &lt;prio&gt; [ dei ] [ multi | { uni { { mep-id &lt;mepid&gt; } | { mac &lt;mac&gt; } } } ] count &lt;count&gt; size &lt;size&gt; interval &lt;interval&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+lb
+</p>
+<p class=CmdSubDesc2>
+Loop Back.
+</p>
+<p class=CmdSubTitle2>
+&lt;prio&gt;
+</p>
+<p class=CmdSubDesc2>
+Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+Drop Eligible Indicator in case of tagged OAM.
+</p>
+<p class=CmdSubTitle2>
+multi
+</p>
+<p class=CmdSubDesc2>
+OAM PDU is transmitted with multicast MAC.
+</p>
+<p class=CmdSubTitle2>
+uni
+</p>
+<p class=CmdSubDesc2>
+OAM PDU is transmitted with unicast MAC. The MAC is taken from peer MEP MAC database.
+</p>
+<p class=CmdSubTitle2>
+mep-id
+</p>
+<p class=CmdSubDesc2>
+Peer MEP-ID for unicast LB. The MAC is taken from peer MEP MAC database.
+</p>
+<p class=CmdSubTitle2>
+&lt;mepid&gt;
+</p>
+<p class=CmdSubDesc2>
+Peer MEP-ID value
+</p>
+<p class=CmdSubTitle2>
+mac
+</p>
+<p class=CmdSubDesc2>
+Loop Back unicast MAC to be used in case of LB against MIP.
+</p>
+<p class=CmdSubTitle2>
+&lt;mac&gt;
+</p>
+<p class=CmdSubDesc2>
+Loop Back target unicast MAC value.
+</p>
+<p class=CmdSubTitle2>
+count
+</p>
+<p class=CmdSubDesc2>
+The number of LBM PDU to send in one loop test. The value 0 indicate infinite transmission (test behaviour). This is HW based LBM/LBR and Requires VOE.
+</p>
+<p class=CmdSubTitle2>
+&lt;count&gt;
+</p>
+<p class=CmdSubDesc2>
+Number of LBM PDU to send value.
+</p>
+<p class=CmdSubTitle2>
+size
+</p>
+<p class=CmdSubDesc2>
+The number of bytes in the LBM PDU Data Pattern TLV
+</p>
+<p class=CmdSubTitle2>
+&lt;size&gt;
+</p>
+<p class=CmdSubDesc2>
+The LBM frame size. This is entered as the wanted size (in bytes) of a un-tagged frame containing LBM OAM PDU - including CRC (four bytes). Example when 'Size' = 64 =&gt; Un-tagged frame size = DMAC(6) + SMAC(6) + TYPE(2) + LBM PDU LENGTH(46) + CRC(4) = 64 bytes. The transmitted frame will be four bytes longer for each tag added - 8 bytes in case of a tunnel EVC. Minimum Size is 64 Bytes. Maximum Size is 9600 Bytes BYWORD  =
+</p>
+<p class=CmdSubTitle2>
+interval
+</p>
+<p class=CmdSubDesc2>
+The number of bytes in the LBM PDU Data Pattern TLV
+</p>
+<p class=CmdSubTitle2>
+&lt;interval&gt;
+</p>
+<p class=CmdSubDesc2>
+The interval between transmitting LBM PDU. in case 'count' != 0 this is in 10ms and max is 100. In case 'count' == 0 this is in 1us and max is 10.000.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0046">
+mep &lt;inst&gt; lck [ fr1s | fr1m ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+lck
+</p>
+<p class=CmdSubDesc2>
+Locked Signal.
+</p>
+<p class=CmdSubTitle2>
+fr1s
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 1 f/s.
+</p>
+<p class=CmdSubTitle2>
+fr1m
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 1 f/min.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0009">
+mep &lt;inst&gt; level &lt;level&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+level
+</p>
+<p class=CmdSubDesc2>
+The MEG level of the MEP.
+</p>
+<p class=CmdSubTitle2>
+&lt;level&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEG level value.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0018">
+mep &lt;inst&gt; lm &lt;prio&gt; [ multi | uni ] [ single | dual ] [ fr10s | fr1s | fr6m | fr1m | fr6h ] [ flr &lt;flr&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+lm
+</p>
+<p class=CmdSubDesc2>
+Loss Measurement.
+</p>
+<p class=CmdSubTitle2>
+&lt;prio&gt;
+</p>
+<p class=CmdSubDesc2>
+Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+</p>
+<p class=CmdSubTitle2>
+multi
+</p>
+<p class=CmdSubDesc2>
+OAM PDU is transmitted with multicast MAC.
+</p>
+<p class=CmdSubTitle2>
+uni
+</p>
+<p class=CmdSubDesc2>
+OAM PDU is transmitted with unicast MAC. The MAC is taken from peer MEP MAC database. In case of LM there is only one peer MEP.
+</p>
+<p class=CmdSubTitle2>
+single
+</p>
+<p class=CmdSubDesc2>
+Single ended LM is based on LMM/LMR PDU.
+</p>
+<p class=CmdSubTitle2>
+dual
+</p>
+<p class=CmdSubDesc2>
+Dual ended LM is based on CCM PDU.
+</p>
+<p class=CmdSubTitle2>
+fr10s
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 10 f/s.
+</p>
+<p class=CmdSubTitle2>
+fr1s
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 1 f/s.
+</p>
+<p class=CmdSubTitle2>
+fr6m
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 6 f/min.
+</p>
+<p class=CmdSubTitle2>
+fr1m
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 1 f/min.
+</p>
+<p class=CmdSubTitle2>
+fr6h
+</p>
+<p class=CmdSubDesc2>
+Frame rate is 6 f/hour.
+</p>
+<p class=CmdSubTitle2>
+flr
+</p>
+<p class=CmdSubDesc2>
+The Frame Loss Ratio interval.
+</p>
+<p class=CmdSubTitle2>
+&lt;flr&gt;
+</p>
+<p class=CmdSubDesc2>
+The Frame Loss Ratio interval value.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0030">
+mep &lt;inst&gt; lt &lt;prio&gt; { { mep-id &lt;mepid&gt; } | { mac &lt;mac&gt; } } ttl &lt;ttl&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+lt
+</p>
+<p class=CmdSubDesc2>
+Link Trace.
+</p>
+<p class=CmdSubTitle2>
+&lt;prio&gt;
+</p>
+<p class=CmdSubDesc2>
+Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+</p>
+<p class=CmdSubTitle2>
+mep-id
+</p>
+<p class=CmdSubDesc2>
+Peer MEP-ID for Link Trace target unicast MAC. The MAC is taken from peer MEP MAC database.
+</p>
+<p class=CmdSubTitle2>
+&lt;mepid&gt;
+</p>
+<p class=CmdSubDesc2>
+Peer MEP-ID value.
+</p>
+<p class=CmdSubTitle2>
+mac
+</p>
+<p class=CmdSubDesc2>
+Link Trace target unicast MAC to be used in case of LT against MIP.
+</p>
+<p class=CmdSubTitle2>
+&lt;mac&gt;
+</p>
+<p class=CmdSubDesc2>
+Link Trace target unicast MAC value.
+</p>
+<p class=CmdSubTitle2>
+ttl
+</p>
+<p class=CmdSubDesc2>
+Time To Live.
+</p>
+<p class=CmdSubTitle2>
+&lt;ttl&gt;
+</p>
+<p class=CmdSubDesc2>
+Time To Live value.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0005">
+mep &lt;inst&gt; meg-id &lt;megid&gt; { itu | itu-cc | { ieee [ name &lt;name&gt; ] } } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+meg-id
+</p>
+<p class=CmdSubDesc2>
+The ITU/IEEE MEG-ID.
+</p>
+<p class=CmdSubTitle2>
+&lt;megid&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEG-ID string. This is either the ITU MEG-ID or the IEEE Short MA, depending on the selected MEG-ID format. The ITU max. is 13 characters. The ITU-CC max. is 15 characters. The IEEE max. is 16 characters.
+</p>
+<p class=CmdSubTitle2>
+itu
+</p>
+<p class=CmdSubDesc2>
+The MEG-ID has ITU format (ICC - UMC). The meg-id max. is 13 characters.
+</p>
+<p class=CmdSubTitle2>
+itu-cc
+</p>
+<p class=CmdSubDesc2>
+The MEG-ID has ITU Country Code format (CC - ICC - UMC). The meg-id max. is 15 characters
+</p>
+<p class=CmdSubTitle2>
+ieee
+</p>
+<p class=CmdSubDesc2>
+The MEG-ID (Short MA Name) has IEEE Character String format. The meg-id max. is 16 characters.
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+Only relevant for IEEE. The MAID is with Maintenance Domain Name.
+</p>
+<p class=CmdSubTitle2>
+&lt;name&gt;
+</p>
+<p class=CmdSubDesc2>
+Maintenance Domain Name string. The max is 16 characters.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0006">
+mep &lt;inst&gt; mep-id &lt;mepid&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+mep-id
+</p>
+<p class=CmdSubDesc2>
+The MEP-ID.
+</p>
+<p class=CmdSubTitle2>
+&lt;mepid&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP-ID value.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0014">
+mep &lt;inst&gt; peer-mep-id &lt;mepid&gt; [ mac &lt;mac&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+peer-mep-id
+</p>
+<p class=CmdSubDesc2>
+The peer MEP-ID.
+</p>
+<p class=CmdSubTitle2>
+&lt;mepid&gt;
+</p>
+<p class=CmdSubDesc2>
+The peer MEP-ID value.
+</p>
+<p class=CmdSubTitle2>
+mac
+</p>
+<p class=CmdSubDesc2>
+The peer MAC. this will be overwritten by any learned MAC - through CCM reception.
+</p>
+<p class=CmdSubTitle2>
+&lt;mac&gt;
+</p>
+<p class=CmdSubDesc2>
+The peer MAC string.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0007">
+mep &lt;inst&gt; performance-monitoring 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+performance-monitoring
+</p>
+<p class=CmdSubDesc2>
+Performance monitoring Data Set collection (MEF35).
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0034">
+mep &lt;inst&gt; tst &lt;prio&gt; [ dei ] mep-id &lt;mepid&gt; [ sequence ] [ all-zero | all-one | one-zero ] rate &lt;rate&gt; size &lt;size&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+tst
+</p>
+<p class=CmdSubDesc2>
+Test Signal
+</p>
+<p class=CmdSubTitle2>
+&lt;prio&gt;
+</p>
+<p class=CmdSubDesc2>
+Priority in case of tagged OAM. In the EVC domain this is the COS-ID.
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+Drop Eligible Indicator in case of tagged OAM.
+</p>
+<p class=CmdSubTitle2>
+mep-id
+</p>
+<p class=CmdSubDesc2>
+Peer MEP-ID for unicast TST. The MAC is taken from peer MEP MAC database.
+</p>
+<p class=CmdSubTitle2>
+&lt;mepid&gt;
+</p>
+<p class=CmdSubDesc2>
+Peer MEP-ID value.
+</p>
+<p class=CmdSubTitle2>
+sequence
+</p>
+<p class=CmdSubDesc2>
+Enable sequence number in TST PDU.
+</p>
+<p class=CmdSubTitle2>
+all-zero
+</p>
+<p class=CmdSubDesc2>
+Test pattern is set to all zero.
+</p>
+<p class=CmdSubTitle2>
+all-one
+</p>
+<p class=CmdSubDesc2>
+Test pattern is set to all one.
+</p>
+<p class=CmdSubTitle2>
+one-zero
+</p>
+<p class=CmdSubDesc2>
+Test pattern is set to 10101010.
+</p>
+<p class=CmdSubTitle2>
+rate
+</p>
+<p class=CmdSubDesc2>
+The TST frame transmission bit rate - in Mega bits pr. second. Limit on Caracal is 400 Mbps. Limit on Serval is 1Gbps. This is the bit rate of a standard frame without any encapsulation. If 1 Mbps rate is selected in a EVC MEP, the added tag will give a higher bitrate on the wire.
+</p>
+<p class=CmdSubTitle2>
+&lt;rate&gt;
+</p>
+<p class=CmdSubDesc2>
+Transmission rate value.
+</p>
+<p class=CmdSubTitle2>
+size
+</p>
+<p class=CmdSubDesc2>
+The TST frame size. This is entered as the wanted size (in bytes) of a un-tagged frame containing TST OAM PDU - including CRC (four bytes). Example when 'Size' = 64 =&gt; Un-tagged frame size = DMAC(6) + SMAC(6) + TYPE(2) + TST PDU LENGTH(46) + CRC(4) = 64 bytes. The transmitted frame will be four bytes longer for each tag added - 8 bytes in case of a tunnel EVC. Minimum Size is 64 Bytes. Maximum Size is 9600 Bytes.
+</p>
+<p class=CmdSubTitle2>
+&lt;size&gt;
+</p>
+<p class=CmdSubDesc2>
+Frame size value.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0037">
+mep &lt;inst&gt; tst rx 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+tst
+</p>
+<p class=CmdSubDesc2>
+Test Signal.
+</p>
+<p class=CmdSubTitle2>
+rx
+</p>
+<p class=CmdSubDesc2>
+Receive Test Signal.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0035">
+mep &lt;inst&gt; tst tx 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+tst
+</p>
+<p class=CmdSubDesc2>
+Test Signal.
+</p>
+<p class=CmdSubTitle2>
+tx
+</p>
+<p class=CmdSubDesc2>
+Transmit Test Signal.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0010">
+mep &lt;inst&gt; vid &lt;vid&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+The MEP VID.
+</p>
+<p class=CmdSubTitle2>
+&lt;vid&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP VID value.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0012">
+mep &lt;inst&gt; voe 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+voe
+</p>
+<p class=CmdSubDesc2>
+MEP is VOE based.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0004">
+no mep &lt;inst&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Delete.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0045">
+no mep &lt;inst&gt; ais 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Disable Alarm Indication Signal.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+ais
+</p>
+<p class=CmdSubDesc2>
+Alarm Indication Signal.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0040">
+no mep &lt;inst&gt; aps 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Disable Automatic Protection Switching protocol.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+aps
+</p>
+<p class=CmdSubDesc2>
+Automatic Protection Switching protocol.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0017">
+no mep &lt;inst&gt; cc 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Disable Continuity Check.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+cc
+</p>
+<p class=CmdSubDesc2>
+Continuity Check.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0043">
+no mep &lt;inst&gt; client-flow { &lt;cflow&gt; | all } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Delete a client flow instance.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+client-flow
+</p>
+<p class=CmdSubDesc2>
+Client flow instance number.
+</p>
+<p class=CmdSubTitle2>
+&lt;cflow&gt;
+</p>
+<p class=CmdSubDesc2>
+Client flow instance number value.
+</p>
+<p class=CmdSubTitle2>
+all
+</p>
+<p class=CmdSubDesc2>
+Delete all client flow instances.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0021">
+no mep &lt;inst&gt; dm 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Disable Delay Measurement.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0025">
+no mep &lt;inst&gt; dm ns 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement.
+</p>
+<p class=CmdSubTitle2>
+ns
+</p>
+<p class=CmdSubDesc2>
+Nano Seconds
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0023">
+no mep &lt;inst&gt; dm overflow-reset 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement.
+</p>
+<p class=CmdSubTitle2>
+overflow-reset
+</p>
+<p class=CmdSubDesc2>
+Reset all Delay Measurement results on total delay counter overflow.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0029">
+no mep &lt;inst&gt; dm proprietary 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement.
+</p>
+<p class=CmdSubTitle2>
+proprietary
+</p>
+<p class=CmdSubDesc2>
+Proprietary Delay Measurement.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0027">
+no mep &lt;inst&gt; dm syncronized 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+Delay Measurement.
+</p>
+<p class=CmdSubTitle2>
+syncronized
+</p>
+<p class=CmdSubDesc2>
+Near enad and far end is real time syncronized.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0033">
+no mep &lt;inst&gt; lb 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Disable Loop Back.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+lb
+</p>
+<p class=CmdSubDesc2>
+Loop Back.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0047">
+no mep &lt;inst&gt; lck 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Disable Locked Signal.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+lck
+</p>
+<p class=CmdSubDesc2>
+Locked Signal
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0019">
+no mep &lt;inst&gt; lm 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Disable Loss Measurement.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+lm
+</p>
+<p class=CmdSubDesc2>
+Loss Measurement.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0031">
+no mep &lt;inst&gt; lt 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Disable of Link Trace.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+lt
+</p>
+<p class=CmdSubDesc2>
+Link Trace.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0015">
+no mep &lt;inst&gt; peer-mep-id { &lt;mepid&gt; | all } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Delete peer MEP-ID
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+peer-mep-id
+</p>
+<p class=CmdSubDesc2>
+The peer MEP-ID.
+</p>
+<p class=CmdSubTitle2>
+&lt;mepid&gt;
+</p>
+<p class=CmdSubDesc2>
+The peer MEP-ID value.
+</p>
+<p class=CmdSubTitle2>
+all
+</p>
+<p class=CmdSubDesc2>
+All peer MEP-ID will be deleted.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0008">
+no mep &lt;inst&gt; performance-monitoring 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+performance-monitoring
+</p>
+<p class=CmdSubDesc2>
+Performance monitoring Data Set collection (MEF35).
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0038">
+no mep &lt;inst&gt; tst rx 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+tst
+</p>
+<p class=CmdSubDesc2>
+Test Signal.
+</p>
+<p class=CmdSubTitle2>
+rx
+</p>
+<p class=CmdSubDesc2>
+Receive Test Signal.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0036">
+no mep &lt;inst&gt; tst tx 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+tst
+</p>
+<p class=CmdSubDesc2>
+Test Signal.
+</p>
+<p class=CmdSubTitle2>
+tx
+</p>
+<p class=CmdSubDesc2>
+Transmit Test Signal.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0011">
+no mep &lt;inst&gt; vid 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Disable.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0013">
+no mep &lt;inst&gt; voe 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+Maintenance Entity Point
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+The MEP instance number.
+</p>
+<p class=CmdSubTitle2>
+voe
+</p>
+<p class=CmdSubDesc2>
+MEP is VOE based.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0001">
+show mep [ &lt;inst&gt; ] [ peer | cc | lm | dm | lt | lb | tst | aps | client | ais | lck ] [ detail ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+mep
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;inst&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+peer
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cc
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lm
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+dm
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lt
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lb
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+tst
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+aps
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+client
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ais
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lck
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+detail
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+</body></html>
+

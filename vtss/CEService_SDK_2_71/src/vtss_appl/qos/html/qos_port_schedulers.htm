@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Egress Port Schedulers</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/qos_util.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_qos_port_schedulers.htm";
+
+function addRow(index, frag, values) {
+  var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+  var config  = values.split("#");
+  var i;
+
+  if (config.length > 2) {
+    var portno        = parseInt(config[0], 10);
+    var dwrr_enable   = parseInt(config[1], 10);
+    var queue_weights = config[2].split("/"); 
+
+    if (queue_weights.length > 1) {
+      var weight = []; 
+      var pct    = []; 
+      var sum    = 0;
+      var td = CreateStyledElement("td", "cr");
+      var txt = document.createTextNode(configPortName(portno, 0));
+      var link = document.createElement("a");
+      link.href = "qos_port_scheduler_edit.htm?port=" + portno;
+      link.appendChild(txt); // Add text to link
+      td.appendChild(link);  // Add link to cell
+      tr.appendChild(td);    // Add cell to row
+
+      addTextCell(tr, dwrr_enable ? "Weighted" : "Strict Priority", "cr");
+
+      for (i = 0; i < queue_weights.length; i++) {
+          weight[i] = parseInt(queue_weights[i], 10);
+      }
+      qos_weight2pct(weight, 5, pct);
+
+      for (i = 0; i < queue_weights.length; i++) {
+        if (dwrr_enable) {
+          addTextCell(tr, pct[i] + "%", "cr");
+        }
+        else {
+          addTextCell(tr, "-", "c");
+        }
+      }
+
+      frag.appendChild(tr);    // Add row to fragment
+    }
+  }
+}
+
+/*
+ * Format:
+ * <port 1>,<port 2>,<port 3>,...<port n>
+ * 
+ * port x :== <port_no>#<scheduler_mode>#<queue_weights>
+ *   port_no          :== 1..max
+ *   scheduler_mode   :== 0..1           // 0: Strict Priority, 1: Weighted
+ *   queue_weights    :== <queue_1_weight>/<queue_2_weight>/...<queue_n_weight>  // n is 6.
+ *     queue_x_weight :== 1..100         // Just a number. If you set all 6 weights to 100, each queue will have a weigth of 100/6 = 16.7 ~ 17%
+ */
+function processUpdate(req, ref)
+{
+  var frag;
+  var tr;
+  var elem;
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  if (req.responseText) {
+    var input = req.responseText;
+    var values = input.split(",");
+    var nrOfQueueSchedulers = values[0].split("#")[2].split("/").length; // determine the number of queue schedulers from the first port
+    var i;
+
+    // Create Port QoS Table Header
+    frag = document.createDocumentFragment();
+
+    tr = document.createElement("tr");
+    elem = addTextHeaderCell(tr, "Port", "cl");
+    elem.setAttribute("rowSpan", "2");
+    elem = addTextHeaderCell(tr, "Mode", "cl");
+    elem.setAttribute("rowSpan", "2");
+    elem = addTextHeaderCell(tr, "Weight", "cl", nrOfQueueSchedulers);
+    frag.appendChild(tr);
+
+    tr = document.createElement("tr");
+    for (i = 0; i < nrOfQueueSchedulers; i++) {
+      addTextHeaderCell(tr, "Q" + i, "cl");
+    }
+    frag.appendChild(tr);
+
+    elem = document.getElementById("qos_thead");
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+
+    // Create Port QoS Table Body
+    frag = document.createDocumentFragment();
+    for (i = 0; i < values.length; i++) {
+      addRow(i, frag, values[i]);
+    }
+    elem = document.getElementById(ref);
+    clearChildNodes(elem);
+    elem.appendChild(frag);
+  } else {
+    SpomHandleError();
+  }
+}
+
+function requestUpdate() {
+  if (SpomNavigationLoading()) {
+    return;                 // Bail out, navigation will trigger update
+  }
+  loadXMLDoc(SpomAddSidArg("/config/qos_port_schedulers"), processUpdate, "qos_tbody");
+  SpomUpdateDisplaySid("display_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+  SpomSetCurrentSid(sid);     // Save current SID
+  requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>QoS Egress Port Schedulers <span id="display_sid"></span></h1>
+
+<table summary="QoS Port Scheduler Configuration" cellspacing="0" class="config">
+ <thead id="qos_thead">
+ </thead>
+ <tbody id="qos_tbody">
+ </tbody>
+</table>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

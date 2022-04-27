@@ -1,0 +1,108 @@
+########################################################-*- mode: text -*-
+# 
+# Vitesse Switch Software.
+# 
+# Copyright (c) 2009 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+# 
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+# 
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+# 
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+# 
+# ------------------------------------------------------------------------
+# 
+
+# PIM - Port Information Machine  - 17.26 - Fig. 17-27
+
+stm PortInformation(MSTI)
+
+BEGIN:
+        >> DISABLED
+
+GLOBAL:
+        when (!portEnabled && (infoIs != Disabled)) >> DISABLED
+
+DISABLED:
+        rcvdMsg = FALSE;
+        proposing = proposed = agree = agreed = FALSE;
+        rcvdInfoWhile = 0;
+        infoIs = Disabled; reselect = TRUE; selected = FALSE;
+        when rcvdMsg >> DISABLED
+        when portEnabled >> AGED
+
+AGED:
+        infoIs = Aged;
+        reselect = TRUE; selected = FALSE;
+        when (selected && updtInfo) >> UPDATE
+
+UPDATE:
+        proposing = proposed = FALSE;
+        agreed = agreed && betterorsameInfo(port, Mine);
+        synced = synced && agreed; portPriority = designatedPriority;
+        portTimes = designatedTimes;
+        updtInfo = FALSE; infoIs = Mine; newInfoXst(port,TRUE);
+        >> CURRENT
+
+CURRENT:
+        loop_protect 10
+        when (selected && updtInfo) >> UPDATE
+        when (infoIs == Received) && (rcvdInfoWhile == 0) && !updtInfo && !rcvdXstMsg(port) >> AGED
+        when rcvdXstMsg(port) && !updtXstInfo(port) >> RECEIVE
+
+RECEIVE:
+        rcvdInfo = rcvInfo(port);
+        recordMastered(port);
+        when rcvdInfo == OtherInfo >> OTHER
+        when rcvdInfo == InferiorRootAlternateInfo >> NOT_DESIGNATED
+        when rcvdInfo == InferiorDesignatedInfo >> INFERIOR_DESIGNATED
+        when rcvdInfo == RepeatedDesignatedInfo >> REPEATED_DESIGNATED
+        when rcvdInfo == SuperiorDesignatedInfo >> SUPERIOR_DESIGNATED
+
+OTHER:
+        reselect = TRUE; selected = FALSE;
+        rcvdMsg = FALSE;
+        >> CURRENT
+
+NOT_DESIGNATED:
+        recordAgreement(port); setTcFlags(port);
+        rcvdMsg = FALSE;
+        >> CURRENT
+
+INFERIOR_DESIGNATED:
+        reselect = TRUE; selected = FALSE;
+        recordDispute(port);
+        rcvdMsg = FALSE;
+        >> CURRENT
+
+REPEATED_DESIGNATED:
+        infoInternal = rcvdInternal;
+        recordProposal(port); setTcFlags(port);
+        recordAgreement(port);
+        updtRcvdInfoWhile(port);
+        rcvdMsg = FALSE;
+        >> CURRENT
+
+SUPERIOR_DESIGNATED:
+        infoInternal = rcvdInternal;
+        agreed = proposing = FALSE;
+        recordProposal(port); setTcFlags(port);
+        agree = agree && betterorsameInfo(port, Received);
+        recordAgreement(port); synced = synced && agreed;
+        recordPriority(port); recordTimes(port);
+        updtRcvdInfoWhile(port);
+        infoIs = Received; reselect = TRUE; selected = FALSE;
+        rcvdMsg = FALSE;
+        >> CURRENT

@@ -1,0 +1,100 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Pointer to zl_3034x source code directory
+DIR_zl_3034x_pdv := $(DIR_APPL)/zl_3034x_pdv
+DIR_zl_3034x_pdv_core := $(DIR_zl_3034x_pdv)/base
+DIR_zl_3034x_pdv_platform := $(DIR_zl_3034x_api)/platform
+ZL_BASE_DEFINES := -D__BYTE_ORDER -D__LITTLE_ENDIAN -D_DEBUG -DZLS3034X_INCLUDED
+
+APR_LIB_FILENAME := zlAprLib.o
+
+# Module lib objects
+OBJECTS_zl_3034x_pdv_zlapi :=                        \
+  $(addprefix zl_3034x_pdv_zlapi_,                   \
+  zl303xx_ApiConfig.o zl303xx_ApiInterrupt.o     \
+  zl303xx_ApiVersion.o zl303xx_AprStateMachine.o \
+  zl303xx_Init.o zl303xx_Interrupt.o             \
+  zl303xx_List.o                \
+  zl303xx_Ptsf.o                  \
+  zl303xx_TodMgr.o zl303xx_TsEng.o               \
+  zl303xx_Utils.o)
+
+# Compiler rules
+$(OBJECTS_zl_3034x_pdv_zlapi): zl_3034x_pdv_zlapi_%.o: $(DIR_zl_3034x_pdv_core)/zlApi/src/%.c
+	$(call compile_c, $@, $< $(ZL_BASE_DEFINES))
+
+
+OBJECTS_zl_3034x_pdv_zlexamples :=                     \
+  $(addprefix zl_3034x_pdv_zlexamples_,                \
+  zl303xx_ExampleAprBinding.o zl303xx_ExampleGlobals.o)
+
+# Compiler rules
+$(OBJECTS_zl_3034x_pdv_zlexamples): zl_3034x_pdv_zlexamples_%.o: $(DIR_zl_3034x_pdv_core)/zlExamples/src/%.c
+	$(call compile_c, $@, $< $(ZL_BASE_DEFINES))
+
+OBJECTS_zl_3034x_pdv_zlutils :=               \
+  $(addprefix zl_3034x_pdv_zlutils_,          \
+  zl303xx_DebugApr.o )
+
+# Compiler rules
+$(OBJECTS_zl_3034x_pdv_zlutils): zl_3034x_pdv_zlutils_%.o: $(DIR_zl_3034x_pdv_core)/zlUtils/src/%.c
+	$(call compile_c, $@, $< $(ZL_BASE_DEFINES))
+
+OBJECTS_zl_3034x_pdv_zlporting :=               \
+  $(addprefix zl_3034x_pdv_zlporting_,          \
+  zl303xx_LogToMsgQ.o)
+
+# Compiler rules
+$(OBJECTS_zl_3034x_pdv_zlporting): zl_3034x_pdv_zlporting_%.o: $(DIR_zl_3034x_pdv_core)/zlPorting/src/%.c
+	$(call compile_c, $@, $< $(ZL_BASE_DEFINES))
+
+    
+# zl_3034x module interface (= sources in platform)
+OBJECTS_zl_3034x_pdv_platform := zl_3034x_api_pdv.o \
+  zl_3034x_api_pdv_cli.o \
+#  $(if $(MODULE_WEB),zl_3034x_api_pdv_web.o)
+
+$(OBJECTS_zl_3034x_pdv_platform): %.o: $(DIR_zl_3034x_pdv_platform)/%.c
+	$(call compile_c, $@, $< $(ZL_BASE_DEFINES))
+
+# Module objects (Module core objects + Module platform objects)
+OBJECTS_zl_3034x_pdv := $(OBJECTS_zl_3034x_pdv_platform) $(OBJECTS_zl_3034x_pdv_zlapi) $(OBJECTS_zl_3034x_pdv_zlutils) $(OBJECTS_zl_3034x_pdv_zlporting) $(OBJECTS_zl_3034x_pdv_zlexamples)
+
+$(shell cp $(DIR_zl_3034x_pdv_core)/zlApr/objMIPS32-LE/lnxTemp/$(APR_LIB_FILENAME) $(BUILD)/obj/$(APR_LIB_FILENAME))
+#$(warning APR core sources unavailable, assuming binary form only)
+# Add this as a generated/used library
+LIB_FILES += $(APR_LIB_FILENAME)
+
+# Include files
+INCLUDES += -I$(DIR_zl_3034x_pdv_platform) -I$(DIR_zl_3034x_pdv)/base/zlApi/include -I$(DIR_zl_3034x_pdv)/base/zlApr/include -I$(DIR_zl_3034x_pdv)/base/zlUtils/include  -I$(DIR_zl_3034x_pdv)/base/zlExamples/include
+
+# Lint files
+LINT_FILES_zl_3034x_pdv += $(addprefix $(DIR_zl_3034x_pdv_platform)/,zl_3034x_api_pdv.c zl_3034x_api_pdv_cli.c)
+
+# Tidy files
+# TIDY_FILES_zl_3034x_pdv += $(DIR_zl_3034x_pdv_platform)/html/*.htm $(DIR_zl_3034x_pdv_platform)/html/help/*.htm
+

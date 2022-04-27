@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IGMP Group</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+    window.addEvent('domready', function() {
+        $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+    });
+ </script>
+</head>
+<body>
+
+<h1>IGMP Group Table</h1>
+
+<p>
+  Entries in the <a href="glossary.htm#igmp" class="glossary">IGMP</a> Group Table are shown on this page.
+  The IGMP Group Table is sorted first by <a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a>, and then by group.<br/>
+</p>
+
+<h2> Navigating the IGMP Group Table</h2>
+<p>
+  Each page shows up to 99 entries from the IGMP Group table, default being 20, selected through the
+  "entries per page" input field. When first visited, the web page will show the first 20 entries from
+  the beginning of the IGMP Group Table.<br/>
+  The "Start from <a href="glossary.htm#vlan" class="glossary">VLAN</a>", and "group" input fields allow the user to select the
+  starting point in the IGMP Group Table.
+  Clicking the <input type="button" value="Refresh"/> button will update the displayed table starting from
+  that or the closest next IGMP Group Table match. In addition, the two input fields will -
+  upon a <input type="button" value="Refresh"/> button click - assume the value of the first displayed entry,
+  allowing for continuous refresh with the same start address.<br/>
+  The <input type="button" value=" >> "/> will use the last entry of the currently displayed table as a basis for 
+  the next lookup. When the end is reached the text "No more entries" is shown in the
+  displayed table. Use the <input type="button" value=" |<<"/> button to start over.
+</p>
+
+<h2>IGMP Group Table Columns</h2>
+<dl>
+  <dt>VLAN ID</dt>
+  <dd>VLAN ID of the group.</dd>
+  <dt>Groups</dt><dd>Group address of the group displayed.</dd>
+  <dt>Port Members</dt><dd>Ports under this group.</dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh
+<input type="checkbox">: Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+
+<p><input type="button" value="Refresh">: Refreshes the displayed table starting from the input fields.</p>
+<p><input type="button" value=" |<< ">: Updates the table, starting with the first entry in the IGMP Group Table.</p>
+<p><input type="button" value=" >> ">: Updates the table, starting with the entry after the last entry currently displayed.</p>
+
+</body>
+</html>

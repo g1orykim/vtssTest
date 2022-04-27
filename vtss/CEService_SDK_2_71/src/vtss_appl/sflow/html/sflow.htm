@@ -1,0 +1,515 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse sFlow software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>sFlow Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Help page magic
+var help_page = "/help/help_sflow.htm";
+
+var PARM_IDX_RCVR_OWNER              = 0; // R/O
+var PARM_IDX_RCVR_ALLOW_CHANGES      = 1; // R/O
+var PARM_IDX_RCVR_TIMEOUT            = 2; // R/W
+var PARM_IDX_RCVR_MAX_DATAGRAM_SIZE  = 3; // R/W
+var PARM_IDX_RCVR_HOSTNAME           = 4; // R/W
+var PARM_IDX_RCVR_UDP_PORT           = 5; // R/W
+var PARM_IDX_RCVR_DATAGRAM_VERSION   = 6; // R/O
+var PARM_RCVR_CNT                    = PARM_IDX_RCVR_DATAGRAM_VERSION + 1;
+
+var PARM_IDX_PORT_NUMBER             = 0;
+var PARM_IDX_PORT_FS_ENABLED         = 1;
+var PARM_IDX_PORT_FS_SAMPLING_RATE   = 2;
+var PARM_IDX_PORT_FS_MAX_HEADER_SIZE = 3;
+var PARM_IDX_PORT_CP_ENABLED         = 4;
+var PARM_IDX_PORT_CP_INTERVAL        = 5;
+var PARM_PORT_CNT                    = PARM_IDX_PORT_CP_INTERVAL + 1;
+
+var sflow_max_port = 0;
+var sflow_disallow_changes = true;
+
+// Pre-declare on_release_click()
+var on_release_click;
+
+//------------------------------------------------------------------------------
+// add_agent()
+//------------------------------------------------------------------------------
+function add_agent(agent_ip_addr)
+{
+  var tr, fld, frag = document.createDocumentFragment(), width = 42;
+
+  // Agent IP Address.
+  tr = CreateStyledElement("tr", "config");
+  addTypedTextCell(tr, "td", "IP Address", "param_label");
+  fld = addInputCell(tr, unescape(agent_ip_addr), "cl", "agent_ip_addr", width, 39);
+  fld.disabled = sflow_disallow_changes;
+  frag.appendChild(tr);
+
+  var tbody = document.getElementById('agent_data');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag);
+}
+
+//------------------------------------------------------------------------------
+// add_receiver()
+//------------------------------------------------------------------------------
+function add_receiver(rcvr_values)
+{
+  var tr, fld, frag = document.createDocumentFragment(), width = 42;
+
+  var owner = unescape(rcvr_values[PARM_IDX_RCVR_OWNER]);
+  var owner_str;
+  if (owner.length === 0) {
+    owner_str = "<none>";
+  } else {
+    owner_str = owner;
+  }
+  tr = CreateStyledElement("tr", "config");
+
+  sflow_disallow_changes = parseInt(rcvr_values[PARM_IDX_RCVR_ALLOW_CHANGES], 10) === 0 ? true : false;
+
+  // Enable or disable the save and reset buttons based on who is the owner of the receiver.
+  // Due to Peter's privilege stuff, I can't disable the buttons and keep them disabled,
+  // because after processUpdate() returns, ajax.js's changeForm() will re-enable them if the
+  // current user has sufficient privileges.
+  // Therefore, I rename the buttons so that the changeForm() function won't recognize them.
+  // This renaming gives a slightly wider button when disabling, but hopefully no-one will notice.
+  fld = document.getElementById("submit_button");
+  fld.value = sflow_disallow_changes ? "Save " : "Save";
+  fld.disabled = sflow_disallow_changes;
+
+  fld = document.getElementById("reset_button");
+  fld.value = sflow_disallow_changes ? "Reset " : "Reset";
+  fld.disabled = sflow_disallow_changes;
+
+  // Owner (this is a R/O field) consisting of R/O text and a release-button.
+  addTypedTextCell(tr, 'td', 'Owner', 'param_label');
+  var td = CreateTd('cl');
+  fld = document.createElement('input');
+  fld.setAttribute('size', width);
+  fld.setAttribute('value', owner_str);
+  fld.setAttribute("defaultValue", owner_str);
+  fld.defaultValue = owner_str; // Needed for MSIE 8
+  fld.disabled = true;
+  td.appendChild(fld);
+  fld = document.createElement('input');
+  fld.setAttribute('type', 'button');
+  fld.setAttribute('value', 'Release');
+  fld.onclick = on_release_click;
+  fld.disabled = owner.length === 0;
+  td.appendChild(fld);
+  tr.appendChild(td);
+  frag.appendChild(tr);
+
+  // Hostname/IP Address.
+  tr = CreateStyledElement("tr", "config");
+  var str = "IP Address";
+  if (configIPDNSSupport) {
+    str += "/Hostname";
+  }
+  addTypedTextCell(tr, "td", str, "param_label");
+  fld = addInputCell(tr, unescape(rcvr_values[PARM_IDX_RCVR_HOSTNAME]), "cl", "hostname", width, 255);
+  fld.disabled = sflow_disallow_changes;
+  frag.appendChild(tr);
+
+  // UDP port
+  tr = CreateStyledElement("tr", "config");
+  addTypedTextCell(tr, "td", "UDP Port", "param_label");
+  fld = addInputCell(tr, rcvr_values[PARM_IDX_RCVR_UDP_PORT], "cl", "udp_port", width, 5);
+  fld.disabled = sflow_disallow_changes;
+  frag.appendChild(tr);
+
+  // Timeout (seconds left)
+  tr = CreateStyledElement("tr", "config");
+  addTypedTextCell(tr, "td", "Timeout", "param_label");
+  fld = addInputCell(tr, rcvr_values[PARM_IDX_RCVR_TIMEOUT], "cl", "timeout", width, 10);
+  fld.parentNode.appendChild(document.createTextNode(" seconds")); // Unfortunately, I cannot use &nbsp; in place of the space.
+  fld.disabled = sflow_disallow_changes;
+  frag.appendChild(tr);
+  // We also need to save a copy of this timeout in the hidden input field instantiated in the HTML part.
+  // See the comment down there for an explanation.
+  fld = document.getElementById("timeout_orig");
+  fld.setAttribute("value", rcvr_values[PARM_IDX_RCVR_TIMEOUT]);
+  fld.setAttribute("defaultValue", rcvr_values[PARM_IDX_RCVR_TIMEOUT]);
+  fld.defaultValue = rcvr_values[PARM_IDX_RCVR_TIMEOUT];
+
+  // Max datagram size
+  tr = CreateStyledElement("tr", "config");
+  addTypedTextCell(tr, "td", "Max. Datagram Size", "param_label");
+  fld = addInputCell(tr, rcvr_values[PARM_IDX_RCVR_MAX_DATAGRAM_SIZE], "cl", "max_datagram_size", width, 4);
+  fld.parentNode.appendChild(document.createTextNode(" bytes")); // Unfortunately, I cannot use &nbsp; in place of the space.
+  fld.disabled = sflow_disallow_changes;
+  frag.appendChild(tr);
+
+  var tbody = document.getElementById('rcvr_data');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag);
+}
+
+//------------------------------------------------------------------------------
+// fsEnableDisable()
+//------------------------------------------------------------------------------
+function fsEnableDisable(port)
+{
+  var fld = document.getElementById("fs_enable_" + port);
+  if (fld) {
+    // A fld of null is a perfectly normal situation if there's a hole in the portmap.
+    var dis = !fld.checked || sflow_disallow_changes;
+    document.getElementById("fs_sampling_rate_"   + port).disabled = dis;
+    document.getElementById("fs_max_header_size_" + port).disabled = dis;
+  }
+}
+
+//------------------------------------------------------------------------------
+// cpEnableDisable()
+//------------------------------------------------------------------------------
+function cpEnableDisable(port)
+{
+  var fld = document.getElementById("cp_enable_" + port);
+  if (fld) {
+    // A fld of null is a perfectly normal situation if there's a hole in the portmap.
+    var dis = !fld.checked || sflow_disallow_changes;
+    document.getElementById("cp_interval_"   + port).disabled = dis;
+  }
+}
+
+//------------------------------------------------------------------------------
+// EnableDisableAll()
+//------------------------------------------------------------------------------
+function EnableDisableAll()
+{
+  var port;
+  for (port = 0; port <= sflow_max_port; port++) {
+    fsEnableDisable(port);
+    cpEnableDisable(port);
+  }
+}
+
+//------------------------------------------------------------------------------
+// add_port_row()
+//------------------------------------------------------------------------------
+function add_port_row(frag, values, idx)
+{
+  var fld, tr = CreateStyledElement("tr", idx % 2 ? "config_even" : "config_odd");
+  var port = parseInt(values[PARM_IDX_PORT_NUMBER], 10);
+
+  // Port number
+  addTextCell(tr, port, "cr");
+
+  // Flow sampler enabled
+  fld = addCheckBoxCell(tr, parseInt(values[PARM_IDX_PORT_FS_ENABLED], 10) ? true : false, "c", "fs_enable_" + port);
+  fld.disabled = sflow_disallow_changes;
+  fld.onclick = function() {fsEnableDisable(port);};
+
+  // Flow sampler sampling rate
+  fld = addInputCell(tr, values[PARM_IDX_PORT_FS_SAMPLING_RATE], "cr", "fs_sampling_rate_" + port, 15, 10);
+
+  // Flow sampler max header size
+  fld = addInputCell(tr, values[PARM_IDX_PORT_FS_MAX_HEADER_SIZE], "cr", "fs_max_header_size_" + port, 12, 3);
+
+  // Counter Poller enabled
+  fld = addCheckBoxCell(tr, parseInt(values[PARM_IDX_PORT_CP_ENABLED], 10) ? true : false, "c", "cp_enable_" + port);
+  fld.disabled = sflow_disallow_changes;
+  fld.onclick = function() {cpEnableDisable(port);};
+
+  // Counter Poller Interval
+  fld = addInputCell(tr, values[PARM_IDX_PORT_CP_INTERVAL], "cr", "cp_interval_" + port, 4);
+  fld.setAttribute("maxLength", 4);
+
+  frag.appendChild(tr); // Add row to fragment
+
+  if (port > sflow_max_port) {
+    sflow_max_port = port;
+  }
+}
+
+//------------------------------------------------------------------------------
+// processUpdate()
+//------------------------------------------------------------------------------
+function processUpdate(req, ref)
+{
+  // Format: err_msg#AgentIPAddress#[RcvrConfig]#[PortConfigs]
+  //         [RcvrConfig]  = owner/timeout/max_datagram_size/hostname/udp_port/datagram_version
+  //         [PortConfigs] = [PortConfig1]#[PortConfig2]#...#[PortConfigN]
+  //         [PortConfig]  = port_number/fs_enabled/fs_sampling_rate/fs_max_header_size/cp_enabled/cp_interval
+  var values = req.responseText.split("#");
+
+  if (redirectOnError(req)) {
+    return;
+  }
+
+  // Error message
+  var err_msg = unescape(values[0]);
+  if (err_msg !== "") {
+    alert(err_msg);
+  }
+
+  var agent_ip_addr = values[1];
+
+  var rcvr_values = values[2].split("/");
+  if (rcvr_values.length != PARM_RCVR_CNT) {
+    return;
+  }
+  add_receiver(rcvr_values);
+
+  // After adding receiver in order to get sflow_disallow_changes updated.
+  add_agent(agent_ip_addr);
+
+  sflow_max_port = 0;
+  var frag_port_body = document.createDocumentFragment();
+  for (var idx = 3; idx < values.length; idx++) {
+    var port_values = values[idx].split("/");
+    if (port_values.length != PARM_PORT_CNT) {
+      return;
+    }
+    add_port_row(frag_port_body, port_values, idx);
+  }
+
+  var tbody = document.getElementById('port_data');
+  clearChildNodes(tbody);
+  tbody.appendChild(frag_port_body);
+  EnableDisableAll();
+
+  var cBar = new MasterControlBar(
+    [{text: "*", className: "cr"},  // Port number
+     {name: "fs_enable_"},          // Flow sampler enabled checkbox
+     {name: "fs_sampling_rate_"},   // Flow sampler sampling rate
+     {name: "fs_max_header_size_"}, // Flow sampler sampling rate
+     {name: "cp_enable_"},          // Counter poller enabled checkbox
+     {name: "cp_interval_"}]);      // Counter poller interval
+  cBar.construct('port_data');
+}
+
+//------------------------------------------------------------------------------
+// requestUpdate()
+//------------------------------------------------------------------------------
+function requestUpdate(params)
+{
+  if (SpomNavigationLoading()) {
+    // Bail out. Navigation will trigger update
+    return;
+  }
+
+  var url = "/config/sflow";
+  if (params) {
+    url += "?" + params;
+  }
+  loadXMLDoc(SpomAddSidArg(url), processUpdate, null);
+  SpomUpdateDisplaySid("display_sid");
+  SpomUpdateFormSid("submit_sid");
+}
+
+//------------------------------------------------------------------------------
+// on_release_click()
+//------------------------------------------------------------------------------
+on_release_click = function()
+{
+  if (sflow_disallow_changes) {
+    // Not currently free and not currently owned by local management, i.e.
+    // it is owned by an SNMP session.
+    if (!confirm("Warning: You are about to release an SNMP-configured receiver.\nContinue?")) {
+      return;
+    }
+  }
+  // Post a new request to web.c's config/sflow() handler
+  // with an additional argument (clear)
+  requestUpdate("clear=1");
+};
+
+//------------------------------------------------------------------------------
+// SpomSidSelectorUpdate()
+// Fires when the switch-selector drop-down-box changes.
+//------------------------------------------------------------------------------
+function SpomSidSelectorUpdate(sid)
+{
+  SpomSetCurrentSid(sid); // Save current SID
+  requestUpdate();        // Update page to reflect selector
+}
+
+//------------------------------------------------------------------------------
+// checkForm()
+//------------------------------------------------------------------------------
+function checkForm()
+{
+  var agent_ip_addr = document.getElementById("agent_ip_addr");
+  var hostname = document.getElementById("hostname");
+  var udp_port = document.getElementById("udp_port");
+
+  // If the agent IP address field is empty, automatically insert 127.0.0.1
+  if (agent_ip_addr.value.length === 0) {
+    agent_ip_addr.value = "127.0.0.1";
+  }
+
+  // If the hostname field is empty, automatically insert 0.0.0.0
+  if (hostname.value.length === 0) {
+    hostname.value = "0.0.0.0";
+  }
+
+  // If the port field is empty, automatically insert 0
+  if (udp_port.value.length === 0) {
+    udp_port.value = "0";
+  }
+
+  if (configIPv6Support && agent_ip_addr.value.match(/:/)) {
+    // Match as IPv6.
+    if (!isIpv6Str(agent_ip_addr.id, "'IP Address'", 0, 0)) {
+      return false;
+    }
+  } else if (!isIpStr(agent_ip_addr.id, false, "'IP Address'", 2, false)) {
+    return false;
+  }
+
+  if (!isHostName("hostname", "'IP Address'")) {
+    return false;
+  }
+
+  if (!isWithinRange("udp_port", 0, 65535, "'UDP Port'", "")) {
+    return false;
+  }
+
+  if (!isWithinRange("timeout", 0, 0x7fffffff, "'Timeout'", "")) {
+    return false;
+  }
+
+  if (!isWithinRange("max_datagram_size", 200, 1468, "'Max. Datagram Size'", "")) {
+    return false;
+  }
+
+  for (var port = 0; port <= sflow_max_port; port++) {
+    var enable = document.getElementById("fs_enable_" + port);
+    if (enable) {
+      if (enable.checked) {
+        if (!isWithinRange("fs_sampling_rate_" + port, 1, 0xFFFFFFFF, "'Sampling Rate'", "")) {
+          return false;
+        }
+        if (!isWithinRange("fs_max_header_size_" + port, 14, 200, "'Max. Header'", "")) {
+          return false;
+        }
+      }
+    }
+
+    enable = document.getElementById("cp_enable_" + port);
+    if (enable) {
+      if (enable.checked) {
+        if (!isWithinRange("cp_interval_" + port, 1, 3600, "'Interval'", "")) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
+// reset_btn_click()
+//------------------------------------------------------------------------------
+function reset_btn_click(form)
+{
+  form.reset();
+  EnableDisableAll();
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<div class="refreshbar">
+  <form action="#">
+    <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+    <img id="update" alt="" src="images/updating.gif">
+  </form>
+</div>
+
+<h1>sFlow Configuration</h1>
+<form method="POST" action="/config/sflow" onsubmit="return checkForm();">
+
+<h2>Agent Configuration</h2>
+<table summary="sFlow Agent Configuration" cellspacing="0" class="config">
+  <tbody id="agent_data"></tbody>
+</table>
+
+<h2>Receiver Configuration</h2>
+<table summary="sFlow Receiver Configuration" cellspacing="0" class="config">
+  <tbody id="rcvr_data"></tbody>
+</table>
+
+<h2>Port Configuration <span id="display_sid"></span></h2>
+<table summary="sFlow Port Configuration" cellspacing="0" class="config">
+  <thead>
+    <tr>
+      <th rowspan="2">Port</th>
+      <th colspan="3">Flow Sampler</th>
+      <th colspan="2">Counter Poller</th>
+    </tr>
+    <tr>
+      <th>Enabled</th>
+      <th>Sampling Rate</th>
+      <th>Max. Header</th>
+      <th>Enabled</th>
+      <th>Interval</th>
+    </tr>
+  </thead>
+  <tbody id="port_data"></tbody>
+</table>
+
+<p>
+<!--
+  In order to be able to tell from the switch whether the user
+  has changed the timeout field or not, we save a copy here.
+  The timeout field is free-running on the switch and we have
+  no clue about its value when sent to the host, unless we do
+  this trick.
+-->
+<input type="hidden" id="timeout_orig"  name="timeout_orig"/>
+<input type="hidden" id="submit_sid"    name="sid"/>
+<input type="submit" id="submit_button" value="Save">
+<input type="reset"  id="reset_button"  value="Reset" onclick="reset_btn_click(this.form);"/>
+</p>
+
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

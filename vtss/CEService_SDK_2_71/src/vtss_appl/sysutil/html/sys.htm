@@ -1,0 +1,199 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>System Information</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_sys.htm";
+
+var timerID;
+
+function addListRow(index, frag, values) {
+    var tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+    addTextCell(tr, values[0],           "c");
+    addTextCell(tr, unescape(values[1]), "cl");
+    addTextCell(tr, unescape(values[2]), "cl");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref) {
+    var sysInfo = req.responseText.split("/");
+    UpdateId('sys_mac_address',         sysInfo[0]);
+    UpdateId('sys_uptime',              sysInfo[1]);
+    UpdateId('sys_date',                sysInfo[2]);
+    UpdateId('sys_sw_version', unescape(sysInfo[3]));
+    UpdateId('sys_sw_date',    unescape(sysInfo[4]));
+    UpdateId('sys_chip_id',    unescape(sysInfo[5]));
+    UpdateId('sys_contact',    unescape(sysInfo[6]));
+    UpdateId('sys_name',       unescape(sysInfo[7]));
+    UpdateId('sys_location',   unescape(sysInfo[8]));
+    UpdateId('sys_code_rev',   unescape(sysInfo[9]));
+
+    if(configStackable && sysInfo[10]) {
+        var lstbody = document.getElementById('stackList');
+        clearChildNodes(lstbody);
+        var frag = document.createDocumentFragment();
+        tr = CreateStyledElement("tr", "config_header");
+        addTextHeaderCell(tr, "Switch ID", "hdrc");
+        addTextHeaderCell(tr, "Chip ID", "hdrc");
+        addTextHeaderCell(tr, "Software Version", "hdrc");
+        frag.appendChild(tr);       // Add row to fragment
+        var units = sysInfo[10].split(",");
+        for(var i = 0; i < units.length; i++) {
+            if(units[i].length) {
+                var data = units[i].split("|");
+                addListRow(i, frag, data);
+            }
+        }
+        lstbody.appendChild(frag);
+    }
+
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function requestUpdate() {
+    loadXMLDoc("/stat/sys", processUpdate, null);
+}
+
+function chkRefresh(fld)
+{
+    if(!fld.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = null;
+    } else
+        requestUpdate(0);
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>System Information</h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onClick="requestUpdate(0); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<table summary="System Information" cellspacing="0" class="display">
+ <tr class="display_header">
+   <th colspan="2">System</th>
+ </tr>
+ <tr class="display_even">
+   <td class="displaytext">Contact</td>
+   <td class="cl" id="sys_contact"></td>
+ </tr>
+ <tr class="display_odd">
+   <td class="displaytext">Name</td>
+   <td class="cl" id="sys_name"></td>
+ </tr>
+ <tr class="display_even">
+   <td class="displaytext">Location</td>
+   <td class="cl" id="sys_location"></td>
+ </tr>
+ <tr class="display_header">
+  <th colspan="2">Hardware</th>
+ </tr>
+ <tr class="display_even">
+  <td class="displaytext">MAC Address</td>
+  <td class="cl mac" id="sys_mac_address"></td>
+ </tr>
+ <tr class="display_odd Standalone_only">
+  <td class="displaytext">Chip ID</td>
+  <td class="cl" id="sys_chip_id"></td>
+ </tr>
+ <tr class="display_header">
+  <th colspan="2">Time</th>
+ </tr>
+ <tr class="display_even">
+  <td class="displaytext">System Date</td>
+  <td class="cl" id="sys_date"></td>
+ </tr>
+ <tr class="display_odd">
+  <td class="displaytext">System Uptime</td>
+  <td class="cl" id="sys_uptime"></td>
+ </tr>
+ <tr class="display_header">
+  <th colspan="2">Software</th>
+ </tr>
+ <tr class="display_even">
+  <td class="displaytext">Software Version</td>
+  <td class="cl" id="sys_sw_version"></td>
+ </tr>
+ <tr class="display_odd">
+  <td class="displaytext">Software Date</td>
+  <td class="cl" id="sys_sw_date"></td>
+ </tr>
+ <tr class="display_even SYS_CODE_REV">
+  <td class="displaytext">Code Revision</td>
+  <td class="cl" id="sys_code_rev"></td>
+ </tr>
+ <tr class="display_odd">
+  <td class="displaytext">Acknowledgments</td>
+  <td class="cl"><a href="acknowledgments.htm">Details</a></td>
+ </tr>
+</table>
+
+<div class="SPOM_only">
+ <br>
+ <table summary="Stack Software Versions" cellspacing="0" class="display">
+  <tbody id="stackList">
+  </tbody>
+ </table>
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

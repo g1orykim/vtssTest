@@ -1,0 +1,359 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Storm Control Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_stormctrl_jr.htm";
+
+var oTRateUnit = ["kbps", "Mbps", "fps", "kfps"];
+var oVRateUnit = [0, 1, 2, 3];
+
+var portCnt = 0; // The number of ports shown on the web page are determined at runtime
+
+function api2DisplayRate(fps, rate)
+{
+    if (rate < 10000) {
+        return rate;
+    }
+    else {
+        return Math.floor(rate/1000);
+   }
+}
+
+function api2DisplayRateUnit(fps, rate)
+{
+    if (fps) {
+        if (rate < 10000) {
+            return 2; // ~ fps
+        }
+        else {
+            return 3; // ~ kfps
+        }
+    }
+    else {
+        if (rate < 10000) {
+            return 0; // ~ kbps
+        }
+        else {
+            return 1; // ~ Mbps
+        }
+    }
+}
+function addRow(index, frag, values) {
+    var pdata      = values.split("/");
+    var portno     = parseInt(pdata[0], 10);
+    var unicast    = pdata[1].split("|");
+    var broadcast  = pdata[2].split("|");
+    var unknown    = pdata[3].split("|");
+    var uc_enabled = parseInt(unicast[0], 10);
+    var uc_fps     = parseInt(unicast[1], 10);
+    var uc_rate    = parseInt(unicast[2], 10);
+    var bc_enabled = parseInt(broadcast[0], 10);
+    var bc_fps     = parseInt(broadcast[1], 10);
+    var bc_rate    = parseInt(broadcast[2], 10);
+    var un_enabled = parseInt(unknown[0], 10);
+    var un_fps     = parseInt(unknown[1], 10);
+    var un_rate    = parseInt(unknown[2], 10);
+    var tr;
+
+    // The "fps_n" (frame_rate in the policer API) and "rate_n" is not shown directly on the user interface
+    // Instead we convert these two values to the more user friendly "display_rate_n" and display_rate_unit_n"
+    // When the form is submitted the values are converted back to the ones that the API expects
+    tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addHiddenInputCell(tr, uc_fps, "cr", "uc_fps_" + index);
+    addHiddenInputCell(tr, uc_rate, "cr", "uc_rate_" + index);
+    addHiddenInputCell(tr, bc_fps, "cr", "bc_fps_" + index);
+    addHiddenInputCell(tr, bc_rate, "cr", "bc_rate_" + index);
+    addHiddenInputCell(tr, un_fps, "cr", "un_fps_" + index);
+    addHiddenInputCell(tr, un_rate, "cr", "un_rate_" + index);
+    frag.appendChild(tr);       // Add (hidden) row to fragment
+
+    tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addTextCell(tr, configPortName(portno, 0), "cr");
+    addCheckBoxCell(tr, uc_enabled, "c", "uc_enabled_" + index);
+    addInputCell(tr, api2DisplayRate(uc_fps, uc_rate), "cr", "uc_display_rate_" + index, 7, 7);
+    addSelectCell(tr, oTRateUnit, oVRateUnit, api2DisplayRateUnit(uc_fps, uc_rate), "cr", "uc_display_rate_unit_" + index);
+    addCheckBoxCell(tr, bc_enabled, "c", "bc_enabled_" + index);
+    addInputCell(tr, api2DisplayRate(bc_fps, bc_rate), "cr", "bc_display_rate_" + index, 7, 7);
+    addSelectCell(tr, oTRateUnit, oVRateUnit, api2DisplayRateUnit(bc_fps, bc_rate), "cr", "bc_display_rate_unit_" + index);
+    addCheckBoxCell(tr, un_enabled, "c", "un_enabled_" + index);
+    addInputCell(tr, api2DisplayRate(un_fps, un_rate), "cr", "un_display_rate_" + index, 7, 7);
+    addSelectCell(tr, oTRateUnit, oVRateUnit, api2DisplayRateUnit(un_fps, un_rate), "cr", "un_display_rate_unit_" + index);
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+/* Format:
+ * <port 1>,<port 2>,<port 3>,...<port n>
+ *
+ * port x :== <port_no>/<unicast>/<broadcast>/<unknown>
+ *   port_no   :== 1..max
+ *   unicast   :== <enabled>|<fps>|<rate>
+ *     enabled :== 0..1           // 0: no, 1: yes
+ *     fps     :== 0..1           // 0: unit for rate is kilobits pr seconds (kbps), 1: unit for rate is frames pr second (fps)
+ *     rate    :== 0..0xffffffff  // actual bit or frame rate
+ *   broadcast :== <enabled>|<fps>|<rate>
+ *     enabled :== 0..1           // 0: no, 1: yes
+ *     fps     :== 0..1           // 0: unit for rate is kilobits pr seconds (kbps), 1: unit for rate is frames pr second (fps)
+ *     rate    :== 0..0xffffffff  // actual bit or frame rate
+ *   unknown   :== <enabled>|<fps>|<rate>
+ *     enabled :== 0..1           // 0: no, 1: yes
+ *     fps     :== 0..1           // 0: unit for rate is kilobits pr seconds (kbps), 1: unit for rate is frames pr second (fps)
+ *     rate    :== 0..0xffffffff  // actual bit or frame rate
+ */
+function processUpdate(req, ref)
+{
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        var values = req.responseText.split(",");
+        var frag = document.createDocumentFragment();
+        portCnt = values.length;
+        for (var i = 0; i < portCnt; i++) {
+            addRow(i, frag, values[i]);
+        }
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        tbody.appendChild(frag);
+        var cBar = new MasterControlBar([{text: "*", className: "cr"},
+                                         {name: "uc_enabled_"},
+                                         {name: "uc_display_rate_"},
+                                         {name: "uc_display_rate_unit_"},
+                                         {name: "bc_enabled_"},
+                                         {name: "bc_display_rate_"},
+                                         {name: "bc_display_rate_unit_"},
+                                         {name: "un_enabled_"},
+                                         {name: "un_display_rate_"},
+                                         {name: "un_display_rate_unit_"}]);
+        cBar.construct(ref);
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/stormctrl_jr"), processUpdate, 'storm_tbody');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm(form)
+{
+    // Validate rate_n and rate_unit_n and convert back to the values expected by the API
+    for (var i = 0; i < portCnt; i++) {
+        switch (document.getElementById("uc_display_rate_unit_" + i).value) {
+        case "0": // kbps
+            if (!isWithinRange("uc_display_rate_" + i, configQosBitRateMin, 1000000, "'Storm Rate'",
+                               " when the Unit is specified in 'kbps'.\nSelect the 'Mbps' unit for a coarser granularity for rates that need to be greater than 1 Gbps (1000000 kbps).")) {
+                return false;
+            }
+            document.getElementById("uc_rate_" + i).value = document.getElementById("uc_display_rate_" + i).value;
+            document.getElementById("uc_fps_" + i).value = 0;
+            break;
+        case "1": // Mbps
+            if (!isWithinRange("uc_display_rate_" + i, 1, configQosBitRateMax / 1000, "'Storm Rate'",
+                               " Mbps.\nSelect the 'kbps' unit for a finer granularity.")) {
+                return false;
+            }
+            document.getElementById("uc_rate_" + i).value = document.getElementById("uc_display_rate_" + i).value * 1000;
+            document.getElementById("uc_fps_" + i).value = 0;
+            break;
+        case "2": // fps
+            if (!isWithinRange("uc_display_rate_" + i, configQosBitRateMin, 1000000, "'Storm Rate'",
+                               " when the Unit is specified in 'fps'.\nSelect the 'kfps' unit for a coarser granularity for rates that need to be greater than 1 Mfps (1000000 fps).")) {
+                return false;
+            }
+            document.getElementById("uc_rate_" + i).value = document.getElementById("uc_display_rate_" + i).value;
+            document.getElementById("uc_fps_" + i).value = 1;
+            break;
+        case "3": // kfps
+            if (!isWithinRange("uc_display_rate_" + i, 1, configQosBitRateMax / 1000, "'Storm Rate'",
+                               " kfps.\nSelect the 'fps' unit for a finer granularity.")) {
+                return false;
+            }
+            document.getElementById("uc_rate_" + i).value = document.getElementById("uc_display_rate_" + i).value * 1000;
+            document.getElementById("uc_fps_" + i).value = 1;
+            break;
+        default:
+            // Shall never hapen
+            return GiveAlert("The value is not valid", document.getElementById("uc_display_rate_unit_" + i));
+        }
+
+        switch (document.getElementById("bc_display_rate_unit_" + i).value) {
+        case "0": // kbps
+            if (!isWithinRange("bc_display_rate_" + i, configQosBitRateMin, 1000000, "'Storm Rate'",
+                               " when the Unit is specified in 'kbps'.\nSelect the 'Mbps' unit for a coarser granularity for rates that need to be greater than 1 Gbps (1000000 kbps).")) {
+                return false;
+            }
+            document.getElementById("bc_rate_" + i).value = document.getElementById("bc_display_rate_" + i).value;
+            document.getElementById("bc_fps_" + i).value = 0;
+            break;
+        case "1": // Mbps
+            if (!isWithinRange("bc_display_rate_" + i, 1, configQosBitRateMax / 1000, "'Storm Rate'",
+                               " Mbps.\nSelect the 'kbps' unit for a finer granularity.")) {
+                return false;
+            }
+            document.getElementById("bc_rate_" + i).value = document.getElementById("bc_display_rate_" + i).value * 1000;
+            document.getElementById("bc_fps_" + i).value = 0;
+            break;
+        case "2": // fps
+            if (!isWithinRange("bc_display_rate_" + i, configQosBitRateMin, 1000000, "'Storm Rate'",
+                               " when the Unit is specified in 'fps'.\nSelect the 'kfps' unit for a coarser granularity for rates that need to be greater than 1 Mfps (1000000 fps).")) {
+                return false;
+            }
+            document.getElementById("bc_rate_" + i).value = document.getElementById("bc_display_rate_" + i).value;
+            document.getElementById("bc_fps_" + i).value = 1;
+            break;
+        case "3": // kfps
+            if (!isWithinRange("bc_display_rate_" + i, 1, configQosBitRateMax / 1000, "'Storm Rate'",
+                               " kfps.\nSelect the 'fps' unit for a finer granularity.")) {
+                return false;
+            }
+            document.getElementById("bc_rate_" + i).value = document.getElementById("bc_display_rate_" + i).value * 1000;
+            document.getElementById("bc_fps_" + i).value = 1;
+            break;
+        default:
+            // Shall never hapen
+            return GiveAlert("The value is not valid", document.getElementById("bc_display_rate_unit_" + i));
+        }
+
+        switch (document.getElementById("un_display_rate_unit_" + i).value) {
+        case "0": // kbps
+            if (!isWithinRange("un_display_rate_" + i, configQosBitRateMin, 1000000, "'Storm Rate'",
+                               " when the Unit is specified in 'kbps'.\nSelect the 'Mbps' unit for a coarser granularity for rates that need to be greater than 1 Gbps (1000000 kbps).")) {
+                return false;
+            }
+            document.getElementById("un_rate_" + i).value = document.getElementById("un_display_rate_" + i).value;
+            document.getElementById("un_fps_" + i).value = 0;
+            break;
+        case "1": // Mbps
+            if (!isWithinRange("un_display_rate_" + i, 1, configQosBitRateMax / 1000, "'Storm Rate'",
+                               " Mbps.\nSelect the 'kbps' unit for a finer granularity.")) {
+                return false;
+            }
+            document.getElementById("un_rate_" + i).value = document.getElementById("un_display_rate_" + i).value * 1000;
+            document.getElementById("un_fps_" + i).value = 0;
+            break;
+        case "2": // fps
+            if (!isWithinRange("un_display_rate_" + i, configQosBitRateMin, 1000000, "'Storm Rate'",
+                               " when the Unit is specified in 'fps'.\nSelect the 'kfps' unit for a coarser granularity for rates that need to be greater than 1 Mfps (1000000 fps).")) {
+                return false;
+            }
+            document.getElementById("un_rate_" + i).value = document.getElementById("un_display_rate_" + i).value;
+            document.getElementById("un_fps_" + i).value = 1;
+            break;
+        case "3": // kfps
+            if (!isWithinRange("un_display_rate_" + i, 1, configQosBitRateMax / 1000, "'Storm Rate'",
+                               " kfps.\nSelect the 'fps' unit for a finer granularity.")) {
+                return false;
+            }
+            document.getElementById("un_rate_" + i).value = document.getElementById("un_display_rate_" + i).value * 1000;
+            document.getElementById("un_fps_" + i).value = 1;
+            break;
+        default:
+            // Shall never hapen
+            return GiveAlert("The value is not valid", document.getElementById("un_display_rate_unit_" + i));
+        }
+    }
+    return true;
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>QoS Port Storm Control <span id="display_sid"></span></h1>
+
+<form method="POST" action="/config/stormctrl_jr" onsubmit="return checkForm(this);"> 
+
+<table summary="Storm Control Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowspan="2">Port</th>
+   <th colspan="3">Unicast Frames</th>
+   <th colspan="3">Broadcast Frames</th>
+   <th colspan="3">Unknown Frames</th>
+  </tr>
+  <tr class="config_header">
+   <th>Enabled</th>
+   <th>Rate</th>
+   <th>Unit</th>
+   <th>Enabled</th>
+   <th>Rate</th>
+   <th>Unit</th>
+   <th>Enabled</th>
+   <th>Rate</th>
+   <th>Unit</th>
+  </tr>
+ </thead>
+ <tbody id="storm_tbody">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

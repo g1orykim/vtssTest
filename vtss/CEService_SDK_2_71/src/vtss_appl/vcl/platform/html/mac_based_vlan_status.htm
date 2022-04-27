@@ -1,0 +1,320 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+ <title>MAC-based VLAN Membership Status</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript" language="JavaScript">
+
+// Help page magic
+var help_page = "/help/help_vcl_stat.htm";
+
+var reqObject;
+var entryIdxArray = Array();
+var timerID = null;
+var newEntriesNum = 0;
+var macvlanstat = Array();
+var selectedtext="Static"; 
+var Users = new Array();
+
+function addClonedNode(tr, val, proto)
+{
+    if(parseInt(val)) {
+        var td = CreateTd("c");
+        addCell(tr, td, proto.cloneNode(1));
+    } else {
+        addTextCell(tr, "", "c");
+    }
+}
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "display_even" : "display_odd");
+    var bullet = document.getElementById("bullet");
+
+    addTextCell(tr, values[0], "c");
+    addTextCell(tr, values[1], "c");
+    var ports = values[2].split(",");
+    for(var i = 0; i < SpomCurrentPorts(); i++) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        if(ports[i] != "") {
+            addClonedNode(tr, ports[i], bullet);
+        }
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function createOptions(req, ref )
+{
+    var fval;
+    if(req.responseText) {
+        macvlanstat = req.responseText.split("#");
+        for(var k = 1; k < macvlanstat.length; k++){
+            fval = macvlanstat[k].split("|");
+            Users[k-1]=fval[0];
+        }
+        var sel = document.getElementById(ref);        
+        clearChildNodes(sel);
+        var frag = document.createDocumentFragment();
+
+        for (var i = 0; i < Users.length; i++) {
+            var opt = document.createElement("option");
+            opt.appendChild(document.createTextNode(Users[i]));
+
+            opt.setAttribute("text", Users[i]);
+            if(selectedtext == Users[i])
+                opt.setAttribute("selected", true);
+            frag.appendChild(opt);
+        }
+        sel.appendChild(frag);
+        updateTable( );
+    }
+}
+
+function CreateTableHeader (frag)
+{
+    var tr     = CreateStyledElement("tr", "display_header");
+    var nPorts = SpomCurrentPorts();
+    var elem;
+
+    for (var i = 0; i < SpomCurrentPorts(); i++ ) {
+        if (isStackPort(i + 1)) {
+            nPorts--;
+        }
+    }
+    addTextHeaderCell(tr, "", "hdrc", 2);
+    addTextHeaderCell(tr, "Port Members", "hdrc", nPorts);
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "display_header"); // start next line
+    addTextHeaderCell(tr," MAC Address","hdrc", 1);
+    addTextHeaderCell(tr," VLAN  ID","hdrc", 1);
+
+    for (var i = 0; i < SpomCurrentPorts(); i++ ) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        elem = addTextHeaderCell(tr, configPortName(i + 1, 0), "portno");
+        elem.style.cssText = "width: 1em";
+    }
+    frag.appendChild(tr);
+}
+
+function updateTable( )
+{
+    var fval;
+    var frag = document.createDocumentFragment();
+    var pcount = SpomCurrentPorts();
+    for (var i = 0; i < SpomCurrentPorts(); i++ ) {
+        if (isStackPort(i + 1)) {
+            pcount--;
+        }
+    }
+    pcount = pcount + 2;
+    document.getElementById("display_sid").innerHTML=selectedtext;
+    CreateTableHeader(frag);
+    for(var k = 1; k < macvlanstat.length; k++) {
+        fval = macvlanstat[k].split("|");
+        if (selectedtext == fval[0]) {
+            if((fval[0] == macvlanstat[k])&&(fval[1]!=" ")) {             
+                var tr = CreateStyledElement("tr", "notice");
+                addTextCell(tr, "No data exists for the user", "cl", pcount);
+                frag.appendChild(tr);          
+            }                   
+            else {
+                for(var i = 1; i < fval.length; i++) {
+                    var pval = fval[i].split("/");      
+                    addRow(i, frag, pval);
+                }
+            }
+        }
+    }
+    var tbody = document.getElementById("MACVlanData");
+
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        GiveAlert("This browser doesn't support dynamic tables.");
+    }    
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function processUpdate(req, ref)
+{
+    // Format:
+    // <isid>#user|<mac_addr>/<vid>/<port list #i>,...,<port list #last>,;
+    //one sample entry
+    //#static|00-00-00-00-00-11/1/1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,;
+ 
+    if(req.responseText) {
+        macvlanstat = req.responseText.split("#");
+        updateTable();   
+    } 
+    else {
+        SpomHandleError();
+    }
+    var autorefresh = document.getElementById('autorefresh');
+    if(autorefresh.checked) {
+        if(timerID)
+            clearTimeout(timerID);
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function requestUpdate(type)
+{   
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    document.getElementById("update").style.visibility = "visible";
+    if(type == "load"){
+        loadXMLDoc(SpomAddSidArg("/stat/vcl_conf"), createOptions, 'VlanUser');
+    }
+    else{
+        loadXMLDoc(SpomAddSidArg("/stat/vcl_conf"), processUpdate, null);  
+    }
+    SpomUpdateDisplaySid("display_sid");
+}
+
+function checkForm()
+{
+
+    // Check that there is at least one VLAN.
+    
+    var fld1, fld2, fld3, k, temp;
+    var deleteEntriesNum = 0;
+    var port_count = 0;
+    
+    //check new entries's
+    for (var i = 0, temp = i + 1; i < newEntriesNum; i++) {
+        fld3 = document.getElementById("MACID_new_"+ temp);
+        if (!IsMacAddress(fld3.value)) {
+            GiveAlert("MAC address is invalid. The format is 'xx-xx-xx-xx-xx-xx' or 'xx.xx.xx.xx.xx.xx' or 'xxxxxxxxxxxx' (x is a hexadecimal digit).");
+            return false;
+        }
+        //Check for unicast MAC address
+        // Split the max address up in 6 part
+        if (fld3.value.indexOf("-") != -1 || fld3.value.indexOf(".") != -1) {
+            var MACAddr;
+            if (fld3.value.indexOf("-") != -1) {
+                MACAddr = fld3.value.split("-");
+            } else {
+                MACAddr = fld3.value.split(".");
+            }
+            if ((MACAddr[0] & 0x1) == 1) {
+                GiveAlert("No multicast or broadcast address allowed");
+                return false;
+            }
+        } else if (fld3.value[0] == "0" && fld3.value[1] == "1") {
+                GiveAlert("No multicast or broadcast address allowed");
+                return false;
+        }
+        fld2 = document.getElementById("vid_new_"+ entryIdxArray[i]);
+        //Check whether the vid added is an integer.
+        if (!isInt(fld2.value)) {
+            GiveAlert("Invalid VLAN ID " + fld2.value);
+            return false;
+        }
+        //vid
+        if(!isWithinRange("vid_new_"+ entryIdxArray[i], 1, 4095, "'VLAN ID'")) {
+            return false;
+        }
+    }
+    return true; // Feed the chickens and go home
+}
+
+function VLANUserSelect(sel)
+{
+    selectedtext = sel.options[sel.selectedIndex].text;
+    updateTable( );
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+            timerID = null;
+        }
+    } else {
+        requestUpdate();
+    }
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate('load');">
+
+<h1>MAC-based VLAN Membership Status for User <span id="display_sid"></span></h1>
+<div class="refreshbar">
+<form action="#">
+    <select id="VlanUser" onchange= "VLANUserSelect(this);">
+        <option value= "0" >Static </option>
+        <option value= "2" >Combined </option>
+    </select>
+
+    <label for="autorefresh">Auto-refresh</label>
+    <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+    <input type="button" value="Refresh" onClick="requestUpdate('Refresh'); this.blur();">
+    <img id="update" alt="" src="images/updating.gif">
+</form>
+</div>
+<table id="MACVLANTable" summary="MAC-based VLAN membership Status for User" cellspacing="0" class="display">
+    <tbody id="MACVlanData"></tbody>
+</table>
+<!-- IE caching bug -->
+<div style="visibility: hidden">
+<!-- <div style="padding : 0 4px 0 4px; font-size: 14pt" id="bullet">&bull;</div> -->
+<img id="bullet" alt="yes" src="images/yes.gif" height="12">
+</div>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

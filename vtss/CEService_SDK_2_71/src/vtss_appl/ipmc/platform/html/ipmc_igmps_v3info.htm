@@ -1,0 +1,292 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IGMP SFM Information</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_ipmc_igmps_v3info.htm";
+
+var timerID = null;
+var LastVid = 1, LastGroup = "224.0.0.0";
+var inputInfo = Array();
+
+function addRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "display_odd" : "display_even");
+
+    if (values[0] == "NoEntries") {
+        addTextCell(tr, "No more entries", "cl", 7);
+    } else {
+        addTextCell(tr, values[0], "cr");
+        addTextCell(tr, values[1], "cr");
+        addTextCell(tr, configPortName(values[2], 0), "cr");
+        if (parseInt(values[3], 10)) {
+            addTextCell(tr, "Include", "cl");
+        } else {
+            addTextCell(tr, "Exclude", "cl");
+        }
+        addTextCell(tr, values[4], "cr");
+        if (parseInt(values[5], 10)) {
+            addTextCell(tr, "Allow", "cl");
+        } else {
+            addTextCell(tr, "Deny", "cl");
+        }
+        if (parseInt(values[6], 10)) {
+            addTextCell(tr, "Yes", "c");
+        } else {
+            addTextCell(tr, "No", "c");
+        }
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function UpdateTable(ref, frag)
+{
+    if (inputInfo.length > 1) {
+        var FirstVid = document.getElementById("StartVid").value;
+        var FirstGroup = document.getElementById("StartGroup").value;
+        pval = "NoEntries";
+        for (var i = 1; i <= inputInfo.length - 1; i++) {
+            if (inputInfo[i]) {
+                pval = inputInfo[i].split("/");
+                addRow(i - 1, frag, pval);
+
+                if ((i == 1) && (pval[0] !== "NoEntries")) {
+                    FirstVid = pval[0];
+                    FirstGroup = pval[1];
+                }
+            }
+        }
+
+        // Store the last element shown, for being able to do a find next entry.
+        if (pval[0] !== "NoEntries") {
+            LastVid = pval[0];
+            LastGroup = pval[1];
+        }
+
+        // Set start vid to the last VID showned in the table
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+}
+
+function CreateTableHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "VLAN ID", "hdrc");
+    addTextHeaderCell(tr, "Group", "hdrc");
+    addTextHeaderCell(tr, "Port", "hdrc");
+    addTextHeaderCell(tr, "Mode", "hdrc");
+    addTextHeaderCell(tr, "Source Address", "hdrc");
+    addTextHeaderCell(tr, "Type", "hdrc");
+    addTextHeaderCell(tr, "Hardware Filter/Switch", "hdrc");
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    //Format: <start_vid>/<start_group>/<num_of_entries>|[vid]/[group]/[port]/[mode]/[source_addr]/[type]/[in_hw]|...
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        inputInfo = req.responseText.split("|");
+
+        // Get number of entries
+        var pval = inputInfo[0].split("/");
+        document.getElementById("StartVid").value = pval[0];
+        document.getElementById("StartGroup").value = pval[1];
+        document.getElementById("NumberOfEntries").value = pval[2];
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+
+        // Make table header
+        CreateTableHeader(frag);
+
+        // Create the table
+        UpdateTable(ref, frag);
+
+        // Update the timer
+        var autorefresh = document.getElementById('autoRefresh');
+        if (autorefresh.checked) {
+            if (timerID) {
+                clearTimeout(timerID);
+            }
+            timerID = setTimeout("requestUpdate('Refresh')", settingsRefreshInterval());
+        }
+    } else {
+        SpomHandleError();
+    }
+
+    document.getElementById("update").style.visibility = "hidden";
+    document.getElementById("autoRefresh").disabled = false;
+    document.getElementById("refresh").disabled     = false;
+    document.getElementById("getFirst").disabled    = false;
+    document.getElementById("getNext").disabled     = false;
+}
+
+function checkForm()
+{
+    //vid
+    if (!isWithinRange("StartVid", 1, 4095, "'VLAN'")) {
+        return false;
+    }
+
+    if (!isIpStr("StartGroup", false, "'Group'", 3, false)) { //allow_what=3 is multicast
+        return false;
+    }
+
+    // Make sure that input box contains a correct value.
+    if (!isWithinRange("NumberOfEntries", 1, 99, "'entries per page'")) {
+        return false;
+    }
+
+    return true;                // Feed the chickens and go home
+}
+
+function requestUpdate(type)
+{
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    document.getElementById("update").style.visibility = "visible";
+    document.getElementById("autoRefresh").disabled = true;
+    document.getElementById("refresh").disabled     = true;
+    document.getElementById("getFirst").disabled    = true;
+    document.getElementById("getNext").disabled     = true;
+
+    if (type == "NextEntries") {
+        loadXMLDoc(SpomAddSidArg("/stat/ipmc_v2info?ipmc_version=1&GetNextEntry=1&DynStartVid=" + LastVid +
+                                 "&DynStartGroup=" + LastGroup +
+                                 "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value), processUpdate, 'inputData');
+    } else if (type == "Refresh") {
+        loadXMLDoc(SpomAddSidArg("/stat/ipmc_v2info?ipmc_version=1&GetNextEntry=0&DynStartVid=" + document.getElementById("StartVid").value +
+                                 "&DynStartGroup=" + document.getElementById("StartGroup").value +
+                                 "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value), processUpdate, 'inputData');
+    } else {
+        loadXMLDoc(SpomAddSidArg("/stat/ipmc_v2info?ipmc_version=1&GetNextEntry=0&DynStartVid=1&DynStartGroup=224.0.0.0&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value), processUpdate, 'inputData');
+    }
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function clickCtrlButton(type)
+{
+    if (checkForm()) {
+        requestUpdate(type);
+    } else if (document.getElementById('autoRefresh').checked) {
+        document.getElementById('autoRefresh').checked = false;
+    }
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+
+        timerID = null;
+    } else {
+        requestUpdate('Refresh');
+    }
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid); // Save current SID
+    requestUpdate("GetFirstEntry");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate('GetFirstEntry');">
+
+<h1>IGMP SFM Information <span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" id="autoRefresh" name="autoRefresh" onclick="chkRefresh(this);">
+  <input type="button"   id="refresh"  value="Refresh" onclick="requestUpdate('Refresh'); this.blur();">
+  <input type="button"   id="getFirst" value=" |<< "   title="First page" onclick="clickCtrlButton('GetFirstEntry');">
+  <input type="button"   id="getNext"  value=" >> "    title="Next page" onclick="clickCtrlButton('NextEntries');">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<form action="#">
+<p>
+  <span class="displaytext">Start from VLAN</span>
+  <input type="text" id="StartVid" name="StartVid" maxlength="4" value="1" size="4">
+  <span class="displaytext">and Group</span>
+  <input type="text" id="StartGroup" name="StartGroup" maxlength="15" value="224.0.0.0" size = "15">
+  <span class="displaytext"> with </span>
+  <input type="text" id="NumberOfEntries" name="NumberOfEntries" maxlength="2" value="20" size="2">
+  <span class="displaytext"> entries per page. </span>
+</p>
+</form>
+
+<table id="IGMP_SFM_Information" summary="IGMP SFM Information" cellspacing="0" class="display">
+  <tbody id="inputData"></tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="hidden" id="ipmc_version" name="ipmc_version" value="1">
+</p>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

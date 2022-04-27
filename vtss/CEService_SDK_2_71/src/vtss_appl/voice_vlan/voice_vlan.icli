@@ -1,0 +1,1605 @@
+//
+// Vitesse Switch Software.
+//
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG =  defined(VTSS_SW_OPTION_VOICE_VLAN)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments. 
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file. 
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_porting_help.h"
+#include "icli_porting_util.h"
+#include "voice_vlan_api.h"
+#include "topo_api.h"
+#include "misc_api.h"
+#include "mgmt_api.h"
+#if VOICE_VLAN_CHECK_CONFLICT_CONF
+#ifdef VTSS_SW_OPTION_LLDP
+#include "lldp_api.h"
+#endif
+#endif
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files. 
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+static i32  _voice_vlan_enable(
+    IN u32      session_id,
+    IN BOOL     b_enable
+)
+{
+    voice_vlan_conf_t       conf;
+    vtss_rc                 rc;
+
+    // get configuration
+    if ( voice_vlan_mgmt_conf_get(&conf) != VTSS_OK ) {
+        ICLI_PRINTF("%% Failed to get Voice VLAN configuration.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // change mode
+    conf.mode = b_enable;
+
+    // set configuration
+    rc = voice_vlan_mgmt_conf_set(&conf);
+
+    switch( rc ) {
+        case VTSS_OK:
+            break;
+        
+        case VOICE_VLAN_ERROR_IS_CONFLICT_WITH_LLDP:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (The LLDP feature should be enabled first)\n");
+            return ICLI_RC_ERROR;
+        
+        default:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (%s)\n", error_txt(rc));
+            return ICLI_RC_ERROR;
+    }
+    return ICLI_RC_OK;
+}
+
+static i32  _voice_vlan_port_mode_set(
+    IN u32                      session_id,
+    IN icli_stack_port_range_t  *port_list,
+    IN i32                      port_mode
+)
+{
+    u32                     i;
+    u32                     j;
+    vtss_isid_t             isid;
+    vtss_port_no_t          iport;
+    vtss_uport_no_t         uport;
+    voice_vlan_conf_t       conf;
+    voice_vlan_port_conf_t  port_conf;
+    
+#if VOICE_VLAN_CHECK_CONFLICT_CONF
+#ifdef VTSS_SW_OPTION_LLDP
+    lldp_struc_0_t          lldp_conf;
+#endif
+#endif
+
+    // get management config
+    ICLI_RC_CHECK(voice_vlan_mgmt_conf_get(&conf), NULL);
+    
+    // port list
+    for ( i = 0; i < port_list->cnt; i++ ) {
+        // get isid
+        isid = topo_usid2isid( port_list->switch_range[i].usid );
+
+        // get lldp config
+#if VOICE_VLAN_CHECK_CONFLICT_CONF
+#ifdef VTSS_SW_OPTION_LLDP
+        lldp_mgmt_get_config(&lldp_conf, isid);
+#endif
+#endif
+
+        // get port config
+        ICLI_RC_CHECK(voice_vlan_mgmt_port_conf_get(isid, &port_conf), NULL);
+
+        // set port mode
+        for ( j = 0; j < port_list->switch_range[i].port_cnt; j++ ) {
+            // get uport
+            uport = port_list->switch_range[i].begin_uport + j;
+            
+            // get iport
+            iport = uport2iport( uport );
+            
+#if VOICE_VLAN_CHECK_CONFLICT_CONF
+            // Check LLDP port mode
+            if ( conf.mode == VOICE_VLAN_MGMT_ENABLED &&
+                 port_mode == VOICE_VLAN_PORT_MODE_AUTO &&
+                 port_conf.discovery_protocol[iport] != VOICE_VLAN_DISCOVERY_PROTOCOL_OUI
+#ifdef VTSS_SW_OPTION_LLDP
+                && (lldp_conf.admin_state[iport] == (lldp_admin_state_t)LLDP_DISABLED || lldp_conf.admin_state[iport] == (lldp_admin_state_t)LLDP_ENABLED_TX_ONLY)
+#endif
+            ) {
+    
+                ICLI_PRINTF("%% The LLDP mode is disabled on %s %d/%u.\n",
+                    icli_port_type_get_name(port_list->switch_range[i].port_type),
+                    port_list->switch_range[i].switch_id,
+                    port_list->switch_range[i].begin_port + j);
+                continue;
+            }
+#endif /* VOICE_VLAN_CHECK_CONFLICT_CONF */
+
+            // set port mode
+            port_conf.port_mode[iport] = port_mode;
+        } // for (j)
+
+        // set port config
+        ICLI_RC_CHECK(voice_vlan_mgmt_port_conf_set(isid, &port_conf), NULL);
+
+    } // for (i)
+    return ICLI_RC_OK;
+}
+
+static i32  _voice_vlan_port_security_enable(
+    IN u32                      session_id,
+    IN icli_stack_port_range_t  *port_list,
+    IN BOOL                     b_enable
+)
+{
+    u32                     i;
+    u32                     j;
+    vtss_isid_t             isid;
+    vtss_port_no_t          iport;
+    vtss_uport_no_t         uport;
+    voice_vlan_port_conf_t  port_conf;
+
+    // port list
+    for ( i = 0; i < port_list->cnt; i++ ) {
+        // get isid
+        isid = topo_usid2isid( port_list->switch_range[i].usid );
+
+        // get port config
+        ICLI_RC_CHECK(voice_vlan_mgmt_port_conf_get(isid, &port_conf), NULL);
+
+        // set port mode
+        for ( j = 0; j < port_list->switch_range[i].port_cnt; j++ ) {
+            // get uport
+            uport = port_list->switch_range[i].begin_uport + j;
+            
+            // get iport
+            iport = uport2iport( uport );
+            
+            // enable port security mode
+            port_conf.security[iport] = b_enable;
+        }
+
+        // set port config
+        ICLI_RC_CHECK(voice_vlan_mgmt_port_conf_set(isid, &port_conf), NULL);
+    }
+    return ICLI_RC_OK;
+}
+
+#if defined (VTSS_SW_OPTION_LLDP)
+static i32  _voice_vlan_port_discovery_protocol_set(
+    IN u32                      session_id,
+    IN icli_stack_port_range_t  *port_list,
+    IN i32                      discovery_protocol
+)
+{
+    u32                     i;
+    u32                     j;
+    vtss_isid_t             isid;
+    vtss_port_no_t          iport;
+    vtss_uport_no_t         uport;
+    voice_vlan_conf_t       conf;
+    voice_vlan_port_conf_t  port_conf;
+    
+#if VOICE_VLAN_CHECK_CONFLICT_CONF
+#ifdef VTSS_SW_OPTION_LLDP
+    lldp_struc_0_t          lldp_conf;
+#endif
+#endif
+
+    // get management config
+    ICLI_RC_CHECK(voice_vlan_mgmt_conf_get(&conf), NULL);
+    
+    // port list
+    for ( i = 0; i < port_list->cnt; i++ ) {
+        // get isid
+        isid = topo_usid2isid( port_list->switch_range[i].usid );
+
+        // get lldp config
+#if VOICE_VLAN_CHECK_CONFLICT_CONF
+#ifdef VTSS_SW_OPTION_LLDP
+        lldp_mgmt_get_config(&lldp_conf, isid);
+#endif
+#endif
+
+        // get port config
+        ICLI_RC_CHECK(voice_vlan_mgmt_port_conf_get(isid, &port_conf), NULL);
+
+        // set port mode
+        for ( j = 0; j < port_list->switch_range[i].port_cnt; j++ ) {
+            // get uport
+            uport = port_list->switch_range[i].begin_uport + j;
+            
+            // get iport
+            iport = uport2iport( uport );
+            
+#if VOICE_VLAN_CHECK_CONFLICT_CONF
+            // Check LLDP port mode
+            if ( conf.mode == VOICE_VLAN_MGMT_ENABLED &&
+                 port_conf.port_mode[iport] == VOICE_VLAN_PORT_MODE_AUTO &&
+                 discovery_protocol != VOICE_VLAN_DISCOVERY_PROTOCOL_OUI
+#ifdef VTSS_SW_OPTION_LLDP
+                 && (lldp_conf.admin_state[iport] == (lldp_admin_state_t)LLDP_DISABLED || lldp_conf.admin_state[iport] == (lldp_admin_state_t)LLDP_ENABLED_TX_ONLY)
+#endif
+            ) {
+                ICLI_PRINTF("%% The LLDP mode is disabled on %s %d/%u.\n",
+                    icli_port_type_get_name(port_list->switch_range[i].port_type),
+                    port_list->switch_range[i].switch_id,
+                    port_list->switch_range[i].begin_port + j);
+                return ICLI_RC_ERROR;
+            }
+#endif /* VOICE_VLAN_CHECK_CONFLICT_CONF */
+
+            // set discovery protocol
+            port_conf.discovery_protocol[iport] = discovery_protocol;
+            
+        } // for (j)
+
+        // set port config
+        ICLI_RC_CHECK(voice_vlan_mgmt_port_conf_set(isid, &port_conf), NULL);
+
+    } // for (i)
+    return ICLI_RC_OK;
+}
+#endif /* VTSS_SW_OPTION_LLDP */
+
+static i32  _voice_vlan_port_print(
+    IN u32                          session_id,
+    IN icli_switch_port_range_t     *port
+)
+{
+    vtss_isid_t             isid;
+    vtss_port_no_t          iport;
+    voice_vlan_port_conf_t  port_conf;
+    char                    port_str[32];
+
+    // get isid
+    isid = topo_usid2isid(port->usid);
+
+    // get port config
+    ICLI_RC_CHECK(voice_vlan_mgmt_port_conf_get(isid, &port_conf), NULL);
+
+    // get iport
+    iport = uport2iport(port->begin_uport);
+
+    //ignore stacking port
+    if (port_isid_port_no_is_stack(isid, iport)) {
+        return ICLI_RC_OK;
+    }
+
+    //print port header
+    icli_port_header(session_id, port->usid, port->begin_uport, "", TRUE, FALSE);
+    (void)icli_port_info_txt(port->usid, port->begin_uport, port_str);
+
+    ICLI_PRINTF("%s switchport voice vlan mode is %s\n",
+                port_str,
+                port_conf.port_mode[iport] == VOICE_VLAN_PORT_MODE_AUTO ? "auto" : port_conf.port_mode[iport] == VOICE_VLAN_PORT_MODE_FORCED ? "forced" : "disabled");
+    ICLI_PRINTF("%s switchport voice security is %s\n",
+                port_str,
+                icli_bool_txt(port_conf.security[iport]));
+#if defined (VTSS_SW_OPTION_LLDP)
+    ICLI_PRINTF("%s switchport voice discovery protocol is %s\n",
+                port_str,
+                port_conf.discovery_protocol[iport] == VOICE_VLAN_DISCOVERY_PROTOCOL_OUI ? "oui" : port_conf.discovery_protocol[iport] == VOICE_VLAN_DISCOVERY_PROTOCOL_LLDP ? "lldp" : "both");
+#endif /* VTSS_SW_OPTION_LLDP */
+
+    return ICLI_RC_OK;
+}
+
+
+/*lint -esym(459,VOICE_VLAN_runtime_agingtime_txt) */
+static BOOL _voice_vlan_runtime_agingtime(u32                session_id,
+                                          icli_runtime_ask_t ask,
+                                          icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+        break;
+    case ICLI_ASK_BYWORD:
+        icli_sprintf(runtime->byword, "<AgingTime : %u-%u>", VOICE_VLAN_MIN_AGE_TIME, VOICE_VLAN_MAX_AGE_TIME);
+        return TRUE;
+    case ICLI_ASK_RANGE:
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt = 1;
+        runtime->range.u.sr.range[0].min = VOICE_VLAN_MIN_AGE_TIME;
+        runtime->range.u.sr.range[0].max = VOICE_VLAN_MAX_AGE_TIME;
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+/*lint -esym(459,VOICE_VLAN_runtime_oui_desc_txt) */
+static BOOL _voice_vlan_runtime_oui_desc(u32                session_id,
+                                         icli_runtime_ask_t ask,
+                                         icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+        break;
+    case ICLI_ASK_BYWORD:
+        icli_sprintf(runtime->byword, "<Description : line%u>", VOICE_VLAN_MAX_DESCRIPTION_LEN);
+        return TRUE;
+    case ICLI_ASK_RANGE:
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt = 1;
+        runtime->range.u.sr.range[0].min = 1;
+        runtime->range.u.sr.range[0].max = VOICE_VLAN_MAX_DESCRIPTION_LEN;
+        return TRUE; 
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+/*lint -esym(459,VOICE_VLAN_runtime_class_txt) */
+static BOOL _voice_vlan_runtime_class(u32                session_id,
+                                     icli_runtime_ask_t ask,
+                                     icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+        break;
+    case ICLI_ASK_BYWORD:
+        icli_sprintf(runtime->byword, "<class : %u-%u>", VTSS_PRIO_START, VTSS_PRIO_END - 1);
+        return TRUE;
+    case ICLI_ASK_RANGE:
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt = 1;
+        runtime->range.u.sr.range[0].min = VTSS_PRIO_START;
+        runtime->range.u.sr.range[0].max = VTSS_PRIO_END - 1;
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL _voice_vlan_runtime_class_mapping(u32                session_id,
+                                              icli_runtime_ask_t ask,
+                                              icli_runtime_t     *runtime)
+{
+    u32  max_queue_num = VTSS_PRIO_END;
+
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+        if (max_queue_num == 4) {
+            runtime->present = TRUE;
+        } else {
+            runtime->present = FALSE;
+        }
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+FUNCTION_END
+
+//
+// Export Segment
+//   This segment contains the API declarations of the global functions in
+//   Function Segment. This will be pasted exactly to the generated H file.
+//   So, others can include the H file to use the global functions.
+//
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_VOICE = Voice appliance attributes
+HELP_VLAN  = Vlan for voice traffic
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = voice vlan
+
+DOC_CMD_DESC    = Use the voice vlan global configuration command to \
+                  enable voice vlan. Use the no form of this \
+                  command to globally disable voice vlan.
+DOC_CMD_DEFAULT = Voice VLAN is disabled.
+DOC_CMD_USAGE   = Enable voice vlan global mode.
+DOC_CMD_EXAMPLE = This example shows how to enable voice vlan:
+DOC_CMD_EXAMPLE = Switch(config)# voice vlan
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+FUNC_NAME = icli_voice_vlan_mode_set
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( _voice_vlan_enable(session_id, TRUE) != ICLI_RC_OK ) {
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if ( _voice_vlan_enable(session_id, FALSE) != ICLI_RC_OK ) {
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+HELP_VID     = Set VLAN ID
+HELP_VLAN_ID = VLAN ID, 1-4095
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = voice vlan vid <vlan_id>
+
+DOC_CMD_DESC    = Use the voice vlan vid global configuration command to \
+                  configure voice vlan vid.
+DOC_CMD_DEFAULT = Voice vlan vid is 1000.
+DOC_CMD_USAGE   = Configure voice vlan vid.
+DOC_CMD_EXAMPLE = This example shows how to configure voice vlan vid 1000:
+DOC_CMD_EXAMPLE = Switch(config)# voice vlan vid 1000
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+FUNC_NAME = icli_voice_vlan_vid_set
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = vid
+
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_VID
+HELP      = ##HELP_VLAN_ID
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    voice_vlan_conf_t       conf;
+    vtss_rc                 rc;
+VARIABLE_END
+
+CODE_BEGIN
+    rc = VOICE_VLAN_is_valid_voice_vid( vid );
+    
+    switch( rc ) {
+        case VTSS_OK:
+            break;
+        
+        case VOICE_VLAN_ERROR_VID_IS_CONFLICT_WITH_MGMT_VID:
+            ICLI_PRINTF("%% The Voice VLAN ID should not equal switch management VLAN ID.\n");
+            return ICLI_RC_ERROR;
+
+        case VOICE_VLAN_ERROR_VID_IS_CONFLICT_WITH_MVR_VID:
+            ICLI_PRINTF("%% The Voice VLAN ID should not equal MVR VLAN ID.\n");
+            return ICLI_RC_ERROR;
+
+        case VOICE_VLAN_ERROR_VID_IS_CONFLICT_WITH_STATIC_VID:
+            ICLI_PRINTF("%% The Voice VLAN ID should not equal existing VLAN ID.\n");
+            return ICLI_RC_ERROR;
+
+        case VOICE_VLAN_ERROR_VID_IS_CONFLICT_WITH_PVID:
+            ICLI_PRINTF("%% The Voice VLAN ID should not equal Port PVID.\n");
+            return ICLI_RC_ERROR;
+
+        default:
+            ICLI_PRINTF("%% %s\n", error_txt(rc));
+            return ICLI_RC_ERROR;
+    }
+
+    // get configuration
+    if ( voice_vlan_mgmt_conf_get(&conf) != VTSS_OK ) {
+        ICLI_PRINTF("%% Failed to get Voice VLAN configuration.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // change vid
+    conf.vid = vid;
+
+    // set configuration
+    rc = voice_vlan_mgmt_conf_set(&conf);
+
+    switch( rc ) {
+        case VTSS_OK:
+            break;
+        
+        case VOICE_VLAN_ERROR_IS_CONFLICT_WITH_LLDP:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (The LLDP feature should be enabled first)\n");
+            return ICLI_RC_ERROR;
+        
+        default:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (%s)\n", error_txt(rc));
+            return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no voice vlan vid
+
+DOC_CMD_DESC    = Use the no voice vlan vid global configuration command to \
+                  restore the default voice vlan vid.
+DOC_CMD_DEFAULT = Voice vlan vid is 1000.
+DOC_CMD_USAGE   = Restore voice vlan vid.
+DOC_CMD_EXAMPLE = This example shows how to restore the default voice vlan vid:
+DOC_CMD_EXAMPLE = Switch(config)# no voice vlan vid
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+FUNC_NAME = icli_voice_vlan_vid_set_default
+FUNC_REUSE = 
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_VID
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    voice_vlan_conf_t       conf;
+    vtss_rc                 rc;
+VARIABLE_END
+
+CODE_BEGIN
+    rc = VOICE_VLAN_is_valid_voice_vid( VOICE_VLAN_MGMT_DEFAULT_VID );
+    
+    switch( rc ) {
+        case VTSS_OK:
+            break;
+        
+        case VOICE_VLAN_ERROR_VID_IS_CONFLICT_WITH_MGMT_VID:
+            ICLI_PRINTF("%% The Voice VLAN ID should not equal switch management VLAN ID.\n");
+            return ICLI_RC_ERROR;
+
+        case VOICE_VLAN_ERROR_VID_IS_CONFLICT_WITH_MVR_VID:
+            ICLI_PRINTF("%% The Voice VLAN ID should not equal MVR VLAN ID.\n");
+            return ICLI_RC_ERROR;
+
+        case VOICE_VLAN_ERROR_VID_IS_CONFLICT_WITH_STATIC_VID:
+            ICLI_PRINTF("%% The Voice VLAN ID should not equal existing VLAN ID.\n");
+            return ICLI_RC_ERROR;
+
+        case VOICE_VLAN_ERROR_VID_IS_CONFLICT_WITH_PVID:
+            ICLI_PRINTF("%% The Voice VLAN ID should not equal Port PVID.\n");
+            return ICLI_RC_ERROR;
+
+        default:
+            ICLI_PRINTF("%% %s\n", error_txt(rc));
+            return ICLI_RC_ERROR;
+    }
+
+    // get configuration
+    if ( voice_vlan_mgmt_conf_get(&conf) != VTSS_OK ) {
+        ICLI_PRINTF("%% Failed to get Voice VLAN configuration.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // change vid
+    conf.vid = VOICE_VLAN_MGMT_DEFAULT_VID;
+
+    // set configuration
+    rc = voice_vlan_mgmt_conf_set(&conf);
+
+    switch( rc ) {
+        case VTSS_OK:
+            break;
+        
+        case VOICE_VLAN_ERROR_IS_CONFLICT_WITH_LLDP:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (The LLDP feature should be enabled first)\n");
+            return ICLI_RC_ERROR;
+        
+        default:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (%s)\n", error_txt(rc));
+            return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_AGING      = Set secure learning aging time
+HELP_AGING_TIME = Aging time, 10-10000000 seconds
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = voice vlan aging-time <10-10000000>
+
+DOC_CMD_DESC    = Use the voice vlan aging-time global configuration command to \
+                  configure default voice vlan aging-time.
+DOC_CMD_DEFAULT = Voice vlan aging-time is 86400 seconds.
+DOC_CMD_USAGE   = Configure voice vlan aging-time.
+DOC_CMD_EXAMPLE = This example shows how to configure voice vlan aging-time 300:
+DOC_CMD_EXAMPLE = Switch(config)# no voice vlan aging-time 300
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+FUNC_NAME = icli_voice_vlan_aging_time_set
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+RUNTIME   =
+RUNTIME   =
+RUNTIME   =
+RUNTIME   = _voice_vlan_runtime_agingtime
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = aging_time
+
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_AGING
+HELP      = ##HELP_AGING_TIME
+
+BYWORD    =
+BYWORD    =
+BYWORD    =
+BYWORD    = <AgingTime : 10-10000000>
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    voice_vlan_conf_t       conf;
+    vtss_rc                 rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get configuration
+    if ( voice_vlan_mgmt_conf_get(&conf) != VTSS_OK ) {
+        ICLI_PRINTF("%% Failed to get Voice VLAN configuration.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // change aging time
+    conf.age_time = aging_time;
+
+    // set configuration
+    rc = voice_vlan_mgmt_conf_set(&conf);
+
+    switch( rc ) {
+        case VTSS_OK:
+            break;
+        
+        case VOICE_VLAN_ERROR_IS_CONFLICT_WITH_LLDP:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (The LLDP feature should be enabled first)\n");
+            return ICLI_RC_ERROR;
+        
+        default:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (%s)\n", error_txt(rc));
+            return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no voice vlan aging-time
+
+DOC_CMD_DESC    = Use the no voice vlan aging-time global configuration command to \
+                  restore the default voice vlan aging-time.
+DOC_CMD_DEFAULT = Voice vlan aging-time is 86400 seconds.
+DOC_CMD_USAGE   = Restore voice vlan aging-time.
+DOC_CMD_EXAMPLE = This example shows how to restore the default voice vlan aging-time:
+DOC_CMD_EXAMPLE = Switch(config)# no voice vlan aging-time
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+FUNC_NAME = icli_voice_vlan_aging_time_set_default
+FUNC_REUSE = 
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_AGING
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    voice_vlan_conf_t       conf;
+    vtss_rc                 rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get configuration
+    if ( voice_vlan_mgmt_conf_get(&conf) != VTSS_OK ) {
+        ICLI_PRINTF("%% Failed to get Voice VLAN configuration.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // change aging time
+    conf.age_time = VOICE_VLAN_MGMT_DEFAULT_AGE_TIME;
+
+    // set configuration
+    rc = voice_vlan_mgmt_conf_set(&conf);
+
+    switch( rc ) {
+        case VTSS_OK:
+            break;
+        
+        case VOICE_VLAN_ERROR_IS_CONFLICT_WITH_LLDP:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (The LLDP feature should be enabled first)\n");
+            return ICLI_RC_ERROR;
+        
+        default:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (%s)\n", error_txt(rc));
+            return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_COS       = Set traffic class
+HELP_COS_VALUE = Traffic class value
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = voice vlan class { <0-7> | low | normal | medium | high }
+
+DOC_CMD_DESC    = Use the voice vlan class global configuration command to \
+                  configure voice vlan class.
+DOC_CMD_DEFAULT = Voice vlan class is highest.
+DOC_CMD_USAGE   = Configure voice vlan class.
+DOC_CMD_EXAMPLE = This example shows how to configure voice vlan class 3:
+DOC_CMD_EXAMPLE = Switch(config)# voice vlan class 3
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+
+FUNC_NAME = icli_voice_vlan_class_set
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = 
+RUNTIME   = _voice_vlan_runtime_class
+RUNTIME   = _voice_vlan_runtime_class_mapping
+RUNTIME   = _voice_vlan_runtime_class_mapping
+RUNTIME   = _voice_vlan_runtime_class_mapping
+RUNTIME   = _voice_vlan_runtime_class_mapping
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = traffic_class
+CMD_VAR   = has_low
+CMD_VAR   = has_normal
+CMD_VAR   = has_medium
+CMD_VAR   = has_high
+
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_COS
+HELP      = ##HELP_COS_VALUE
+HELP      = Traffic class low (0)
+HELP      = Traffic class normal (1)
+HELP      = Traffic class medium (2)
+HELP      = Traffic class high (3)
+
+BYWORD    = 
+BYWORD    = 
+BYWORD    = 
+BYWORD    = <Class : 0-7>
+BYWORD    = 
+BYWORD    = 
+BYWORD    = 
+BYWORD    = 
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    voice_vlan_conf_t       conf;
+    vtss_rc                 rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get configuration
+    if ( voice_vlan_mgmt_conf_get(&conf) != VTSS_OK ) {
+        ICLI_PRINTF("%% Failed to get Voice VLAN configuration.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // change cos
+    if ( has_low ) {
+        conf.traffic_class = 0;
+    } else if ( has_normal ) {
+        conf.traffic_class = 1;
+    } else if ( has_medium ) {
+        conf.traffic_class = 2;
+    } else if ( has_high ) {
+        conf.traffic_class = 3;
+    } else {
+        conf.traffic_class = traffic_class;
+    }
+
+    // set configuration
+    rc = voice_vlan_mgmt_conf_set(&conf);
+
+    switch( rc ) {
+        case VTSS_OK:
+            break;
+        
+        case VOICE_VLAN_ERROR_IS_CONFLICT_WITH_LLDP:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (The LLDP feature should be enabled first)\n");
+            return ICLI_RC_ERROR;
+        
+        default:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (%s)\n", error_txt(rc));
+            return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no voice vlan class
+
+DOC_CMD_DESC    = Use the no voice vlan class global configuration command to \
+                  restore the default voice vlan class.
+DOC_CMD_DEFAULT = Voice vlan class is highest.
+DOC_CMD_USAGE   = Restore voice vlan class.
+DOC_CMD_EXAMPLE = This example shows how to restore the default voice vlan class:
+DOC_CMD_EXAMPLE = Switch(config)# no voice vlan class
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+FUNC_NAME = icli_voice_vlan_class_set_default
+FUNC_REUSE = 
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_COS
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    voice_vlan_conf_t       conf;
+    vtss_rc                 rc;
+VARIABLE_END
+
+CODE_BEGIN
+    // get configuration
+    if ( voice_vlan_mgmt_conf_get(&conf) != VTSS_OK ) {
+        ICLI_PRINTF("%% Failed to get Voice VLAN configuration.\n");
+        return ICLI_RC_ERROR;
+    }
+
+    // change cos
+    conf.traffic_class = VOICE_VLAN_MGMT_DEFAULT_TRAFFIC_CLASS;
+
+    // set configuration
+    rc = voice_vlan_mgmt_conf_set(&conf);
+
+    switch( rc ) {
+        case VTSS_OK:
+            break;
+        
+        case VOICE_VLAN_ERROR_IS_CONFLICT_WITH_LLDP:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (The LLDP feature should be enabled first)\n");
+            return ICLI_RC_ERROR;
+        
+        default:
+            ICLI_PRINTF("%% Failed to set Voice VLAN configuration.\n");
+            ICLI_PRINTF("%% (%s)\n", error_txt(rc));
+            return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_OUI              = OUI configuration
+HELP_OUI_VALUE        = OUI value
+HELP_DESCRIPTION      = Set description for the OUI
+HELP_DESCRIPTION_LINE = Description line
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = voice vlan oui <oui> [description <line32>]
+
+DOC_CMD_DESC    = Use the voice vlan oui global configuration command \
+                  to set the oui entry for voice vlan.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Set the oui entry for voice vlan.
+DOC_CMD_EXAMPLE = This example shows how to set a telephony oui address 00-01-02 with description test_oui:
+DOC_CMD_EXAMPLE = Switch(config)# voice vlan oui 00-01-02 description test_oui
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privileged EXEC command.
+
+FUNC_NAME = icli_voice_vlan_oui_add
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+RUNTIME   =
+RUNTIME   =
+RUNTIME   =
+RUNTIME   =
+RUNTIME   =
+RUNTIME   = _voice_vlan_runtime_oui_desc
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = oui
+CMD_VAR   = b_descr
+CMD_VAR   = description
+
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_OUI
+HELP      = ##HELP_OUI_VALUE
+HELP      = ##HELP_DESCRIPTION
+HELP      = ##HELP_DESCRIPTION_LINE
+
+BYWORD    = 
+BYWORD    = 
+BYWORD    = 
+BYWORD    = 
+BYWORD    = 
+BYWORD    = <Description : line32>
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    vtss_rc                 rc;
+    voice_vlan_oui_entry_t  entry;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&entry, 0, sizeof(entry));
+    entry.valid = 1;
+    memcpy(entry.oui_addr, &oui, ICLI_OUI_SIZE);
+    if ( b_descr ) {
+        (void)icli_str_cpy(entry.description, description);
+    }
+
+    rc = voice_vlan_oui_entry_add(&entry);
+    switch( rc ) {
+        case VTSS_OK:
+            break;
+        
+        case VOICE_VLAN_ERROR_PARM_NULL_OUI_ADDR:
+            ICLI_PRINTF("%% The null OUI address isn't allowed.\n");
+            return ICLI_RC_ERROR;
+
+        case VOICE_VLAN_ERROR_REACH_MAX_OUI_ENTRY:
+            ICLI_PRINTF("The maximum OUI entry number is %d\n", VOICE_VLAN_OUI_ENTRIES_CNT);
+            return ICLI_RC_ERROR;
+        
+        default:
+            ICLI_PRINTF("%% Failed to add the OUI.\n");
+            ICLI_PRINTF("%% (%s)\n", error_txt(rc));
+            return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no voice vlan oui <oui>
+
+DOC_CMD_DESC    = Use the no voice vlan oui global configuration command to \
+                  delete the oui entry.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Delete the oui entry.
+DOC_CMD_EXAMPLE = This example shows how to delete telephony oui address 00-01-02:
+DOC_CMD_EXAMPLE = Switch(config)# no voice vlan oui 00-01-02
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+FUNC_NAME = icli_voice_vlan_oui_del
+FUNC_REUSE = 
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = oui
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_OUI
+HELP      = ##HELP_COS_VALUE
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    voice_vlan_oui_entry_t  entry;
+VARIABLE_END
+
+CODE_BEGIN
+    memcpy(entry.oui_addr, &oui, ICLI_OUI_SIZE);
+    ICLI_RC_CHECK(voice_vlan_oui_entry_del(&entry), "%% Failed to delete the OUI.\n");
+CODE_END
+
+CMD_END
+
+HELP_MODE         = Set Voice VLAN port mode
+HELP_MODE_AUTO    = Enable auto detect mode
+HELP_MODE_FORCE   = Force to join Voice VLAN
+HELP_MODE_DISABLE = disjoin Voice VLAN
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = switchport voice vlan mode { auto | force | disable }
+
+DOC_CMD_DESC    = Use the switchport voice vlan mode interface configuration command to \
+                  configure to switchport voice vlan mode. 
+DOC_CMD_DEFAULT = Switchport voice vlan mode is disabled.
+DOC_CMD_USAGE   = Configure switchport voice vlan mode.
+DOC_CMD_EXAMPLE = This example shows how to configure switchport voice vlan mode auto:
+DOC_CMD_EXAMPLE = Switch(config)# switchport voice vlan mode auto
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+FUNC_NAME = icli_voice_vlan_port_mode_set
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = b_auto
+CMD_VAR   = b_force
+CMD_VAR   = 
+
+HELP      = ##ICLI_HELP_SWITCHPORT
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_MODE
+HELP      = ##HELP_MODE_AUTO
+HELP      = ##HELP_MODE_FORCE
+HELP      = ##HELP_MODE_DISABLE
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = port_list
+
+VARIABLE_BEGIN
+    int     port_mode;
+VARIABLE_END
+
+CODE_BEGIN
+    // get port mode
+    if ( b_auto ) {
+        port_mode = VOICE_VLAN_PORT_MODE_AUTO;
+    } else if (b_force) {
+        port_mode = VOICE_VLAN_PORT_MODE_FORCED;
+    } else {
+        port_mode = VOICE_VLAN_PORT_MODE_DISABLED;
+    }
+
+    // set port mode
+    if ( _voice_vlan_port_mode_set(session_id, port_list, port_mode) != ICLI_RC_OK ) {
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no switchport voice vlan mode
+
+DOC_CMD_DESC    = Use the no switchport voice vlan mode interface configuration command to \
+                  restore the default switchport voice vlan mode.
+DOC_CMD_DEFAULT = Switchport voice vlan mode is disabled.
+DOC_CMD_USAGE   = Restore switchport voice vlan mode.
+DOC_CMD_EXAMPLE = This example shows how to restore the default switchport voice vlan mode:
+DOC_CMD_EXAMPLE = Switch(config)# no switchport voice vlan mode
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+FUNC_NAME = icli_voice_vlan_mode_default
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_SWITCHPORT
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_MODE
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = port_list
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( _voice_vlan_port_mode_set(session_id, port_list, VOICE_VLAN_MGMT_DEFAULT_PORT_MODE) != ICLI_RC_OK ) {
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_SECURITY = Enable Voice VLAN port security mode
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = switchport voice vlan security
+
+DOC_CMD_DESC    = Use the switchport voice vlan security interface configuration command to \
+                  configure switchport voice vlan security mode. Use the no form of this \
+                  command to globally disable switchport voice vlan security mode.
+DOC_CMD_DEFAULT = Voice vlan security mode is disabled.
+DOC_CMD_USAGE   = Configure voice vlan security mode.
+DOC_CMD_EXAMPLE = This example shows how to enable switchport voice vlan security mode:
+DOC_CMD_EXAMPLE = Switch(config)# switchport voice vlan discovery-protocol
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+FUNC_NAME = icli_voice_vlan_security_set
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+
+HELP      = ##ICLI_HELP_SWITCHPORT
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_SECURITY
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = port_list
+
+CODE_BEGIN
+    if ( _voice_vlan_port_security_enable(session_id, port_list, TRUE) != ICLI_RC_OK ) {
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if ( _voice_vlan_port_security_enable(session_id, port_list, FALSE) != ICLI_RC_OK ) {
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+HELP_DISCOVERY_PROTOCOL      = Set Voice VLAN port discovery protocol
+HELP_DISCOVERY_PROTOCOL_OUI  = Detect telephony device by OUI address
+HELP_DISCOVERY_PROTOCOL_LLDP = Detect telephony device by LLDP
+HELP_DISCOVERY_PROTOCOL_BOTH = Detect telephony device by OUI address and LLDP
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = switchport voice vlan discovery-protocol {oui | lldp | both}
+
+DOC_CMD_DESC    = Use the switchport voice vlan discovery-protocol interface configuration command to \
+                  configure to switchport voice vlan discovery-protocol.
+DOC_CMD_DEFAULT = Switchport voice vlan discovery-protocol is oui.
+DOC_CMD_USAGE   = Configure switchport voice vlan discovery-protocol.
+DOC_CMD_EXAMPLE = This example shows how to configure switchport voice vlan discovery-protocol both:
+DOC_CMD_EXAMPLE = Switch(config)# switchport voice vlan discovery-protocol both
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+FUNC_NAME = icli_voice_vlan_discovery_protocol_set
+FUNC_REUSE = 
+
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = defined (VTSS_SW_OPTION_LLDP)
+
+RUNTIME   =
+RUNTIME   =
+RUNTIME   =
+RUNTIME   =
+RUNTIME   =
+RUNTIME   = 
+RUNTIME   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = b_oui
+CMD_VAR   = b_lldp
+CMD_VAR   = 
+
+HELP      = ##ICLI_HELP_SWITCHPORT
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_DISCOVERY_PROTOCOL
+HELP      = ##HELP_DISCOVERY_PROTOCOL_OUI
+HELP      = ##HELP_DISCOVERY_PROTOCOL_LLDP
+HELP      = ##HELP_DISCOVERY_PROTOCOL_BOTH
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = port_list
+
+VARIABLE_BEGIN
+    int     discovery_protocol;
+VARIABLE_END
+
+CODE_BEGIN
+    // get port mode
+    if ( b_oui ) {
+        discovery_protocol = VOICE_VLAN_DISCOVERY_PROTOCOL_OUI;
+    } else if ( b_lldp ) {
+        discovery_protocol = VOICE_VLAN_DISCOVERY_PROTOCOL_LLDP;
+    } else {
+        discovery_protocol = VOICE_VLAN_DISCOVERY_PROTOCOL_BOTH;
+    }
+
+    // set port mode
+    if ( _voice_vlan_port_discovery_protocol_set(session_id, port_list, discovery_protocol) != ICLI_RC_OK ) {
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = no switchport voice vlan discovery-protocol
+
+DOC_CMD_DESC    = Use the no switchport voice vlan discovery-protocol interface configuration command to \
+                  restore the default switchport voice vlan discovery-protocol.
+DOC_CMD_DEFAULT = Switchport voice vlan discovery-protocol is oui.
+DOC_CMD_USAGE   = Restore switchport voice vlan discovery-protocol.
+DOC_CMD_EXAMPLE = This example shows how to restore the default switchport voice vlan discovery-protocol:
+DOC_CMD_EXAMPLE = Switch(config)# no switchport voice vlan discovery-protocol
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show voice vlan privilege EXEC command.
+
+
+FUNC_NAME = icli_voice_vlan_discovery_protocol_set_default
+FUNC_REUSE = 
+
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = defined (VTSS_SW_OPTION_LLDP)
+
+HELP      = ##ICLI_HELP_NO
+HELP      = ##ICLI_HELP_SWITCHPORT
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_DISCOVERY_PROTOCOL
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR  = port_list
+
+VARIABLE_BEGIN
+    int     discovery_protocol;
+VARIABLE_END
+
+CODE_BEGIN
+    // get discovery protocol
+    discovery_protocol = VOICE_VLAN_MGMT_DEFAULT_DISCOVERY_PROTOCOL;
+
+    // set port mode
+    if ( _voice_vlan_port_discovery_protocol_set(session_id, port_list, discovery_protocol) != ICLI_RC_OK ) {
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+HELP_INTERFACE = Select an interface to configure
+
+!==============================================================================
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = show voice vlan [ oui <oui> | interface <port_type_list> ]
+
+DOC_CMD_DESC    = Use the show voice vlan privilege EXEC command without \
+                  keywords to display the voice vlan configuration, or \
+                  particularly switchport configuration for the \
+                  interface, or use the oui keyword to display oui table.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Expressions are case sensitive. For example, if you enter | exclude output, the lines that contain output do not appear, but the lines that contain Output appear.
+DOC_CMD_EXAMPLE = This is an example of output from the show ivoice vlan command:
+DOC_CMD_EXAMPLE = Switch# show voice vlan
+DOC_CMD_EXAMPLE = Switch voice vlan is disabled
+DOC_CMD_EXAMPLE = Switch voice vlan aging-time is 86400 seconds
+DOC_CMD_EXAMPLE = Switch voice vlan traffic class is 3
+DOC_CMD_EXAMPLE = Telephony OUI  Description
+DOC_CMD_EXAMPLE = -------------  -----------
+DOC_CMD_EXAMPLE = 00-01-E3       Siemens AG phones
+DOC_CMD_EXAMPLE = 00-03-6B       Cisco phones
+DOC_CMD_EXAMPLE = 00-0F-E2       H3C phones
+DOC_CMD_EXAMPLE = 00-60-B9       Philips and NEC AG phones
+DOC_CMD_EXAMPLE = 00-D0-1E       Pingtel phones
+DOC_CMD_EXAMPLE = 00-E0-75       Polycom phones
+DOC_CMD_EXAMPLE = 00-E0-BB       3Com phones
+DOC_CMD_EXAMPLE = Voice VLAN switchport is configured on following:
+DOC_CMD_EXAMPLE = GigabitEthernet 1/1 :
+DOC_CMD_EXAMPLE = ---------------------
+DOC_CMD_EXAMPLE = GigabitEthernet 1/1 switchport voice vlan mode is disabled
+DOC_CMD_EXAMPLE = GigabitEthernet 1/1 switchport voice security is disabled
+DOC_CMD_EXAMPLE = GigabitEthernet 1/1 switchport voice discovery protocol is oui                        0
+
+FUNC_NAME = icli_voice_vlan_show
+FUNC_REUSE = 
+
+PROPERTY  = ICLI_CMD_PROP_GREP
+PRIVILEGE = ICLI_PRIVILEGE_15
+IF_FLAG   = 
+
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = 
+CMD_VAR   = b_oui
+CMD_VAR   = oui
+CMD_VAR   = b_interface
+CMD_VAR   = port_list
+
+HELP      = ##ICLI_HELP_SHOW
+HELP      = ##HELP_VOICE
+HELP      = ##HELP_VLAN
+HELP      = ##HELP_OUI
+HELP      = ##HELP_OUI_VALUE
+HELP      = ##HELP_INTERFACE
+HELP      = ##ICLI_HELP_PORT_LIST
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+    voice_vlan_conf_t           conf;
+    voice_vlan_oui_entry_t      oui_entry;
+    icli_switch_port_range_t    port;
+    u32                         i;
+    u32                         j;
+    BOOL                        b_all;
+VARIABLE_END
+
+CODE_BEGIN
+    // display configuration
+    b_all = FALSE;
+    if ( !b_oui && !b_interface ) {
+        ICLI_RC_CHECK(voice_vlan_mgmt_conf_get(&conf), "%% Failed to get management configuration.\n");
+
+        ICLI_PRINTF("Switch voice vlan is %s\n", icli_bool_txt(conf.mode));
+        ICLI_PRINTF("Switch voice vlan ID is %d\n", conf.vid);
+        ICLI_PRINTF("Switch voice vlan aging-time is %u seconds\n", conf.age_time);
+        ICLI_PRINTF("Switch voice vlan traffic class is %s\n", mgmt_prio2txt(conf.traffic_class, TRUE));
+
+        // display all
+        b_all       = TRUE;
+        b_oui       = TRUE;
+        b_interface = TRUE;
+        ICLI_PRINTF("\n");
+    }
+    
+    // display oui
+    if ( b_oui ) {
+        icli_parm_header(session_id, "Telephony OUI  Description");
+        memset(&oui_entry, 0, sizeof(oui_entry));
+        if ( b_all ) {
+            while (voice_vlan_oui_entry_get(&oui_entry, TRUE) == VTSS_OK) {
+                ICLI_PRINTF("%02X-%02X-%02X       %s\n",
+                    oui_entry.oui_addr[0], oui_entry.oui_addr[1], oui_entry.oui_addr[2], oui_entry.description);
+            };
+        } else {
+            memcpy(oui_entry.oui_addr, &oui, ICLI_OUI_SIZE);
+            if ( voice_vlan_oui_entry_get(&oui_entry, FALSE) == VTSS_OK ) {
+                ICLI_PRINTF("%02X-%02X-%02X       %s\n",
+                    oui_entry.oui_addr[0], oui_entry.oui_addr[1], oui_entry.oui_addr[2], oui_entry.description);
+            }
+        }
+    }
+    
+    // display port configuration
+    if ( b_interface ) {
+        if ( port_list ) {
+            for ( i = 0; i < port_list->cnt; i++ ) {
+                for ( j = 0; j < port_list->switch_range[i].port_cnt; j++ ) {
+                    port_list->switch_range[i].begin_port  += (j ? 1 : 0);
+                    port_list->switch_range[i].begin_uport += (j ? 1 : 0);
+                    
+                    (void)_voice_vlan_port_print(session_id, &(port_list->switch_range[i]));
+                }
+            }
+        } else {
+            if ( icli_port_get_first(&port) == FALSE ) {
+                ICLI_PRINTF("%% Failed to get first port.\n");
+                return ICLI_RC_ERROR;
+            }
+
+            ICLI_PRINTF("\nVoice VLAN switchport is configured on following:\n");
+            (void)_voice_vlan_port_print(session_id, &port);
+            
+            while( icli_port_get_next(&port) ) {
+                (void)_voice_vlan_port_print(session_id, &port);
+            }
+        }
+    }
+CODE_END
+
+CMD_END

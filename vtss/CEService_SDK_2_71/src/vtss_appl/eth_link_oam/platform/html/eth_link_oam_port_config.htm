@@ -1,0 +1,218 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Link OAM Port Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/mootools-core.js"></script>
+ <script type="text/javascript" src="lib/MasterControl.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page
+var help_page = "/help/help_eth_link_oam_port_config.htm";
+
+var roleT = Array("Passive", "Active");
+var roleV = genArrayInt(0, 1);
+
+//var keyT = Array("Auto", "Specific");
+//var keyV = Array(1, 0);
+
+function addRow(index, frag, values)
+{
+    var portno = parseInt(values[0]);
+
+    var enable = parseInt(values[1]);
+    var lb = parseInt(values[2]);
+    var role = parseInt(values[3]);
+    var monitor = parseInt(values[4]);
+    var mib = parseInt(values[5]);
+    var olb = parseInt(values[6]);
+    var value;
+
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var txt = document.createTextNode(configPortName(portno, 0));
+    var td = CreateStyledElement("td", "cr");
+    var link = document.createElement("a");
+    link.href = "eth_link_oam_port_status.htm?port=" + portno;
+    link.appendChild(txt); // Add Text
+    td.appendChild(link); // Add link to cell
+    tr.appendChild(td);
+    
+    //For OAM enable
+    if (enable == 2) {
+        value = 0;
+    } else {
+        value = enable;
+    }
+    
+    var ret = addCheckBoxCell(tr, value, "c", "enable_" + portno);
+    if (enable == 2) {
+        ret.disabled = true;
+    }
+    
+    //OAM mode is using role variable
+    var role_sel = addSelectCell(tr, roleT, roleV, role, "cr", "role_" + portno);
+    if (enable == 2) {
+        role_sel.disabled = true;
+    }
+
+    // For Loopback
+    if (lb == 2) {
+        value = 0;
+    } else {
+        value = lb;
+    }
+    
+    var loop = addCheckBoxCell(tr, value, "c", "loop_" + portno);
+    if (lb == 2) {
+        loop.disabled = true;
+    }
+
+    //For link monitor
+    if (monitor == 2) {
+        value = 0;
+    } else {
+        value = monitor;
+    }
+    var link = addCheckBoxCell(tr, value, "c", "monitor_" + portno);
+    if (monitor == 2) {
+        link.disabled = true;
+    }
+    
+    //For MIB retrieval
+    if(mib == 2) {
+        value = 0;        
+    } else {
+        value = mib;
+    }
+    var retrieve = addCheckBoxCell(tr, value, "c", "mib_" + portno);
+    if (mib == 2) {
+        retrieve.disabled = true;
+    }
+    //For Operational Loopback configuration
+    if(olb == 2) {
+        value = 0;
+    } else {
+        value = olb;
+    }
+    var oper_lb = addCheckBoxCell(tr, value, "c", "olb_" + portno);
+    if ( olb == 2) {
+        olb.disabled = true;
+    }
+    
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req, "/stack_error.htm"))
+        return;
+
+    var portconfig = req.responseText.split("|");
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    for(var i = 0; i < portconfig.length; i++) {
+        if(portconfig[i]) {
+            var pval = portconfig[i].split("/");
+            addRow(i, frag, pval);
+        }
+    }
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+    var cBar = new MasterControlBar([{text: "*", className: "cr"},{name: "enable_"},{name: "role_"},{name: "loop_"},{name: "monitor_"},{name: "mib_"},{name: "olb_"}]);
+    cBar.construct("portData");
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+
+    loadXMLDoc(SpomAddSidArg("/config/oam_ports"), processUpdate, 'portData');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+</script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Link OAM Port Configuration <span id="display_sid"></span></h1>
+
+<form method="POST" action="/config/oam_ports">
+
+<table id="portConfig" summary="Link OAM Port Configuration" class="config">
+ <thead>
+  <tr class="config_header">
+   <th>Port</th>
+   <th>OAM Enabled</th>
+   <th>OAM Mode</th>
+   <th>Loopback Support</th>   
+   <th>Link Monitor Support</th>
+   <th>MIB Retrieval Support</th>
+   <th>Loopback Operation</th>
+  </tr>
+ </thead>
+ <tbody id="portData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

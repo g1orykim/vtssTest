@@ -1,0 +1,237 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>System Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_sysinfo_config.htm";
+
+var maxLen = 255;
+var maxTzLen = 4;
+
+function isAdministrativelyName(str)
+{
+    var myReg;
+
+    if (!str) {
+        return true;
+    }
+    myReg = /^[A-Za-z]$/;
+
+    if (myReg.test(str)) {
+        return true;
+    }
+    myReg = /^[A-Za-z][A-Za-z0-9\-]{0,}[A-Za-z0-9]$/;
+
+    return myReg.test(str);
+}
+
+function isDisplayString(str)
+{
+    var myReg;
+
+    myReg = /^[ -~]{0,}$/;
+
+    return myReg.test(str);
+}
+
+function checkForm()
+{
+    var fld;
+
+    fld = document.getElementById("sys_contact");
+    if (fld) {
+        if (String(fld.value) === "") {
+            if (!confirm("System Contact is empty.\nDo you want to proceed anyway?")) {
+                return false;
+            }
+        }
+        if (fld.value.length > 255) {
+            GiveAlert("The length of 'System Contact' is restricted to 0 - 255", fld);
+            return false;
+        }
+        if (!isDisplayString(fld.value)) {
+            GiveAlert("The 'System Contact' is restricted to ASCII characters from 32 to 126", fld);
+            return false;
+        }
+    }
+
+    fld = document.getElementById("sys_name");
+    if (fld) {
+        if (String(fld.value) === "") {
+            if (!confirm("System Name is empty.\nDo you want to proceed anyway?")) {
+                return false;
+            }
+        }
+        if (fld.value.length > 255) {
+            GiveAlert("The length of 'System Name' is restricted to 0 - 255", fld);
+            return false;
+        }
+        if (!isAdministrativelyName(fld.value)) {
+            GiveAlert("'System Name' is not valid. Please refer to the help page for the valid format.", fld);
+            return false;
+        }
+    }
+
+    fld = document.getElementById("sys_location");
+    if (fld) {
+        if (String(fld.value) === "") {
+            if (!confirm("System Location is empty.\nDo you want to proceed anyway?")) {
+                return false;
+            }
+        }
+        if (fld.value.length > 255) {
+            GiveAlert("The length of 'System Location' is restricted to 0 - 255", fld);
+            return false;
+        }
+        if (!isDisplayString(fld.value)) {
+            GiveAlert("The 'System Location' is restricted to ASCII characters from 32 to 126", fld);
+            return false;
+        }
+    }
+
+    fld = document.getElementById("timezone");
+    if (fld) {
+        if (!isWithinRange("timezone", -720, 720, "'Timezone Offset'", " minutes")) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function processUpdate(req, ref)
+{
+    //Format: <sys_contact>,<sys_name>,<sys_location> and/or <timezone>
+    var values = req.responseText.split(",");
+
+    var frag, tbody, td, tr;
+    var index = 0;
+
+    if (req.responseText) {
+        frag = document.createDocumentFragment();
+
+        //sys_contact
+        tr = document.createElement("tr");
+        addLabelTextCell(tr, "System Contact", "param_label", "sys_contact");
+        td = addInputCell(tr, unescape(values[index++]), "cl", "sys_contact", 32);
+        td.setAttribute("maxLength", maxLen);
+        td.style.width = "16em";
+        frag.appendChild(tr);
+
+        //sys_name
+        tr = document.createElement("tr");
+        addLabelTextCell(tr, "System Name", "param_label", "sys_name");
+        td = addInputCell(tr, unescape(values[index++]), "cl", "sys_name", 32);
+        td.setAttribute("maxLength", maxLen);
+        td.style.width = "16em";
+        frag.appendChild(tr);
+
+        //sys_location
+        tr = document.createElement("tr");
+        addLabelTextCell(tr, "System Location", "param_label", "sys_location");
+        td = addInputCell(tr, unescape(values[index++]), "cl", "sys_location", 32);
+        td.setAttribute("maxLength", maxLen);
+        td.style.width = "16em";
+        frag.appendChild(tr);
+
+        //timezone
+        if (values.length == 4) {
+            tr = document.createElement("tr");
+            addLabelTextCell(tr, "System Timezone Offset (minutes)", "param_label", "timezone");
+            td = addInputCell(tr, unescape(values[index++]), "cl", "timezone", 32);
+            td.setAttribute("maxLength", maxTzLen);
+            td.style.width = "16em";
+            frag.appendChild(tr);
+        }
+
+    }
+
+    tbody = document.getElementById("sysTbl");
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function requestUpdate()
+{
+    //var req = " www.Vitesse.com,vitesss.com,3rd floor";
+    //processUpdate(req, null);
+    loadXMLDoc("/config/sysinfo", processUpdate, null);
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>System Information Configuration</h1>
+
+<form method="POST" action="/config/sysinfo" onsubmit="return checkForm();">
+
+<table id="systemConfiguration" summary="System Configuration" cellspacing="0" class="config">
+ <tbody id="sysTbl">
+ </tbody>
+ <!-- Glory - Add -->
+ <tr class="config">
+  <td class="param_label"><label for="">TestCheckBox</label></td>
+  <td class="cl"><input type="checkbox" onclick="RecCheck(this);" id="" name=""></td>
+ </tr>
+ <tr class="config">
+    <td class="param_label"><label for="">TestBox1</label></td>
+    <td class="cl"><input type="text" id="" name="" maxlength="100" value = "This is Test Text ..." size = "28">outline text</td>
+ </tr>
+ <!--End-->
+</table>
+
+<p>
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

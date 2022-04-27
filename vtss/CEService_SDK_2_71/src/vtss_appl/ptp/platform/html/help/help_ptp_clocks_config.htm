@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>PTP Clock Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>PTP Clock Configuration Help</h1>
+
+<p>This page allows the user to configure and inspect the current <a href="glossary.htm#PTP" class="glossary">PTP</a> clock
+settings.</p>
+
+<h2>PTP External Clock Configuration</h2>
+<dl>
+
+ <dt>One_pps_mode</dt>
+ <dd>This Selection box will allow you to select the One_pps_mode configuration.</dd>
+ <dd>The following values are possible:</dd>
+ <dd>1. Output  : Enable the 1 pps clock output</dd>
+ <dd>2. Input   : Enable the 1 pps clock input</dd>
+ <dd>3. Disable : Disable the 1 pps clock in/out-put</dd>
+
+ <dt>External Enable</dt>
+ <dd>This Selection box will allow you to configure the External Clock output.</dd>
+ <dd>The following values are possible:</dd>
+ <dd>1. True    : Enable the external clock output</dd>
+ <dd>2. False   : Disable the external clock output</dd>
+
+ <dt>VCXO_Enable</dt>
+ <dd>This Selection box will allow you to configure the External VCXO rate adjustment.</dd>
+ <dd>The following values are possible:</dd>
+ <dd>1. True    : Enable the external VCXO rate adjustment</dd>
+ <dd>2. False   : Disable the external VCXO rate adjustment</dd>
+
+ <dt>Clock Frequency</dt>
+ <dd>This will allow to set the Clock Frequency.</dd>
+ <dd>The possible range of values are 1 - 25000000 (1 - 25MHz)</dd>
+
+</dl>
+ 
+<h2>PTP Clock Configuration</h2>
+
+<dl>
+
+ <dt>Delete</dt>
+ <dd>Check this box and click on 'Save' to delete the clock instance.</dd>
+ <dt>Clock Instance</dt>
+ <dd>
+  Indicates the Instance of a particular Clock Instance [0..3].
+ </dd>
+ <dd>
+  Click on the Clock Instance number to edit the Clock details.
+ </dd>
+ <dt>Device Type</dt>
+ <dd>
+  Indicates the Type of the Clock Instance. There are five Device Types.
+ </dd>
+ <dd>
+  1. Ord-Bound	- clock's Device Type is Ordinary-Boundary Clock.
+ </dd>
+ <dd>
+  2. P2p Transp	- clock's Device Type is Peer to Peer Transparent Clock.
+ </dd>
+ <dd>
+  3. E2e Transp	- clock's Device Type is End to End Transparent Clock.
+ </dd>
+ <dd>
+  4. Master Only - clock's Device Type is Master Only.
+ </dd>
+ <dd>
+  5. Slave Only - clock's Device Type is Slave Only.
+ </dd>
+
+ <dt>Port List</dt>
+ <dd>
+  Set check mark for each port configured for this Clock Instance.
+ </dd>
+
+ <dt><b> 2 Step Flag </b></dt>
+ <dd> Static member: defined by the system, true if two-step Sync events and Pdelay_Resp events are used </dd>
+ <dt><b> Clock Identity </b></dt>
+ <dd> It shows unique clock identifier</dd>
+ <dt><b> One Way </b></dt>
+ <dd>If true, one-way measurements are used. This parameter applies only to a slave. In one-way mode no delay
+ measurements are performed, i.e. this is applicable only if frequency synchronization is needed. The master always
+ responds to delay requests.</dd>
+ <dt><b> Protocol </b></dt>
+ <dd>Transport protocol used by the PTP protocol engine </dd>
+ <dd>ethernet   PTP over Ethernet multicast </dd>
+ <dd>ip4multi   PTP over IPv4 multicast </dd>
+ <dd>ip4uni     PTP over IPv4 unicast </dd>
+ <dd>      Note : IPv4 unicast protocol only works in Master only and Slave only clocks </dd>
+ <dd>             See parameter Device Type </dd>
+ <dd>             In a unicast Slave only clock you also need configure which master clocks </dd>
+ <dd>             to request Announce and Sync messages from. See: Unicast Slave Configuration </dd>
+ <dt><b> VLAN Tag Enable </b></dt>
+ <dd>Enables the VLAN tagging for the PTP frames.</dd>
+ <dd>   Note:   Packets are only tagged if the port is configured for vlan tagging. i.e:</dd>
+ <dd>           Port Type != Unaware and PortVLAN mode == None, and the port is member of the VLAN.</dd>
+ <dt><b> VID </b></dt>
+ <dd>VLAN Identifier used for tagging the PTP frames.</dd>
+ <dt><b> PCP </b></dt>
+ <dd>Priority Code Point value used for PTP frames.</dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Add New PTP Clock ">: Click to create a new clock instance.</p>
+<p><input type="button" value=" Save ">: Click to save the page immediately.</p>
+<p><input type="button" value=" Reset ">: Click to reset the  the page immediately.</p>
+</body>
+</html>

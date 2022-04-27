@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DSCP Translation Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="../lib/config.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     if (!configArchLuton26 && !configArchServal) {
+       $$('.hasDpl').setStyle('display', 'none');
+     }
+     if (!configArchJaguar_1) {
+       $$('.hasNoDpl').setStyle('display', 'none');
+     }
+   });
+ </script>
+</head>
+
+<body>
+<h1>DSCP Translation Help</h1>
+
+<p>This page allows you to configure the basic <a href="glossary.htm#qos" class="glossary">QoS</a> <a href="glossary.htm#dscp" class="glossary">DSCP</a> Translation settings for all switches.
+   DSCP translation can be done in Ingress or Egress.</p>
+
+<p>The displayed settings are:</p>
+
+<dl>
+ <dt>DSCP</dt>
+ <dd>Maximum number of supported DSCP values are 64 and valid DSCP value ranges from 0 to 63.</dd>
+ 
+ <dt>Ingress</dt>
+ <dd>Ingress side DSCP can be first translated to new DSCP before using the DSCP for QoS class and DPL map.
+  <br>There are two configuration parameters for DSCP Translation - 
+  <br><samp>1. Translate</samp>
+  <br><samp>2. Classify</samp>
+ </dd>
+ <dt>1. Translate</dt>
+ <dd>DSCP at Ingress side can be translated to any of (0-63) DSCP values.</dd>
+ <dt>2. Classify</dt>
+ <dd>Click to enable Classification at Ingress side.</dd>
+ <dt>Egress</dt>
+ <dd class="hasDpl">There are the following configurable parameters for Egress side -
+  <br><samp>1. Remap DP0</samp> Controls the remapping for frames with DP level 0.
+  <br><samp>2. Remap DP1</samp> Controls the remapping for frames with DP level 1.
+ </dd>
+ <dt class="hasDpl">1. Remap DP0</dt>
+ <dd class="hasDpl">Select the DSCP value from select menu to which you want to remap. DSCP value ranges form 0 to 63.</dd>
+ <dt class="hasDpl">2. Remap DP1</dt>
+ <dd class="hasDpl">Select the DSCP value from select menu to which you want to remap. DSCP value ranges form 0 to 63.</dd>
+ <dd class="hasNoDpl">There is the following configurable parameter for Egress side -
+  <br><ul><li><samp>Remap</samp></li></ul>
+ </dd>
+ <dt class="hasNoDpl">Remap</dt>
+ <dd class="hasNoDpl">Select the DSCP value from select menu to which you want to remap. DSCP value ranges form 0 to 63.</dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value="Save">: Click to save changes.</p>
+<p><input type="button" value="Reset">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

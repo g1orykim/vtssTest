@@ -1,0 +1,785 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_LACP)
+
+INCLUDE_BEGIN
+#include "cli.h"
+#include "lacp_api.h"
+#include "mgmt_api.h"
+#include "icli_api.h"
+#include "l2proto_api.h"
+#include "icli_porting_util.h"
+
+#define PRINTF (void)icli_session_self_printf
+INCLUDE_END
+
+FUNCTION_BEGIN
+
+static void icli_cmd_usid_print(switch_iter_t *sit)
+{
+    if ((sit->first && sit->last) == 0) {
+        PRINTF("\nSwitch:%u\n",sit->usid);
+        PRINTF("--------\n");
+    }
+}
+
+static BOOL icli_cmd_lacp_dump(u32 session_id, BOOL internal, BOOL stats, BOOL sysid, BOOL neighbour)
+{
+    l2_port_no_t                 l2port;
+    vtss_lacp_aggregatorstatus_t aggr;
+    vtss_lacp_port_config_t      conf;
+    vtss_lacp_portstatus_t       stat;
+    BOOL                         first = 1;
+    char                         buf[80], *p;
+    char                         portString[80];
+    port_iter_t                  pit;
+    vtss_lacp_system_config_t    sysconf;
+    aggr_mgmt_group_no_t         aggr_no;
+    switch_iter_t                sit;
+    int                          search_aid, return_aid;
+    BOOL                         first_search=1;
+
+    if (neighbour) {            
+        while (aggr_mgmt_lacp_id_get_next(first_search ? NULL : &search_aid, &return_aid) == VTSS_RC_OK) {
+            search_aid = return_aid;
+            first_search = 0;
+            if (!lacp_mgmt_aggr_status_get(return_aid, &aggr)) {
+                continue;
+            }
+            
+            if (first) {
+                cli_table_header("Aggr ID  Partner System ID  Partner Prio  Partner Key  Last Changed");
+            }
+            PRINTF("%-7u  %s  %-13d %-11d  %-13s  ",
+                   mgmt_aggr_no2id(lacp_to_aggr_id(aggr.aggrid)),
+                   icli_mac_txt(aggr.partner_oper_system.macaddr, buf),
+                   aggr.partner_oper_system_priority,
+                   aggr.partner_oper_key,
+                   cli_time_txt(aggr.secs_since_last_change));
+            first = 0;
+            PRINTF("\n");
+        }
+        PRINTF("\n");
+    }
+    if (sysid) {            
+        if (lacp_mgmt_system_conf_get(&sysconf) == VTSS_RC_OK) {
+            PRINTF("System Priority: %d\n", sysconf.system_prio);
+        }
+    }
+    
+    if (internal || neighbour || stats) {
+        (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID);
+        while (switch_iter_getnext(&sit)) {
+            first = 1;
+            (void)port_iter_init(&pit, NULL, sit.isid, PORT_ITER_SORT_ORDER_UPORT, PORT_ITER_FLAGS_NORMAL);
+            while (port_iter_getnext(&pit)) {                
+                l2port = L2PORT2PORT(sit.isid, pit.iport);
+                if (lacp_mgmt_port_conf_get(sit.isid, pit.iport, &conf) != VTSS_RC_OK || lacp_mgmt_port_status_get(l2port, &stat) != VTSS_RC_OK) {
+                    continue;
+                }
+                if (neighbour && (stat.port_state == LACP_PORT_NOT_ACTIVE)) {
+                    continue;                    
+                }
+                if (stats && (!conf.enable_lacp)) {
+                    continue;                    
+                }
+                if (first) {
+                    first = 0;
+                    (void)icli_cmd_usid_print(&sit);
+                    p = &buf[0];
+                    p += sprintf(p, "Port                  ");
+                    if (internal)
+                        p += sprintf(p, "Mode      ");
+                    if (neighbour)
+                        p += sprintf(p, "State     ");
+                    if (neighbour || internal)
+                        p += sprintf(p, "Key   ");
+                    if (internal)
+                        p += sprintf(p, "Role    ");
+                    if (internal)
+                        p += sprintf(p, "Timeout  ");
+                    if (internal)
+                        p += sprintf(p, "Priority");
+                    if (neighbour)
+                        p += sprintf(p, " Aggr ID  Partner Port  Partner Port Prio");
+                    if (stats)
+                        p += sprintf(p, "Rx Frames   Tx Frames   Rx Unknown  Rx Illegal");
+                    cli_table_header(buf);                    
+                }
+                
+                /* Find aggregation */                
+                first_search = 1;
+                while (aggr_mgmt_lacp_id_get_next(first_search ? NULL : &search_aid,  &return_aid) == VTSS_RC_OK && neighbour)  {
+                    search_aid = return_aid;
+                    first_search = 0;
+                    if (lacp_mgmt_aggr_status_get(return_aid, &aggr) && aggr.port_list[L2PORT2PORT(sit.isid, pit.iport) - VTSS_PORT_NO_START]) {
+                       break;
+                    }
+                } 
+                PRINTF("%-22s",icli_port_info_txt_short(sit.usid, pit.uport, portString));
+                if (internal) {
+                    PRINTF("%s  ", cli_bool_txt(conf.enable_lacp));
+                }
+                if (internal) {
+                    if (conf.port_key == VTSS_LACP_AUTOKEY)
+                        PRINTF("Auto  ");
+                    else
+                        PRINTF("%-4d  ", conf.port_key);
+                }
+                if (internal) {
+                    PRINTF("%-8s", conf.active_or_passive == VTSS_LACP_ACTMODE_PASSIVE ? "Passive" : "Active");                
+                }
+                if (internal) {
+                    PRINTF("%-9s", conf.xmit_mode == VTSS_LACP_FSMODE_SLOW ? "Slow" : "Fast");
+                }
+                if (internal) {
+                    PRINTF("%-5d", conf.port_prio);
+                }                
+                if (neighbour) {
+                    PRINTF("%s  %-5d  ",
+                            stat.port_state == LACP_PORT_STANDBY?"Standby ":cli_bool_txt(stat.port_enabled),stat.actor_oper_port_key);
+                    
+                    aggr_no = lacp_to_aggr_id(stat.actor_port_aggregator_identifier);
+                    if ((stat.port_state == LACP_PORT_ACTIVE) && AGGR_MGMT_GROUP_IS_AGGR(aggr_no)) {
+                        PRINTF("%-7u  %-13d %d",
+                                mgmt_aggr_no2id(lacp_to_aggr_id(stat.actor_port_aggregator_identifier)),
+                                stat.partner_oper_port_number,
+                                stat.partner_oper_port_priority);
+                    } else {
+                        PRINTF("%-7s  %-17s  %-13s -", "-", "-", "-");
+                    }                                        
+                }
+                if (stats) {
+                    PRINTF("%-12lu%-12lu%-12lu%-12lu",
+                            stat.port_stats.lacp_frame_recvs,
+                            stat.port_stats.lacp_frame_xmits,
+                            stat.port_stats.unknown_frame_recvs,
+                            stat.port_stats.illegal_frame_recvs);              
+                }
+                PRINTF("\n");
+            }
+        }
+    }
+    return 1;
+}
+
+static BOOL icli_cmd_lacp_set(u32 session_id, icli_stack_port_range_t *plist, BOOL lacp, BOOL key, BOOL role, BOOL timeout, BOOL prio, u32 value, BOOL no)
+{
+    vtss_lacp_port_config_t      conf;
+    port_iter_t                  pit;
+    switch_iter_t                sit;
+    vtss_rc                      rc;
+
+    (void)icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void)icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (lacp_mgmt_port_conf_get(sit.isid, pit.iport, &conf) != VTSS_RC_OK) {
+                return 0;
+            }           
+            if (lacp) {
+                conf.enable_lacp = no ? 0 : (value > 0 ? 1 : 0);
+            } else if (prio) {
+                conf.port_prio = no ? 32768 : value;
+            } else if (role) {
+                conf.active_or_passive = no ? VTSS_LACP_ACTMODE_ACTIVE : (value > 0) ? VTSS_LACP_ACTMODE_ACTIVE : VTSS_LACP_ACTMODE_PASSIVE;
+            } else if (key) {
+                conf.port_key = no ? VTSS_LACP_AUTOKEY : value;
+            } else {
+                conf.xmit_mode = no ? VTSS_LACP_FSMODE_FAST : (value > 0) ? VTSS_LACP_FSMODE_FAST : VTSS_LACP_FSMODE_SLOW;
+            }
+            if ((rc = lacp_mgmt_port_conf_set(sit.isid, pit.iport, &conf)) != VTSS_RC_OK) {
+                ICLI_PRINTF("Error:%s\n",lacp_error_txt(rc));
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+FUNCTION_END
+    
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show lacp { internal | statistics | system-id | neighbour }
+
+DOC_CMD_DESC    = Show LACP configuration and status
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = show lacp internal
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: show
+! 2: lacp
+! 3: internal
+! 4: statistics
+! 5: system-id
+! 6: neighbour
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_internal
+CMD_VAR = has_statistics
+CMD_VAR = has_system_id
+CMD_VAR = has_neighbour
+
+HELP = LACP configuration/status
+HELP = LACP configuration/status
+HELP = Internal LACP configuration
+HELP = Internal LACP statistics
+HELP = LACP system id
+HELP = Neighbour LACP status
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Internal : option>
+BYWORD = <Statistics : option>
+BYWORD = <SystemId : option>
+BYWORD = <Neighbour : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_lacp_dump(session_id, has_internal, has_statistics, has_system_id, has_neighbour)) {
+        ICLI_PRINTF("Could not show LACP\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = clear lacp statistics
+
+DOC_CMD_DESC    = Clear all LACP statistics
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = clear lacp statistics
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: clear
+! 2: lacp
+! 3: statistics
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = Clear LACP statistics
+HELP = Clear LACP statistics
+HELP = Clear all LACP statistics
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    l2port_iter_t         l2pit;
+VARIABLE_END
+
+CODE_BEGIN
+    (void)l2port_iter_init(&l2pit, VTSS_ISID_GLOBAL, L2PORT_ITER_TYPE_PHYS);
+    while(l2port_iter_getnext(&l2pit)) {
+        lacp_mgmt_statistics_clear(l2pit.l2port);
+    }   
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = lacp system-priority <1-65535>
+
+DOC_CMD_DESC    = Set the LACP system priority
+DOC_CMD_DEFAULT = Default priority is 32768
+DOC_CMD_USAGE   = Lower number means higher priority
+DOC_CMD_EXAMPLE = lacp system-priority 1
+
+NO_FORM_DOC_CMD_DESC    = Default the LACP system priority
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no lacp system-priority 1
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: lacp
+! 2: system-priority
+! 3: <1-65535>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_1_to_65535
+
+HELP = LACP settings
+HELP = System priority
+HELP = Priority value, lower means higher priority
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    vtss_lacp_system_config_t    sysconf;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (lacp_mgmt_system_conf_get(&sysconf) == VTSS_RC_OK) {
+        sysconf.system_prio = v_1_to_65535;
+        if (lacp_mgmt_system_conf_set(&sysconf) != VTSS_RC_OK) {
+            PRINTF("Could not set LACP system prio");         
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        PRINTF("Could not set LACP system prio");         
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    vtss_lacp_system_config_t    sysconf;
+    (void)v_1_to_65535;
+    if (lacp_mgmt_system_conf_get(&sysconf) == VTSS_RC_OK) {
+        sysconf.system_prio = 32768;
+        if (lacp_mgmt_system_conf_set(&sysconf) != VTSS_RC_OK) {
+            PRINTF("Could not set LACP system prio");         
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        PRINTF("Could not set LACP system prio");         
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = lacp
+
+DOC_CMD_DESC    = Enable LACP on an interface
+DOC_CMD_DEFAULT = LACP is disabled
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = lacp
+
+NO_FORM_DOC_CMD_DESC    = Disable LACP on an interface
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no lacp
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: lacp
+
+CMD_VAR = 
+
+HELP = Enable LACP on this interface
+
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_lacp_set(session_id, plist, 1, 0, 0, 0, 0, 1, 0)) {
+        ICLI_PRINTF("Could not set LACP parameter\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_lacp_set(session_id, plist, 1, 0, 0, 0, 0, 0, 1)) {
+        ICLI_PRINTF("Could not set LACP parameter\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = lacp key { <1-65535> | auto }
+
+DOC_CMD_DESC    = Set the LACP key
+DOC_CMD_DEFAULT = Auto is default, i.e. key is based on port speed
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = lacp key 10
+
+NO_FORM_DOC_CMD_DESC    = Set the LACP key to default, auto
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no lacp key 10
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: lacp
+! 2: key
+! 3: <1-65535>
+! 4: auto
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_1_to_65535
+CMD_VAR = has_auto
+
+HELP = LACP port configuration
+HELP = Key of the LACP aggregation
+HELP = Key value
+HELP = Choose a key based on port speed
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Auto : option>
+
+VARIABLE_BEGIN
+    u32 key;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (has_auto) {
+        key = VTSS_LACP_AUTOKEY;
+    } else {
+        key = v_1_to_65535;
+    }
+    if (!icli_cmd_lacp_set(session_id, plist, 0, 1, 0, 0, 0, key, 0)) {
+        ICLI_PRINTF("Could not set LACP parameter\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    v_1_to_65535 = has_auto;
+    if (!icli_cmd_lacp_set(session_id, plist, 0, 1, 0, 0, 0, v_1_to_65535, 1)) {
+        ICLI_PRINTF("Could not set LACP parameter\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = lacp role { active | passive }
+
+DOC_CMD_DESC    = Set the LACP role, active or passive in transmitting BPDUs
+DOC_CMD_DEFAULT = Active
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = lacp role passive
+
+NO_FORM_DOC_CMD_DESC    = Set the LACP role to default
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no lacp role passive
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: lacp
+! 2: role
+! 3: active
+! 4: passive
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_active
+CMD_VAR = has_passive
+
+HELP = LACP port configuration
+HELP = Active / Passive (speak if spoken to) role
+HELP = Transmit LACP BPDUs continously
+HELP = Wait for neighbour LACP BPDUs before transmitting
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Active : option>
+BYWORD = <Passive : option>
+
+VARIABLE_BEGIN
+    u32 role=1;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (has_active) {
+        role = 1;
+    } else if (has_passive) {
+        role = 0;
+    } 
+    if (!icli_cmd_lacp_set(session_id, plist, 0, 0, 1, 0, 0, role, 0)) {
+        ICLI_PRINTF("Could not set LACP parameter\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    (void)has_passive;
+    if (!icli_cmd_lacp_set(session_id, plist, 0, 0, 1, 0, 0, has_active, 1)) {
+        ICLI_PRINTF("Could not set LACP parameter\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = lacp timeout { fast | slow }
+
+DOC_CMD_DESC    = Set the LACP timeout, i.e. how fast to transmit BPDUs, once a sec or once each 30 sec.
+DOC_CMD_DEFAULT = Fast
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = lacp timeout slow
+
+NO_FORM_DOC_CMD_DESC    = Set the LACP timeout to default
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no lacp timeout slow
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: lacp
+! 2: timeout
+! 3: fast
+! 4: slow
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_fast
+CMD_VAR = has_slow
+
+HELP = LACP port configuration
+HELP = The period between BPDU transmissions
+HELP = Transmit BPDU each second (fast timeout)
+HELP = Transmit BPDU each 30th second (slow timeout)
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Fast : option>
+BYWORD = <Slow : option>
+
+VARIABLE_BEGIN
+    u32 timeout = 1;;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (has_fast) {
+        timeout = 1;
+    } else if (has_slow) {
+        timeout = 0;
+    }
+    if (!icli_cmd_lacp_set(session_id, plist, 0, 0, 0, 1, 0, timeout, 0)) {
+        ICLI_PRINTF("Could not set LACP parameter\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    (void)has_slow;
+    if (!icli_cmd_lacp_set(session_id, plist, 0, 0, 0, 1, 0, has_fast, 1)) {
+        ICLI_PRINTF("Could not set LACP parameter\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = lacp port-priority <1-65535>
+
+DOC_CMD_DESC    = Set the lacp port priority, 
+DOC_CMD_DEFAULT = 32768
+DOC_CMD_USAGE   = Lower value means higher priority
+DOC_CMD_EXAMPLE = lacp port-priority 1
+
+NO_FORM_DOC_CMD_DESC    = Set the LACP port priority to default
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = no lacp port-priority 1
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: lacp
+! 2: port-priority
+! 3: <1-65535>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_1_to_65535
+
+HELP = LACP port configuration
+HELP = LACP priority of the port
+HELP = Priority value, lower means higher priority
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!icli_cmd_lacp_set(session_id, plist, 0, 0, 0, 0, 1, v_1_to_65535, 0)) {
+        ICLI_PRINTF("Could not set LACP parameter\n");    
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!icli_cmd_lacp_set(session_id, plist, 0, 0, 0, 0, 1, v_1_to_65535, 1)) {
+        ICLI_PRINTF("Could not set LACP parameter\n");    
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+

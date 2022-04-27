@@ -1,0 +1,68 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_vlan := $(DIR_APPL)/vlan
+
+OBJECTS_vlan := vlan.o                       \
+  $(if $(MODULE_VCLI),vlan_cli.o)            \
+  $(if $(MODULE_ICLI),vlan_icli_functions.o) \
+  $(if $(MODULE_WEB),vlan_web.o)             \
+  $(if $(MODULE_CONF_XML),vlan_xml.o)        \
+  $(if $(MODULE_ICFG),vlan_icfg.o)
+
+$(OBJECTS_vlan): %.o: $(DIR_vlan)/%.c
+	$(call compile_c, $@, $<)
+
+INCLUDES += -I$(DIR_vlan)
+
+# If defining VTSS_SW_OPTION_VLAN_INGRESS_FILTERING, the end-user gets to choose
+# whether to enable ingress filtering or not. If not defined, it is always enabled.
+DEFINES  += -DVTSS_SW_OPTION_VLAN_INGRESS_FILTERING
+
+# If defined, VLANs can be assigned a name.
+DEFINES  += -DVTSS_SW_OPTION_VLAN_NAMING
+
+# Built-in ICLI
+$(eval $(call add_icli,$(foreach m, vlan,$(DIR_vlan)/$(m).icli)))
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_vlan)/html
+
+# Lint files
+LINT_FILES_vlan := $(addprefix $(DIR_vlan)/,$(OBJECTS_vlan:.o=.c))
+
+# Tidy files
+TIDY_FILES_vlan += $(DIR_vlan)/html/*.htm $(DIR_vlan)/html/help/*.htm
+
+# Code-style check
+VTSS_CODE_STYLE_CHK_FILES_vlan = $(DIR_vlan)/*.[ch]
+
+# JSLint files
+JSLINT_FILES_vlan := $(TIDY_FILES_vlan)
+
+# For quick check of Lint of ICLI file
+# LINT_FILES_vlan += $(OBJ)/vlan_icli.c
+

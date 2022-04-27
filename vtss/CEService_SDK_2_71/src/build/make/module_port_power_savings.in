@@ -1,0 +1,63 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Pointer to port_power_savings source code directory
+DIR_port_power_savings := $(DIR_APPL)/green_ethernet/port_power_savings
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_port_power_savings)/html
+
+# PORT_POWER_SAVINGS module files
+OBJECTS_port_power_savings :=                                \
+  $(call if-module,vcli,port_power_savings_cli.o)            \
+  $(if $(MODULE_ICLI),port_power_savings_icli_functions.o) \
+  $(call if-module,web,port_power_savings_web.o)
+
+# Built-in ICLI
+$(eval $(call add_icli,$(DIR_port_power_savings)/port_power_savings.icli))
+
+# Compile/dependencies
+$(OBJECTS_port_power_savings): %.o: $(DIR_port_power_savings)/%.c
+	$(call compile_c, $@, $<,)
+
+# Include files
+INCLUDES += -I$(DIR_port_power_savings)
+
+# Files to be linted
+LINT_FILES_port_power_savings += $(addprefix $(DIR_port_power_savings)/,$(OBJECTS_port_power_savings:.o=.c))
+
+# Tidy files
+TIDY_FILES_port_power_savings += $(DIR_port_power_savings)/html/*.htm $(DIR_port_power_savings)/html/help/*.htm
+
+# JSlint files
+JSLINT_FILES_port_power_savings += $(TIDY_FILES_port_power_savings)
+
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_port_power_savings += $(DIR_port_power_savings)/port_power_savings_icli_functions.c 
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_port_power_savings += $(DIR_port_power_savings)/port_power_savings_icli_functions.h 
+VTSS_CODE_STYLE_CHK_FILES_port_power_savings += $(DIR_port_power_savings)/port_power_savings_cli.c
+VTSS_CODE_STYLE_CHK_FILES_port_power_savings += $(DIR_port_power_savings)/port_power_savings_cli.h
+VTSS_CODE_STYLE_CHK_FILES_port_power_savings += $(DIR_port_power_savings)/port_power_savings_web.c
+

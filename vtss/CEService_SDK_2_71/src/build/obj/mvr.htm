@@ -1,0 +1,2266 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<!-- Number of commands
+0036
+-->
+
+<html>
+
+<head>
+<title></title>
+<link href="vtss.css" rel="stylesheet" type="text/css">
+</head>
+
+<body lang=EN-US>
+
+<!-- Title -->
+<div class=Title>
+<p class=NewLine>&nbsp;</p>
+<p class=Title>
+CLI Command Reference Guide
+</p>
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<!-- Reference Link -->
+<div class=RefLink>
+<hr>
+<p class=NewLine>&nbsp;</p>
+
+<p class=RefLink>
+<a href="#cr0007">
+clear mvr [ vlan &lt;v_vlan_list&gt; | name &lt;mvr_name&gt; ] statistics 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0009">
+mvr 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0005">
+mvr immediate-leave 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0034">
+mvr name &lt;mvr_name&gt; channel &lt;profile_name&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0024">
+mvr name &lt;mvr_name&gt; frame priority &lt;cos_priority&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0025">
+mvr name &lt;mvr_name&gt; frame tagged 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0018">
+mvr name &lt;mvr_name&gt; igmp-address &lt;v_ipv4_ucast&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0030">
+mvr name &lt;mvr_name&gt; last-member-query-interval &lt;ipmc_lmqi&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0014">
+mvr name &lt;mvr_name&gt; mode { dynamic | compatible } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0002">
+mvr name &lt;mvr_name&gt; type { source | receiver } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0011">
+mvr vlan &lt;v_vlan_list&gt; [ name &lt;mvr_name&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0033">
+mvr vlan &lt;v_vlan_list&gt; channel &lt;profile_name&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0021">
+mvr vlan &lt;v_vlan_list&gt; frame priority &lt;cos_priority&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0022">
+mvr vlan &lt;v_vlan_list&gt; frame tagged 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0017">
+mvr vlan &lt;v_vlan_list&gt; igmp-address &lt;v_ipv4_ucast&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0029">
+mvr vlan &lt;v_vlan_list&gt; last-member-query-interval &lt;ipmc_lmqi&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0013">
+mvr vlan &lt;v_vlan_list&gt; mode { dynamic | compatible } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0001">
+mvr vlan &lt;v_vlan_list&gt; type { source | receiver } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0010">
+no mvr 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0006">
+no mvr immediate-leave 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0036">
+no mvr name &lt;mvr_name&gt; channel 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0028">
+no mvr name &lt;mvr_name&gt; frame priority 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0026">
+no mvr name &lt;mvr_name&gt; frame tagged 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0020">
+no mvr name &lt;mvr_name&gt; igmp-address 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0032">
+no mvr name &lt;mvr_name&gt; last-member-query-interval 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0016">
+no mvr name &lt;mvr_name&gt; mode 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0004">
+no mvr name &lt;mvr_name&gt; type 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0012">
+no mvr vlan &lt;v_vlan_list&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0035">
+no mvr vlan &lt;v_vlan_list&gt; channel 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0027">
+no mvr vlan &lt;v_vlan_list&gt; frame priority 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0023">
+no mvr vlan &lt;v_vlan_list&gt; frame tagged 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0019">
+no mvr vlan &lt;v_vlan_list&gt; igmp-address 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0031">
+no mvr vlan &lt;v_vlan_list&gt; last-member-query-interval 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0015">
+no mvr vlan &lt;v_vlan_list&gt; mode 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0003">
+no mvr vlan &lt;v_vlan_list&gt; type 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0008">
+show mvr [ vlan &lt;v_vlan_list&gt; | name &lt;mvr_name&gt; ] [ group-database [ interface &lt;port_type&gt; [ &lt;v_port_type_list&gt; ] ] [ sfm-information ] ] [ detail ] 
+</a></p>
+
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0007">
+clear mvr [ vlan &lt;v_vlan_list&gt; | name &lt;mvr_name&gt; ] statistics 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+clear
+</p>
+<p class=CmdSubDesc2>
+Reset functions
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+statistics
+</p>
+<p class=CmdSubDesc2>
+Running MVR protocol counters
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0009">
+mvr 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0005">
+mvr immediate-leave 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+immediate-leave
+</p>
+<p class=CmdSubDesc2>
+Immediate leave configuration
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0034">
+mvr name &lt;mvr_name&gt; channel &lt;profile_name&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+channel
+</p>
+<p class=CmdSubDesc2>
+MVR channel configuration
+</p>
+<p class=CmdSubTitle2>
+&lt;profile_name&gt;
+</p>
+<p class=CmdSubDesc2>
+Profile name in 16 char's
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0024">
+mvr name &lt;mvr_name&gt; frame priority &lt;cos_priority&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+frame
+</p>
+<p class=CmdSubDesc2>
+MVR control frame in TX
+</p>
+<p class=CmdSubTitle2>
+priority
+</p>
+<p class=CmdSubDesc2>
+Interface CoS priority
+</p>
+<p class=CmdSubTitle2>
+&lt;cos_priority&gt;
+</p>
+<p class=CmdSubDesc2>
+CoS priority ranges from 0 to 7
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0025">
+mvr name &lt;mvr_name&gt; frame tagged 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+frame
+</p>
+<p class=CmdSubDesc2>
+MVR control frame in TX
+</p>
+<p class=CmdSubTitle2>
+tagged
+</p>
+<p class=CmdSubDesc2>
+Tagged IGMP/MLD frames will be sent
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0018">
+mvr name &lt;mvr_name&gt; igmp-address &lt;v_ipv4_ucast&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+igmp-address
+</p>
+<p class=CmdSubDesc2>
+MVR address configuration used in IGMP
+</p>
+<p class=CmdSubTitle2>
+&lt;v_ipv4_ucast&gt;
+</p>
+<p class=CmdSubDesc2>
+A valid IPv4 unicast address
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0030">
+mvr name &lt;mvr_name&gt; last-member-query-interval &lt;ipmc_lmqi&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+last-member-query-interval
+</p>
+<p class=CmdSubDesc2>
+Last Member Query Interval in tenths of seconds
+</p>
+<p class=CmdSubTitle2>
+&lt;ipmc_lmqi&gt;
+</p>
+<p class=CmdSubDesc2>
+0 - 31744 tenths of seconds
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0014">
+mvr name &lt;mvr_name&gt; mode { dynamic | compatible } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+mode
+</p>
+<p class=CmdSubDesc2>
+MVR mode of operation
+</p>
+<p class=CmdSubTitle2>
+dynamic
+</p>
+<p class=CmdSubDesc2>
+Dynamic MVR operation mode
+</p>
+<p class=CmdSubTitle2>
+compatible
+</p>
+<p class=CmdSubDesc2>
+Compatible MVR operation mode
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0002">
+mvr name &lt;mvr_name&gt; type { source | receiver } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+type
+</p>
+<p class=CmdSubDesc2>
+MVR port role configuration
+</p>
+<p class=CmdSubTitle2>
+source
+</p>
+<p class=CmdSubDesc2>
+MVR source port
+</p>
+<p class=CmdSubTitle2>
+receiver
+</p>
+<p class=CmdSubDesc2>
+MVR receiver port
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0011">
+mvr vlan &lt;v_vlan_list&gt; [ name &lt;mvr_name&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0033">
+mvr vlan &lt;v_vlan_list&gt; channel &lt;profile_name&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+channel
+</p>
+<p class=CmdSubDesc2>
+MVR channel configuration
+</p>
+<p class=CmdSubTitle2>
+&lt;profile_name&gt;
+</p>
+<p class=CmdSubDesc2>
+Profile name in 16 char's
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0021">
+mvr vlan &lt;v_vlan_list&gt; frame priority &lt;cos_priority&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+frame
+</p>
+<p class=CmdSubDesc2>
+MVR control frame in TX
+</p>
+<p class=CmdSubTitle2>
+priority
+</p>
+<p class=CmdSubDesc2>
+Interface CoS priority
+</p>
+<p class=CmdSubTitle2>
+&lt;cos_priority&gt;
+</p>
+<p class=CmdSubDesc2>
+CoS priority ranges from 0 to 7
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0022">
+mvr vlan &lt;v_vlan_list&gt; frame tagged 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+frame
+</p>
+<p class=CmdSubDesc2>
+MVR control frame in TX
+</p>
+<p class=CmdSubTitle2>
+tagged
+</p>
+<p class=CmdSubDesc2>
+Tagged IGMP/MLD frames will be sent
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0017">
+mvr vlan &lt;v_vlan_list&gt; igmp-address &lt;v_ipv4_ucast&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+igmp-address
+</p>
+<p class=CmdSubDesc2>
+MVR address configuration used in IGMP
+</p>
+<p class=CmdSubTitle2>
+&lt;v_ipv4_ucast&gt;
+</p>
+<p class=CmdSubDesc2>
+A valid IPv4 unicast address
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0029">
+mvr vlan &lt;v_vlan_list&gt; last-member-query-interval &lt;ipmc_lmqi&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+last-member-query-interval
+</p>
+<p class=CmdSubDesc2>
+Last Member Query Interval in tenths of seconds
+</p>
+<p class=CmdSubTitle2>
+&lt;ipmc_lmqi&gt;
+</p>
+<p class=CmdSubDesc2>
+0 - 31744 tenths of seconds
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0013">
+mvr vlan &lt;v_vlan_list&gt; mode { dynamic | compatible } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+mode
+</p>
+<p class=CmdSubDesc2>
+MVR mode of operation
+</p>
+<p class=CmdSubTitle2>
+dynamic
+</p>
+<p class=CmdSubDesc2>
+Dynamic MVR operation mode
+</p>
+<p class=CmdSubTitle2>
+compatible
+</p>
+<p class=CmdSubDesc2>
+Compatible MVR operation mode
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0001">
+mvr vlan &lt;v_vlan_list&gt; type { source | receiver } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+type
+</p>
+<p class=CmdSubDesc2>
+MVR port role configuration
+</p>
+<p class=CmdSubTitle2>
+source
+</p>
+<p class=CmdSubDesc2>
+MVR source port
+</p>
+<p class=CmdSubTitle2>
+receiver
+</p>
+<p class=CmdSubDesc2>
+MVR receiver port
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0010">
+no mvr 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0006">
+no mvr immediate-leave 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+immediate-leave
+</p>
+<p class=CmdSubDesc2>
+Immediate leave configuration
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0036">
+no mvr name &lt;mvr_name&gt; channel 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+channel
+</p>
+<p class=CmdSubDesc2>
+MVR channel configuration
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0028">
+no mvr name &lt;mvr_name&gt; frame priority 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+frame
+</p>
+<p class=CmdSubDesc2>
+MVR control frame in TX
+</p>
+<p class=CmdSubTitle2>
+priority
+</p>
+<p class=CmdSubDesc2>
+Interface CoS priority
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0026">
+no mvr name &lt;mvr_name&gt; frame tagged 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+frame
+</p>
+<p class=CmdSubDesc2>
+MVR control frame in TX
+</p>
+<p class=CmdSubTitle2>
+tagged
+</p>
+<p class=CmdSubDesc2>
+Tagged IGMP/MLD frames will be sent
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0020">
+no mvr name &lt;mvr_name&gt; igmp-address 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+igmp-address
+</p>
+<p class=CmdSubDesc2>
+MVR address configuration used in IGMP
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0032">
+no mvr name &lt;mvr_name&gt; last-member-query-interval 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+last-member-query-interval
+</p>
+<p class=CmdSubDesc2>
+Last Member Query Interval in tenths of seconds
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0016">
+no mvr name &lt;mvr_name&gt; mode 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+mode
+</p>
+<p class=CmdSubDesc2>
+MVR mode of operation
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0004">
+no mvr name &lt;mvr_name&gt; type 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+MVR multicast name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+type
+</p>
+<p class=CmdSubDesc2>
+MVR port role configuration
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0012">
+no mvr vlan &lt;v_vlan_list&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0035">
+no mvr vlan &lt;v_vlan_list&gt; channel 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+channel
+</p>
+<p class=CmdSubDesc2>
+MVR channel configuration
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0027">
+no mvr vlan &lt;v_vlan_list&gt; frame priority 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+frame
+</p>
+<p class=CmdSubDesc2>
+MVR control frame in TX
+</p>
+<p class=CmdSubTitle2>
+priority
+</p>
+<p class=CmdSubDesc2>
+Interface CoS priority
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0023">
+no mvr vlan &lt;v_vlan_list&gt; frame tagged 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+frame
+</p>
+<p class=CmdSubDesc2>
+MVR control frame in TX
+</p>
+<p class=CmdSubTitle2>
+tagged
+</p>
+<p class=CmdSubDesc2>
+Tagged IGMP/MLD frames will be sent
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0019">
+no mvr vlan &lt;v_vlan_list&gt; igmp-address 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+igmp-address
+</p>
+<p class=CmdSubDesc2>
+MVR address configuration used in IGMP
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0031">
+no mvr vlan &lt;v_vlan_list&gt; last-member-query-interval 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+last-member-query-interval
+</p>
+<p class=CmdSubDesc2>
+Last Member Query Interval in tenths of seconds
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0015">
+no mvr vlan &lt;v_vlan_list&gt; mode 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+mode
+</p>
+<p class=CmdSubDesc2>
+MVR mode of operation
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0003">
+no mvr vlan &lt;v_vlan_list&gt; type 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+MVR multicast vlan
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+type
+</p>
+<p class=CmdSubDesc2>
+MVR port role configuration
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0008">
+show mvr [ vlan &lt;v_vlan_list&gt; | name &lt;mvr_name&gt; ] [ group-database [ interface &lt;port_type&gt; [ &lt;v_port_type_list&gt; ] ] [ sfm-information ] ] [ detail ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+Show running system information
+</p>
+<p class=CmdSubTitle2>
+mvr
+</p>
+<p class=CmdSubDesc2>
+Multicast VLAN Registration configuration
+</p>
+<p class=CmdSubTitle2>
+vlan
+</p>
+<p class=CmdSubDesc2>
+Search by VLAN
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_list&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN list
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+Search by MVR name
+</p>
+<p class=CmdSubTitle2>
+&lt;mvr_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MVR multicast VLAN name
+</p>
+<p class=CmdSubTitle2>
+group-database
+</p>
+<p class=CmdSubDesc2>
+Multicast group database from MVR
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+Search by port
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;v_port_type_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of Port ID, ex, 1/1,3-5;2/2-4,6
+</p>
+<p class=CmdSubTitle2>
+sfm-information
+</p>
+<p class=CmdSubDesc2>
+Including source filter multicast information from MVR
+</p>
+<p class=CmdSubTitle2>
+detail
+</p>
+<p class=CmdSubDesc2>
+Detail information/statistics of MVR group database
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+0
+<p class=NewLine>&nbsp;</p>
+</div>
+
+</body></html>
+

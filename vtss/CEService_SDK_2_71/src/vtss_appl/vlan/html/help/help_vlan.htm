@@ -1,0 +1,196 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>VLAN Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" src="/lib/mootools-more.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   function UpdatePage() {
+     $$('span.vid_min').set('text', configVlanIdMin);
+     $$('span.vid_max').set('text', configVlanIdMax);
+   }
+</script>
+</head>
+
+<body onload="UpdatePage();">
+<h1>VLAN Configuration Help</h1>
+
+<p>This page allows for controlling <a href="glossary.htm#vlan" class="glossary">VLAN</a> configuration on the switch<span class="SPOM_only"> stack</span>.</br>
+The page is divided into a global section and a per-port configuration section<span class="SPOM_only">. Notice that the port configuration section reflects the configuration for the selected switch in the stack</span>.</p>
+
+<h2>Global VLAN Configuration</h2>
+<dl>
+  <dt><a name="VLANIDs">Allowed Access VLANs</a></dt>
+  <dd>
+    This field shows the allowed Access VLANs, i.e. it only affects ports configured as <a href="#access">Access ports</a>. Ports in other modes are members of all VLANs specified in the <a href="#AllowedVIDs">Allowed VLANs</a> field.
+    By default, only VLAN 1 is enabled. More VLANs may be created by using a list syntax where the individual elements are separated by commas. Ranges are specified with a dash separating the lower and upper bound.<br/>
+    The following example will create VLANs 1, 10, 11, 12, 13, 200, and 300: <samp>1,10-13,200,300</samp>. Spaces are allowed in between the delimiters.
+  </dd>
+
+  <dt class=has_vlan_v2><a name="tpid">Ethertype for Custom S-ports</a></dt>
+  <dd class=has_vlan_v2>
+    This field specifies the ethertype/TPID (specified in hexadecimal) used for Custom S-ports. The setting is in force for all ports whose <a href="#PortType">Port Type</a> is set to S-Custom-Port.
+  </dd>
+</dl>
+
+<h2>Port VLAN Configuration</h2>
+<dl>
+  <dt>Port</dt>
+  <dd>
+    This is the logical port number of this row.
+  </dd>
+
+  <dt>Mode</dt>
+  <dd>
+    The port mode (default is Access) determines the fundamental behavior of the port in question. A port can be in one of three modes as described below.<br/>
+    Whenever a particular mode is selected, the remaining fields in that row will be either grayed out or made changeable depending on the mode in question.<br/>
+    Grayed out fields show the value that the port will get when the mode is applied.<br/><br/>
+    <b><u><a name="access">Access</a>:</u></b><br/>
+    Access ports are normally used to connect to end stations. Dynamic features like Voice VLAN may add the port to more VLANs behind the scenes.
+    Access ports have the following characteristics:
+    <ul>
+      <li>Member of exactly one VLAN, the Port VLAN (a.k.a. Access VLAN), which by default is 1</li>
+      <li>Accepts untagged and C-tagged frames</li>
+      <li>Discards all frames that are not classified to the Access VLAN</li>
+      <li>On egress all frames classified to the Access VLAN are transmitted untagged. Other (dynamically added VLANs) are transmitted tagged</li>
+    </ul>
+
+    <b><u>Trunk:</u></b><br/>
+    Trunk ports can carry traffic on multiple VLANs simultaneously, and are normally used to connect to other switches.
+    Trunk ports have the following characteristics:
+    <ul>
+      <li>By default, a trunk port is member of all VLANs (<span class="vid_min">?</span>-<span class="vid_max">?</span>)</li>
+      <li>The VLANs that a trunk port is member of may be limited by the use of <a href="#AllowedVIDs">Allowed VLANs</a></li>
+      <li>Frames classified to a VLAN that the port is not a member of are discarded</li>
+      <li>By default, all frames but frames classified to the Port VLAN (a.k.a. Native VLAN) get tagged on egress. Frames classified to the Port VLAN do not get C-tagged on egress</li>
+      <li>Egress tagging can be changed to tag all frames, in which case only tagged frames are accepted on ingress</li>
+    </ul>
+
+    <b><u>Hybrid:</u></b><br/>
+    Hybrid ports resemble trunk ports in many ways, but adds additional port configuration features.
+    In addition to the characteristics described for trunk ports, hybrid ports have these abilities:<br/>
+    <ul>
+      <li>Can be configured to be VLAN tag unaware<span class="has_vlan_v1"> or</span><span class="has_vlan_v2">,</span> C-tag aware<span class="has_vlan_v2">, S-tag aware, or S-custom-tag aware</span></li>
+      <li class="has_vlan_ingress_filtering">Ingress filtering can be controlled</li>
+      <li>Ingress acceptance of frames and configuration of egress tagging can be configured independently</li>
+    </ul>
+  </dd>
+
+  <dt>Port VLAN</dt>
+  <dd>
+    Determines the port's VLAN ID (a.k.a. PVID). Allowed VLANs are in the range <span class="vid_min">?</span> through <span class="vid_max">?</span>, default being 1.<br/>
+    On ingress, frames get classified to the Port VLAN if the port is configured as VLAN unaware, the frame is untagged, or VLAN awareness is enabled on the port, but the frame is priority tagged (VLAN ID = 0).<br/>
+    On egress, frames classified to the Port VLAN do not get tagged if <a href="#EgressTagging">Egress Tagging</a> configuration is set to untag Port VLAN.<br/>
+    The Port VLAN is called an "Access VLAN" for ports in Access mode and Native VLAN for ports in Trunk or Hybrid mode.
+  </dd>
+
+  <dt><a name="PortType">Port Type</a></dt>
+  <dd>
+    Ports in hybrid mode allow for changing the port type, that is, whether a frame's VLAN tag is used to classify the frame on ingress to a particular VLAN, and if so, which TPID it reacts on.
+    Likewise, on egress, the Port Type determines the TPID of the tag, if a tag is required.<br/><br/>
+    <b><u>Unaware:</u></b><br/>
+    On ingress, all frames, whether carrying a VLAN tag or not, get classified to the Port VLAN, and possible tags are not removed on egress.<br/><br/>
+
+    <b><u>C-Port:</u></b><br/>
+    On ingress, frames with a VLAN tag with TPID = 0x8100 get classified to the VLAN ID embedded in the tag.
+    If a frame is untagged or priority tagged, the frame gets classified to the Port VLAN. If frames must be tagged on egress, they will be tagged with a C-tag.<br/><br/>
+
+    <span class="has_vlan_v2">
+      <b><u>S-Port:</u></b><br/>
+      On ingress, frames with a VLAN tag with TPID = 0x8100 or 0x88A8 get classified to the VLAN ID embedded in the tag.
+      If a frame is untagged or priority tagged, the frame gets classified to the Port VLAN. If frames must be tagged on egress, they will be tagged with an S-tag.<br/><br/>
+
+      <b><u>S-Custom-Port:</u></b><br/>
+      On ingress, frames with a VLAN tag with a TPID = 0x8100 or equal to the <a href="#tpid">Ethertype configured for Custom-S ports</a> get classified to the VLAN ID embedded in the tag.
+      If a frame is untagged or priority tagged, the frame gets classified to the Port VLAN. If frames must be tagged on egress, they will be tagged with the custom S-tag.<br/><br/>
+    </span>
+  </dd>
+
+  <dt class="has_vlan_ingress_filtering">Ingress Filtering</dt>
+  <dd class="has_vlan_ingress_filtering">
+    Hybrid ports allow for changing ingress filtering. Access and Trunk ports always have ingress filtering enabled.<br/>
+    If ingress filtering is enabled (checkbox is checked), frames classified to a VLAN that the port is not a member of get discarded.<br/>
+    If ingress filtering is disabled, frames classified to a VLAN that the port is not a member of are accepted and forwarded to the switch engine. However, the port will never transmit frames classified to VLANs that it is not a member of.<br/>
+  </dd>
+
+  <dt>Ingress Acceptance</dt>
+  <dd>
+    Hybrid ports allow for changing the type of frames that are accepted on ingress.<br/><br/>
+    <b><u>Tagged and Untagged</u></b><br/>
+    Both tagged and untagged frames are accepted.<br/><br/>
+
+    <b><u>Tagged Only</u></b><br/>
+    Only tagged frames are accepted on ingress. Untagged frames are discarded.
+
+    <span class="has_vlan_v2">
+      <br/><br/>
+      <b><u>Untagged Only</u></b><br/>
+      Only untagged frames are accepted on ingress. Tagged frames are discarded.
+    </span>
+  </dd>
+
+  <dt><a name="EgressTagging">Egress Tagging</a></dt>
+  <dd>
+    Ports in Trunk and Hybrid mode may control the tagging of frames on egress.<br/><br/>
+    <b><u>Untag Port VLAN</u></b><br/>
+    Frames classified to the Port VLAN are transmitted untagged. Other frames are transmitted with the relevant tag.<br/><br/>
+
+    <b><u>Tag All</u></b><br/>
+    All frames, whether classified to the Port VLAN or not, are transmitted with a tag.<br/><br/>
+
+    <b><u>Untag All</u></b><br/>
+    All frames, whether classified to the Port VLAN or not, are transmitted without a tag.<br/>
+    This option is only available for ports in Hybrid mode.<br/>
+  </dd>
+
+  <dt><a name="AllowedVIDs">Allowed VLANs</a></dt>
+  <dd>
+    Ports in Trunk and Hybrid mode may control which VLANs they are allowed to become members of. Access ports can only be member of one VLAN, the Access VLAN.<br/>
+    The field's syntax is identical to the syntax used in the <a href="#VLANIDs">Enabled VLANs</a> field. By default, a Trunk or Hybrid port will become member of all VLANs, and
+    is therefore set to <samp><span class="vid_min">?</span>-<span class="vid_max">?</span></samp>.<br/>
+    The field may be left empty, which means that the port will not become member of any VLANs.
+  </dd>
+
+  <dt>Forbidden VLANs</dt>
+  <dd>
+    A port may be configured to never be member of one or more VLANs.
+    This is particularly useful when dynamic VLAN protocols like MVRP and GVRP must be prevented from dynamically adding ports to VLANs.<br/>
+    The trick is to mark such VLANs as forbidden on the port in question. The syntax is identical to the syntax used in the <a href="#VLANIDs">Enabled VLANs</a> field.<br/>
+    By default, the field is left blank, which means that the port may become a member of all possible VLANs.
+  </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+</body>
+</html>

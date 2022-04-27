@@ -1,0 +1,461 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Access Management Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_access_mgmt.htm";
+
+
+var reqObject;
+var entryIdxArray = Array();
+var receiveEntryName = Array();
+var originalCnt = 0;
+var newCreateCnt = 0;
+var maxCreateCnt;
+var ipv6Supported = 0, snmpSupported = 0, telnetSupported = 0;
+var ipaddr_len = 15;
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = Array(0, 1);
+var hasAccessMgmtVid = 1;
+if (typeof(configHashasAccessMgmtVid) == "function") {
+    hasAccessMgmtVid = configHashasAccessMgmtVid();
+}
+
+function isSnmpAdminString(str)
+{
+    var myReg;
+
+    myReg = /^[!-~]{1,}$/;
+
+    return myReg.test(str);
+}
+
+function addEntryIdx()
+{
+    var fld;
+
+    for (var i = 1; i <= maxCreateCnt; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newCreateCnt++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newCreateCnt; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newCreateCnt; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newCreateCnt--;
+    document.getElementById("configData").removeChild(tr);
+}
+
+function addNewRow()
+{
+    var delCnt = 0;
+    for (var idx = 0; idx < receiveEntryName.length; idx++) {
+        var fld = document.getElementById("del_" + receiveEntryName[idx]);
+        if (fld && fld.checked) {
+            delCnt++;
+        }
+    }
+
+    if (originalCnt - delCnt + newCreateCnt >= maxCreateCnt) {
+        alert("The maximum number of entries is " + maxCreateCnt);
+        return;
+    }
+
+    // Search for a new free name for this row.
+    var new_idx = addEntryIdx();
+    if (parseInt(new_idx, 10) === 0) {
+        alert("The maximum number of entries is " + maxCreateCnt);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalCnt + new_idx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr); };
+    button.id = "delEntryIdx_" + new_idx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+    if (hasAccessMgmtVid) {
+        td = addInputCell(tr, 1, "cr", "new_vid_" + new_idx, 4);
+        td.setAttribute("maxLength", 4);
+    }
+    if (ipv6Supported) {
+        ipaddr_len = 40;
+    }
+    td = addInputCell(tr, "0.0.0.0", "cr", "new_start_ipaddr_" + new_idx, ipaddr_len);
+    td.setAttribute("maxLength", ipaddr_len);
+    td = addInputCell(tr, "0.0.0.0", "cr", "new_end_ipaddr_" + new_idx, ipaddr_len);
+    td.setAttribute("maxLength", ipaddr_len);
+
+    addCheckBoxCell(tr, 0, "c", "new_web_" + new_idx);
+    if (snmpSupported) {
+        addCheckBoxCell(tr, 0, "c", "new_snmp_" + new_idx);
+    }
+    if (telnetSupported) {
+        addCheckBoxCell(tr, 0, "c", "new_telnet_" + new_idx);
+    }
+
+    frag.appendChild(tr);       // Add row to fragment
+    var tbody = document.getElementById("configData");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function CreateTableHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Delete", "hdrc");
+    if (hasAccessMgmtVid) {
+        addTextHeaderCell(tr, "VLAN ID", "hdrc");
+    }
+    addTextHeaderCell(tr, "Start IP Address", "hdrc");
+    addTextHeaderCell(tr, "End IP Address", "hdrc");
+    addTextHeaderCell(tr, "HTTP/HTTPS", "hdrc");
+    if (snmpSupported) {
+        addTextHeaderCell(tr, "SNMP", "hdrc");
+    }
+    if (telnetSupported) {
+        addTextHeaderCell(tr, "TELNET/SSH", "hdrc");
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRow(index, frag, values)
+{
+    var td, tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var value_idx = 0, entry_name;
+
+    originalCnt++;
+    entry_name = values[value_idx++];
+    receiveEntryName[index] = entry_name;
+    addCheckBoxCell(tr, 0, "c", "del_" + parseInt(entry_name, 10));
+    if (hasAccessMgmtVid) {
+        td = addInputCell(tr, values[value_idx++], "cr", "vid_" + entry_name, 4);
+        td.setAttribute("maxLength", 4);
+    }
+
+    if (ipv6Supported) {
+        ipaddr_len = 40;
+    }
+    td = addInputCell(tr, values[value_idx++], "cr", "start_ipaddr_" + entry_name, ipaddr_len);
+    td.setAttribute("maxLength", ipaddr_len);
+    td = addInputCell(tr, values[value_idx++], "cr", "end_ipaddr_" + entry_name, ipaddr_len);
+    td.setAttribute("maxLength", ipaddr_len);
+
+    addCheckBoxCell(tr, parseInt(values[value_idx++], 10), "c", "web_" + entry_name);
+    if (snmpSupported) {
+        addCheckBoxCell(tr, parseInt(values[value_idx], 10), "c", "snmp_" + entry_name);
+    }
+    value_idx++;
+    if (telnetSupported) {
+        addCheckBoxCell(tr, parseInt(values[value_idx], 10), "c", "telnet_" + entry_name);
+    }
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function checkForm(form)
+{
+    var fld, idx, new_idx, entries_cnt = newCreateCnt, web_service_cnt = 0;
+    var snmpfld, telnetfld;
+    var start_ipaddr_type, end_ipaddr_type;
+    var start_ipaddr = Array(), end_ipaddr = Array();
+
+    for (idx = 0; idx < receiveEntryName.length; idx++) {
+        fld = document.getElementById("del_" + receiveEntryName[idx]);
+        start_ipaddr_type = end_ipaddr_type = 4;
+
+        if (fld && !fld.checked) {
+            entries_cnt++;
+
+            //vid
+            if (document.getElementById("vid_" + receiveEntryName[idx])) {
+                if (!isWithinRange("vid_" + receiveEntryName[idx], configVlanIdMin, configVlanIdMax, "'VLAN ID'")) {
+                    return false;
+                }
+            }
+
+            //start_ipaddr
+            if (ipv6Supported) {
+                if (!isIpv6Str("start_ipaddr_" + receiveEntryName[idx], "'Start IP Address'", 0, 1)) {
+                    if (!isIpStr("start_ipaddr_" + receiveEntryName[idx], false, "'Start IP Address'", 2)) {
+                        return false;
+                    }
+                } else {
+                    start_ipaddr_type = 6;
+                }
+            } else if (!isIpStr("start_ipaddr_" + receiveEntryName[idx], false, "'Start IP Address'", 2)) {
+                return false;
+            }
+            start_ipaddr[entries_cnt - 1] = document.getElementById("start_ipaddr_" + receiveEntryName[idx]).value;
+
+            //end_ipaddr
+            if (ipv6Supported) {
+                if (!isIpv6Str("end_ipaddr_" + receiveEntryName[idx], "'End IP Address'", 0, 1)) {
+                    if (!isIpStr("end_ipaddr_" + receiveEntryName[idx], false, "'End IP Address'", 2)) {
+                        return false;
+                    }
+                } else {
+                    end_ipaddr_type = 6;
+                }
+            } else if (!isIpStr("end_ipaddr_" + receiveEntryName[idx], false, "'End IP Address'", 2)) {
+                return false;
+            }
+            end_ipaddr[entries_cnt - 1] = document.getElementById("end_ipaddr_" + receiveEntryName[idx]).value;
+
+            if (start_ipaddr_type != end_ipaddr_type) {
+                GiveAlert("Different IP type in same entry", document.getElementById("end_ipaddr_" + receiveEntryName[idx]));
+                return false;
+            }
+
+            if (document.getElementById("web_" + receiveEntryName[idx]).checked) {
+                web_service_cnt++;
+            }
+
+            //check services is empty
+            snmpfld = document.getElementById("snmp_" + receiveEntryName[idx]);
+            snmpSelected = 0;
+            if (snmpfld) {
+                snmpSelected = snmpfld.checked;
+            }
+            telnetfld = document.getElementById("telnet_" + receiveEntryName[idx]);
+            telnetSelected = 0;
+            if (telnetfld) {
+                telnetSelected = telnetfld.checked;
+            }
+            if (!document.getElementById("web_" + receiveEntryName[idx]).checked && !snmpSelected && !telnetSelected) {
+                alert("At least one allowed service must be selected");
+                return false;
+            }
+        }
+    }
+
+    if (newCreateCnt) {
+        for (new_idx = 0; new_idx < newCreateCnt; new_idx++) {
+            start_ipaddr_type = end_ipaddr_type = 4;
+
+            //new_vid
+            if (document.getElementById("new_vid_" + entryIdxArray[new_idx])) {
+                if (!isWithinRange("new_vid_" + entryIdxArray, configVlanIdMin, configVlanIdMax, "'VLAN ID'")) {
+                    return false;
+                }
+            }
+
+            //new_start_ipaddr
+            if (ipv6Supported) {
+                if (!isIpv6Str("new_start_ipaddr_" + entryIdxArray[new_idx], "'Start IP Address'", 0, 1)) {
+                    if (!isIpStr("new_start_ipaddr_" + entryIdxArray[new_idx], false, "'Start IP Address'", 2)) {
+                        return false;
+                    }
+                } else {
+                    start_ipaddr_type = 6;
+                }
+            } else if (!isIpStr("new_start_ipaddr_" + entryIdxArray[new_idx], false, "'Start IP Address'", 2)) {
+                return false;
+            }
+            start_ipaddr[new_idx] = document.getElementById("new_start_ipaddr_" + entryIdxArray[new_idx]).value;
+
+            //new_end_ipaddr
+            if (ipv6Supported) {
+                if (!isIpv6Str("new_end_ipaddr_" + entryIdxArray[new_idx], "'End IP Address'", 0, 1)) {
+                    if (!isIpStr("new_end_ipaddr_" + entryIdxArray[new_idx], false, "'End IP Address'", 2)) {
+                        return false;
+                    }
+                } else {
+                    end_ipaddr_type = 6;
+                }
+            } else if (!isIpStr("new_end_ipaddr_" + entryIdxArray[new_idx], false, "'End IP Address'", 2)) {
+                return false;
+            }
+            end_ipaddr[new_idx] = document.getElementById("new_end_ipaddr_" + entryIdxArray[new_idx]).value;
+
+            if (start_ipaddr_type != end_ipaddr_type) {
+                GiveAlert("Different IP type in same entry", document.getElementById("new_end_ipaddr_" + entryIdxArray[new_idx]));
+                return false;
+            }
+
+            if (document.getElementById("new_web_" + entryIdxArray[new_idx]).checked) {
+                web_service_cnt++;
+            }
+
+            //check services is empty
+            snmpfld = document.getElementById("new_snmp_" + entryIdxArray[new_idx]);
+            snmpSelected = 0;
+            if (snmpfld) {
+                snmpSelected = snmpfld.checked;
+            }
+            telnetfld = document.getElementById("new_telnet_" + entryIdxArray[new_idx]);
+            telnetSelected = 0;
+            if (telnetfld) {
+                telnetSelected = telnetfld.checked;
+            }
+            if (!document.getElementById("new_web_" + entryIdxArray[new_idx]).checked && !snmpSelected && !telnetSelected) {
+                alert("At least one allowed service must be selected");
+                return false;
+            }
+        }
+    }
+
+    //Check if entry content is the same as others
+    for (idx = 0; idx <start_ipaddr.length; idx++) {
+        for (new_idx = idx + 1; new_idx <start_ipaddr.length; new_idx++) {
+            if (start_ipaddr[idx] == start_ipaddr[new_idx] && end_ipaddr[idx] == end_ipaddr[new_idx]) {
+                alert("The entry content is duplicated. (" + start_ipaddr[idx] + " - " + end_ipaddr[idx] + ")");
+                return false;
+            }
+        }
+    }
+
+    // When access mode is enabled, check if WEB service is empty
+    if (document.getElementById("mode").value == 1 && (entries_cnt === 0 || web_service_cnt === 0)) {
+        return confirm("There isn't any entry provide WEB service.\nDo you want to proceed anyway?");
+    }
+
+    return true;                // Feed the chickens and go home
+}
+
+function processUpdate(req, ref)
+{
+    //alert(req.responseText);
+    if (reqObject != req) {
+        reqObject = req;
+    }
+    var accessConfig = req.responseText.split(",");
+    //if (1) {
+    //var accessConfig = req.split(",");
+
+    ipv6Supported = parseInt(accessConfig[0], 10);
+    snmpSupported = parseInt(accessConfig[1], 10);
+    telnetSupported = parseInt(accessConfig[2], 10);
+    UpdateIdSelect("mode", oTMode, oVMode, parseInt(accessConfig[3], 10));
+
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+
+    maxCreateCnt = accessConfig[4];
+    var configEntryData = accessConfig[5].split("|");
+    for (var i = 0; i < configEntryData.length; i++) {
+        if (configEntryData[i]) {
+            var receiveData = configEntryData[i].split("/");
+            addRow(i, frag, receiveData);
+        }
+    }
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    newCreateCnt = 0;
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function requestUpdate()
+{
+    //Format: [ipv6_supported],[snmp_supported],[telnet_supported],[mode],[max_enetries_num],[access_id]/[vid]/[start_ipaddr]/[end_ipaddr]/[web]/[snmp]/[telnet]|...
+    //var req="1,1,8,1/1/192.168.1.1/192.168.1.111/1/0/0|5/5/fe80::215:c5ff:fe03:4dc7/fe80::215:c5ff:fe03:4dc7/1/1/1";
+    //processUpdate(req, "configData");
+    loadXMLDoc("/config/access_mgmt", processUpdate, "configData");
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "configData");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Access Management Configuration</h1>
+
+<form name="configForm" method="POST" action="/config/access_mgmt" onsubmit="return checkForm(this);">
+
+<table summary="Access Management Configuration Mode" cellspacing="0" class="config">
+ <tr class="config">
+  <td class="param_label">Mode</td>
+  <td class="cl"><select id="mode" name="mode"><option value=0>Disabled</option><option value=1>Enabled</option></select></td>
+ </tr>
+</table>
+
+<p>&nbsp;</p>
+
+<table summary="Access Management Configuration" cellspacing="0" class="config">
+  <tbody id="configData"></tbody>
+</table>
+
+<p>
+  <input type="button" id="addNewEntry" value="Add New Entry" onclick="addNewRow();">
+</p>
+<p>
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

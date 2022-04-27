@@ -1,0 +1,307 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>MLD Snooping Port Filtering Profile Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_ipmc_mldsnp_filtering.htm";
+
+var reqObject;
+var oTEntryProfile = Array();
+var oVEntryProfile = Array();
+var curMaxProfileCnt;
+var curMaxPort;
+
+function searchEntryProfile(entryKey)
+{
+    var pdx;
+
+    for (pdx = 0; pdx <= curMaxProfileCnt; pdx++) {
+        if (oTEntryProfile[pdx] === entryKey) {
+            return pdx;
+        }
+    }
+
+    return -1;
+}
+
+function pfRuleNavigate()
+{
+    window.open("ipmc_lib_rule_table.htm?CurSidV=" + document.getElementById("submit_sid").value + "&DoPdxOp=0&DynBgnPdx=" + textStrToAsciiStr(this.value), "", "height=480,width=640,top=0,left=0,resizable=1,scrollbars=1");
+}
+
+function addImageInline(frag, style, src, text, idx, value, click)
+{
+    var field = document.createElement('img');
+    var pval = text.split(" ");
+    field.id = pval[0] + "_" + pval[1] + "_" + idx;
+    field.src = src;
+    field.border = 0;
+    field.value = value;
+    if (click) {
+        field.onclick = click;
+    }
+    field.title = field.alt = text;
+    frag.appendChild(field);
+    return field;
+}
+
+function updateImageInline(idx, value, src, text, click)
+{
+    var td = document.getElementById("Navigate_Profile_" + idx);
+    td.value = value;
+    td.src = src;
+    td.title = td.alt = text;
+    td.onclick = click;
+}
+
+function checkNewProfile()
+{
+    var pdx = this.id.split("_");
+    var idx = parseInt(this.value, 10);
+    var newEntry = oTEntryProfile[idx];
+
+    if (idx && newEntry && newEntry !== "") {
+        idx = parseInt(pdx[4], 10);
+        updateImageInline(idx, newEntry, "images/eye.png", "Navigate Profile " + newEntry, pfRuleNavigate);
+
+        td = document.getElementById("ref_port_filter_profile_" + idx);
+        td.value = newEntry;
+    } else {
+        idx = parseInt(pdx[4], 10);
+        updateImageInline(idx, "", "images/eye_gray.png", "Navigate Profile", null);
+
+        td = document.getElementById("ref_port_filter_profile_" + idx);
+        td.value = "";
+    }
+}
+
+function addRow(idx, frag, values)
+{
+    var td, tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+
+    addTextCell(tr, configPortName(idx, 0), "cr");
+
+    // control button
+    var container = document.createElement("td");
+    if (values !== "") {
+        addImageInline(container, "cl", "images/eye.png", "Navigate Profile " + values, idx, values, pfRuleNavigate);
+    } else {
+        addImageInline(container, "cl", "images/eye_gray.png", "Navigate Profile", idx, "", null);
+    }
+    tr.appendChild(container);
+
+    if (values !== "") {
+        td = addSelectCell(tr, oTEntryProfile, oVEntryProfile, searchEntryProfile(values), "cr", "ipmc_port_filter_profile_" + idx);
+    } else {
+        td = addSelectCell(tr, oTEntryProfile, oVEntryProfile, 0, "cr", "ipmc_port_filter_profile_" + idx);
+    }
+    td.onchange = checkNewProfile;
+
+    td = addHiddenInputCell(tr, values, "c", "ref_port_filter_profile_" + idx);
+    td.readOnly = true;
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function CreateTableHeader(frag)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Port", "hdrc");
+    addTextHeaderCell(tr, "Filtering Profile", "hdrc", 3);
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    var idx = 0;
+
+    /* Format: [profile_1]|...|[profile_n];[profile]|...;
+     */
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (reqObject !== req) {
+        reqObject = req;
+    }
+
+    curMaxProfileCnt = 0;
+    curMaxPort = SpomCurrentPorts() - SpomStackPortCount();
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    CreateTableHeader(frag);
+    if (req.responseText) {
+    //if (req) {
+        var values = req.responseText.split(";");
+
+        if (values[0] !== "") {
+            var profileTable = values[0].split("|");
+
+            curMaxProfileCnt = profileTable.length;
+            for (idx = 0; idx <= curMaxProfileCnt; idx++) {
+                if (idx === 0) {
+                    oTEntryProfile[idx] = "-";
+                } else {
+                    oTEntryProfile[idx] = unescape(profileTable[idx - 1]);
+                }
+
+                oVEntryProfile[idx] = idx;
+            }
+        } else {
+            oTEntryProfile[idx] = "-";
+            oVEntryProfile[idx] = 0;
+        }
+
+        var filterProfileData = values[1].split("|");
+        for (idx = 1; idx <= curMaxPort; idx++) {
+            addRow(idx, frag, unescape(filterProfileData[idx - 1]));
+        }
+    }
+
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "filterGroupData");
+}
+
+function portIsFilter(portNo)
+{
+    if (parseInt(configPortType, 10) >= 3 &&
+        (String(configPortName(portNo, 0)) == "WAN" || String(configPortName(portNo, 0)) == "WAN2" || String(configPortName(portNo, 0)) == "EPON")) {
+        return true;
+    }
+    return false;
+}
+
+var oTPort = Array();
+var oVPort = Array();
+
+function SpomSelectCurrentPortUpdate()
+{
+    var i, currentMaxPort = SpomCurrentPorts();
+
+    while (oTPort.length) {
+        oTPort.pop();
+    }
+    while (oTPort.length) {
+        oVPort.pop();
+    }
+
+    for (i = configPortMin; i <= currentMaxPort; i++) {
+        if (portIsFilter(i)) {
+            continue;
+        }
+
+        oTPort.push(configPortName(i, 0));
+        oVPort.push(i);
+    }
+}
+
+function requestUpdate()
+{
+    if (SpomNavigationLoading()) {
+        return;    // Bail out, navigation will trigger update
+    }
+
+    SpomSelectCurrentPortUpdate();
+    loadXMLDoc(SpomAddSidArg("/config/ipmc_filtering?ipmc_version=2"), processUpdate, 'filterGroupData');
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm(form)
+{
+    return true; // Feed the chickens and go home
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>MLD Snooping Port Filtering Profile Configuration <span id="display_sid"></span></h1>
+
+<form method="POST" action="/config/ipmc_filtering" onsubmit="return checkForm(this);">
+
+<table id="filterGroupConfig" summary="MLD Snooping Group Filtering Configuration" cellspacing="0" class="config">
+ <tbody id="filterGroupData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="hidden" id="ipmc_version" name="ipmc_version" value="2">
+</p>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+
+<!-- IE caching bug -->
+<div style="display: none;">
+ <img alt="" src="images/eye.png">
+ <img alt="" src="images/eye_gray.png">
+</div>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,65 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files Location
+DIR_ip_source_guard := $(DIR_APPL)/ip_source_guard
+
+# Module objects
+OBJECTS_ip_source_guard := ip_source_guard.o \
+$(if $(MODULE_VCLI),ip_source_guard_cli.o) \
+$(if $(MODULE_WEB),ip_source_guard_web.o) \
+$(if $(MODULE_CONF_XML),ip_source_guard_xml.o) \
+$(if $(MODULE_ICFG),ip_source_guard_icfg.o)
+
+# Built-in ICLI
+$(eval $(call add_icli,$(foreach m, ip_source_guard,$(DIR_ip_source_guard)/$(m).icli)))
+
+# Compiler rules
+$(OBJECTS_ip_source_guard): %.o: $(DIR_ip_source_guard)/%.c
+	$(call compile_c, $@, $<)
+
+# Include files
+INCLUDES += -I$(DIR_ip_source_guard)
+
+# Web content generation
+WEB_CONTENT += $(DIR_ip_source_guard)/html
+
+# Lint files
+LINT_FILES_ip_source_guard += $(DIR_ip_source_guard)/ip_source_guard.c \
+  $(if $(MODULE_VCLI),$(DIR_ip_source_guard)/ip_source_guard_cli.c)     \
+  $(if $(MODULE_WEB),$(DIR_ip_source_guard)/ip_source_guard_web.c)     \
+  $(if $(MODULE_CONF_XML),$(DIR_ip_source_guard)/ip_source_guard_xml.c) \
+  $(if $(MODULE_ICFG),$(DIR_ip_source_guard)/ip_source_guard_icfg.c)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_ip_source_guard += $(DIR_ip_source_guard)/*.c $(DIR_ip_source_guard)/*.h
+
+# Tidy files
+TIDY_FILES_ip_source_guard += $(DIR_ip_source_guard)/html/*.htm $(DIR_ip_source_guard)/html/help/*.htm
+
+# JSlint files
+JSLINT_FILES_ip_source_guard += $(DIR_ip_source_guard)/html/*.htm $(DIR_ip_source_guard)/html/help/*.htm
+

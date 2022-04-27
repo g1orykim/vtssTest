@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DHCP Relay Statistics Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+
+<body>
+<h1>DHCP Relay Statistics Help</h1>
+<p>This page provides statistics for <a href="glossary.htm#dhcp_relay" class="glossary">DHCP relay</a>.</p>
+
+<h2>Server Statistics</h2>
+<dl>
+ <dt>Transmit to Server</dt>
+ <dd>
+The number of packets that are relayed from client to server.
+ </dd>
+
+ <dt>Transmit Error</dt>
+ <dd>
+The number of packets that resulted in errors while being sent to clients.
+ </dd>
+
+ <dt>Receive from Server</dt>
+ <dd>
+The number of packets received from server.
+ </dd>
+
+ <dt>Receive Missing Agent Option</dt>
+ <dd>
+ The number of packets received without agent information options.
+ </dd>
+
+ <dt>Receive Missing Circuit ID</dt>
+ <dd>
+ The number of packets received with the Circuit ID option missing.
+ </dd>
+
+ <dt>Receive Missing Remote ID</dt>
+ <dd>
+The number of packets received with the Remote ID option missing.
+ </dd>
+
+ <dt>Receive Bad Circuit ID</dt>
+ <dd>
+The number of packets whose Circuit ID option did not match known circuit ID.
+ </dd>
+
+ <dt>Receive Bad Remote ID</dt>
+ <dd>
+The number of packets whose Remote ID option did not match known Remote ID.
+ </dd>
+</dl>
+
+<h2>Client Statistics</h2>
+<dl>
+ <dt>Transmit to Client</dt>
+ <dd>
+ The number of relayed packets from server to client.
+ </dd>
+
+ <dt>Transmit Error</dt>
+ <dd>
+The number of packets that resulted in error while being sent to servers.
+ </dd>
+
+ <dt>Receive from Client</dt>
+ <dd>
+The number of received packets from server.
+ </dd>
+
+ <dt>Receive Agent Option</dt>
+ <dd>
+ The number of received packets with relay agent information option.
+ </dd>
+
+ <dt>Replace Agent Option</dt>
+ <dd>
+The number of packets which were replaced with relay agent information option.
+ </dd>
+
+ <dt>Keep Agent Option</dt>
+ <dd>
+ The number of packets whose relay agent information was retained.
+ </dd>
+
+ <dt>Drop Agent Option</dt>
+ <dd>
+The number of packets that were dropped which were received with relay agent information.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Clear ">: Clear all statistics.</p>
+
+</body>
+</html>

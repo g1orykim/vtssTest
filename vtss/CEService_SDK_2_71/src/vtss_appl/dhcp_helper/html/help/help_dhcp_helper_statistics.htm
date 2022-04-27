@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DHCP Detailed Statistics Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+
+<body>
+<h1>DHCP Detailed Statistics Help</h1>
+<p>This page provides statistics for <a href="glossary.htm#dhcp_snooping" class="glossary">DHCP snooping</a>.
+   Notice that the normal forward per-port TX statistics isn't increased if the incoming DHCP packet is done by L3 forwarding mechanism.
+   And clear the statistics on specific port may not take effect on global statistics since it gathers the different layer overview.
+</p>
+
+<h2>Receive and Transmit Packets</h2>
+<dl>
+ <dt>Rx and Tx Discover</dt>
+ <dd>
+ The number of discover (option 53 with value 1) packets received and transmitted.
+ </dd>
+
+ <dt>Rx and Tx Offer</dt>
+ <dd>
+ The number of offer (option 53 with value 2) packets received and transmitted.
+ </dd>
+
+ <dt>Rx and Tx Request</dt>
+ <dd>
+ The number of request (option 53 with value 3) packets received and transmitted.
+ </dd>
+
+ <dt>Rx and Tx Decline</dt>
+ <dd>
+ The number of decline (option 53 with value 4) packets received and transmitted.
+ </dd>
+
+ <dt>Rx and Tx ACK</dt>
+ <dd>
+ The number of ACK (option 53 with value 5) packets received and transmitted.
+ </dd>
+
+ <dt>Rx and Tx NAK</dt>
+ <dd>
+ The number of NAK (option 53 with value 6) packets received and transmitted.
+ </dd>
+
+ <dt>Rx and Tx Release</dt>
+ <dd>
+ The number of release (option 53 with value 7) packets received and transmitted.
+ </dd>
+
+ <dt>Rx and Tx Inform</dt>
+ <dd>
+ The number of inform (option 53 with value 8) packets received and transmitted.
+ </dd>
+
+ <dt>Rx and Tx Lease Query</dt>
+ <dd>
+ The number of lease query (option 53 with value 10) packets received and transmitted.
+ </dd>
+
+ <dt>Rx and Tx Lease Unassigned</dt>
+ <dd>
+ The number of lease unassigned (option 53 with value 11) packets received and transmitted.
+ </dd>
+
+ <dt>Rx and Tx Lease Unknown</dt>
+ <dd>
+ The number of lease unknown (option 53 with value 12) packets received and transmitted.
+ </dd>
+
+ <dt>Rx and Tx Lease Active</dt>
+ <dd>
+ The number of lease active (option 53 with value 13) packets received and transmitted.
+ </dd>
+
+ <dt>Rx Discarded checksum error</dt>
+ <dd>
+ The number of discard packet that IP/UDP checksum is error.
+ </dd>
+
+ <dt class="has_arch_dhcp_snooping">Rx Discarded from Untrusted</dt>
+ <dd class="has_arch_dhcp_snooping">
+ The number of discarded packet that are coming from untrusted port.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>The DHCP user select box determines which user is affected by clicking the buttons.</p>
+<p>The port select box determines which port is affected by clicking the buttons.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+<p><input type="button" value=" Clear ">: Clears the counters for the selected port.</p>
+
+</body>
+</html>

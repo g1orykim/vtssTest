@@ -1,0 +1,607 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>ACE Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="../lib/config.js"></script>
+</head>
+
+<body onload="document.getElementById('AclRateLimitIdMax').innerHTML=configAclRateLimitIdMax; document.getElementById('AclPolicyMax').innerHTML=configPolicyMax; document.getElementById('AclPolicyBitmaskMax').innerHTML=configPolicyBitmaskMax.toString(16); document.getElementById('AclEvcPolicerMin').innerHTML=configAclEvcPolicerMin; document.getElementById('AclEvcPolicerMax').innerHTML=configAclEvcPolicerMax;">
+<h1>ACE Configuration Help</h1>
+
+
+<p>Configure an
+<a href="glossary.htm#ace" class="glossary">ACE</a> (Access Control Entry) on this page.</p>
+<p>An ACE consists of several parameters. These parameters vary according to the frame type that you select. First select the ingress port for the ACE, and then select the frame type. Different parameter options are displayed depending on the frame type selected.</p>
+<p>A frame that hits this ACE matches the configuration that is defined here.</p>
+
+<dl>
+ <dt class="has_arch_serval">Lookup</dt>
+ <dd class="has_arch_serval">
+ Specify the second lookup operation of the ACE.
+ </dd>
+
+ <dt>Ingress Port</dt>
+ <dd>
+ Select the ingress port for which this ACE applies.
+ <br><samp>All</samp>: The ACE applies to all port.
+ <br><samp>Port <i>n</i></samp>: The ACE applies to this port number, where <i>n</i> is the number of the switch port.
+ </dd>
+
+ <dt>Policy Filter</dt>
+ <dd>
+ Specify the policy number filter for this ACE.
+ <br><samp>Any</samp>: No policy filter is specified. (policy filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific policy with this ACE, choose this value. Two field for entering an policy value and bitmask appears.
+ </dd>
+
+ <dt>Policy Value</dt>
+ <dd>
+ When "Specific" is selected for the policy filter, you can enter a specific policy value. The allowed range is <samp>0</samp> to <samp><span id="AclPolicyMax">0</span></samp>.
+ </dd>
+
+ <dt>Policy Bitmask</dt>
+ <dd>
+ When "Specific" is selected for the policy filter, you can enter a specific policy bitmask. The allowed range is <samp>0x0</samp> to <samp>0x<span id="AclPolicyBitmaskMax">7</span></samp>.
+ Notice the usage of bitmask, if the binary bit value is "0", it means this bit is "don't-care".
+ The real matched pattern is [policy_value &amp; policy_bitmask].
+ For example, if the policy value is 3 and the policy bitmask is 0x10(bit 0 is "don't-care" bit), then policy 2 and 3 are applied to this rule.
+ </dd>
+
+ <dt class="SPOM_only">Switch</dt>
+ <dd>
+ <div class="SPOM_only">
+ Select the switch to which this ACE applies.
+ <br><samp>Any</samp>: The ACE applies to any port.
+ <br><samp>Switch <i>n</i></samp>: The ACE applies to this switch number, where <i>n</i> is the number of the switch.
+ </div>
+ </dd>
+
+ <dt>Frame Type</dt>
+ <dd>
+ Select the frame type for this ACE. These frame types are mutually exclusive.
+ <br><samp>Any</samp>: Any frame can match this ACE.
+ <br><samp><a href="glossary.htm#ethernet_type" class="glossary">Ethernet Type</a></samp>: Only Ethernet Type frames can match this ACE. The IEEE 802.3 describes the value of Length/Type Field specifications to be greater than or equal to 1536 decimal (equal to 0600 hexadecimal).
+ <br><samp><a href="glossary.htm#arp" class="glossary">ARP</a></samp>: Only ARP frames can match this ACE. Notice the ARP frames won't match the ACE with ethernet type.
+ <br><samp>IPv4</samp>: Only IPv4 frames can match this ACE. Notice the IPv4 frames won't match the ACE with ethernet type.
+ </dd>
+ <dd class="acl_ipv6_only"><samp>IPv6</samp>: Only IPv6 frames can match this ACE. Notice the IPv6 frames won't match the ACE with Ethernet type.</dd>
+
+ <dt>Action</dt>
+ <dd>
+ Specify the action to take with a frame that hits this ACE.
+ <br><samp>Permit</samp>: The frame that hits this ACE is granted permission for the ACE operation.
+ <br><samp>Deny</samp>: The frame that hits this ACE is dropped.
+ <span class="acl_v2_only"><br><samp>Filter</samp>: Frames matching the ACE are filtered.</span>
+ </dd>
+
+ <dt>Rate Limiter</dt>
+ <dd>
+ Specify the rate limiter in number of base units. The allowed range
+ is <samp>1</samp> to <samp><span id="AclRateLimitIdMax">15</span></samp>. <samp>Disabled</samp> indicates that the rate limiter operation is disabled.
+ </dd>
+
+ <dt class="acl_evc_policer_only">EVC Policer</dt>
+ <dd class="acl_evc_policer_only">
+ Select whether EVC policer is enabled or disabled. The default value is "Disabled".
+ Note that the ACL rate limiter and EVC policer can not both be enabled.
+ </dd>
+
+ <dt class="acl_evc_policer_only">EVC Policer ID</dt>
+ <dd class="acl_evc_policer_only">
+ Select which EVC policer ID to apply on this ACE. The allowed values are <samp>Disabled</samp> or the values <samp><span id="AclEvcPolicerMin">1</span></samp> through <samp><span id="AclEvcPolicerMax">128</span></samp>.
+ </dd>
+
+ <dt class="has_arch_luton26">Port Redirect</dt>
+ <dd class="has_arch_luton26">
+ Frames that hit the ACE are redirected to the port number specified here. The rate limiter will affect these ports.
+ The allowed range is the same as the switch port number range. <samp>Disabled</samp> indicates that the port redirect operation is disabled and the specific port number of 'Port Redirect' can't be set when action is permitted.
+ </dd>
+
+ <dt class="has_arch_jaguar_1">Port Redirect</dt>
+ <dd class="has_arch_jaguar_1">
+ Frames that hit the ACE are redirected to the port number specified here. The rate limiter will affect these ports.
+ The allowed range is the same as the switch port number range. <samp>Disabled</samp> indicates that the port redirect operation is disabled and the specific port number of 'Port Redirect' can't be set when action is permitted.
+ </dd>
+
+ <dt class="has_arch_serval">Port Redirect</dt>
+ <dd class="has_arch_serval">
+ Frames that hit the ACE are redirected to the port number specified here. The rate limiter will affect these ports.
+ The allowed range is the same as the switch port number range. <samp>Disabled</samp> indicates that the port redirect operation is disabled and the specific port number of 'Port Redirect' can't be set when action is permitted.
+ </dd>
+
+ <dt class="acl_v2_only">Mirror</dt>
+ <dd class="acl_v2_only">
+ Specify the mirror operation of this port. Frames matching the ACE are mirrored to the destination mirror port. The rate limiter will not affect frames on the mirror port. The allowed values are:
+ <br><samp>Enabled</samp>: Frames received on the port are mirrored.
+ <br><samp>Disabled</samp>: Frames received on the port are not mirrored.
+ <br>The default value is "Disabled".
+ </dd>
+
+ <dt class="acl_log_only">Logging</dt>
+ <dd class="acl_log_only">
+ Specify the logging operation of the ACE. Notice that the logging message doesn't include the 4 bytes CRC information. The allowed values are:
+ <br><samp>Enabled</samp>: Frames matching the ACE are stored in the System Log.
+ <br><samp>Disabled</samp>: Frames matching the ACE are not logged.
+ <br> Note: The logging feature only works when the packet length is less than 1518(without VLAN tags)
+ and the System Log memory size and logging rate is limited.
+ </dd>
+
+ <dt class="acl_shutdown_only">Shutdown</dt>
+ <dd class="acl_shutdown_only">
+ Specify the port shut down operation of the ACE. The allowed values are:
+ <br><samp>Enabled</samp>: If a frame matches the ACE, the ingress port will be disabled.
+ <br><samp>Disabled</samp>: Port shut down is disabled for the ACE.
+ <br> Note: The shutdown feature only works when the packet length is less than 1518(without VLAN tags).
+ </dd>
+
+ <dt>Counter</dt>
+ <dd>
+ The counter indicates the number of times the ACE was hit by a frame.
+ </dd>
+</dl>
+
+<h2>MAC Parameters</h2>
+
+<dl>
+ <dt>SMAC Filter</dt>
+ <dd>
+ <i>(Only displayed when the frame type is Ethernet Type or ARP.)</i><br>
+ Specify the source MAC filter for this ACE.
+ <br><samp>Any</samp>: No SMAC filter is specified. (SMAC filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific source MAC address with this ACE, choose this value. A field for entering an SMAC value appears.
+ </dd>
+
+ <dt>SMAC Value</dt>
+ <dd>
+ When "Specific" is selected for the SMAC filter, you can enter a specific source MAC address. The legal format is "xx-xx-xx-xx-xx-xx" or "xx.xx.xx.xx.xx.xx" or "xxxxxxxxxxxx" (x is a hexadecimal digit). A frame that hits this ACE matches this SMAC value.
+ </dd>
+
+ <dt>DMAC Filter</dt>
+ <dd>
+ Specify the destination MAC filter for this ACE.
+ <br><samp>Any</samp>: No DMAC filter is specified. (DMAC filter status is "don't-care".)
+ <br><samp>MC</samp>: Frame must be multicast.
+ <br><samp>BC</samp>: Frame must be broadcast.
+ <br><samp>UC</samp>: Frame must be unicast.
+ <br><samp>Specific</samp>: If you want to filter a specific destination MAC address with this ACE, choose this value. A field for entering a DMAC value appears.
+ </dd>
+
+ <dt>DMAC Value</dt>
+ <dd>
+ When "Specific" is selected for the DMAC filter, you can enter a specific destination MAC address. The legal format is "xx-xx-xx-xx-xx-xx" or "xx.xx.xx.xx.xx.xx" or "xxxxxxxxxxxx" (x is a hexadecimal digit). A frame that hits this ACE matches this DMAC value.
+ </dd>
+</dl>
+
+<h2><a href="glossary.htm#vlan" class="glossary">VLAN</a> Parameters</h2>
+
+<dl>
+ <dt class="acl_v2_only">802.1Q Tagged</dt>
+ <dd class="acl_v2_only">
+ Specify whether frames can hit the action according to the 802.1Q tagged. The allowed values are:
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ <br><samp>Enabled</samp>: Tagged frame only.
+ <br><samp>Disabled</samp>: Untagged frame only.
+ <br>The default value is "Any".
+ </dd>
+
+ <dt><a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a> Filter</dt>
+ <dd>
+ Specify the VLAN ID filter for this ACE.
+ <br><samp>Any</samp>: No VLAN ID filter is specified. (VLAN ID filter status is "don't-care".)
+ <br><samp>Specific</samp>: If you want to filter a specific VLAN ID with this ACE, choose this value. A field for entering a VLAN ID number appears.
+ </dd>
+
+ <dt>VLAN ID</dt>
+ <dd>
+ When "Specific" is selected for the VLAN ID filter, you can enter a specific VLAN ID number. The allowed range is <samp>1</samp> to <samp>4095</samp>. A frame that hits this ACE matches this VLAN ID value.
+ </dd>
+
+ <dt><a href="glossary.htm#tag_priority" class="glossary">Tag Priority</a></dt>
+ <dd>
+ Specify the tag priority for this ACE. A frame that hits this ACE matches this tag priority. The allowed number range is <samp>0</samp> to <samp>7</samp> or range <samp>0-1</samp>, <samp>2-3</samp>, <samp>4-5</samp>, <samp>6-7</samp>, <samp>0-3</samp> and <samp>4-7</samp>. The value <samp>Any</samp> means that no tag priority is specified (tag priority is "don't-care".)
+ </dd>
+</dl>
+
+<h2>ARP Parameters</h2>
+
+<p>The ARP parameters can be configured when Frame Type "ARP" is selected.</p>
+
+<dl>
+ <dt>ARP/<a href="glossary.htm#rarp" class="glossary">RARP</a></dt>
+ <dd>
+ Specify the available ARP/RARP opcode (OP) flag for this ACE.
+ <br><samp>Any</samp>: No ARP/RARP OP flag is specified. (OP is "don't-care".)
+ <br><samp>ARP</samp>: Frame must have ARP opcode set to ARP.
+ <br><samp>RARP</samp>: Frame must have RARP opcode set to RARP.
+ <br><samp>Other</samp>: Frame has unknown ARP/RARP Opcode flag.
+ </dd>
+
+ <dt>Request/Reply</dt>
+ <dd>
+ Specify the available Request/Reply opcode (OP) flag for this ACE.
+ <br><samp>Any</samp>: No Request/Reply OP flag is specified. (OP is "don't-care".)
+ <br><samp>Request</samp>: Frame must have ARP Request or RARP Request OP flag set.
+ <br><samp>Reply</samp>: Frame must have ARP Reply or RARP Reply OP flag.
+ </dd>
+
+ <dt>Sender <a href="glossary.htm#ip" class="glossary">IP</a> Filter</dt>
+ <dd>
+ Specify the sender IP filter for this ACE.
+ <br><samp>Any</samp>: No sender IP filter is specified. (Sender IP filter is "don't-care".)
+ <br><samp>Host</samp>: Sender IP filter is set to Host. Specify the sender IP address in the SIP Address field that appears.
+ <br><samp>Network</samp>: Sender IP filter is set to Network. Specify the sender IP address and sender IP mask in the SIP Address and SIP Mask fields that appear.
+ </dd>
+
+ <dt>Sender IP Address</dt>
+ <dd>
+ When "Host" or "Network" is selected for the sender IP filter, you can enter a specific sender IP address in <a href="glossary.htm#dotted_decimal" class="glossary">dotted decimal notation</a>.
+ </dd>
+
+ <dt>Sender IP Mask</dt>
+ <dd>
+ When "Network" is selected for the sender IP filter, you can enter a specific sender IP mask in <a href="glossary.htm#dotted_decimal" class="glossary">dotted decimal notation</a>.
+ </dd>
+
+ <dt>Target IP Filter</dt>
+ <dd>
+ Specify the target IP filter for this specific ACE.
+ <br><samp>Any</samp>: No target IP filter is specified. (Target IP filter is "don't-care".)
+ <br><samp>Host</samp>: Target IP filter is set to Host. Specify the target IP address in the Target IP Address field that appears.
+ <samp>Network</samp>: Target IP filter is set to Network. Specify the target IP address and target IP mask in the Target IP Address and Target IP Mask fields that appear.
+ </dd>
+
+ <dt>Target IP Address</dt>
+ <dd>
+ When "Host" or "Network" is selected for the target IP filter, you can enter a specific target IP address in <a href="glossary.htm#dotted_decimal" class="glossary">dotted decimal notation</a>.
+ </dd>
+
+ <dt>Target IP Mask</dt>
+ <dd>
+ When "Network" is selected for the target IP filter, you can enter a specific target IP mask in <a href="glossary.htm#dotted_decimal" class="glossary">dotted decimal notation</a>.
+ </dd>
+
+ <dt>ARP Sender MAC Match</dt>
+ <dd>
+ Specify whether frames can hit the action according to their sender hardware address field (SHA) settings.
+ <br><samp>0</samp>: ARP frames where SHA is not equal to the SMAC address.
+ <br><samp>1</samp>: ARP frames where SHA is equal to the SMAC address.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>RARP Target MAC Match</dt>
+ <dd>
+ Specify whether frames can hit the action according to their target hardware address field (THA) settings.
+ <br><samp>0</samp>: RARP frames where THA is not equal to the target MAC address.
+ <br><samp>1</samp>: RARP frames where THA is equal to the target MAC address.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>IP/Ethernet Length</dt>
+ <dd>
+ Specify whether frames can hit the action according to their ARP/RARP hardware address length (HLN) and protocol address length (PLN) settings.
+ <br><samp>0</samp>: ARP/RARP frames where the HLN is not equal to Ethernet (0x06) or the (PLN) is not equal to IPv4 (0x04).
+ <br><samp>1</samp>: ARP/RARP frames where the HLN is equal to Ethernet (0x06) and the (PLN) is equal to IPv4 (0x04).
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>IP</dt>
+ <dd>
+ Specify whether frames can hit the action according to their ARP/RARP hardware address space (HRD) settings.
+ <br><samp>0</samp>: ARP/RARP frames where the HLD is not equal to Ethernet (1).
+ <br><samp>1</samp>: ARP/RARP frames where the HLD is equal to Ethernet (1).
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>Ethernet</dt>
+ <dd>
+ Specify whether frames can hit the action according to their ARP/RARP protocol address space (PRO) settings.
+ <br><samp>0</samp>: ARP/RARP frames where the PRO is not equal to IP (0x800).
+ <br><samp>1</samp>: ARP/RARP frames where the PRO is equal to IP (0x800).
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+</dl>
+
+<h2>IP Parameters</h2>
+
+<p>The IP parameters can be configured when Frame Type "IPv4" is selected.</p>
+
+<dl>
+ <dt>IP Protocol Filter</dt>
+ <dd>
+ Specify the IP protocol filter for this ACE.
+ <br><samp>Any</samp>: No IP protocol filter is specified ("don't-care").
+ <br><samp>Specific</samp>: If you want to filter a specific IP protocol filter with this ACE, choose this value. A field for entering an IP protocol filter appears.
+ <br><samp><a href="glossary.htm#icmp" class="glossary">ICMP</a></samp>: Select ICMP to filter IPv4 ICMP protocol frames. Extra fields for defining ICMP parameters will appear. These fields are explained later in this help file.
+ <br><samp><a href="glossary.htm#udp" class="glossary">UDP</a></samp>: Select UDP to filter IPv4 UDP protocol frames. Extra fields for defining UDP parameters will appear. These fields are explained later in this help file.
+ <br><samp><a href="glossary.htm#tcp" class="glossary">TCP</a></samp>: Select TCP to filter IPv4 TCP protocol frames. Extra fields for defining TCP parameters will appear. These fields are explained later in this help file.
+ </dd>
+
+ <dt>IP Protocol Value</dt>
+ <dd>
+ When "Specific" is selected for the IP protocol value, you can enter a specific value. The allowed range
+ is <samp>0</samp> to <samp>255</samp>. A frame that hits this ACE matches this IP protocol value.
+ </dd>
+
+ <dt>IP TTL</dt>
+ <dd>
+ Specify the Time-to-Live settings for this ACE.
+ <br><samp>zero</samp>: IPv4 frames with a Time-to-Live field greater than zero must not be able to match this entry.
+ <br><samp>non-zero</samp>: IPv4 frames with a Time-to-Live field greater than zero must be able to match this entry.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>IP Fragment</dt>
+ <dd>
+ Specify the fragment offset settings for this ACE. This involves the settings for the More Fragments (MF) bit and the Fragment Offset (FRAG OFFSET) field for an IPv4 frame.
+ <br><samp>No</samp>: IPv4 frames where the MF bit is set or the FRAG OFFSET field is greater than zero must not be able to match this entry.
+ <br><samp>Yes</samp>: IPv4 frames where the MF bit is set or the FRAG OFFSET field is greater than zero must be able to match this entry.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>IP Option</dt>
+ <dd>
+ Specify the options flag setting for this ACE.
+ <br><samp>No</samp>: IPv4 frames where the options flag is set must not be able to match this entry.
+ <br><samp>Yes</samp>: IPv4 frames where the options flag is set must be able to match this entry.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>SIP Filter</dt>
+ <dd>
+ Specify the source IP filter for this ACE.
+ <br><samp>Any</samp>: No source IP filter is specified. (Source IP filter is "don't-care".)
+ <br><samp>Host</samp>: Source IP filter is set to Host. Specify the source IP address in the SIP Address field that appears.
+ <br><samp>Network</samp>: Source IP filter is set to Network. Specify the source IP address and source IP mask in the SIP Address and SIP Mask fields that appear.
+ </dd>
+
+ <dt>SIP Address</dt>
+ <dd>
+ When "Host" or "Network" is selected for the source IP filter, you can enter a specific SIP address in <a href="glossary.htm#dotted_decimal" class="glossary">dotted decimal notation</a>.
+ </dd>
+
+ <dt>SIP Mask</dt>
+ <dd>
+ When "Network" is selected for the source IP filter, you can enter a specific SIP mask in <a href="glossary.htm#dotted_decimal" class="glossary">dotted decimal notation</a>.
+ </dd>
+
+ <dt>DIP Filter</dt>
+ <dd>
+ Specify the destination IP filter for this ACE.
+ <br><samp>Any</samp>: No destination IP filter is specified. (Destination IP filter is "don't-care".)
+ <br><samp>Host</samp>: Destination IP filter is set to Host. Specify the destination IP address in the DIP Address field that appears.
+ <br><samp>Network</samp>: Destination IP filter is set to Network. Specify the destination IP address and destination IP mask in the DIP Address and DIP Mask fields that appear.
+ </dd>
+
+ <dt>DIP Address</dt>
+ <dd>
+ When "Host" or "Network" is selected for the destination IP filter, you can enter a specific DIP address in <a href="glossary.htm#dotted_decimal" class="glossary">dotted decimal notation</a>.
+ </dd>
+
+ <dt>DIP Mask</dt>
+ <dd>
+ When "Network" is selected for the destination IP filter, you can enter a specific DIP mask in <a href="glossary.htm#dotted_decimal" class="glossary">dotted decimal notation</a>.
+ </dd>
+ </dl>
+
+<h2 class="acl_ipv6_only">IPv6 Parameters</h2>
+
+<p class="acl_ipv6_only">The IPv6 parameters can be configured when Frame Type "IPv6" is selected.</p>
+
+<dl class="acl_ipv6_only">
+ <dt>Next Header Filter</dt>
+ <dd>
+ Specify the IPv6 next header filter for this ACE.
+ <br><samp>Any</samp>: No IPv6 next header filter is specified ("don't-care").
+ <br><samp>Specific</samp>: If you want to filter a specific IPv6 next header filter with this ACE, choose this value. A field for entering an IPv6 next header filter appears.
+ <br><samp>ICMP</samp>: Select ICMP to filter IPv6 ICMP protocol frames. Extra fields for defining ICMP parameters will appear. These fields are explained later in this help file.
+ <br><samp>UDP</samp>: Select UDP to filter IPv6 UDP protocol frames. Extra fields for defining UDP parameters will appear. These fields are explained later in this help file.
+ <br><samp>TCP</samp>: Select TCP to filter IPv6 TCP protocol frames. Extra fields for defining TCP parameters will appear. These fields are explained later in this help file.
+ </dd>
+
+ <dt>Next Header Value</dt>
+ <dd>
+ When "Specific" is selected for the IPv6 next header value, you can enter a specific value. The allowed range
+ is <samp>0</samp> to <samp>255</samp>. A frame that hits this ACE matches this IPv6 protocol value.
+ </dd>
+
+ <dt>SIP Filter</dt>
+ <dd>
+ Specify the source IPv6 filter for this ACE.
+ <br><samp>Any</samp>: No source IPv6 filter is specified. (Source IPv6 filter is "don't-care".)
+ <br><samp>Specific</samp>: Source IPv6 filter is set to Network. Specify the source IPv6 address and source IPv6 mask in the SIP Address fields that appear.
+ </dd>
+
+ <dt>SIP Address</dt>
+ <dd>
+ When "Specific" is selected for the source IPv6 filter, you can enter a specific SIPv6 address.
+ The field only supported last 32 bits for IPv6 address.
+ </dd>
+
+ <dt>SIP BitMask</dt>
+ <dd>
+ When "Specific" is selected for the source IPv6 filter, you can enter a specific SIPv6 mask.
+ The field only supported last 32 bits for IPv6 address.
+ Notice the usage of bitmask, if the binary bit value is "0", it means this bit is "don't-care".
+ The real matched pattern is [sipv6_address &amp; sipv6_bitmask] (last 32 bits).
+ For example, if the SIPv6 address is 2001::3 and the SIPv6 bitmask is 0xFFFFFFFE(bit 0 is "don't-care" bit), then SIPv6 address 2001::2 and 2001::3 are applied to this rule.
+</dd>
+ 
+ <dt>Hop Limit</dt>
+ <dd>
+ Specify the hop limit settings for this ACE.
+ <br><samp>zero</samp>: IPv6 frames with a hop limit field greater than zero must not be able to match this entry.
+ <br><samp>non-zero</samp>: IPv6 frames with a hop limit field greater than zero must be able to match this entry.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+ </dl>
+ 
+<h2>ICMP Parameters</h2>
+
+<dl>
+ <dt>ICMP Type Filter</dt>
+ <dd>
+ Specify the ICMP filter for this ACE.
+ <br><samp>Any</samp>: No ICMP filter is specified (ICMP filter status is "don't-care").
+ <br><samp>Specific</samp>: If you want to filter a specific ICMP filter with this ACE, you can enter a specific ICMP value. A field for entering an ICMP value appears.
+ </dd>
+
+ <dt>ICMP Type Value</dt>
+ <dd>
+ When "Specific" is selected for the ICMP filter, you can enter a specific ICMP value. The allowed range is
+ <samp>0</samp> to <samp>255</samp>. A frame that hits this ACE matches this ICMP value.
+ </dd>
+
+ <dt>ICMP Code Filter</dt>
+ <dd>
+ Specify the ICMP code filter for this ACE.
+ <br><samp>Any</samp>: No ICMP code filter is specified (ICMP code filter status is "don't-care").
+ <br><samp>Specific</samp>: If you want to filter a specific ICMP code filter with this ACE, you can enter a specific ICMP code value. A field for entering an ICMP code value appears.
+ </dd>
+
+ <dt>ICMP Code Value</dt>
+ <dd>
+ When "Specific" is selected for the ICMP code filter, you can enter a specific ICMP code value. The allowed range is <samp>0</samp> to <samp>255</samp>. A frame that hits this ACE matches this ICMP code value.
+ </dd>
+</dl>
+
+<h2>TCP/UDP Parameters</h2>
+
+<dl>
+ <dt>TCP/UDP Source Filter</dt>
+ <dd>
+ Specify the TCP/UDP source filter for this ACE.
+ <br><samp>Any</samp>: No TCP/UDP source filter is specified (TCP/UDP source filter status is "don't-care").
+ <br><samp>Specific</samp>: If you want to filter a specific TCP/UDP source filter with this ACE, you can enter a specific TCP/UDP source value. A field for entering a TCP/UDP source value appears.
+ <br><samp>Range</samp>: If you want to filter a specific TCP/UDP source range filter with this ACE, you can enter a specific TCP/UDP source range value. A field for entering a TCP/UDP source value appears.
+ </dd>
+
+ <dt>TCP/UDP Source No.</dt>
+ <dd>
+ When "Specific" is selected for the TCP/UDP source filter, you can enter a specific TCP/UDP source value. The allowed range is <samp>0</samp> to <samp>65535</samp>. A frame that hits this ACE matches this TCP/UDP source value.
+ </dd>
+
+ <dt>TCP/UDP Source Range</dt>
+ <dd>
+ When "Range" is selected for the TCP/UDP source filter, you can enter a specific TCP/UDP source range value. The allowed range is <samp>0</samp> to <samp>65535</samp>. A frame that hits this ACE matches this TCP/UDP source value.
+ </dd>
+
+ <dt>TCP/UDP Destination Filter</dt>
+ <dd>
+ Specify the TCP/UDP destination filter for this ACE.
+ <br><samp>Any</samp>: No TCP/UDP destination filter is specified (TCP/UDP destination filter status is "don't-care").
+ <br><samp>Specific</samp>: If you want to filter a specific TCP/UDP destination filter with this ACE, you can enter a specific TCP/UDP destination value. A field for entering a TCP/UDP destination value appears.
+ <br><samp>Range</samp>: If you want to filter a specific range TCP/UDP destination filter with this ACE, you can enter a specific TCP/UDP destination range value. A field for entering a TCP/UDP destination value appears.
+ </dd>
+
+ <dt>TCP/UDP Destination Number</dt>
+ <dd>
+ When "Specific" is selected for the TCP/UDP destination filter, you can enter a specific TCP/UDP destination value. The allowed range is <samp>0</samp> to <samp>65535</samp>. A frame that hits this ACE matches this TCP/UDP destination value.
+ </dd>
+
+ <dt>TCP/UDP Destination Range</dt>
+ <dd>
+ When "Range" is selected for the TCP/UDP destination filter, you can enter a specific TCP/UDP destination range value. The allowed range is <samp>0</samp> to <samp>65535</samp>. A frame that hits this ACE matches this TCP/UDP destination value.
+ </dd>
+
+ <dt>TCP FIN</dt>
+ <dd>
+ Specify the TCP "No more data from sender" (FIN) value for this ACE.
+ <br><samp>0</samp>: TCP frames where the FIN field is set must not be able to match this entry.
+ <br><samp>1</samp>: TCP frames where the FIN field is set must be able to match this entry.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>TCP SYN</dt>
+ <dd>
+ Specify the TCP "Synchronize sequence numbers" (SYN) value for this ACE.
+ <br><samp>0</samp>: TCP frames where the SYN field is set must not be able to match this entry.
+ <br><samp>1</samp>: TCP frames where the SYN field is set must be able to match this entry.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>TCP RST</dt>
+ <dd>
+ Specify the TCP "Reset the connection" (RST) value for this ACE.
+ <br><samp>0</samp>: TCP frames where the RST field is set must not be able to match this entry.
+ <br><samp>1</samp>: TCP frames where the RST field is set must be able to match this entry.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>TCP PSH</dt>
+ <dd>
+ Specify the TCP "Push Function" (PSH) value for this ACE.
+ <br><samp>0</samp>: TCP frames where the PSH field is set must not be able to match this entry.
+ <br><samp>1</samp>: TCP frames where the PSH field is set must be able to match this entry.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>TCP ACK</dt>
+ <dd>
+ Specify the TCP "Acknowledgment field significant" (ACK) value for this ACE.
+ <br><samp>0</samp>: TCP frames where the ACK field is set must not be able to match this entry.
+ <br><samp>1</samp>: TCP frames where the ACK field is set must be able to match this entry.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+
+ <dt>TCP URG</dt>
+ <dd>
+ Specify the TCP "Urgent Pointer field significant" (URG) value for this ACE.
+ <br><samp>0</samp>: TCP frames where the URG field is set must not be able to match this entry.
+ <br><samp>1</samp>: TCP frames where the URG field is set must be able to match this entry.
+ <br><samp>Any</samp>: Any value is allowed ("don't-care").
+ </dd>
+</dl>
+
+<h2>Ethernet Type Parameters</h2>
+
+<p>The Ethernet Type parameters can be configured when Frame Type "Ethernet Type" is selected.</p>
+
+<dl>
+ <dt>EtherType Filter</dt>
+ <dd>
+ Specify the Ethernet type filter for this ACE.
+ <br><samp>Any</samp>: No EtherType filter is specified (EtherType filter status is "don't-care").
+ <br><samp>Specific</samp>: If you want to filter a specific EtherType filter with this ACE, you can enter a specific EtherType value. A field for entering a EtherType value appears.
+ </dd>
+
+ <dt>Ethernet Type Value</dt>
+ <dd>
+ When "Specific" is selected for the EtherType filter, you can enter a specific EtherType value. The allowed range is <samp>0x600</samp> to <samp>0xFFFF</samp> but excluding 0x800(IPv4), 0x806(ARP) and 0x86DD(IPv6). A frame that hits this ACE matches this EtherType value.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+<p><input type="button" value=" Cancel ">: Return to the previous page.</p>
+
+</body>
+</html>

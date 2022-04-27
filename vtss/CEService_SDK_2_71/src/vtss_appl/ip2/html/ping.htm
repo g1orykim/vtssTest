@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>ICMP Ping</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="lib/config.js"></script>
+  <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_diagnostics.htm#ping";
+
+function pingAddrIsHostName(fld_id, fld_text, max_length) 
+{
+  var fld = document.getElementById(fld_id);
+
+  if (!fld) {
+    return false;
+  }
+
+  // User-input error
+  if (max_length && fld.value.length > max_length) {
+    return GiveAlert("The length of " + fld_text + " is restricted to " + max_length, fld);
+  } else if (fld.value.length > 45) {
+    return GiveAlert("The length of " + fld_text + " is restricted to 45", fld);
+  }
+
+  if (/^(((?:0x)[0-9A-Fa-f]{1,2}|[0][0-7]{0,3}|[1-9][0-9]{0,2})\.){3}((?:0x)[0-9A-Fa-f]{1,2}|[0][0-7]{0,3}|[1-9][0-9]{0,2})$/.test(fld.value)) {
+    if (!isIpStr(fld_id, false, fld_text, 2)) {
+      return false;
+    }
+  } else if (configIPDNSSupport) {
+    if (fld.value && !(/^[A-Za-z][A-Za-z0-9-.]{0,}[A-Za-z0-9]$/.test(fld.value))) {
+      return GiveAlert("The format of " + fld_text + " is invalid.\n\n" +
+                       "It must either be a valid IP address in dotted decimal notation ('x.y.z.w') or a valid hostname.\n" +
+                       "A valid hostname is a string drawn from the alphabet (A-Za-z), digits (0-9), dot (.), dash (-).\n" +
+                       "Spaces are not allowed, the first character must be an alpha character,\n" +
+                       "and the first and last characters must not be a dot or a dash.\n", fld);
+    }
+  } else {
+    return GiveAlert("The format of " + fld_text + " is invalid.\n\n" +
+                     "It must be a valid IP in dotted decimal notation ('x.y.z.w').\n", fld);
+  } 
+  return true;
+}
+
+function checkForm()
+{
+    // ip_addr must be valid unicast address, excluding 0.0.0.0
+    if (!pingAddrIsHostName("ip_addr", "'IP Address'")) {
+        return false;
+    }
+
+    // length
+    if (!isWithinRange("length", configPingLenMin, configPingLenMax, "'Ping Length'", " bytes")) {
+        return false;
+    }
+
+    // count
+    if (!isWithinRange("count", configPingCntMin, configPingCntMax, "'Ping Count'", " times")) {
+        return false;
+    }
+
+    // interval
+    if (!isWithinRange("interval", configPingIntervalMin, configPingIntervalMax, "'Ping Interval'", " seconds")) {
+        return false;
+    }
+
+    return true;
+}
+ </script>
+</head>
+
+<body class="content">
+
+<h1>ICMP Ping</h1>
+
+<form method="POST" action="/config/ping" onsubmit="return checkForm();">
+
+<table summary="ICMP Ping" cellspacing="0" border="0">
+ <tr>
+  <td class="hdrl"><label for="ip_addr">IP Address</label></td>
+  <td class="cl"><input type="text" value="0.0.0.0" id="ip_addr" name="ip_addr" size="15" maxlength="255"></td>
+ </tr>
+ <tr>
+  <td class="hdrl"><label for="length">Ping Length</label></td>
+  <td class="cl"><input type="text" value="56" id="length" name="length" size="15" maxlength="4"></td>
+ </tr>
+ <tr>
+  <td class="hdrl"><label for="count">Ping Count</label></td>
+  <td class="cl"><input type="text" value="5" id="count" name="count" size="15" maxlength="2"></td>
+ </tr>
+ <tr>
+  <td class="hdrl"><label for="interval">Ping Interval</label></td>
+  <td class="cl"><input type="text" value="1" id="interval" name="interval" size="15" maxlength="2"></td>
+ </tr>
+</table>
+
+<p>
+<input type="submit" value="Start">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

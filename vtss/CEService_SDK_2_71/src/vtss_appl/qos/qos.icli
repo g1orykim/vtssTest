@@ -1,0 +1,7564 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_QOS) && (defined(VTSS_ARCH_JAGUAR_1) || defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL))
+
+INCLUDE_BEGIN
+#include "qos_api.h"
+#include "qos_icfg.h"
+#include "topo_api.h"
+#include "mgmt_api.h"
+#include "icli_porting_util.h"
+/*lint --e{438, 550} */
+INCLUDE_END
+
+FUNCTION_BEGIN
+#if defined(VTSS_SW_OPTION_QOS) && (defined(VTSS_ARCH_JAGUAR_1) || defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL))
+
+i32 icli_session_printf(
+    IN  u32         session_id,
+    IN  const char  *format,
+    IN  ...
+) __attribute__ ((format (__printf__, 2, 3)));
+
+
+#undef IC_RC
+#define IC_RC(expr) do {                              \
+    vtss_rc _rc_ = (expr);                            \
+    if (_rc_ != VTSS_OK) {                            \
+        ICLI_PRINTF("Error: %s!\n", error_txt(_rc_)); \
+        return _rc_;                                  \
+    }                                                 \
+} while (0)
+
+static BOOL QOS_ICLI_runtime_u32(icli_runtime_ask_t ask, icli_runtime_t *runtime, const char *name, u32 min, u32 max)
+{
+    if (ask == ICLI_ASK_BYWORD) {
+        icli_sprintf(runtime->byword, "<%s : %u-%u>", name, min, max);
+        return TRUE;
+    } else if (ask == ICLI_ASK_RANGE) {
+        runtime->range.type = ICLI_RANGE_TYPE_UNSIGNED;
+        runtime->range.u.sr.cnt = 1;
+        runtime->range.u.sr.range[0].min = min;
+        runtime->range.u.sr.range[0].max = max;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_wred(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_FEATURE_QOS_WRED) || defined(VTSS_FEATURE_QOS_WRED_V2)
+        runtime->present = TRUE;
+#endif
+        return TRUE;
+    }
+    return FALSE;
+}
+
+#if defined(QOS_QCL_INCLUDE) || defined(VTSS_FEATURE_QCL_DMAC_DIP) || defined(VTSS_ARCH_SERVAL)
+static BOOL QOS_ICLI_runtime_serval(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_ARCH_SERVAL)
+        runtime->present = TRUE;
+#endif /* defined(VTSS_ARCH_SERVAL) */
+        return TRUE;
+    }
+    return FALSE;
+}
+#endif /* defined(QOS_QCL_INCLUDE) || defined(VTSS_FEATURE_QCL_DMAC_DIP) || defined(VTSS_ARCH_SERVAL) */
+
+#if defined(VTSS_FEATURE_QCL_DMAC_DIP) || defined(VTSS_ARCH_SERVAL)
+static BOOL QOS_ICLI_runtime_dmac_dip(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_FEATURE_QCL_DMAC_DIP)
+        runtime->present = TRUE;
+#endif
+        return TRUE;
+    }
+    return FALSE;
+}
+#endif /* defined(VTSS_FEATURE_QCL_DMAC_DIP) || defined(VTSS_ARCH_SERVAL) */
+
+static BOOL QOS_ICLI_runtime_maps(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2) || defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2)
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+        runtime->present = TRUE;
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+#endif /* defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2) || defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) */
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_qos_classification(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2)
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+        runtime->present = TRUE;
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+#endif /* defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2) */
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_qos_dscp_remark(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2)
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+        runtime->present = TRUE;
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+#endif /* defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) */
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_storm(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH)
+        runtime->present = TRUE;
+#endif /* defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH) */
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_rate(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return QOS_ICLI_runtime_u32(ask, runtime, "Rate", QOS_BITRATE_MIN, QOS_BITRATE_MAX);
+}
+
+static BOOL QOS_ICLI_runtime_fps(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS)
+        runtime->present = TRUE;
+#endif /* defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS) */
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_flowcontrol(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        port_isid_info_t info;
+        (void)port_isid_info_get(VTSS_ISID_LOCAL, &info);
+        runtime->present = ((info.cap & PORT_CAP_FLOW_CTRL) != 0);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+static BOOL QOS_ICLI_runtime_dpl(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL)
+        runtime->present = TRUE;
+#endif /* defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL) */
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_remark(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_HELP:
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+        icli_sprintf(runtime->help, "Rewrite DSCP field using classified DSCP and DPL=0 remapped through global dscp-egress-translation map");
+#else
+        icli_sprintf(runtime->help, "Rewrite DSCP field using classified DSCP remapped through global dscp-egress-translation map");
+#endif /* defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE) */
+        return TRUE;
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_remark_dpa(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+        runtime->present = FALSE;
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+        runtime->present = TRUE;
+#endif /* defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE) */
+        return TRUE;
+    case ICLI_ASK_HELP:
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+        icli_sprintf(runtime->help, "Rewrite DSCP field using classified DSCP and DPL remapped through global dscp-egress-translation map");
+        return TRUE;
+#endif /* defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE) */
+    default:
+        break;
+    }
+    return FALSE;
+}
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+
+static BOOL QOS_ICLI_runtime_qce(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(QOS_QCL_INCLUDE)
+        runtime->present = TRUE;
+#endif /* defined(QOS_QCL_INCLUDE) */
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_qce_id(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return (ask == ICLI_ASK_PRESENT) ? QOS_ICLI_runtime_qce(session_id, ask, runtime) :
+    	    QOS_ICLI_runtime_u32(ask, runtime, "Id", QCE_ID_START, QCE_ID_END);
+}
+
+#if defined(QOS_QCL_INCLUDE)
+static BOOL QOS_ICLI_runtime_vr(icli_runtime_ask_t ask, icli_runtime_t *runtime, const char *name, u32 min, u32 max, BOOL odd_range)
+{
+    if (ask == ICLI_ASK_VCAP_VR) {
+        runtime->vcap_vr.min = min;
+        runtime->vcap_vr.max = max;
+        runtime->vcap_vr.b_odd_range = odd_range;
+        return TRUE;
+    }
+    return QOS_ICLI_runtime_u32(ask, runtime, name, min, max);
+}
+
+static BOOL QOS_ICLI_runtime_qce_smac48(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL)
+        runtime->present = TRUE;
+#endif /* defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL) */
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_qce_smac24(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    if (ask == ICLI_ASK_PRESENT) {
+        runtime->present = FALSE;
+#if defined(VTSS_ARCH_JAGUAR_1)
+        runtime->present = TRUE;
+#endif /* defined(VTSS_ARCH_JAGUAR_1) */
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_qce_smac(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_BYWORD:
+        icli_sprintf(runtime->byword, "Byword for QOS_ICLI_runtime_qce_smac");
+        return TRUE;
+    case ICLI_ASK_HELP:
+#if defined(VTSS_ARCH_LUTON26)
+        icli_sprintf(runtime->help, "Setup matched SMAC. If 'qos qce addr destination' is set, this parameter specifies the DMAC");
+#else
+        icli_sprintf(runtime->help, "Setup matched SMAC");
+#endif /* defined(VTSS_FEATURE_QCL_DMAC_DIP) */
+        return TRUE;
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_qce_sip(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_BYWORD:
+        icli_sprintf(runtime->byword, "Byword for QOS_ICLI_runtime_qce_sip");
+        return TRUE;
+    case ICLI_ASK_HELP:
+#if defined(VTSS_ARCH_LUTON26)
+        icli_sprintf(runtime->help, "Setup matched source IP address. If 'qos qce addr destination' is set, this parameter specifies the destination IP");
+#else
+        icli_sprintf(runtime->help, "Setup matched source IP address");
+#endif /* defined(VTSS_FEATURE_QCL_DMAC_DIP) */
+        return TRUE;
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_runtime_qce_ot_vid(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return QOS_ICLI_runtime_vr(ask, runtime, "Vid", 0, 4095, 1);
+}
+
+static BOOL QOS_ICLI_runtime_qce_it_vid(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return (ask == ICLI_ASK_PRESENT) ? QOS_ICLI_runtime_serval(session_id, ask, runtime) :
+    	    QOS_ICLI_runtime_vr(ask, runtime, "Vid", 0, 4095, 0);
+}
+
+static BOOL QOS_ICLI_runtime_qce_dscp(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return QOS_ICLI_runtime_vr(ask, runtime, "Dscp", 0, 63, 1);
+}
+
+static BOOL QOS_ICLI_runtime_qce_sport(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return QOS_ICLI_runtime_vr(ask, runtime, "Sport", 0, 0xffff, 1);
+}
+
+static BOOL QOS_ICLI_runtime_qce_dport(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return QOS_ICLI_runtime_vr(ask, runtime, "Dport", 0, 0xffff, 1);
+}
+
+static BOOL QOS_ICLI_runtime_policy(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    return (ask == ICLI_ASK_PRESENT) ? QOS_ICLI_runtime_serval(session_id, ask, runtime) :
+    	    QOS_ICLI_runtime_u32(ask, runtime, "Policy", 0, VTSS_ACL_POLICIES - 1);
+}
+
+// if min, max and mask is 0 it's 'any'
+// if min >= max it's specific value/mask else it's range
+#if defined(VTSS_ARCH_SERVAL)
+static void QOS_ICLI_qce_range_set(vtss_vcap_vr_t *dest, u16 min, u16 max, u16 mask)
+{
+    if (!min && !max && !mask) {
+        dest->type = VTSS_VCAP_VR_TYPE_VALUE_MASK;
+        dest->vr.v.value = 0;
+        dest->vr.v.mask = 0;
+    } else if (min >= max) {
+        dest->type = VTSS_VCAP_VR_TYPE_VALUE_MASK;
+        dest->vr.v.value = min;
+        dest->vr.v.mask = mask;
+    } else {
+        dest->type = VTSS_VCAP_VR_TYPE_RANGE_INCLUSIVE;
+        dest->vr.r.low = min;
+        dest->vr.r.high = max;
+    }
+}
+#endif /* defined(VTSS_ARCH_SERVAL) */
+
+static void QOS_ICLI_qce_range_set_u16(qos_qce_vr_u16_t *dest, u16 min, u16 max, u16 mask)
+{
+    if (!min && !max && !mask) {
+        dest->in_range = FALSE;
+        dest->vr.v.value = 0;
+        dest->vr.v.mask = 0;
+    } else if (min >= max) {
+        dest->in_range = FALSE;
+        dest->vr.v.value = min;
+        dest->vr.v.mask = mask;
+    } else {
+        dest->in_range = TRUE;
+        dest->vr.r.low = min;
+        dest->vr.r.high = max;
+    }
+}
+
+static void QOS_ICLI_qce_range_set_u8(qos_qce_vr_u8_t *dest, u8 min, u8 max, u8 mask)
+{
+    if (!min && !max && !mask) {
+        dest->in_range = FALSE;
+        dest->vr.v.value = 0;
+        dest->vr.v.mask = 0;
+    } else if (min >= max) {
+        dest->in_range = FALSE;
+        dest->vr.v.value = min;
+        dest->vr.v.mask = mask;
+    } else {
+        dest->in_range = TRUE;
+        dest->vr.r.low = min;
+        dest->vr.r.high = max;
+    }
+}
+
+#if defined(VTSS_ARCH_SERVAL)
+static char *QOS_ICLI_qce_range_txt(vtss_vcap_vr_t *range, char *buf)
+{
+    if (range->type != VTSS_VCAP_VR_TYPE_VALUE_MASK) {
+        sprintf(buf, "%u-%u", range->vr.r.low, range->vr.r.high);
+    } else if (range->vr.v.mask) {
+        sprintf(buf, "%u", range->vr.v.value);
+    } else {
+        sprintf(buf, "any");
+    }
+    return (buf);
+}
+#endif /* defined(VTSS_ARCH_SERVAL) */
+
+static char *QOS_ICLI_qce_range_txt_u16(qos_qce_vr_u16_t *range, char *buf)
+{
+    if (range->in_range) {
+        sprintf(buf, "%u-%u", range->vr.r.low, range->vr.r.high);
+    } else if (range->vr.v.mask) {
+        sprintf(buf, "%u", range->vr.v.value);
+    } else {
+        sprintf(buf, "any");
+    }
+    return (buf);
+}
+
+static char *QOS_ICLI_qce_range_txt_u8(qos_qce_vr_u8_t *range, char *buf)
+{
+    if (range->in_range) {
+        sprintf(buf, "%u-%u", range->vr.r.low, range->vr.r.high);
+    } else if (range->vr.v.mask) {
+        sprintf(buf, "%u", range->vr.v.value);
+    } else {
+        sprintf(buf, "any");
+    }
+    return (buf);
+}
+
+static char *QOS_ICLI_qce_proto_txt(vtss_qce_u8_t *proto, char *buf)
+{
+    if (proto->mask) {
+        if (proto->value == 6) {
+            sprintf(buf, "tcp");
+        } else if (proto->value == 17) {
+            sprintf(buf, "udp");
+        } else {
+            sprintf(buf, "%u", proto->value);
+        }
+    } else {
+        sprintf(buf, "any");
+    }
+    return (buf);
+}
+
+static char *QOS_ICLI_qce_port_list_txt(qos_qce_entry_conf_t *conf, char *buf)
+{
+    BOOL          port_list[VTSS_PORT_ARRAY_SIZE];
+    int           i;
+
+    for (i = VTSS_PORT_NO_START; i < VTSS_PORT_NO_END; i++) {
+        port_list[i] = (VTSS_PORT_BF_GET(conf->port_list, i)) ? 1 : 0;
+    }
+    return icli_iport_list_txt(port_list, buf);
+}
+
+static char *QOS_ICLI_qce_ipv6_txt(vtss_qce_u32_t *ip, char *buf)
+{
+    ulong i, n = 0;
+
+    if (!ip->mask[0] && !ip->mask[1] && !ip->mask[2] && !ip->mask[3]) {
+        sprintf(buf, "any");
+    } else {
+        for (i = 0; i < 32; i++) {
+            if (ip->mask[i / 8] & (1 << (i % 8))) {
+                n++;
+            }
+        }
+        sprintf(buf, "%u.%u.%u.%u/%d", ip->value[0], ip->value[1], ip->value[2], ip->value[3], n);
+    }
+    return (buf);
+}
+
+static const char *QOS_ICLI_qce_user_name(qcl_user_t user)
+{
+    switch (user) {
+    case QCL_USER_STATIC: return "static";
+#ifdef VTSS_SW_OPTION_VOICE_VLAN
+    case QCL_USER_VOICE_VLAN: return "voice vlan";
+#endif
+    default: return "unknown user";
+    }
+}
+
+static void QOS_ICLI_show_qce_conf(u32 session_id, BOOL stacking, qcl_user_t user, qos_qce_entry_conf_t *conf)
+{
+    char name[128];
+    char buf[128];
+    u8   bit_val;
+
+    sprintf(name, "%s qce %u%s", QOS_ICLI_qce_user_name(user), conf->id, conf->conflict ? " (conflict)" : "");
+    icli_header(session_id, name, FALSE);
+    if (stacking) {
+        if (conf->isid == VTSS_ISID_GLOBAL) {
+            ICLI_PRINTF(" switch: any\n");
+        } else {
+            ICLI_PRINTF(" switch: %u\n", topo_isid2usid(conf->isid));
+        }
+    }
+    ICLI_PRINTF(" port: %s\n", QOS_ICLI_qce_port_list_txt(conf, buf));
+
+    ICLI_PRINTF(" key parameters:\n");
+    ICLI_PRINTF("  tag:\n");
+    bit_val = QCE_ENTRY_CONF_KEY_GET(conf->key.key_bits, QOS_QCE_VLAN_TAG);
+#if defined(VTSS_ARCH_SERVAL)
+    ICLI_PRINTF("   type: %s\n", qos_icfg_tag_type_text(bit_val, QCE_ENTRY_CONF_KEY_GET(conf->key.key_bits, QOS_QCE_VLAN_S_TAG)));
+#else
+    ICLI_PRINTF("   type: %s\n", qos_icfg_tag_type_text(bit_val, VTSS_VCAP_BIT_ANY));
+#endif
+
+    ICLI_PRINTF("   vid: %s\n", QOS_ICLI_qce_range_txt_u16(&conf->key.vid, buf));
+
+    if (!conf->key.pcp.mask) {
+        ICLI_PRINTF("   pcp: any\n");
+    } else if (conf->key.pcp.mask == 0xFF) {
+        ICLI_PRINTF("   pcp: %u\n", conf->key.pcp.value);
+    } else {
+        ICLI_PRINTF("   pcp: %u-%u\n", conf->key.pcp.value, (uchar)(conf->key.pcp.value + ((~conf->key.pcp.mask) & 0xFF)));
+    }
+
+    bit_val = QCE_ENTRY_CONF_KEY_GET(conf->key.key_bits, QOS_QCE_VLAN_DEI);
+    if (bit_val == VTSS_VCAP_BIT_ANY) {
+        ICLI_PRINTF("   dei: any\n");
+    } else {
+        ICLI_PRINTF("   dei: %u\n", (bit_val - 1));
+    }
+
+#if defined(VTSS_ARCH_SERVAL)
+    ICLI_PRINTF("  inner tag:\n");
+    ICLI_PRINTF("   type: %s\n", qos_icfg_tag_type_text(conf->key.inner_tag.tagged, conf->key.inner_tag.s_tag));
+
+    ICLI_PRINTF("   vid: %s\n", QOS_ICLI_qce_range_txt(&conf->key.inner_tag.vid, buf));
+
+    if (!conf->key.inner_tag.pcp.mask) {
+        ICLI_PRINTF("   pcp: any\n");
+    } else if (conf->key.inner_tag.pcp.mask == 0xFF) {
+        ICLI_PRINTF("   pcp: %u\n", conf->key.inner_tag.pcp.value);
+    } else {
+        ICLI_PRINTF("   pcp: %u-%u\n", conf->key.inner_tag.pcp.value, (uchar)(conf->key.inner_tag.pcp.value + ((~conf->key.inner_tag.pcp.mask) & 0xFF)));
+    }
+
+    if (conf->key.inner_tag.dei == VTSS_VCAP_BIT_ANY) {
+        ICLI_PRINTF("   dei: any\n");
+    } else {
+        ICLI_PRINTF("   dei: %u\n", (conf->key.inner_tag.dei == VTSS_VCAP_BIT_ANY) ? 0 : 1);
+    }
+#endif /* defined(VTSS_ARCH_SERVAL) */
+
+#if defined(VTSS_ARCH_JAGUAR_1)
+    if (!conf->key.smac.mask[0] && !conf->key.smac.mask[1] && !conf->key.smac.mask[2]) {
+        ICLI_PRINTF("  smac: any\n");
+    } else {
+        ICLI_PRINTF("  smac: %02x-%02x-%02x\n",
+                    conf->key.smac.value[0],
+                    conf->key.smac.value[1],
+                    conf->key.smac.value[2]);
+    }
+#else
+    if (!conf->key.smac.mask[0] && !conf->key.smac.mask[1] && !conf->key.smac.mask[2] &&
+        !conf->key.smac.mask[3] && !conf->key.smac.mask[4] && !conf->key.smac.mask[5]) {
+        ICLI_PRINTF("  smac: any\n");
+    } else {
+        ICLI_PRINTF("  smac: %02x-%02x-%02x-%02x-%02x-%02x\n",
+                    conf->key.smac.value[0],
+                    conf->key.smac.value[1],
+                    conf->key.smac.value[2],
+                    conf->key.smac.value[3],
+                    conf->key.smac.value[4],
+                    conf->key.smac.value[5]);
+    }
+#endif /* defined(VTSS_ARCH_JAGUAR_1) */
+
+    switch (QCE_ENTRY_CONF_KEY_GET(conf->key.key_bits, QOS_QCE_DMAC_TYPE)) {
+    case QOS_QCE_DMAC_TYPE_ANY:
+        sprintf(buf, "any");
+        break;
+    case QOS_QCE_DMAC_TYPE_UC:
+        sprintf(buf, "unicast");
+        break;
+    case QOS_QCE_DMAC_TYPE_MC:
+        sprintf(buf, "multicast");
+        break;
+    case QOS_QCE_DMAC_TYPE_BC:
+        sprintf(buf, "broadcast");
+        break;
+    default:
+        sprintf(buf, "?");
+        break;
+    }
+#if defined(VTSS_ARCH_SERVAL)
+    if (conf->key.dmac.mask[0] || conf->key.dmac.mask[1] || conf->key.dmac.mask[2] ||
+        conf->key.dmac.mask[3] || conf->key.dmac.mask[4] || conf->key.dmac.mask[5]) {
+        ICLI_PRINTF("  dmac: %02x-%02x-%02x-%02x-%02x-%02x\n",
+                    conf->key.dmac.value[0],
+                    conf->key.dmac.value[1],
+                    conf->key.dmac.value[2],
+                    conf->key.dmac.value[3],
+                    conf->key.dmac.value[4],
+                    conf->key.dmac.value[5]);
+    } else {
+        ICLI_PRINTF("  dmac: %s\n", buf);
+    }
+#else
+    ICLI_PRINTF("  dmac: %s\n", buf);
+#endif /* defined(VTSS_ARCH_SERVAL) */
+
+    switch (conf->type) {
+    case VTSS_QCE_TYPE_ETYPE:
+        if (conf->key.frame.etype.etype.mask[0] || conf->key.frame.etype.etype.mask[1]) {
+            sprintf(buf, "0x%x", (conf->key.frame.etype.etype.value[0] << 8) | conf->key.frame.etype.etype.value[1]);
+        } else {
+            sprintf(buf, "any");
+        }
+        ICLI_PRINTF("  frametype: etype %s\n", buf);
+        break;
+    case VTSS_QCE_TYPE_ANY:
+        ICLI_PRINTF("  frametype: any\n");
+        break;
+    case VTSS_QCE_TYPE_LLC:
+        ICLI_PRINTF("  frametype: llc\n");
+        if (conf->key.frame.llc.dsap.mask) {
+            ICLI_PRINTF("   dsap: 0x%x\n", conf->key.frame.llc.dsap.value);
+        } else {
+            ICLI_PRINTF("   dsap: any\n");
+        }
+        if (conf->key.frame.llc.ssap.mask) {
+            ICLI_PRINTF("   ssap: 0x%x\n", conf->key.frame.llc.ssap.value);
+        } else {
+            ICLI_PRINTF("   ssap: any\n");
+        }
+        if (conf->key.frame.llc.control.mask) {
+            ICLI_PRINTF("   control: 0x%x\n", conf->key.frame.llc.control.value);
+        } else {
+            ICLI_PRINTF("   control: any\n");
+        }
+        break;
+    case VTSS_QCE_TYPE_SNAP:
+        if (conf->key.frame.snap.pid.mask[0] || conf->key.frame.snap.pid.mask[1]) {
+            sprintf(buf, "0x%x", (conf->key.frame.snap.pid.value[0] << 8) | conf->key.frame.snap.pid.value[1]);
+        } else {
+            sprintf(buf, "any");
+        }
+        ICLI_PRINTF("  frametype: snap %s\n", buf);
+        break;
+    case VTSS_QCE_TYPE_IPV4:
+        ICLI_PRINTF("  frametype: ipv4\n");
+        ICLI_PRINTF("   proto: %s\n", QOS_ICLI_qce_proto_txt(&conf->key.frame.ipv4.proto, buf));
+        ICLI_PRINTF("   sip: %s\n", mgmt_acl_ipv4_txt(&conf->key.frame.ipv4.sip, buf, 1));
+#if defined(VTSS_ARCH_SERVAL)
+        ICLI_PRINTF("   dip: %s\n", mgmt_acl_ipv4_txt(&conf->key.frame.ipv4.dip, buf, 1));
+#endif /* defined(VTSS_ARCH_SERVAL) */
+        ICLI_PRINTF("   dscp: %s\n", QOS_ICLI_qce_range_txt_u8(&conf->key.frame.ipv4.dscp, buf));
+        bit_val = QCE_ENTRY_CONF_KEY_GET(conf->key.key_bits, QOS_QCE_IPV4_FRAGMENT);
+        ICLI_PRINTF("   frag: %s\n", (bit_val == VTSS_VCAP_BIT_ANY ? "any" : (bit_val == VTSS_VCAP_BIT_0 ? "no" : "yes")));
+        if (conf->key.frame.ipv4.proto.mask && (conf->key.frame.ipv4.proto.value == 6 || conf->key.frame.ipv4.proto.value == 17)) {
+            ICLI_PRINTF("   sport: %s\n", QOS_ICLI_qce_range_txt_u16(&conf->key.frame.ipv4.sport, buf));
+            ICLI_PRINTF("   dport: %s\n", QOS_ICLI_qce_range_txt_u16(&conf->key.frame.ipv4.dport, buf));
+        }
+        break;
+    case VTSS_QCE_TYPE_IPV6:
+        ICLI_PRINTF("  frametype: ipv6\n");
+        ICLI_PRINTF("   proto: %s\n", QOS_ICLI_qce_proto_txt(&conf->key.frame.ipv6.proto, buf));
+        ICLI_PRINTF("   sip: %s\n", QOS_ICLI_qce_ipv6_txt(&conf->key.frame.ipv6.sip, buf));
+#if defined(VTSS_ARCH_SERVAL)
+        ICLI_PRINTF("   dip: %s\n", QOS_ICLI_qce_ipv6_txt(&conf->key.frame.ipv6.dip, buf));
+#endif /* defined(VTSS_ARCH_SERVAL) */
+        ICLI_PRINTF("   dscp: %s\n", QOS_ICLI_qce_range_txt_u8(&conf->key.frame.ipv6.dscp, buf));
+        if (conf->key.frame.ipv6.proto.mask && (conf->key.frame.ipv6.proto.value == 6 || conf->key.frame.ipv6.proto.value == 17)) {
+            ICLI_PRINTF("   sport: %s\n", QOS_ICLI_qce_range_txt_u16(&conf->key.frame.ipv6.sport, buf));
+            ICLI_PRINTF("   dport: %s\n", QOS_ICLI_qce_range_txt_u16(&conf->key.frame.ipv6.dport, buf));
+        }
+        break;
+    default:
+        ICLI_PRINTF("  frametype: ?\n");
+        break;
+    }
+
+    ICLI_PRINTF(" action parameters:\n");
+    if (QCE_ENTRY_CONF_ACTION_GET(conf->action.action_bits, QOS_QCE_ACTION_PRIO)) {
+        ICLI_PRINTF("  cos: %u\n", conf->action.prio);
+    } else {
+        ICLI_PRINTF("  cos: default\n");
+    }
+    if (QCE_ENTRY_CONF_ACTION_GET(conf->action.action_bits, QOS_QCE_ACTION_DP)) {
+        ICLI_PRINTF("  dpl: %u\n", conf->action.dp);
+    } else {
+        ICLI_PRINTF("  dpl: default\n");
+    }
+    if (QCE_ENTRY_CONF_ACTION_GET(conf->action.action_bits, QOS_QCE_ACTION_DSCP)) {
+        ICLI_PRINTF("  dscp: %s\n", qos_dscp2str(conf->action.dscp));
+    } else {
+        ICLI_PRINTF("  dscp: default\n");
+    }
+#if defined(VTSS_ARCH_SERVAL)
+    if (QCE_ENTRY_CONF_ACTION_GET(conf->action.action_bits, QOS_QCE_ACTION_PCP_DEI)) {
+        ICLI_PRINTF("  tag: pcp %u, dei %u\n", conf->action.pcp, conf->action.dei);
+    } else {
+        ICLI_PRINTF("  tag: default\n");
+    }
+    if (QCE_ENTRY_CONF_ACTION_GET(conf->action.action_bits, QOS_QCE_ACTION_POLICY)) {
+        ICLI_PRINTF("  policy: %u\n", conf->action.policy_no);
+    } else {
+        ICLI_PRINTF("  policy: default\n");
+    }
+#endif /* defined(VTSS_ARCH_SERVAL) */
+}
+#endif /* defined(QOS_QCL_INCLUDE) */
+
+#endif /* defined(VTSS_SW_OPTION_QOS) && (defined(VTSS_ARCH_JAGUAR_1) || defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL)) */
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_QOS                        = Quality of Service
+HELP_QOS_INTERFACE              = Interface
+HELP_QOS_INTERFACE_LIST         = Interface selector
+HELP_QOS_WRED                   = Weighted Random Early Discard
+HELP_QOS_MAPS                   = Global QoS Maps/Tables
+HELP_QOS_STORM                  = Storm policer
+HELP_QOS_QCE                    = QoS Control Entry
+HELP_QOS_QCE_ID                 = QCE ID
+HELP_QOS_MAP                    = Global QoS Map/Table
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = show qos [ { interface [ <port_type_list> ] } | wred | { maps [ dscp-cos ] [ dscp-ingress-translation ] [ dscp-classify ] [ cos-dscp ] [ dscp-egress-translation ] } | storm | { qce [ <1-256> ] } ]
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+! 1: show
+! 2: qos
+! 3: interface
+! 4: <port_type_list>
+! 5: wred
+! 6: maps
+! 7: dscp-cos
+! 8: dscp-ingress-translation
+! 9: dscp-classify
+! 10: cos-dscp
+! 11: dscp-egress-translation
+! 12: storm
+! 13: qce
+! 14: <1-256>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_interface
+CMD_VAR = port
+CMD_VAR = has_wred
+CMD_VAR = has_maps
+CMD_VAR = has_dscp_cos
+CMD_VAR = has_dscp_ingress_translation
+CMD_VAR = has_dscp_classify
+CMD_VAR = has_cos_dscp
+CMD_VAR = has_dscp_egress_translation
+CMD_VAR = has_storm
+CMD_VAR = has_qce
+CMD_VAR = qce
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = QOS_ICLI_runtime_wred
+RUNTIME = QOS_ICLI_runtime_maps
+RUNTIME = QOS_ICLI_runtime_qos_classification
+RUNTIME = QOS_ICLI_runtime_qos_dscp_remark
+RUNTIME = QOS_ICLI_runtime_qos_dscp_remark
+RUNTIME = QOS_ICLI_runtime_qos_dscp_remark
+RUNTIME = QOS_ICLI_runtime_qos_dscp_remark
+RUNTIME = QOS_ICLI_runtime_storm
+RUNTIME = QOS_ICLI_runtime_qce
+RUNTIME = QOS_ICLI_runtime_qce_id
+
+HELP =
+HELP = ##HELP_QOS
+HELP = ##HELP_QOS_INTERFACE
+HELP = ##HELP_QOS_INTERFACE_LIST
+HELP = ##HELP_QOS_WRED
+HELP = ##HELP_QOS_MAPS
+HELP = Map for dscp to cos
+HELP = Map for dscp ingress translation
+HELP = Map for dscp classify enable
+HELP = Map for cos to dscp
+HELP = Map for dscp egress translation
+HELP = ##HELP_QOS_STORM
+HELP = ##HELP_QOS_QCE
+HELP = ##HELP_QOS_QCE_ID
+
+BYWORD =
+BYWORD =
+BYWORD = interface : Option
+BYWORD = <Port : port_type_list>
+BYWORD = wred : Option
+BYWORD = maps : Option
+BYWORD = dscp-cos : Option
+BYWORD = dscp-ingress-translation : Option
+BYWORD = dscp-classify : Option
+BYWORD = cos-dscp : Option
+BYWORD = dscp-egress-translation : Option
+BYWORD = storm : Option
+BYWORD = qce : Option
+BYWORD = <Qce : 1-256>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ((has_interface | has_wred | has_maps | has_storm | has_qce) == FALSE) {
+        has_interface = has_wred = has_maps = has_storm = has_qce = TRUE;
+    }
+
+    if (has_interface) {
+        switch_iter_t   sit;
+        port_iter_t     pit;
+        char            buf[128];
+        qos_port_conf_t c;
+        (void)icli_switch_iter_init(&sit);
+        while (icli_switch_iter_getnext(&sit, port)) {
+            (void)icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+            while (icli_port_iter_getnext(&pit, port)) {
+                IC_RC(qos_port_conf_get(sit.isid, pit.iport, &c));
+                ICLI_PRINTF("interface %s\n", icli_port_info_txt(sit.usid, pit.uport, buf));
+                ICLI_PRINTF(" qos cos %u\n", c.default_prio);
+#if !defined(QOS_USE_FIXED_PCP_QOS_MAP)
+                ICLI_PRINTF(" qos pcp %u\n", c.usr_prio);
+#endif /* !defined(QOS_USE_FIXED_PCP_QOS_MAP) */
+
+#ifdef VTSS_FEATURE_QOS_CLASSIFICATION_V2
+                ICLI_PRINTF(" qos dpl %u\n", c.default_dpl);
+#if !defined(QOS_USE_FIXED_PCP_QOS_MAP)
+                ICLI_PRINTF(" qos dei %u\n", c.default_dei);
+#endif /* !defined(QOS_USE_FIXED_PCP_QOS_MAP) */
+
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+#if !defined(QOS_USE_FIXED_PCP_QOS_MAP)
+                ICLI_PRINTF(" qos trust tag %s\n", icli_bool_txt(c.tag_class_enable));
+                {
+                    int pcp, dei;
+                    for (pcp = 0; pcp < VTSS_PCP_ARRAY_SIZE; pcp++) {
+                        for (dei = 0; dei < VTSS_DEI_ARRAY_SIZE; dei++) {
+                            ICLI_PRINTF(" qos map tag-cos pcp %d dei %d cos %u dpl %u\n",
+                                        pcp, dei, c.qos_class_map[pcp][dei], c.dp_level_map[pcp][dei]);
+                        }
+                    }
+                }
+#endif /* !defined(QOS_USE_FIXED_PCP_QOS_MAP) */
+                ICLI_PRINTF(" qos trust dscp %s\n", icli_bool_txt(c.dscp_class_enable));
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+#endif /* VTSS_FEATURE_QOS_CLASSIFICATION_V2 */
+
+                {
+#if defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS)
+                    BOOL fr = c.port_policer_ext[0].frame_rate;
+#else
+                    BOOL fr = FALSE;
+#endif /* VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS */
+
+#if defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FC)
+                    BOOL fc = c.port_policer_ext[0].flow_control;
+#else
+                    BOOL fc = FALSE;
+#endif /* VTSS_FEATURE_QOS_PORT_POLICER_EXT_FC */
+
+                    if (fc) {
+                        ICLI_PRINTF(" qos policer mode: %s, rate: %u %s, flowcontrol %s\n",
+                                    icli_bool_txt(c.port_policer[0].enabled), c.port_policer[0].policer.rate, fr ? "fps" : "kbps", icli_bool_txt(TRUE));
+                    } else {
+                        ICLI_PRINTF(" qos policer mode: %s, rate: %u %s\n",
+                                    icli_bool_txt(c.port_policer[0].enabled), c.port_policer[0].policer.rate, fr ? "fps" : "kbps");
+                    }
+                }
+
+#if defined(VTSS_SW_OPTION_BUILD_CE)
+#ifdef VTSS_FEATURE_QOS_QUEUE_POLICER
+                {
+                    int i;
+                    for (i = 0; i < QOS_PORT_QUEUE_CNT; i++) {
+                        ICLI_PRINTF(" qos queue-policer queue %d mode: %s, rate: %u kbps\n",
+                                    i, icli_bool_txt(c.queue_policer[i].enabled), c.queue_policer[i].policer.rate);
+                    }
+                }
+#endif /* VTSS_FEATURE_QOS_QUEUE_POLICER */
+#endif /* defined(VTSS_SW_OPTION_BUILD_CE) */
+
+                ICLI_PRINTF(" qos shaper mode: %s, rate: %u kbps\n", icli_bool_txt(c.shaper_status), c.shaper_rate);
+
+#ifdef VTSS_FEATURE_QOS_EGRESS_QUEUE_SHAPERS
+                {
+                    int i;
+                    for (i = 0; i < QOS_PORT_QUEUE_CNT; i++) {
+                        ICLI_PRINTF(" qos queue-shaper queue %d mode: %s, rate: %u kbps, excess: %s\n",
+                                    i, icli_bool_txt(c.queue_shaper[i].enable), c.queue_shaper[i].rate, icli_bool_txt(c.excess_enable[i]));
+                    }
+                }
+#endif /* VTSS_FEATURE_QOS_EGRESS_QUEUE_SHAPERS */
+
+#ifdef VTSS_FEATURE_QOS_SCHEDULER_V2
+                ICLI_PRINTF(" qos wrr mode: %s, weight: q0:%u q1:%u q2:%u q3:%u q4:%u q5:%u\n",
+                            icli_bool_txt(c.dwrr_enable), c.queue_pct[0], c.queue_pct[1], c.queue_pct[2], c.queue_pct[3], c.queue_pct[4], c.queue_pct[5]);
+#endif /* VTSS_FEATURE_QOS_SCHEDULER_V2 */
+
+#ifdef VTSS_FEATURE_QOS_TAG_REMARK_V2
+                switch (c.tag_remark_mode) {
+                case VTSS_TAG_REMARK_MODE_CLASSIFIED:
+                    ICLI_PRINTF(" qos tag-remark classified\n");
+                    break;
+                case VTSS_TAG_REMARK_MODE_DEFAULT:
+                    ICLI_PRINTF(" qos tag-remark default pcp %u dei %u\n", c.tag_default_pcp, c.tag_default_dei);
+                    break;
+                case VTSS_TAG_REMARK_MODE_MAPPED:
+                    ICLI_PRINTF(" qos tag-remark mapped\n");
+                    break;
+                default:
+                    break;
+                }
+
+                {
+                    int cos, dpl;
+                    for (cos = 0; cos < QOS_PORT_PRIO_CNT; cos++) {
+                        for (dpl = 0; dpl < 2; dpl++) {
+                            ICLI_PRINTF(" qos map cos-tag cos %d dpl %d pcp %u dei %u\n", cos, dpl, c.tag_pcp_map[cos][dpl], c.tag_dei_map[cos][dpl]);
+                        }
+                    }
+                }
+#endif /* VTSS_FEATURE_QOS_TAG_REMARK_V2 */
+
+#ifdef VTSS_FEATURE_QOS_DSCP_REMARK
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2)
+                ICLI_PRINTF(" qos dscp-translate %s\n", icli_bool_txt(c.dscp_translate));
+
+                switch (c.dscp_imode) {
+                case VTSS_DSCP_MODE_NONE:
+                    ICLI_PRINTF(" qos dscp-classify disabled\n");
+                    break;
+                case VTSS_DSCP_MODE_ZERO:
+                    ICLI_PRINTF(" qos dscp-classify zero\n");
+                    break;
+                case VTSS_DSCP_MODE_SEL:
+                    ICLI_PRINTF(" qos dscp-classify selected\n");
+                    break;
+                case VTSS_DSCP_MODE_ALL:
+                    ICLI_PRINTF(" qos dscp-classify any\n");
+                    break;
+                default:
+                    break;
+                }
+
+                switch (c.dscp_emode) {
+                case VTSS_DSCP_EMODE_DISABLE:
+                    ICLI_PRINTF(" qos dscp-remark disabled\n");
+                    break;
+                case VTSS_DSCP_EMODE_REMARK:
+                    ICLI_PRINTF(" qos dscp-remark rewrite\n");
+                    break;
+                case VTSS_DSCP_EMODE_REMAP:
+                    ICLI_PRINTF(" qos dscp-remark remap\n");
+                    break;
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+                case VTSS_DSCP_EMODE_REMAP_DPA:
+                    ICLI_PRINTF(" qos dscp-remark remap-dp\n");
+                    break;
+#endif /* VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE */
+                default:
+                    break;
+                }
+#endif /* VTSS_FEATURE_QOS_DSCP_REMARK_V2 */
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+#endif /* VTSS_FEATURE_QOS_DSCP_REMARK */
+
+#if defined(VTSS_SW_OPTION_JR_STORM_POLICERS)
+                {
+                    BOOL fr;
+
+#if defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS)
+                    fr = c.port_policer_ext[QOS_STORM_POLICER_UNICAST].frame_rate;
+#else
+                    fr = FALSE;
+#endif /* VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS */
+
+                    ICLI_PRINTF(" qos storm unicast mode: %s, rate: %u %s\n",
+                                icli_bool_txt(c.port_policer[QOS_STORM_POLICER_UNICAST].enabled),
+                                c.port_policer[QOS_STORM_POLICER_UNICAST].policer.rate, fr ? "fps" : "kbps");
+
+#if defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS)
+                    fr = c.port_policer_ext[QOS_STORM_POLICER_BROADCAST].frame_rate;
+#else
+                    fr = FALSE;
+#endif /* VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS */
+
+                    ICLI_PRINTF(" qos storm broadcast mode: %s, rate: %u %s\n",
+                                icli_bool_txt(c.port_policer[QOS_STORM_POLICER_BROADCAST].enabled),
+                                c.port_policer[QOS_STORM_POLICER_BROADCAST].policer.rate, fr ? "fps" : "kbps");
+
+#if defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS)
+                    fr = c.port_policer_ext[QOS_STORM_POLICER_UNKNOWN].frame_rate;
+#else
+                    fr = FALSE;
+#endif /* VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS */
+
+                    ICLI_PRINTF(" qos storm unknown mode: %s, rate: %u %s\n",
+                                icli_bool_txt(c.port_policer[QOS_STORM_POLICER_UNKNOWN].enabled),
+                                c.port_policer[QOS_STORM_POLICER_UNKNOWN].policer.rate, fr ? "fps" : "kbps");
+                }
+
+#endif /* defined(VTSS_SW_OPTION_JR_STORM_POLICERS) */
+
+#if defined(VTSS_FEATURE_QCL_DMAC_DIP)
+                ICLI_PRINTF(" qos qce addr %s\n", c.dmac_dip ? "destination" : "source");
+#endif /* defined(VTSS_FEATURE_QCL_DMAC_DIP) */
+#if defined(VTSS_ARCH_SERVAL)
+                ICLI_PRINTF(" qos qce key %s\n", qos_icfg_key_type_txt(c.key_type));
+#endif
+            }
+        }
+        ICLI_PRINTF("\n");
+    }
+
+#if defined(VTSS_FEATURE_QOS_WRED) || defined(VTSS_FEATURE_QOS_WRED_V2)
+    if (has_wred) {
+        qos_conf_t c;
+        int        queue;
+
+        IC_RC(qos_conf_get(&c));
+
+        ICLI_PRINTF("qos wred:\n");
+        ICLI_PRINTF("=========\n");
+
+#if defined(VTSS_FEATURE_QOS_WRED)
+        ICLI_PRINTF("Queue  Mode      Min Th  Mdp 1  Mdp 2  Mdp 3\n");
+        ICLI_PRINTF("-----  ----      ------  -----  -----  -----\n");
+
+        for (queue = 0; queue < QOS_PORT_WEIGHTED_QUEUE_CNT; queue++) {
+            ICLI_PRINTF("%d      %-8s    %3u    %3u    %3u    %3u\n",
+                        queue,
+                        icli_bool_txt(c.wred[queue].enable),
+                        c.wred[queue].min_th,
+                        c.wred[queue].max_prob_1,
+                        c.wred[queue].max_prob_2,
+                        c.wred[queue].max_prob_3);
+        }
+#elif defined(VTSS_FEATURE_QOS_WRED_V2)
+        ICLI_PRINTF("Queue  Mode      Min Fl  Max Dp or Fl\n");
+        ICLI_PRINTF("-----  ----      ------  ----------------------\n");
+
+        for (queue = 0; queue < QOS_PORT_WEIGHTED_QUEUE_CNT; queue++) {
+            ICLI_PRINTF("%d      %-8s  %3u %%   %3u %% %-s\n",
+                        queue,
+                        icli_bool_txt(c.wred[queue][1].enable),
+                        c.wred[queue][1].min_fl,
+                        c.wred[queue][1].max,
+                        (c.wred[queue][1].max_unit == VTSS_WRED_V2_MAX_DP) ? "Drop Probability" : "Fill Level");
+        }
+#endif
+        ICLI_PRINTF("\n");
+    }
+#endif /* defined(VTSS_FEATURE_QOS_WRED) || defined(VTSS_FEATURE_QOS_WRED_V2) */
+
+#if defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2) || defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2)
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+    if (has_maps) {
+        qos_conf_t c;
+        int i;
+
+        if ((has_dscp_cos | has_dscp_ingress_translation | has_dscp_classify | has_cos_dscp | has_dscp_egress_translation) == FALSE) {
+            has_dscp_cos = has_dscp_ingress_translation = has_dscp_classify = has_cos_dscp = has_dscp_egress_translation = TRUE;
+        }
+
+        IC_RC(qos_conf_get(&c));
+
+#if defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2)
+        if (has_dscp_cos) {
+            ICLI_PRINTF("qos map dscp-cos:\n");
+            ICLI_PRINTF("=================\n");
+
+            ICLI_PRINTF("DSCP       Trust     Cos  Dpl\n");
+            ICLI_PRINTF("---------  --------  ---  ---\n");
+
+            for (i = 0; i < 64; i++) {
+                ICLI_PRINTF("%-9s  %-8s  %-3u  %-3d\n", qos_dscp2str(i), icli_bool_txt(c.dscp.dscp_trust[i]), c.dscp.dscp_qos_class_map[i], c.dscp.dscp_dp_level_map[i]);
+            }
+            ICLI_PRINTF("\n");
+        }
+#endif /* VTSS_FEATURE_QOS_CLASSIFICATION_V2 */
+
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2)
+        if (has_dscp_ingress_translation) {
+            ICLI_PRINTF("qos map dscp-ingress-translation:\n");
+            ICLI_PRINTF("=================================\n");
+
+            ICLI_PRINTF("DSCP       Translated DSCP\n");
+            ICLI_PRINTF("---------  ---------------\n");
+
+            for (i = 0; i < 64; i++) {
+                ICLI_PRINTF("%-9s  %-9s\n", qos_dscp2str(i), qos_dscp2str(c.dscp.translate_map[i]));
+            }
+            ICLI_PRINTF("\n");
+        }
+
+        if (has_dscp_classify) {
+            ICLI_PRINTF("qos map dscp-classify:\n");
+            ICLI_PRINTF("======================\n");
+
+            ICLI_PRINTF("DSCP       Classify\n");
+            ICLI_PRINTF("---------  --------\n");
+
+            for (i = 0; i < 64; i++) {
+                ICLI_PRINTF("%-9s  %-8s\n", qos_dscp2str(i), icli_bool_txt(c.dscp.ingress_remark[i]));
+            }
+            ICLI_PRINTF("\n");
+        }
+
+        if (has_cos_dscp) {
+            ICLI_PRINTF("qos map cos-dscp:\n");
+            ICLI_PRINTF("=================\n");
+
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+            ICLI_PRINTF("Cos  Dpl  DSCP\n");
+            ICLI_PRINTF("---  ---  ---------\n");
+#else
+            ICLI_PRINTF("Cos  DSCP\n");
+            ICLI_PRINTF("---  ---------\n");
+#endif
+            for (i = 0; i < VTSS_PRIO_ARRAY_SIZE; i++) {
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+                ICLI_PRINTF("%-3d  %-3d  %-9s\n", i, 0, qos_dscp2str(c.dscp.qos_class_dscp_map[i]));
+                ICLI_PRINTF("%-3d  %-3d  %-9s\n", i, 1, qos_dscp2str(c.dscp.qos_class_dscp_map_dp1[i]));
+#else
+                ICLI_PRINTF("%-3d  %-9s\n", i, qos_dscp2str(c.dscp.qos_class_dscp_map[i]));
+#endif
+            }
+            ICLI_PRINTF("\n");
+        }
+
+        if (has_dscp_egress_translation) {
+            ICLI_PRINTF("qos map dscp-egress-translation:\n");
+            ICLI_PRINTF("================================\n");
+
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+            ICLI_PRINTF("DSCP       Remap dp0  Remap dp1\n");
+            ICLI_PRINTF("---------  ---------  ---------\n");
+#else
+            ICLI_PRINTF("DSCP       Remap\n");
+            ICLI_PRINTF("---------  ---------\n");
+#endif
+            for (i = 0; i < 64; i++) {
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+                ICLI_PRINTF("%-9s  %-9s  %-9s\n", qos_dscp2str(i), qos_dscp2str(c.dscp.egress_remap[i]), qos_dscp2str(c.dscp.egress_remap_dp1[i]));
+#else
+                ICLI_PRINTF("%-9s  %-9s\n", qos_dscp2str(i), qos_dscp2str(c.dscp.egress_remap[i]));
+#endif
+            }
+            ICLI_PRINTF("\n");
+        }
+#endif /* VTSS_FEATURE_QOS_DSCP_REMARK_V2 */
+    }
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+#endif /* defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2) || defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) */
+
+#if defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH)
+    if (has_storm) {
+        qos_conf_t c;
+        char       buf[32];
+
+        IC_RC(qos_conf_get(&c));
+
+        ICLI_PRINTF("qos storm:\n");
+        ICLI_PRINTF("==========\n");
+
+#if defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH)
+        ICLI_PRINTF("Unicast  : %s %12s\n", icli_bool_txt(c.policer_uc_status), qos_icfg_storm_rate_txt(c.policer_uc, buf));
+#endif /* defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH) */
+
+#if defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH)
+        ICLI_PRINTF("Multicast: %s %12s\n", icli_bool_txt(c.policer_mc_status), qos_icfg_storm_rate_txt(c.policer_mc, buf));
+#endif /* defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH) */
+
+#if defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH)
+        ICLI_PRINTF("Broadcast: %s %12s\n", icli_bool_txt(c.policer_bc_status), qos_icfg_storm_rate_txt(c.policer_bc, buf));
+#endif /* defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH) */
+    }
+#endif /* defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH) */
+
+#if defined(QOS_QCL_INCLUDE)
+    if (has_qce) {
+        qos_qce_entry_conf_t conf;
+        qcl_user_t           user;
+        switch_iter_t        sit;
+        BOOL                 stacking = vtss_stacking_enabled();
+
+        if (qce) {
+            if (qos_mgmt_qce_entry_get(VTSS_ISID_GLOBAL, QCL_USER_STATIC, QCL_ID_END, qce, &conf, FALSE) == VTSS_OK) {
+                QOS_ICLI_show_qce_conf(session_id, stacking, QCL_USER_STATIC, &conf);
+            } else {
+                ICLI_PRINTF("%%QOS: qce %u not found\n", qce);
+            }
+        } else {
+            int count = 0;
+            int conflicts = 0;
+            (void)icli_switch_iter_init(&sit);
+            while (icli_switch_iter_getnext(&sit, NULL)) {
+                for (user = QCL_USER_STATIC; user < QCL_USER_CNT; user++) {
+                    qce = QCE_ID_NONE;
+                    while (qos_mgmt_qce_entry_get(sit.isid, user, QCL_ID_END, qce, &conf, TRUE) == VTSS_OK) {
+                        count++;
+                        qce = conf.id;
+                        if (conf.conflict) {
+                            conflicts++;
+                        }
+                        QOS_ICLI_show_qce_conf(session_id, stacking, user, &conf);
+                    }
+                }
+            }
+            if (count == 0) {
+                ICLI_PRINTF("No qce entries found!\n");
+            } else if (conflicts) {
+                ICLI_PRINTF("\nConflicts found!\n");
+            }
+        }
+    }
+#endif /* defined(QOS_QCL_INCLUDE) */
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = qos map dscp-cos { <0~63> | <dscp> } cos <0-7> dpl <dpl>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: qos
+! 2: map
+! 3: dscp-cos
+! 4: <dscp_num:0~63>
+! 5: <dscp_name:dscp>
+! 6: cos
+! 7: <cos:0-7>
+! 8: dpl
+! 9: <dpl:dpl>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+CMD_VAR =
+CMD_VAR = cos
+CMD_VAR =
+CMD_VAR = dpl
+
+HELP = ##HELP_QOS
+HELP = ##HELP_QOS_MAP
+HELP = Map for dscp to cos
+HELP = Specific DSCP or range
+HELP =
+HELP = Specify class of service
+HELP = Specific class of service
+HELP = Specify drop precedence level
+HELP = Specific drop precedence level
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+BYWORD =
+BYWORD = <Cos : 0-7>
+BYWORD =
+BYWORD = <Dpl : dpl>
+
+VARIABLE_BEGIN
+    qos_conf_t c;
+    u32        cnt;
+    u32        dscp_val;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    if (dscp_num) {
+        for (cnt = 0; cnt < dscp_num->cnt; cnt++) {
+            for (dscp_val = dscp_num->range[cnt].min; dscp_val <= dscp_num->range[cnt].max; dscp_val++) {
+                c.dscp.dscp_trust[dscp_val]         = TRUE;
+                c.dscp.dscp_qos_class_map[dscp_val] = cos;
+                c.dscp.dscp_dp_level_map[dscp_val]  = dpl;
+            }
+        }
+    } else if (dscp_name != 0xFF) {
+        c.dscp.dscp_trust[dscp_name]         = TRUE;
+        c.dscp.dscp_qos_class_map[dscp_name] = cos;
+        c.dscp.dscp_dp_level_map[dscp_name]  = dpl;
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = no qos map dscp-cos { <0~63> | <dscp> }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: dscp-cos
+! 5: <dscp_num:0~63>
+! 6: <dscp_name:dscp>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+
+HELP =
+HELP = ##HELP_QOS
+HELP = ##HELP_QOS_MAP
+HELP = Map for dscp to cos
+HELP = Specific DSCP or range
+HELP =
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+
+VARIABLE_BEGIN
+    qos_conf_t c;
+    qos_conf_t dc;
+    u32        cnt;
+    u32        dscp_val;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    IC_RC(qos_conf_get_default(&dc));
+    if (dscp_num) {
+        for (cnt = 0; cnt < dscp_num->cnt; cnt++) {
+            for (dscp_val = dscp_num->range[cnt].min; dscp_val <= dscp_num->range[cnt].max; dscp_val++) {
+                c.dscp.dscp_trust[dscp_val]         = dc.dscp.dscp_trust[dscp_val];
+                c.dscp.dscp_qos_class_map[dscp_val] = dc.dscp.dscp_qos_class_map[dscp_val];
+                c.dscp.dscp_dp_level_map[dscp_val]  = dc.dscp.dscp_dp_level_map[dscp_val];
+            }
+        }
+    } else if (dscp_name != 0xFF) {
+        c.dscp.dscp_trust[dscp_name]         = dc.dscp.dscp_trust[dscp_name];
+        c.dscp.dscp_qos_class_map[dscp_name] = dc.dscp.dscp_qos_class_map[dscp_name];
+        c.dscp.dscp_dp_level_map[dscp_name]  = dc.dscp.dscp_dp_level_map[dscp_name];
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = qos map dscp-ingress-translation { <0~63> | <dscp> } to { <0-63> | <dscp> }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: qos
+! 2: map
+! 3: dscp-ingress-translation
+! 4: <dscp_num:0~63>
+! 5: <dscp_name:dscp>
+! 6: to
+! 7: <dscp_num_tr:0-63>
+! 8: <dscp_name_tr:dscp>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+CMD_VAR =
+CMD_VAR = dscp_num_tr
+CMD_VAR = dscp_name_tr
+
+HELP =
+HELP =
+HELP = Map for dscp ingress translation
+HELP = Specific DSCP or range
+HELP =
+HELP =
+HELP = Translated DSCP value
+HELP =
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+BYWORD =
+BYWORD = <DscpNumTr : 0-63>
+BYWORD = <DscpNameTr : dscp>
+
+VARIABLE_BEGIN
+    qos_conf_t  c;
+    u32         cnt;
+    u32         dscp_val;
+    vtss_dscp_t dscp;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    dscp = (dscp_name_tr != 0xFF) ? dscp_name_tr : dscp_num_tr & 0xFF;
+    if (dscp_num) {
+        for (cnt = 0; cnt < dscp_num->cnt; cnt++) {
+            for (dscp_val = dscp_num->range[cnt].min; dscp_val <= dscp_num->range[cnt].max; dscp_val++) {
+                c.dscp.translate_map[dscp_val] = dscp;
+            }
+        }
+    } else if (dscp_name != 0xFF) {
+        c.dscp.translate_map[dscp_name] = dscp;
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = no qos map dscp-ingress-translation { <0~63> | <dscp> }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: dscp-ingress-translation
+! 5: <dscp_num:0~63>
+! 6: <dscp_name:dscp>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+
+HELP =
+HELP =
+HELP =
+HELP = Map for dscp ingress translation
+HELP = Specific DSCP or range
+HELP =
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+
+VARIABLE_BEGIN
+    qos_conf_t c;
+    qos_conf_t dc;
+    u32        cnt;
+    u32        dscp_val;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    IC_RC(qos_conf_get_default(&dc));
+    if (dscp_num) {
+        for (cnt = 0; cnt < dscp_num->cnt; cnt++) {
+            for (dscp_val = dscp_num->range[cnt].min; dscp_val <= dscp_num->range[cnt].max; dscp_val++) {
+                c.dscp.translate_map[dscp_val] = dc.dscp.translate_map[dscp_val];
+            }
+        }
+    } else if (dscp_name != 0xFF) {
+        c.dscp.translate_map[dscp_name] = dc.dscp.translate_map[dscp_name];
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = qos map dscp-classify { <0~63> | <dscp> }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+NO_FORM_DOC_CMD_DESC    =
+NO_FORM_DOC_CMD_DEFAULT =
+NO_FORM_DOC_CMD_USAGE   =
+NO_FORM_DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: qos
+! 2: map
+! 3: dscp-classify
+! 4: <dscp_num:0~63>
+! 5: <dscp_name:dscp>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+
+HELP =
+HELP =
+HELP = Map for dscp classify enable
+HELP = Specific DSCP or range
+HELP =
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+
+VARIABLE_BEGIN
+    qos_conf_t c;
+    u32        cnt;
+    uint       dscp;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    qos_conf_t c;
+    qos_conf_t dc;
+    u32        cnt;
+    uint       dscp;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    if (dscp_num) {
+        for (cnt = 0; cnt < dscp_num->cnt; cnt++) {
+            for (dscp = dscp_num->range[cnt].min; dscp <= dscp_num->range[cnt].max; dscp++) {
+                c.dscp.ingress_remark[dscp] = TRUE;
+            }
+        }
+    } else if (dscp_name != 0xFF) {
+        c.dscp.ingress_remark[dscp_name] = TRUE;
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    IC_RC(qos_conf_get_default(&dc));
+    if (dscp_num) {
+        for (cnt = 0; cnt < dscp_num->cnt; cnt++) {
+            for (dscp = dscp_num->range[cnt].min; dscp <= dscp_num->range[cnt].max; dscp++) {
+                c.dscp.ingress_remark[dscp] = dc.dscp.ingress_remark[dscp];
+            }
+        }
+    } else if (dscp_name != 0xFF) {
+        c.dscp.ingress_remark[dscp_name] = dc.dscp.ingress_remark[dscp_name];
+    }
+    IC_RC(qos_conf_set(&c));
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+
+COMMAND = qos map cos-dscp <0~7> dpl <0~1> dscp { <0-63> | <dscp> }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = QOS_ICLI_runtime_dpl
+RUNTIME = QOS_ICLI_runtime_dpl
+
+! 1: qos
+! 2: map
+! 3: cos-dscp
+! 4: <cos:0~7>
+! 5: dpl
+! 6: <dpl:0~1>
+! 7: dscp
+! 8: <dscp_num:0-63>
+! 9: <dscp_name:dscp>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = cos
+CMD_VAR =
+CMD_VAR = dpl
+CMD_VAR =
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+
+HELP =
+HELP =
+HELP = Map for cos to dscp
+HELP = Specific class of service or range
+HELP = Specify drop precedence level
+HELP = Specific drop precedence level or range
+HELP = Specify DSCP
+HELP = Specific DSCP
+HELP =
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Cos : 0~7>
+BYWORD =
+BYWORD = <Dpl : 0~1>
+BYWORD =
+BYWORD = <DscpNum : 0-63>
+BYWORD = <DscpName : dscp>
+
+VARIABLE_BEGIN
+    qos_conf_t  c;
+    u32         cos_cnt;
+    u32         cos_val;
+    vtss_dscp_t dscp;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    dscp = (dscp_name != 0xFF) ? dscp_name : dscp_num & 0xFF;
+    if (cos) {
+        for (cos_cnt = 0; cos_cnt < cos->cnt; cos_cnt++) {
+            for (cos_val = cos->range[cos_cnt].min; cos_val <= cos->range[cos_cnt].max; cos_val++) {
+#if defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL)
+                u32 dpl_cnt;
+                u32 dpl_val;
+                if (dpl) {
+                    for (dpl_cnt = 0; dpl_cnt < dpl->cnt; dpl_cnt++) {
+                        for (dpl_val = dpl->range[dpl_cnt].min; dpl_val <= dpl->range[dpl_cnt].max; dpl_val++) {
+                            if (dpl_val == 0) {
+                                c.dscp.qos_class_dscp_map[cos_val] = dscp;
+                            } else {
+                                c.dscp.qos_class_dscp_map_dp1[cos_val] = dscp;
+                            }
+                        }
+                    }
+                }
+#else
+                c.dscp.qos_class_dscp_map[cos_val] = dscp;
+#endif
+            }
+        }
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+
+COMMAND = no qos map cos-dscp <0~7> dpl <0~1>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = QOS_ICLI_runtime_dpl
+RUNTIME = QOS_ICLI_runtime_dpl
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: cos-dscp
+! 5: <cos:0~7>
+! 6: dpl
+! 7: <dpl:0~1>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = cos
+CMD_VAR =
+CMD_VAR = dpl
+
+HELP =
+HELP =
+HELP =
+HELP = Map for cos to dscp
+HELP = Specific class of service or range
+HELP = Specify drop precedence level
+HELP = Specific drop precedence level or range
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Cos : 0~7>
+BYWORD =
+BYWORD = <Dpl : 0~1>
+
+VARIABLE_BEGIN
+    qos_conf_t  c;
+    qos_conf_t  dc;
+    u32         cos_cnt;
+    u32         cos_val;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    IC_RC(qos_conf_get_default(&dc));
+    if (cos) {
+        for (cos_cnt = 0; cos_cnt < cos->cnt; cos_cnt++) {
+            for (cos_val = cos->range[cos_cnt].min; cos_val <= cos->range[cos_cnt].max; cos_val++) {
+#if defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL)
+                u32 dpl_cnt;
+                u32 dpl_val;
+                if (dpl) {
+                    for (dpl_cnt = 0; dpl_cnt < dpl->cnt; dpl_cnt++) {
+                        for (dpl_val = dpl->range[dpl_cnt].min; dpl_val <= dpl->range[dpl_cnt].max; dpl_val++) {
+                            if (dpl_val == 0) {
+                                c.dscp.qos_class_dscp_map[cos_val] = dc.dscp.qos_class_dscp_map[cos_val];
+                            } else {
+                                c.dscp.qos_class_dscp_map_dp1[cos_val] = dc.dscp.qos_class_dscp_map_dp1[cos_val];
+                            }
+                        }
+                    }
+                }
+#else
+                c.dscp.qos_class_dscp_map[cos_val] = dc.dscp.qos_class_dscp_map[cos_val];
+#endif
+            }
+        }
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+
+COMMAND = qos map dscp-egress-translation { <0~63> | <dscp> } <0~1> to { <0-63> | <dscp> }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = QOS_ICLI_runtime_dpl
+
+! 1: qos
+! 2: map
+! 3: dscp-egress-translation
+! 4: <dscp_num:0~63>
+! 5: <dscp_name:dscp>
+! 6: <dpl:0~1>
+! 7: to
+! 8: <dscp_num_tr:0-63>
+! 9: <dscp_name_tr:dscp>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+CMD_VAR = dpl
+CMD_VAR =
+CMD_VAR = dscp_num_tr
+CMD_VAR = dscp_name_tr
+
+HELP =
+HELP =
+HELP = Map for dscp egress translation
+HELP = Specific DSCP or range
+HELP =
+HELP = Specific drop precedence level or range
+HELP =
+HELP = Translated DSCP value
+HELP =
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+BYWORD = <Dpl : 0~1>
+BYWORD =
+BYWORD = <DscpNumTr : 0-63>
+BYWORD = <DscpNameTr : dscp>
+
+VARIABLE_BEGIN
+    qos_conf_t  c;
+    u32         cnt;
+    u32         dscp_val;
+    vtss_dscp_t dscp;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    dscp = (dscp_name_tr != 0xFF) ? dscp_name_tr : dscp_num_tr & 0xFF;
+    if (dscp_num) {
+        for (cnt = 0; cnt < dscp_num->cnt; cnt++) {
+            for (dscp_val = dscp_num->range[cnt].min; dscp_val <= dscp_num->range[cnt].max; dscp_val++) {
+#if defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL)
+                u32 dpl_cnt;
+                u32 dpl_val;
+                if (dpl) {
+                    for (dpl_cnt = 0; dpl_cnt < dpl->cnt; dpl_cnt++) {
+                        for (dpl_val = dpl->range[dpl_cnt].min; dpl_val <= dpl->range[dpl_cnt].max; dpl_val++) {
+                            if (dpl_val == 0) {
+                                c.dscp.egress_remap[dscp_val] = dscp;
+                            } else {
+                                c.dscp.egress_remap_dp1[dscp_val] = dscp;
+                            }
+                        }
+                    }
+                }
+#else
+                c.dscp.egress_remap[dscp_val] = dscp;
+#endif
+            }
+        }
+    } else if (dscp_name != 0xFF) {
+#if defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL)
+        u32 dpl_cnt;
+        u32 dpl_val;
+        if (dpl) {
+            for (dpl_cnt = 0; dpl_cnt < dpl->cnt; dpl_cnt++) {
+                for (dpl_val = dpl->range[dpl_cnt].min; dpl_val <= dpl->range[dpl_cnt].max; dpl_val++) {
+                    if (dpl_val == 0) {
+                        c.dscp.egress_remap[dscp_name] = dscp;
+                    } else {
+                        c.dscp.egress_remap_dp1[dscp_name] = dscp;
+                    }
+                }
+            }
+        }
+#else
+        c.dscp.egress_remap[dscp_name] = dscp;
+#endif
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+
+COMMAND = no qos map dscp-egress-translation { <0~63> | <dscp> } <0~1>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = QOS_ICLI_runtime_dpl
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: dscp-egress-translation
+! 5: <dscp_num:0~63>
+! 6: <dscp_name:dscp>
+! 7: <dpl:0~1>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+CMD_VAR = dpl
+
+HELP =
+HELP =
+HELP =
+HELP = Map for dscp egress translation
+HELP = Specific DSCP or range
+HELP =
+HELP = Specific drop precedence level or range
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+BYWORD = <Dpl : 0~1>
+
+VARIABLE_BEGIN
+    qos_conf_t c;
+    qos_conf_t dc;
+    u32        cnt;
+    u32        dscp_val;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    IC_RC(qos_conf_get_default(&dc));
+    if (dscp_num) {
+        for (cnt = 0; cnt < dscp_num->cnt; cnt++) {
+            for (dscp_val = dscp_num->range[cnt].min; dscp_val <= dscp_num->range[cnt].max; dscp_val++) {
+#if defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL)
+                u32 dpl_cnt;
+                u32 dpl_val;
+                if (dpl) {
+                    for (dpl_cnt = 0; dpl_cnt < dpl->cnt; dpl_cnt++) {
+                        for (dpl_val = dpl->range[dpl_cnt].min; dpl_val <= dpl->range[dpl_cnt].max; dpl_val++) {
+                            if (dpl_val == 0) {
+                                c.dscp.egress_remap[dscp_val] = dc.dscp.egress_remap[dscp_val];
+                            } else {
+                                c.dscp.egress_remap_dp1[dscp_val] = dc.dscp.egress_remap_dp1[dscp_val];
+                            }
+                        }
+                    }
+                }
+#else
+                c.dscp.egress_remap[dscp_val] = dc.dscp.egress_remap[dscp_val];
+#endif
+            }
+        }
+    } else if (dscp_name != 0xFF) {
+#if defined(VTSS_ARCH_LUTON26) || defined(VTSS_ARCH_SERVAL)
+        u32 dpl_cnt;
+        u32 dpl_val;
+        if (dpl) {
+            for (dpl_cnt = 0; dpl_cnt < dpl->cnt; dpl_cnt++) {
+                for (dpl_val = dpl->range[dpl_cnt].min; dpl_val <= dpl->range[dpl_cnt].max; dpl_val++) {
+                    if (dpl_val == 0) {
+                        c.dscp.egress_remap[dscp_name] = dc.dscp.egress_remap[dscp_name];
+                    } else {
+                        c.dscp.egress_remap_dp1[dscp_name] = dc.dscp.egress_remap_dp1[dscp_name];
+                    }
+                }
+            }
+        }
+#else
+        c.dscp.egress_remap[dscp_name] = dc.dscp.egress_remap[dscp_name];
+#endif
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_WRED)
+
+COMMAND = qos wred queue <0~5> min-th <0-100> mdp-1 <0-100> mdp-2 <0-100> mdp-3 <0-100>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: qos
+! 2: wred
+! 3: queue
+! 4: <queue:0~5>
+! 5: min-th
+! 6: <min-th:0-100>
+! 7: mdp-1
+! 8: <mdp-1:0-100>
+! 9: mdp-2
+! 10: <mdp-2:0-100>
+! 11: mdp-3
+! 12: <mdp-3:0-100>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = queue
+CMD_VAR =
+CMD_VAR = min_th
+CMD_VAR =
+CMD_VAR = mdp_1
+CMD_VAR =
+CMD_VAR = mdp_2
+CMD_VAR =
+CMD_VAR = mdp_3
+
+HELP =
+HELP = ##HELP_QOS_WRED
+HELP = Specify queue
+HELP = Specific queue or range
+HELP = Specify minimum threshold
+HELP = Specific minimum threshold in percent
+HELP = Specify drop probability for drop precedence level 1
+HELP = Specific drop probability in percent
+HELP = Specify drop probability for drop precedence level 2
+HELP = Specific drop probability in percent
+HELP = Specify drop probability for drop precedence level 3
+HELP = Specific drop probability in percent
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Queue : 0~5>
+BYWORD =
+BYWORD = <MinTh : 0-100>
+BYWORD =
+BYWORD = <Mdp1 : 0-100>
+BYWORD =
+BYWORD = <Mdp2 : 0-100>
+BYWORD =
+BYWORD = <Mdp3 : 0-100>
+
+VARIABLE_BEGIN
+    qos_conf_t c;
+    u32        cnt;
+    u32        q;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    if (queue) {
+        for (cnt = 0; cnt < queue->cnt; cnt++) {
+            for (q = queue->range[cnt].min; q <= queue->range[cnt].max; q++) {
+                c.wred[q].enable = TRUE;
+                c.wred[q].min_th = min_th;
+                c.wred[q].max_prob_1 = mdp_1;
+                c.wred[q].max_prob_2 = mdp_2;
+                c.wred[q].max_prob_3 = mdp_3;
+            }
+        }
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_WRED_V2)
+
+COMMAND = qos wred queue <0~5> min-fl <0-100> max <1-100> [ fill-level ]
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: qos
+! 2: wred
+! 3: queue
+! 4: <queue:0~5>
+! 5: min-fl
+! 6: <min-fl:0-100>
+! 7: max
+! 8: <max:1-100>
+! 9: fill-level
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = queue
+CMD_VAR =
+CMD_VAR = min_fl
+CMD_VAR =
+CMD_VAR = max
+CMD_VAR = has_fill_level
+
+HELP =
+HELP = ##HELP_QOS_WRED
+HELP = Specify queue
+HELP = Specific queue or range
+HELP = Specify minimum fill level
+HELP = Specific minimum fill level in percent
+HELP = Specify maximum drop probability or fill level
+HELP = Specific maximum drop probability or fill level in percent (default is drop probability)
+HELP = Specify fill level
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Queue : 0~5>
+BYWORD =
+BYWORD = <MinFl : 0-100>
+BYWORD =
+BYWORD = <Max : 1-100>
+BYWORD = <FillLevel : option>
+
+VARIABLE_BEGIN
+    qos_conf_t c;
+    u32        cnt;
+    u32        q;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_fill_level && (min_fl >= max)) {
+        ICLI_PRINTF("%%QOS: <max> (%d) must be greater than <min_fl> (%d) when unit is fill level\n", max, min_fl);
+        return ICLI_RC_ERROR;
+    }
+
+    IC_RC(qos_conf_get(&c));
+    if (queue) {
+        for (cnt = 0; cnt < queue->cnt; cnt++) {
+            for (q = queue->range[cnt].min; q <= queue->range[cnt].max; q++) {
+                c.wred[q][1].enable   = TRUE;
+                c.wred[q][1].min_fl   = min_fl;
+                c.wred[q][1].max      = max;
+                c.wred[q][1].max_unit = has_fill_level ? VTSS_WRED_V2_MAX_FL : VTSS_WRED_V2_MAX_DP;
+            }
+        }
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_WRED) || defined(VTSS_FEATURE_QOS_WRED_V2)
+
+COMMAND = no qos wred queue <0~5>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: wred
+! 4: queue
+! 5: <queue:0~5>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = queue
+
+HELP =
+HELP =
+HELP = ##HELP_QOS_WRED
+HELP = Specify queue
+HELP = Specific queue or range
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Queue : 0~5>
+
+VARIABLE_BEGIN
+    qos_conf_t c;
+    qos_conf_t dc;
+    u32        cnt;
+    u32        q;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    IC_RC(qos_conf_get_default(&dc));
+    if (queue) {
+        for (cnt = 0; cnt < queue->cnt; cnt++) {
+            for (q = queue->range[cnt].min; q <= queue->range[cnt].max; q++) {
+#if defined(VTSS_FEATURE_QOS_WRED)
+                c.wred[q].enable = dc.wred[q].enable;
+                c.wred[q].min_th = dc.wred[q].min_th;
+                c.wred[q].max_prob_1 = dc.wred[q].max_prob_1;
+                c.wred[q].max_prob_2 = dc.wred[q].max_prob_2;
+                c.wred[q].max_prob_3 = dc.wred[q].max_prob_3;
+#elif defined(VTSS_FEATURE_QOS_WRED_V2)
+                c.wred[q][1].enable = dc.wred[q][1].enable;
+                c.wred[q][1].min_fl = dc.wred[q][1].min_fl;
+                c.wred[q][1].max = dc.wred[q][1].max;
+                c.wred[q][1].max_unit = dc.wred[q][1].max_unit;
+#endif /* defined(VTSS_FEATURE_QOS_WRED) */
+            }
+        }
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH)
+
+COMMAND = qos storm { unicast | multicast | broadcast } { { <1,2,4,8,16,32,64,128,256,512> [ kfps ] } | { 1024 kfps } }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: qos
+! 2: storm
+! 3: unicast
+! 4: multicast
+! 5: broadcast
+! 6: <1,2,4,8,16,32,64,128,256,512>
+! 7: kfps
+! 8: 1024
+! 9: kfps
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_unicast
+CMD_VAR = has_multicast
+CMD_VAR = has_broadcast
+CMD_VAR = rate
+CMD_VAR = has_kfps
+CMD_VAR = has_1024
+CMD_VAR =
+
+HELP =
+HELP = ##HELP_QOS_STORM
+HELP = Police unicast frames
+HELP = Police multicast frames
+HELP = Police broadcast frames
+HELP = Policer rate (default fps)
+HELP = Rate is kfps
+HELP = Rate is 1024 kfps
+HELP = Rate is kfps
+
+BYWORD =
+BYWORD =
+BYWORD = unicast : Option
+BYWORD = multicast : Option
+BYWORD = broadcast : Option
+BYWORD = <Rate : 1,2,4,8,16,32,64,128,256,512>
+BYWORD = kfps : Option
+BYWORD = 1024 : Option
+BYWORD =
+
+VARIABLE_BEGIN
+    qos_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    if (has_unicast) {
+        c.policer_uc_status = TRUE;
+        if (has_1024) {
+            c.policer_uc = 1024000;
+        } else {
+            c.policer_uc = has_kfps ? (rate * 1000) : rate;
+        }
+    } else if (has_multicast) {
+        c.policer_mc_status = TRUE;
+        if (has_1024) {
+            c.policer_mc = 1024000;
+        } else {
+            c.policer_mc = has_kfps ? (rate * 1000) : rate;
+        }
+    } else if (has_broadcast) {
+        c.policer_bc_status = TRUE;
+        if (has_1024) {
+            c.policer_bc = 1024000;
+        } else {
+            c.policer_bc = has_kfps ? (rate * 1000) : rate;
+        }
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH)
+
+COMMAND = no qos storm { unicast | multicast | broadcast }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: storm
+! 4: unicast
+! 5: multicast
+! 6: broadcast
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_unicast
+CMD_VAR = has_multicast
+CMD_VAR = has_broadcast
+
+HELP =
+HELP =
+HELP = ##HELP_QOS_STORM
+HELP = Police unicast frames
+HELP = Police multicast frames
+HELP = Police broadcast frames
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Unicast : option>
+BYWORD = <Multicast : option>
+BYWORD = <Broadcast : option>
+
+VARIABLE_BEGIN
+    qos_conf_t c;
+    qos_conf_t dc;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&c));
+    IC_RC(qos_conf_get_default(&dc));
+    if (has_unicast) {
+        c.policer_uc_status = dc.policer_uc_status;
+        c.policer_uc = dc.policer_uc;
+    } else if (has_multicast) {
+        c.policer_mc_status = dc.policer_mc_status;
+        c.policer_mc = dc.policer_mc;
+    } else if (has_broadcast) {
+        c.policer_bc_status = dc.policer_bc_status;
+        c.policer_bc = dc.policer_bc;
+    }
+    IC_RC(qos_conf_set(&c));
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(QOS_QCL_INCLUDE)
+
+COMMAND = qos qce { [ update ] } <uint> [ { next <uint> } | last ] [ interface <port_type_list> ] [ smac { <mac_addr> | <oui> | any } ] [ dmac { <mac_addr> | unicast | multicast | broadcast | any } ] [ tag { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { <vcap_vr> | any } ] [ pcp { <pcp> | any } ] [ dei { <0-1> | any } ] }*1 ] [ inner-tag { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { <vcap_vr> | any } ] [ pcp { <pcp> | any } ] [ dei { <0-1> | any } ] }*1 ] [ frame-type { any | { etype [ { <0x600-0x7ff,0x801-0x86dc,0x86de-0xffff> | any } ] } | { llc [ dsap { <0-0xff> | any } ] [ ssap { <0-0xff> | any } ] [ control { <0-0xff> | any } ] } | { snap [ { <0-0xffff> | any } ] } | { ipv4 [ proto { <0-255> | tcp | udp | any } ] [ sip { <ipv4_subnet> | any } ] [ dip { <ipv4_subnet> | any } ] [ dscp { <vcap_vr> | <dscp> | any } ] [ fragment { yes | no | any } ] [ sport { <vcap_vr> | any } ] [ dport { <vcap_vr> | any } ] } | { ipv6 [ proto { <0-255> | tcp | udp | any } ] [ sip { <ipv4_subnet> | any } ] [ dip { <ipv4_subnet> | any } ] [ dscp { <vcap_vr> | <dscp> | any } ] [ sport { <vcap_vr> | any } ] [ dport { <vcap_vr> | any } ] } } ] [ action { [ cos { <0-7> | default } ] [ dpl { <0-1> | default } ] [ pcp-dei { <0-7> <0-1> | default } ] [ dscp { <0-63> | <dscp> | default } ] [ policy { <uint> | default } ] }*1 ]
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+! qos
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qce
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_QOS_QCE
+BYWORD  =
+
+! update
+CMD_VAR = has_update
+RUNTIME =
+HELP    = Update an existing QCE
+BYWORD  = update : Option
+
+! <uint>
+CMD_VAR = qce_id
+RUNTIME = QOS_ICLI_runtime_qce_id
+HELP    = ##HELP_QOS_QCE_ID
+BYWORD  = <QceId : uint>
+
+! next
+CMD_VAR = has_next
+RUNTIME =
+HELP    = Place QCE before the next QCE ID
+BYWORD  = next : Option
+
+! <uint>
+CMD_VAR = qce_id_next
+RUNTIME = QOS_ICLI_runtime_qce_id
+HELP    = The next QCE ID
+BYWORD  = <QceIdNext : uint>
+
+! last
+CMD_VAR = has_last
+RUNTIME =
+HELP    = Place QCE at the end
+BYWORD  = last : Option
+
+! interface
+CMD_VAR = has_interface
+RUNTIME =
+HELP    = Interfaces
+BYWORD  = interface : Option
+
+! <port_type_list>
+CMD_VAR = port_list
+RUNTIME =
+HELP    =
+BYWORD  = <PortList : port_type_list>
+
+! smac
+CMD_VAR = has_smac
+RUNTIME = QOS_ICLI_runtime_qce_smac
+HELP    = Setup matched SMAC
+BYWORD  = smac : Option
+
+! <mac_addr>
+CMD_VAR = smac
+RUNTIME = QOS_ICLI_runtime_qce_smac48
+HELP    = Matched SMAC (XX-XX-XX-XX-XX-XX)
+BYWORD  = <Smac : mac_addr>
+
+! <oui>
+CMD_VAR = smac_24
+RUNTIME = QOS_ICLI_runtime_qce_smac24
+HELP    = Matched SMAC OUI (XX-XX-XX)
+BYWORD  = <Smac24 : oui>
+
+! any
+CMD_VAR = has_smac_any
+RUNTIME =
+HELP    = Match any SMAC
+BYWORD  = any : Option
+
+! dmac
+CMD_VAR = has_dmac
+RUNTIME =
+HELP    = Setup matched DMAC
+BYWORD  = dmac : Option
+
+! <mac_addr>
+CMD_VAR = dmac
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Matched DMAC (XX-XX-XX-XX-XX-XX)
+BYWORD  = <Dmac : mac_addr>
+
+! unicast
+CMD_VAR = has_unicast
+RUNTIME =
+HELP    = Match unicast DMAC
+BYWORD  = unicast : Option
+
+! multicast
+CMD_VAR = has_multicast
+RUNTIME =
+HELP    = Match multicast DMAC
+BYWORD  = multicast : Option
+
+! broadcast
+CMD_VAR = has_broadcast
+RUNTIME =
+HELP    = Match broadcast DMAC
+BYWORD  = broadcast : Option
+
+! any
+CMD_VAR = has_dmac_any
+RUNTIME =
+HELP    = Match any DMAC
+BYWORD  = any : Option
+
+! tag
+CMD_VAR = has_tag
+RUNTIME =
+HELP    = Setup tag options
+BYWORD  = tag : Option
+
+! type
+CMD_VAR = has_ot_type
+RUNTIME =
+HELP    = Setup matched tag type
+BYWORD  = type : Option
+
+! untagged
+CMD_VAR = has_ot_untagged
+RUNTIME =
+HELP    = Match untagged frames
+BYWORD  = untagged : Option
+
+! tagged
+CMD_VAR = has_ot_tagged
+RUNTIME =
+HELP    = Match tagged frames
+BYWORD  = tagged : Option
+
+! c-tagged
+CMD_VAR = has_ot_c_tagged
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match C-tagged frames
+BYWORD  = c-tagged : Option
+
+! s-tagged
+CMD_VAR = has_ot_s_tagged
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match S-tagged frames
+BYWORD  = s-tagged : Option
+
+! any
+CMD_VAR = has_ot_type_any
+RUNTIME =
+HELP    = Match tagged and untagged frames
+BYWORD  = any : Option
+
+! vid
+CMD_VAR = has_ot_vid
+RUNTIME =
+HELP    = Setup matched VLAN ID
+BYWORD  = vid : Option
+
+! <vcap_vr>
+CMD_VAR = ot_vid
+RUNTIME = QOS_ICLI_runtime_qce_ot_vid
+HELP    = Matched VLAN ID value/range
+BYWORD  = <Vid : vcap_vr>
+
+! any
+CMD_VAR = has_ot_vid_any
+RUNTIME =
+HELP    = Match any VLAN ID
+BYWORD  = any : Option
+
+! pcp
+CMD_VAR = has_ot_pcp
+RUNTIME =
+HELP    = Setup matched PCP
+BYWORD  = pcp : Option
+
+! <pcp>
+CMD_VAR = ot_pcp
+RUNTIME =
+HELP    = Matched PCP value/range
+BYWORD  = <Pcp : pcp>
+
+! any
+CMD_VAR = has_ot_pcp_any
+RUNTIME =
+HELP    = Match any PCP
+BYWORD  = any : Option
+
+! dei
+CMD_VAR = has_ot_dei
+RUNTIME =
+HELP    = Setup matched DEI
+BYWORD  = dei : Option
+
+! <0-1>
+CMD_VAR = ot_dei
+RUNTIME =
+HELP    = Matched DEI
+BYWORD  = <Dei : 0-1>
+
+! any
+CMD_VAR = has_ot_dei_any
+RUNTIME =
+HELP    = Match any DEI
+BYWORD  = any : Option
+
+! inner-tag
+CMD_VAR = has_inner_tag
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Setup inner tag options
+BYWORD  = inner-tag : Option
+
+! type
+CMD_VAR = has_it_type
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Setup matched tag type
+BYWORD  = type : Option
+
+! untagged
+CMD_VAR = has_it_untagged
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match untagged frames
+BYWORD  = untagged : Option
+
+! tagged
+CMD_VAR = has_it_tagged
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match tagged frames
+BYWORD  = tagged : Option
+
+! c-tagged
+CMD_VAR = has_it_c_tagged
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match C-tagged frames
+BYWORD  = c-tagged : Option
+
+! s-tagged
+CMD_VAR = has_it_s_tagged
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match S-tagged frames
+BYWORD  = s-tagged : Option
+
+! any
+CMD_VAR = has_it_type_any
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match tagged and untagged frames
+BYWORD  = any : Option
+
+! vid
+CMD_VAR = has_it_vid
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Setup matched VLAN ID
+BYWORD  = vid : Option
+
+! <vcap_vr>
+CMD_VAR = it_vid
+RUNTIME = QOS_ICLI_runtime_qce_it_vid
+HELP    = Matched VLAN ID value/range
+BYWORD  = <Vid : vcap_vr>
+
+! any
+CMD_VAR = has_it_vid_any
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match any VLAN ID
+BYWORD  = any : Option
+
+! pcp
+CMD_VAR = has_it_pcp
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Setup matched PCP
+BYWORD  = pcp : Option
+
+! <pcp>
+CMD_VAR = it_pcp
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Matched PCP value/range
+BYWORD  = <Pcp : pcp>
+
+! any
+CMD_VAR = has_it_pcp_any
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match any PCP
+BYWORD  = any : Option
+
+! dei
+CMD_VAR = has_it_dei
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Setup matched DEI
+BYWORD  = dei : Option
+
+! <0-1>
+CMD_VAR = it_dei
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Matched DEI
+BYWORD  = <Dei : 0-1>
+
+! any
+CMD_VAR = has_it_dei_any
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match any DEI
+BYWORD  = any : Option
+
+! frame-type
+CMD_VAR = has_frame_type
+RUNTIME =
+HELP    = Setup matched frame type
+BYWORD  = frame-type : Option
+
+! any
+CMD_VAR = has_frame_type_any
+RUNTIME =
+HELP    = Match any frame type
+BYWORD  = any : Option
+
+! etype
+CMD_VAR = has_etype
+RUNTIME =
+HELP    = Match EtherType frames
+BYWORD  = etype : Option
+
+! <0x600-0x7ff,0x801-0x86dc,0x86de-0xffff>
+CMD_VAR = etype_type
+RUNTIME =
+HELP    = Matched EtherType
+BYWORD  = <EtherType : 0x600-0x7ff,0x801-0x86dc,0x86de-0xffff>
+
+! any
+CMD_VAR = has_etype_type_any
+RUNTIME =
+HELP    = Match any EtherType
+BYWORD  = any : Option
+
+! llc
+CMD_VAR = has_llc
+RUNTIME =
+HELP    = Match LLC frames
+BYWORD  = llc : Option
+
+! dsap
+CMD_VAR = has_llc_dsap
+RUNTIME =
+HELP    = Setup matched LLC DSAP
+BYWORD  = dsap : Option
+
+! <0-0xff>
+CMD_VAR = llc_dsap
+RUNTIME =
+HELP    = Matched LLC DSAP
+BYWORD  = <Dsap : 0-0xff>
+
+! any
+CMD_VAR = has_llc_dsap_any
+RUNTIME =
+HELP    = Match any LLC DSAP
+BYWORD  = any : Option
+
+! ssap
+CMD_VAR = has_llc_ssap
+RUNTIME =
+HELP    = Setup matched LLC SSAP
+BYWORD  = ssap : Option
+
+! <0-0xff>
+CMD_VAR = llc_ssap
+RUNTIME =
+HELP    = Matched LLC SSAP
+BYWORD  = <Ssap : 0-0xff>
+
+! any
+CMD_VAR = has_llc_ssap_any
+RUNTIME =
+HELP    = Match any LLC SSAP
+BYWORD  = any : Option
+
+! control
+CMD_VAR = has_llc_control
+RUNTIME =
+HELP    = Setup matched LLC Control byte
+BYWORD  = control : Option
+
+! <0-0xff>
+CMD_VAR = llc_control
+RUNTIME =
+HELP    = Matched LLC Control byte
+BYWORD  = <Control : 0-0xff>
+
+! any
+CMD_VAR = has_llc_control_any
+RUNTIME =
+HELP    = Match any LLC Control byte
+BYWORD  = any : Option
+
+! snap
+CMD_VAR = has_snap
+RUNTIME =
+HELP    = Match SNAP frames
+BYWORD  = snap : Option
+
+! <0-0xffff>
+CMD_VAR = snap_data
+RUNTIME =
+HELP    = Setup matched SNAP EtherType
+BYWORD  = <SnapData : 0-0xffff>
+
+! any
+CMD_VAR = has_snap_data_any
+RUNTIME =
+HELP    = Match any SNAP EtherType
+BYWORD  = any : Option
+
+! ipv4
+CMD_VAR = has_ipv4
+RUNTIME =
+HELP    = Match IPv4 frames
+BYWORD  = ipv4 : Option
+
+! proto
+CMD_VAR = has_pr4
+RUNTIME =
+HELP    = Setup matched IP protocol
+BYWORD  = proto : Option
+
+! <0-255>
+CMD_VAR = pr4
+RUNTIME =
+HELP    = Matched IP protocol
+BYWORD  = <Protocol : 0-255>
+
+! tcp
+CMD_VAR = has_pr4_tcp
+RUNTIME =
+HELP    = Match TCP frames
+BYWORD  = tcp : Option
+
+! udp
+CMD_VAR = has_pr4_udp
+RUNTIME =
+HELP    = Match UDP frames
+BYWORD  = udp : Option
+
+! any
+CMD_VAR = has_pr4_any
+RUNTIME =
+HELP    = Match any IP protocol
+BYWORD  = any : Option
+
+! sip
+CMD_VAR = has_sip4
+RUNTIME = QOS_ICLI_runtime_qce_sip
+HELP    = Setup matched source IP address
+BYWORD  = sip : Option
+
+! <ipv4_subnet>
+CMD_VAR = sip4
+RUNTIME =
+HELP    = Matched source IP address/mask
+BYWORD  = <Sip : ipv4_subnet>
+
+! any
+CMD_VAR = has_sip4_any
+RUNTIME =
+HELP    = Match any source IP address
+BYWORD  = any : Option
+
+! dip
+CMD_VAR = has_dip4
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Setup matched destination IP address
+BYWORD  = dip : Option
+
+! <ipv4_subnet>
+CMD_VAR = dip4
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Matched destination IP address/mask
+BYWORD  = <Dip : ipv4_subnet>
+
+! any
+CMD_VAR = has_dip4_any
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match any destination IP address
+BYWORD  = any : Option
+
+! dscp
+CMD_VAR = has_dscp4
+RUNTIME =
+HELP    = Setup matched DSCP
+BYWORD  = dscp : Option
+
+! <vcap_vr>
+CMD_VAR = dscp4
+RUNTIME = QOS_ICLI_runtime_qce_dscp
+HELP    = Matched DSCP value/range
+BYWORD  = <Dscp : vcap_vr>
+
+! <dscp>
+CMD_VAR = dscp4_name
+RUNTIME =
+HELP    =
+BYWORD  = <Dscp4Name : dscp>
+
+! any
+CMD_VAR = has_dscp4_any
+RUNTIME =
+HELP    = Match any DSCP
+BYWORD  = any : Option
+
+! fragment
+CMD_VAR = has_fr4
+RUNTIME =
+HELP    = Setup matched IPv4 fragments
+BYWORD  = fragment : Option
+
+! yes
+CMD_VAR = has_fr4_yes
+RUNTIME =
+HELP    = Match IPv4 fragments
+BYWORD  = yes : Option
+
+! no
+CMD_VAR = has_fr4_no
+RUNTIME =
+HELP    = Match IPv4 non-fragments
+BYWORD  = no : Option
+
+! any
+CMD_VAR = has_fr4_any
+RUNTIME =
+HELP    = Match any IPv4 fragments
+BYWORD  = any : Option
+
+! sport
+CMD_VAR = has_sp4
+RUNTIME =
+HELP    = Setup matched UDP/TCP source port
+BYWORD  = sport : Option
+
+! <vcap_vr>
+CMD_VAR = sp4
+RUNTIME = QOS_ICLI_runtime_qce_sport
+HELP    = Match UDP/TCP source port value/range
+BYWORD  = <Sport : vcap_vr>
+
+! any
+CMD_VAR = has_sp4_any
+RUNTIME =
+HELP    = Match any UDP/TCP source port
+BYWORD  = any : Option
+
+! dport
+CMD_VAR = has_dp4
+RUNTIME =
+HELP    = Setup matched UDP/TCP destination port
+BYWORD  = dport : Option
+
+! <vcap_vr>
+CMD_VAR = dp4
+RUNTIME = QOS_ICLI_runtime_qce_dport
+HELP    = Match UDP/TCP destination port value/range
+BYWORD  = <Dport : vcap_vr>
+
+! any
+CMD_VAR = has_dp4_any
+RUNTIME =
+HELP    = Match any UDP/TCP destination port
+BYWORD  = any : Option
+
+! ipv6
+CMD_VAR = has_ipv6
+RUNTIME =
+HELP    = Match IPv6 frames
+BYWORD  = ipv6 : Option
+
+! proto
+CMD_VAR = has_pr6
+RUNTIME =
+HELP    = Setup matched IP protocol
+BYWORD  = proto : Option
+
+! <0-255>
+CMD_VAR = pr6
+RUNTIME =
+HELP    = Matched IP protocol
+BYWORD  = <Protocol : 0-255>
+
+! tcp
+CMD_VAR = has_pr6_tcp
+RUNTIME =
+HELP    = Match TCP frames
+BYWORD  = tcp : Option
+
+! udp
+CMD_VAR = has_pr6_udp
+RUNTIME =
+HELP    = Match UDP frames
+BYWORD  = udp : Option
+
+! any
+CMD_VAR = has_pr6_any
+RUNTIME =
+HELP    = Match any IP protocol
+BYWORD  = any : Option
+
+! sip
+CMD_VAR = has_sip6
+RUNTIME = QOS_ICLI_runtime_qce_sip
+HELP    = Setup matched source IP address
+BYWORD  = sip : Option
+
+! <ipv4_subnet>
+CMD_VAR = sip6
+RUNTIME =
+HELP    = Matched source IP address/mask
+BYWORD  = <Sip : ipv4_subnet>
+
+! any
+CMD_VAR = has_sip6_any
+RUNTIME =
+HELP    = Match any source IP address
+BYWORD  = any : Option
+
+! dip
+CMD_VAR = has_dip6
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Setup matched destination IP address
+BYWORD  = dip : Option
+
+! <ipv4_subnet>
+CMD_VAR = dip6
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Matched destination IP address/mask
+BYWORD  = <Dip : ipv4_subnet>
+
+! any
+CMD_VAR = has_dip6_any
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match any destination IP address
+BYWORD  = any : Option
+
+! dscp
+CMD_VAR = has_dscp6
+RUNTIME =
+HELP    = Setup matched DSCP
+BYWORD  = dscp : Option
+
+! <vcap_vr>
+CMD_VAR = dscp6
+RUNTIME = QOS_ICLI_runtime_qce_dscp
+HELP    = Matched DSCP value/range
+BYWORD  = <Dscp : vcap_vr>
+
+! <dscp>
+CMD_VAR = dscp6_name
+RUNTIME =
+HELP    =
+BYWORD  = <Dscp6Name : dscp>
+
+! any
+CMD_VAR = has_dscp6_any
+RUNTIME =
+HELP    = Match any DSCP
+BYWORD  = any : Option
+
+! sport
+CMD_VAR = has_sp6
+RUNTIME =
+HELP    = Setup matched UDP/TCP source port
+BYWORD  = sport : Option
+
+! <vcap_vr>
+CMD_VAR = sp6
+RUNTIME = QOS_ICLI_runtime_qce_sport
+HELP    = Match UDP/TCP source port value/range
+BYWORD  = <Sport : vcap_vr>
+
+! any
+CMD_VAR = has_sp6_any
+RUNTIME =
+HELP    = Match any UDP/TCP source port
+BYWORD  = any : Option
+
+! dport
+CMD_VAR = has_dp6
+RUNTIME =
+HELP    = Setup matched UDP/TCP destination port
+BYWORD  = dport : Option
+
+! <vcap_vr>
+CMD_VAR = dp6
+RUNTIME = QOS_ICLI_runtime_qce_dport
+HELP    = Match UDP/TCP destination port value/range
+BYWORD  = <Dport : vcap_vr>
+
+! any
+CMD_VAR = has_dp6_any
+RUNTIME =
+HELP    = Match any UDP/TCP destination port
+BYWORD  = any : Option
+
+! action
+CMD_VAR = has_action
+RUNTIME =
+HELP    = Setup action
+BYWORD  = action : Option
+
+! cos
+CMD_VAR = has_action_cos
+RUNTIME =
+HELP    = Setup class of service action
+BYWORD  = cos : Option
+
+! <0-7>
+CMD_VAR = action_cos
+RUNTIME =
+HELP    = Assign class of service
+BYWORD  = <Cos : 0-7>
+
+! default
+CMD_VAR = has_action_cos_default
+RUNTIME =
+HELP    = Keep existing class of service
+BYWORD  = default : Option
+
+! dpl
+CMD_VAR = has_action_dpl
+RUNTIME =
+HELP    = Setup drop precedence level action
+BYWORD  = dpl : Option
+
+! <0-1>
+CMD_VAR = action_dpl
+RUNTIME =
+HELP    = Assign drop precedence level
+BYWORD  = <Dpl : 0-1>
+
+! default
+CMD_VAR = has_action_dpl_default
+RUNTIME =
+HELP    = Keep existing drop precedence level
+BYWORD  = default : Option
+
+! pcp-dei
+CMD_VAR = has_action_pcp_dei
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Setup PCP and DEI action
+BYWORD  = tag : Option
+
+! <0-7>
+CMD_VAR = action_pcp
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Assign PCP
+BYWORD  = <Pcp : 0-7>
+
+! <0-1>
+CMD_VAR = action_dei
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Assign DEI
+BYWORD  = <Dei : 0-1>
+
+! default
+CMD_VAR = has_action_pcp_dei_default
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Keep existing PCP and DEI
+BYWORD  = default : Option
+
+! dscp
+CMD_VAR = has_action_dscp
+RUNTIME =
+HELP    = Setup DSCP action
+BYWORD  = dscp : Option
+
+! <0-63>
+CMD_VAR = action_dscp_dscp
+RUNTIME =
+HELP    = Assign DSCP
+BYWORD  = <Dscp : 0-63>
+
+! <dscp>
+CMD_VAR = action_dscp_name
+RUNTIME =
+HELP    =
+BYWORD  = <DscpName : dscp>
+
+! default
+CMD_VAR = has_action_dscp_default
+RUNTIME =
+HELP    = Keep existing DSCP
+BYWORD  = default : Option
+
+! policy
+CMD_VAR = has_action_policy
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Setup ACL policy action
+BYWORD  = policy : Option
+
+! <uint>
+CMD_VAR = action_policy
+RUNTIME = QOS_ICLI_runtime_policy
+HELP    = Assign ACL policy
+BYWORD  = <Policy : uint>
+
+! default
+CMD_VAR = has_action_policy_default
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Keep existing ACL policy
+BYWORD  = default : Option
+
+VARIABLE_BEGIN
+    // Initialize the following variables to an out of range value.
+    // This enables us to use 'any' for unspecified parameters.
+#define QCE_ANY 0xffffffff
+    etype_type = snap_data = QCE_ANY;
+#define DSCP_ANY 0xff
+    dscp4_name = dscp6_name = DSCP_ANY;
+
+    qos_qce_entry_conf_t qce, qce_next;
+    vtss_qce_id_t        id_next = QCE_ID_NONE;         // Defauld 'next' is 'last'
+    vtss_qce_type_t      frametype = VTSS_QCE_TYPE_ANY; // Default frametype
+    vtss_port_no_t       iport;
+    int                  i;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_next) {
+        id_next = qce_id_next;
+    }
+
+    frametype = VTSS_QCE_TYPE_ANY; // Default frametype
+    if (has_frame_type) {
+        if (has_etype) {
+            frametype = VTSS_QCE_TYPE_ETYPE;
+        } else if (has_llc) {
+            frametype = VTSS_QCE_TYPE_LLC;
+        } else if (has_snap) {
+            frametype = VTSS_QCE_TYPE_SNAP;
+        } else if (has_ipv4) {
+            frametype = VTSS_QCE_TYPE_IPV4;
+        } else if (has_ipv6) {
+            frametype = VTSS_QCE_TYPE_IPV6;
+        }
+    }
+
+    if (has_update) {
+        if (qos_mgmt_qce_entry_get(VTSS_ISID_GLOBAL, QCL_USER_STATIC, QCL_ID_END, qce_id, &qce, FALSE) != VTSS_OK) {
+            ICLI_PRINTF("%%QOS: qce %u not found\n", qce_id);
+            return ICLI_RC_ERROR;
+        }
+        if (!has_next && !has_last) { // next and last not specified - keep existing position by getting the 'real' next id
+            if (qos_mgmt_qce_entry_get(VTSS_ISID_GLOBAL, QCL_USER_STATIC, QCL_ID_END, qce_id, &qce_next, TRUE) == VTSS_OK) {
+                id_next = qce_next.id;
+            }
+        }
+        if (has_frame_type && (qce.type != frametype)) {
+            // Set the frame fields to default if changing frametype, as same space is shared by all frame types
+            memset(&qce.key.frame, 0, sizeof(qce.key.frame));
+        }
+    } else { // This is an 'add'. Start with a new clean and default QCE
+        if (!has_action) {
+            ICLI_PRINTF("%%QOS: action parameter not specified\n");
+            return ICLI_RC_ERROR;
+        }
+        memset(&qce, 0, sizeof(qce));
+        qce.id = qce_id;
+        qce.type = VTSS_QCE_TYPE_ANY;
+        qce.isid = VTSS_ISID_GLOBAL;
+
+        for (iport = VTSS_PORT_NO_START; iport < VTSS_PORT_NO_END; iport++) {
+            VTSS_PORT_BF_SET(qce.port_list, iport, TRUE); // Default is all ports
+        }
+    }
+
+    if (has_interface) {
+        int cnt;
+        if (port_list) {
+            qce.isid = VTSS_ISID_LOCAL;
+            VTSS_PORT_BF_CLR(qce.port_list); // Clear port list
+            for (cnt = 0; cnt < (int)port_list->cnt; cnt++) {
+                icli_switch_port_range_t *r = &port_list->switch_range[cnt];
+                if (qce.isid == VTSS_ISID_LOCAL) {
+                    qce.isid = r->isid; // Save and use first isid
+                } else if (qce.isid != r->isid) { // Verify that same isid is used in all ranges
+                    ICLI_PRINTF("%%QOS: more than one switch per QCE is not supported\n");
+                    return ICLI_RC_ERROR;
+                }
+                for (iport = 0; iport < r->port_cnt; iport++) {
+                    VTSS_PORT_BF_SET(qce.port_list, (r->begin_iport + iport), TRUE);
+                }
+            }
+        } else {
+            ICLI_PRINTF("%%QOS: no interface(s) specified\n");
+            return ICLI_RC_ERROR;
+        }
+    }
+
+    if (has_tag) {
+        if (has_ot_type) {
+            if (has_ot_untagged) {
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_TAG, VTSS_VCAP_BIT_0);
+#if defined(VTSS_ARCH_SERVAL)
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_S_TAG, VTSS_VCAP_BIT_ANY);
+#endif /* defined(VTSS_ARCH_SERVAL) */
+            } else if (has_ot_tagged) {
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_TAG, VTSS_VCAP_BIT_1);
+#if defined(VTSS_ARCH_SERVAL)
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_S_TAG, VTSS_VCAP_BIT_ANY);
+#endif /* defined(VTSS_ARCH_SERVAL) */
+            } else if (has_ot_c_tagged) {
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_TAG, VTSS_VCAP_BIT_1);
+#if defined(VTSS_ARCH_SERVAL)
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_S_TAG, VTSS_VCAP_BIT_0);
+#endif /* defined(VTSS_ARCH_SERVAL) */
+            } else if (has_ot_s_tagged) {
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_TAG, VTSS_VCAP_BIT_1);
+#if defined(VTSS_ARCH_SERVAL)
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_S_TAG, VTSS_VCAP_BIT_1);
+#endif /* defined(VTSS_ARCH_SERVAL) */
+            } else if (has_ot_type_any) {
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_TAG, VTSS_VCAP_BIT_ANY);
+#if defined(VTSS_ARCH_SERVAL)
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_S_TAG, VTSS_VCAP_BIT_ANY);
+#endif /* defined(VTSS_ARCH_SERVAL) */
+            }
+        }
+
+        if (has_ot_vid) {
+            if (has_ot_vid_any) {
+                QOS_ICLI_qce_range_set_u16(&qce.key.vid, 0, 0, 0);
+            } else {
+                QOS_ICLI_qce_range_set_u16(&qce.key.vid, ot_vid.low, ot_vid.high, 0xFFF);
+            }
+        }
+
+        if (has_ot_pcp) {
+            if (ot_pcp) {
+                qce.key.pcp.value = ot_pcp->range[0].min;
+                if (ot_pcp->range[0].min < ot_pcp->range[0].max) { // range (0-1, 2-3, 4-5, 6-7, 0-3, 4-7)
+                    qce.key.pcp.mask = 0xFF & (~((uchar)(ot_pcp->range[0].max - ot_pcp->range[0].min)));
+                } else { // specific
+                    qce.key.pcp.mask = 0xFF;
+                }
+            } else if (has_ot_pcp_any) {
+                qce.key.pcp.value = 0;
+                qce.key.pcp.mask  = 0;
+            }
+        }
+
+        if (has_ot_dei) {
+            if (has_ot_dei_any) {
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_DEI, VTSS_VCAP_BIT_ANY);
+            } else {
+                QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_VLAN_DEI, ot_dei ? VTSS_VCAP_BIT_1 : VTSS_VCAP_BIT_0);
+            }
+        }
+    }
+
+#if defined(VTSS_ARCH_SERVAL)
+    if (has_inner_tag) {
+        if (has_it_type) {
+            if (has_it_untagged) {
+                qce.key.inner_tag.tagged = VTSS_VCAP_BIT_0;
+                qce.key.inner_tag.s_tag  = VTSS_VCAP_BIT_ANY;
+            } else if (has_it_tagged) {
+                qce.key.inner_tag.tagged = VTSS_VCAP_BIT_1;
+                qce.key.inner_tag.s_tag  = VTSS_VCAP_BIT_ANY;
+            } else if (has_it_c_tagged) {
+                qce.key.inner_tag.tagged = VTSS_VCAP_BIT_1;
+                qce.key.inner_tag.s_tag  = VTSS_VCAP_BIT_0;
+            } else if (has_it_s_tagged) {
+                qce.key.inner_tag.tagged = VTSS_VCAP_BIT_1;
+                qce.key.inner_tag.s_tag  = VTSS_VCAP_BIT_1;
+            } else if (has_it_type_any) {
+                qce.key.inner_tag.tagged = VTSS_VCAP_BIT_ANY;
+                qce.key.inner_tag.s_tag  = VTSS_VCAP_BIT_ANY;
+            }
+        }
+
+        if (has_it_vid) {
+            if (has_it_vid_any) {
+                QOS_ICLI_qce_range_set(&qce.key.inner_tag.vid, 0, 0, 0);
+            } else {
+                QOS_ICLI_qce_range_set(&qce.key.inner_tag.vid, it_vid.low, it_vid.high, 0xFFF);
+            }
+        }
+
+        if (has_it_pcp) {
+            if (it_pcp) {
+                qce.key.inner_tag.pcp.value = it_pcp->range[0].min;
+                if (it_pcp->range[0].min < it_pcp->range[0].max) { // range (0-1, 2-3, 4-5, 6-7, 0-3, 4-7)
+                    qce.key.inner_tag.pcp.mask = 0xFF & (~((uchar)(it_pcp->range[0].max - it_pcp->range[0].min)));
+                } else { // specific
+                    qce.key.inner_tag.pcp.mask = 0xFF;
+                }
+            } else if (has_it_pcp_any) {
+                qce.key.inner_tag.pcp.value = 0;
+                qce.key.inner_tag.pcp.mask  = 0;
+            }
+        }
+
+        if (has_it_dei) {
+            if (has_it_dei_any) {
+                qce.key.inner_tag.dei = VTSS_VCAP_BIT_ANY;
+            } else {
+                qce.key.inner_tag.dei = it_dei ? VTSS_VCAP_BIT_1 : VTSS_VCAP_BIT_0;
+            }
+        }
+    }
+#endif /* defined(VTSS_ARCH_SERVAL) */
+
+    if (has_smac) {
+#if defined(VTSS_ARCH_JAGUAR_1)
+        for (i = 0; i < ICLI_OUI_SIZE; i++) {
+            if (has_smac_any) {
+                qce.key.smac.value[i] = 0;
+                qce.key.smac.mask[i] = 0;
+            } else {
+                qce.key.smac.value[i] = smac_24.mac[i];
+                qce.key.smac.mask[i] = 0xFF;
+            }
+        }
+#else
+        for (i = 0; i < 6; i++) {
+            if (has_smac_any) {
+                qce.key.smac.value[i] = 0;
+                qce.key.smac.mask[i] = 0;
+            } else {
+                qce.key.smac.value[i] = smac.addr[i];
+                qce.key.smac.mask[i] = 0xFF;
+            }
+        }
+#endif /* defined(VTSS_ARCH_JAGUAR_1) */
+    }
+
+    if (has_dmac) {
+#if defined(VTSS_ARCH_SERVAL)
+        QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_DMAC_TYPE, QOS_QCE_DMAC_TYPE_ANY);
+        for (i = 0; i < 6; i++) {
+            qce.key.dmac.value[i] = 0;
+            qce.key.dmac.mask[i] = 0;
+        }
+#endif /* defined(VTSS_ARCH_SERVAL) */
+        if (has_unicast) {
+            QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_DMAC_TYPE, QOS_QCE_DMAC_TYPE_UC);
+        } else if (has_multicast) {
+            QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_DMAC_TYPE, QOS_QCE_DMAC_TYPE_MC);
+        } else if (has_broadcast) {
+            QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_DMAC_TYPE, QOS_QCE_DMAC_TYPE_BC);
+        } else if (has_dmac_any) {
+            QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_DMAC_TYPE, QOS_QCE_DMAC_TYPE_ANY);
+#if defined(VTSS_ARCH_SERVAL)
+        } else {
+            for (i = 0; i < 6; i++) {
+                qce.key.dmac.value[i] = dmac.addr[i];
+                qce.key.dmac.mask[i] = 0xFF;
+            }
+#endif /* defined(VTSS_ARCH_SERVAL) */
+        }
+    }
+
+    if (has_frame_type) {
+        qce.type = frametype; // frametype has been discovered earliere
+        switch (frametype) {
+        case VTSS_QCE_TYPE_ETYPE:
+            if (has_etype_type_any) {
+                qce.key.frame.etype.etype.value[0] = 0;
+                qce.key.frame.etype.etype.mask[0] =  0;
+                qce.key.frame.etype.etype.value[1] = 0;
+                qce.key.frame.etype.etype.mask[1] =  0;
+            } else if (etype_type != QCE_ANY) {
+                qce.key.frame.etype.etype.value[0] = (etype_type >> 8) & 0xFF;
+                qce.key.frame.etype.etype.mask[0] =  0xFF;
+                qce.key.frame.etype.etype.value[1] = etype_type & 0xFF;
+                qce.key.frame.etype.etype.mask[1] =  0xFF;
+            }
+            break;
+        case VTSS_QCE_TYPE_LLC:
+            if (has_llc_dsap) {
+                if (has_llc_dsap_any) {
+                    qce.key.frame.llc.dsap.value = 0;
+                    qce.key.frame.llc.dsap.mask =  0;
+                } else {
+                    qce.key.frame.llc.dsap.value = llc_dsap & 0xFF;
+                    qce.key.frame.llc.dsap.mask =  0xFF;
+                }
+            }
+            if (has_llc_ssap) {
+                if (has_llc_ssap_any) {
+                    qce.key.frame.llc.ssap.value = 0;
+                    qce.key.frame.llc.ssap.mask =  0;
+                } else {
+                    qce.key.frame.llc.ssap.value = llc_ssap & 0xFF;
+                    qce.key.frame.llc.ssap.mask =  0xFF;
+                }
+            }
+            if (has_llc_control) {
+                if (has_llc_control_any) {
+                    qce.key.frame.llc.control.value = 0;
+                    qce.key.frame.llc.control.mask =  0;
+                } else {
+                    qce.key.frame.llc.control.value = llc_control & 0xFF;
+                    qce.key.frame.llc.control.mask =  0xFF;
+                }
+            }
+            break;
+        case VTSS_QCE_TYPE_SNAP:
+            if (has_snap_data_any) {
+                qce.key.frame.snap.pid.value[0] = 0;
+                qce.key.frame.snap.pid.mask[0] =  0;
+                qce.key.frame.snap.pid.value[1] = 0;
+                qce.key.frame.snap.pid.mask[1] =  0;
+            } else if (snap_data != QCE_ANY) {
+                qce.key.frame.snap.pid.value[0] = (snap_data >> 8) & 0xFF;
+                qce.key.frame.snap.pid.mask[0] =  0xFF;
+                qce.key.frame.snap.pid.value[1] = snap_data & 0xFF;
+                qce.key.frame.snap.pid.mask[1] =  0xFF;
+            }
+            break;
+        case VTSS_QCE_TYPE_IPV4:
+            if (has_pr4) {
+                if (has_pr4_any) {
+                    qce.key.frame.ipv4.proto.value = 0;
+                    qce.key.frame.ipv4.proto.mask =  0;
+                } else if (has_pr4_tcp) {
+                    qce.key.frame.ipv4.proto.value = 6;
+                    qce.key.frame.ipv4.proto.mask =  0xFF;
+                } else if (has_pr4_udp) {
+                    qce.key.frame.ipv4.proto.value = 17;
+                    qce.key.frame.ipv4.proto.mask =  0xFF;
+                } else {
+                    qce.key.frame.ipv4.proto.value = pr4;
+                    qce.key.frame.ipv4.proto.mask =  0xFF;
+                }
+            }
+
+            if (has_sip4) {
+                if (has_sip4_any) {
+                    qce.key.frame.ipv4.sip.value = 0;
+                    qce.key.frame.ipv4.sip.mask  = 0;
+                } else {
+                    qce.key.frame.ipv4.sip.value = sip4.ip;
+                    qce.key.frame.ipv4.sip.mask  = sip4.netmask;
+                }
+            }
+
+#if defined(VTSS_ARCH_SERVAL)
+            if (has_dip4) {
+                if (has_dip4_any) {
+                    qce.key.frame.ipv4.dip.value = 0;
+                    qce.key.frame.ipv4.dip.mask  = 0;
+                } else {
+                    qce.key.frame.ipv4.dip.value = dip4.ip;
+                    qce.key.frame.ipv4.dip.mask  = dip4.netmask;
+                }
+            }
+#endif /* defined(VTSS_ARCH_SERVAL) */
+
+            if (has_dscp4) {
+                if (has_dscp4_any) {
+                    QOS_ICLI_qce_range_set_u8(&qce.key.frame.ipv4.dscp, 0, 0, 0);
+                } else if (dscp4_name != DSCP_ANY) {
+                    QOS_ICLI_qce_range_set_u8(&qce.key.frame.ipv4.dscp, dscp4_name, dscp4_name, 0x3F);
+                } else {
+                    QOS_ICLI_qce_range_set_u8(&qce.key.frame.ipv4.dscp, dscp4.low, dscp4.high, 0x3F);
+                }
+            }
+
+            if (has_fr4) {
+                if (has_fr4_yes) {
+                    QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_IPV4_FRAGMENT, VTSS_VCAP_BIT_1);
+                } else if (has_fr4_no) {
+                    QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_IPV4_FRAGMENT, VTSS_VCAP_BIT_0);
+                } else if (has_fr4_any) {
+                    QCE_ENTRY_CONF_KEY_SET(qce.key.key_bits, QOS_QCE_IPV4_FRAGMENT, VTSS_VCAP_BIT_ANY);
+                }
+            }
+
+            if (has_sp4) {
+                if (has_sp4_any) {
+                    QOS_ICLI_qce_range_set_u16(&qce.key.frame.ipv4.sport, 0, 0, 0);
+                } else {
+                    QOS_ICLI_qce_range_set_u16(&qce.key.frame.ipv4.sport, sp4.low, sp4.high, 0xFFFF);
+                }
+            }
+
+            if (has_dp4) {
+                if (has_dp4_any) {
+                    QOS_ICLI_qce_range_set_u16(&qce.key.frame.ipv4.dport, 0, 0, 0);
+                } else {
+                    QOS_ICLI_qce_range_set_u16(&qce.key.frame.ipv4.dport, dp4.low, dp4.high, 0xFFFF);
+                }
+            }
+            break;
+        case VTSS_QCE_TYPE_IPV6:
+            if (has_pr6) {
+                if (has_pr6_any) {
+                    qce.key.frame.ipv6.proto.value = 0;
+                    qce.key.frame.ipv6.proto.mask =  0;
+                } else if (has_pr6_tcp) {
+                    qce.key.frame.ipv6.proto.value = 6;
+                    qce.key.frame.ipv6.proto.mask =  0xFF;
+                } else if (has_pr6_udp) {
+                    qce.key.frame.ipv6.proto.value = 17;
+                    qce.key.frame.ipv6.proto.mask =  0xFF;
+                } else {
+                    qce.key.frame.ipv6.proto.value = pr6;
+                    qce.key.frame.ipv6.proto.mask =  0xFF;
+                }
+            }
+
+            if (has_sip6) {
+                for (i = 0; i < 4; i++) {
+                    if (has_sip6_any) {
+                        qce.key.frame.ipv6.sip.value[i] = 0;
+                        qce.key.frame.ipv6.sip.mask[i]  = 0;
+                    } else {
+                        qce.key.frame.ipv6.sip.value[i] = (sip6.ip >> ((3 - i) * 8)) & 0xFF;
+                        qce.key.frame.ipv6.sip.mask[i]  = (sip6.netmask >> ((3 - i) * 8)) & 0xFF;
+                    }
+                }
+            }
+
+#if defined(VTSS_ARCH_SERVAL)
+            if (has_dip6) {
+                for (i = 0; i < 4; i++) {
+                    if (has_dip6_any) {
+                        qce.key.frame.ipv6.dip.value[i] = 0;
+                        qce.key.frame.ipv6.dip.mask[i]  = 0;
+                    } else {
+                        qce.key.frame.ipv6.dip.value[i] = (dip6.ip >> ((3 - i) * 8)) & 0xFF;
+                        qce.key.frame.ipv6.dip.mask[i]  = (dip6.netmask >> ((3 - i) * 8)) & 0xFF;
+                    }
+                }
+            }
+#endif /* defined(VTSS_ARCH_SERVAL) */
+
+            if (has_dscp6) {
+                if (has_dscp6_any) {
+                    QOS_ICLI_qce_range_set_u8(&qce.key.frame.ipv6.dscp, 0, 0, 0);
+                } else if (dscp6_name != DSCP_ANY) {
+                    QOS_ICLI_qce_range_set_u8(&qce.key.frame.ipv6.dscp, dscp6_name, dscp6_name, 0x3F);
+                } else {
+                    QOS_ICLI_qce_range_set_u8(&qce.key.frame.ipv6.dscp, dscp6.low, dscp6.high, 0x3F);
+                }
+            }
+
+            if (has_sp6) {
+                if (has_sp6_any) {
+                    QOS_ICLI_qce_range_set_u16(&qce.key.frame.ipv6.sport, 0, 0, 0);
+                } else  {
+                    QOS_ICLI_qce_range_set_u16(&qce.key.frame.ipv6.sport, sp6.low, sp6.high, 0xFFFF);
+                }
+            }
+
+            if (has_dp6) {
+                if (has_dp6_any) {
+                    QOS_ICLI_qce_range_set_u16(&qce.key.frame.ipv6.dport, 0, 0, 0);
+                } else {
+                    QOS_ICLI_qce_range_set_u16(&qce.key.frame.ipv6.dport, dp6.low, dp6.high, 0xFFFF);
+                }
+            }
+            break;
+        default:
+            break; // Do nothing
+        }
+    }
+
+    if (has_action) {
+        if (has_action_cos) {
+            if (has_action_cos_default) {
+                qce.action.prio = 0;
+                QCE_ENTRY_CONF_ACTION_SET(qce.action.action_bits, QOS_QCE_ACTION_PRIO, 0);
+            } else {
+                qce.action.prio = action_cos;
+                QCE_ENTRY_CONF_ACTION_SET(qce.action.action_bits, QOS_QCE_ACTION_PRIO, 1);
+            }
+        }
+        if (has_action_dpl) {
+            if (has_action_dpl_default) {
+                qce.action.dp = 0;
+                QCE_ENTRY_CONF_ACTION_SET(qce.action.action_bits, QOS_QCE_ACTION_DP, 0);
+            } else {
+                qce.action.dp = action_dpl;
+                QCE_ENTRY_CONF_ACTION_SET(qce.action.action_bits, QOS_QCE_ACTION_DP, 1);
+            }
+        }
+        if (has_action_dscp) {
+            if (has_action_dscp_default) {
+                qce.action.dscp = 0;
+                QCE_ENTRY_CONF_ACTION_SET(qce.action.action_bits, QOS_QCE_ACTION_DSCP, 0);
+            } else {
+                qce.action.dscp = (action_dscp_name != DSCP_ANY) ? action_dscp_name : action_dscp_dscp;
+                QCE_ENTRY_CONF_ACTION_SET(qce.action.action_bits, QOS_QCE_ACTION_DSCP, 1);
+            }
+        }
+#if defined(VTSS_ARCH_SERVAL)
+        if (has_action_pcp_dei) {
+            if (has_action_pcp_dei_default) {
+                qce.action.pcp = 0;
+                qce.action.dei = 0;
+                QCE_ENTRY_CONF_ACTION_SET(qce.action.action_bits, QOS_QCE_ACTION_PCP_DEI, 0);
+            } else {
+                qce.action.pcp = action_pcp;
+                qce.action.dei = action_dei;
+                QCE_ENTRY_CONF_ACTION_SET(qce.action.action_bits, QOS_QCE_ACTION_PCP_DEI, 1);
+            }
+        }
+        if (has_action_policy) {
+            if (has_action_policy_default) {
+                qce.action.policy_no = 0;
+                QCE_ENTRY_CONF_ACTION_SET(qce.action.action_bits, QOS_QCE_ACTION_POLICY, 0);
+            } else {
+                qce.action.policy_no = action_policy;
+                QCE_ENTRY_CONF_ACTION_SET(qce.action.action_bits, QOS_QCE_ACTION_POLICY, 1);
+            }
+        }
+#endif /* defined(VTSS_ARCH_SERVAL) */
+    }
+    if (qce.action.action_bits == 0) {
+        ICLI_PRINTF("%%QOS: at least one action parameter must have a non-default value\n");
+        return ICLI_RC_ERROR;
+    }
+
+    if (qos_mgmt_qce_entry_add(QCL_USER_STATIC, QCL_ID_END, id_next, &qce) != VTSS_OK) {
+        ICLI_PRINTF("QCL Add failed\n");
+    }
+
+
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(QOS_QCL_INCLUDE)
+
+COMMAND = no qos qce <'QCE_ID_START'~'QCE_ID_END'>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qos
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qce
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_QOS_QCE
+BYWORD  =
+
+! <'QCE_ID_START'~'QCE_ID_END'>
+CMD_VAR = qce_id_range
+RUNTIME =
+HELP    = ##HELP_QOS_QCE_ID
+BYWORD  = <QceIdRange : 'QCE_ID_START'~'QCE_ID_END'>
+
+VARIABLE_BEGIN
+    uint cnt;
+    vtss_qce_id_t qce_id;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qce_id_range) {
+        for (cnt = 0; cnt < qce_id_range->cnt; cnt++) {
+            /*lint -e{574} Suppress 'Lint Warning 574: Signed-unsigned mix with relational' */
+            for (qce_id = qce_id_range->range[cnt].min; qce_id <= qce_id_range->range[cnt].max; qce_id++) {
+                if (qos_mgmt_qce_entry_del(VTSS_ISID_GLOBAL, QCL_USER_STATIC, QCL_ID_END, qce_id) != VTSS_OK) {
+                    ICLI_PRINTF("qce %u not found\n", qce_id);
+                }
+            }
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(QOS_QCL_INCLUDE)
+
+COMMAND = qos qce refresh
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR =
+
+RUNTIME =
+
+! 1: qos
+! 2: qce
+! 3: refresh
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP =
+HELP = Refresh QCE tables in hardware
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t sit;
+VARIABLE_END
+
+CODE_BEGIN
+    (void)icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, NULL)) {
+        (void)qos_mgmt_qce_conflict_resolve(sit.isid, QCL_USER_STATIC, QCL_ID_END);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = qos cos <0-7>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: qos
+! 2: cos
+! 3: <cos:0-7>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = cos
+
+HELP = ##HELP_QOS
+HELP = Class of service configuration
+HELP = Specific class of service
+
+BYWORD =
+BYWORD =
+BYWORD = <Cos : 0-7>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.default_prio = cos;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no qos cos
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: cos
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP = ##HELP_QOS
+HELP = Class of service configuration
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t dc;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.default_prio = dc.default_prio;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = qos dpl <dpl>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: qos
+! 2: dpl
+! 3: <dpl:dpl>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = dpl
+
+HELP =
+HELP = Drop precedence level configuration
+HELP = Specific drop precedence level
+
+BYWORD =
+BYWORD =
+BYWORD = <Dpl : dpl>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.default_dpl = dpl;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no qos dpl
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: dpl
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP =
+HELP = Drop precedence level configuration
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t dc;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.default_dpl = dc.default_dpl;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = !defined(QOS_USE_FIXED_PCP_QOS_MAP)
+
+COMMAND = qos pcp <0-7>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: qos
+! 2: pcp
+! 3: <pcp:0-7>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = pcp
+
+HELP =
+HELP = Priority Code Point configuration
+HELP = Specific Priority Code Point
+
+BYWORD =
+BYWORD =
+BYWORD = <Pcp : 0-7>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.usr_prio = pcp;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = !defined(QOS_USE_FIXED_PCP_QOS_MAP)
+
+COMMAND = no qos pcp
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: pcp
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP =
+HELP = Priority Code Point configuration
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t dc;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.usr_prio = dc.usr_prio;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = !defined(QOS_USE_FIXED_PCP_QOS_MAP)
+
+COMMAND = qos dei <0-1>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: qos
+! 2: dei
+! 3: <dei:0-1>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = dei
+
+HELP =
+HELP = Drop Eligible Indicator configuration
+HELP = Specific Drop Eligible Indicator
+
+BYWORD =
+BYWORD =
+BYWORD = <Dei : 0-1>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.default_dei = dei;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = !defined(QOS_USE_FIXED_PCP_QOS_MAP)
+
+COMMAND = no qos dei
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: dei
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP =
+HELP = Drop Eligible Indicator configuration
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t dc;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.default_dei = dc.default_dei;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = !defined(QOS_USE_FIXED_PCP_QOS_MAP) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = qos trust tag
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+NO_FORM_DOC_CMD_DESC    =
+NO_FORM_DOC_CMD_DEFAULT =
+NO_FORM_DOC_CMD_USAGE   =
+NO_FORM_DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: qos
+! 2: trust
+! 3: tag
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP = Trust configuration
+HELP = VLAN tag
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t dc;
+    qos_port_conf_t c;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.tag_class_enable = TRUE;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.tag_class_enable = dc.tag_class_enable;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+
+COMMAND = qos trust dscp
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+NO_FORM_DOC_CMD_DESC    =
+NO_FORM_DOC_CMD_DEFAULT =
+NO_FORM_DOC_CMD_USAGE   =
+NO_FORM_DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: qos
+! 2: trust
+! 3: dscp
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP = Trust configuration
+HELP = DSCP value
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t dc;
+    qos_port_conf_t c;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.dscp_class_enable = TRUE;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.dscp_class_enable = dc.dscp_class_enable;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = !defined(QOS_USE_FIXED_PCP_QOS_MAP) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = qos map tag-cos pcp <0~7> dei <0~1> cos <0-7> dpl <dpl>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: qos
+! 2: map
+! 3: tag-cos
+! 4: pcp
+! 5: <pcp:0~7>
+! 6: dei
+! 7: <dei:0~1>
+! 8: cos
+! 9: <cos:0-7>
+! 10: dpl
+! 11: <dpl:dpl>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = pcp
+CMD_VAR =
+CMD_VAR = dei
+CMD_VAR =
+CMD_VAR = cos
+CMD_VAR =
+CMD_VAR = dpl
+
+HELP =
+HELP = QoS Map/Table configuration
+HELP = Map for tag to cos configuration
+HELP = Specify PCP (Priority Code Point)
+HELP = Specific PCP or range
+HELP = Specify DEI (Drop Eligible Indicator)
+HELP = Specific DEI or range
+HELP = Specify class of service
+HELP = Specific class of service
+HELP = Specify drop precedence level
+HELP = Specific drop precedence level
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Pcp : 0~7>
+BYWORD =
+BYWORD = <Dei : 0~1>
+BYWORD =
+BYWORD = <Cos : 0-7>
+BYWORD =
+BYWORD = <Dpl : dpl>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    u32             pcp_cnt;
+    u32             pcp_val;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (pcp) {
+                for (pcp_cnt = 0; pcp_cnt < pcp->cnt; pcp_cnt++) {
+                    for (pcp_val = pcp->range[pcp_cnt].min; pcp_val <= pcp->range[pcp_cnt].max; pcp_val++) {
+                        u32 dei_cnt;
+                        u32 dei_val;
+                        if (dei) {
+                            for (dei_cnt = 0; dei_cnt < dei->cnt; dei_cnt++) {
+                                for (dei_val = dei->range[dei_cnt].min; dei_val <= dei->range[dei_cnt].max; dei_val++) {
+                                    c.qos_class_map[pcp_val][dei_val] = cos;
+                                    c.dp_level_map[pcp_val][dei_val] = dpl;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = !defined(QOS_USE_FIXED_PCP_QOS_MAP) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = no qos map tag-cos pcp <0~7> dei <0~1>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: tag-cos
+! 5: pcp
+! 6: <pcp:0~7>
+! 7: dei
+! 8: <dei:0~1>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = pcp
+CMD_VAR =
+CMD_VAR = dei
+
+HELP =
+HELP =
+HELP = QoS Map/Table configuration
+HELP = Map for tag to cos configuration
+HELP = Specify PCP (Priority Code Point)
+HELP = Specific PCP or range
+HELP = Specify DEI (Drop Eligible Indicator)
+HELP = Specific DEI or range
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Pcp : 0~7>
+BYWORD =
+BYWORD = <Dei : 0~1>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+    u32             pcp_cnt;
+    u32             pcp_val;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (pcp) {
+                for (pcp_cnt = 0; pcp_cnt < pcp->cnt; pcp_cnt++) {
+                    for (pcp_val = pcp->range[pcp_cnt].min; pcp_val <= pcp->range[pcp_cnt].max; pcp_val++) {
+                        u32 dei_cnt;
+                        u32 dei_val;
+                        if (dei) {
+                            for (dei_cnt = 0; dei_cnt < dei->cnt; dei_cnt++) {
+                                for (dei_val = dei->range[dei_cnt].min; dei_val <= dei->range[dei_cnt].max; dei_val++) {
+                                    c.qos_class_map[pcp_val][dei_val] = dc.qos_class_map[pcp_val][dei_val];
+                                    c.dp_level_map[pcp_val][dei_val] = dc.dp_level_map[pcp_val][dei_val];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = qos policer <uint> [ fps ] [ flowcontrol ]
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+RUNTIME =
+RUNTIME = QOS_ICLI_runtime_rate
+RUNTIME = QOS_ICLI_runtime_fps
+RUNTIME = QOS_ICLI_runtime_flowcontrol
+
+! 1: qos
+! 2: policer
+! 3: <rate:uint>
+! 4: fps
+! 5: flowcontrol
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = rate
+CMD_VAR = has_fps
+CMD_VAR = has_flowcontrol
+
+HELP =
+HELP = Policer configuration
+HELP = Policer rate (default kbps)
+HELP = Rate is fps
+HELP = Enable flow control
+
+BYWORD =
+BYWORD =
+BYWORD = <Rate : uint>
+BYWORD = <Fps : option>
+BYWORD = <Flowcontrol : option>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.port_policer[0].enabled = TRUE;
+            c.port_policer[0].policer.rate = rate;
+#if defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS)
+            c.port_policer_ext[0].frame_rate = has_fps;
+#endif /* defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS) */
+#if defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FC)
+            c.port_policer_ext[0].flow_control = has_flowcontrol;
+#endif /* defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FC) */
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no qos policer
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: policer
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP =
+HELP = Policer configuration
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.port_policer[0] = dc.port_policer[0];
+#if defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT)
+            c.port_policer_ext[0] = dc.port_policer_ext[0];
+#endif /* defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT) */
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_BUILD_CE) && defined(VTSS_FEATURE_QOS_QUEUE_POLICER)
+
+COMMAND = qos queue-policer queue <0~7> <uint>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = QOS_ICLI_runtime_rate
+
+! 1: qos
+! 2: queue-policer
+! 3: queue
+! 4: <queue:0~7>
+! 5: <rate:uint>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = queue
+CMD_VAR = rate
+
+HELP =
+HELP = Queue policer configuration
+HELP = Specify queue
+HELP = Specific queue or range
+HELP = Policer rate in kbps
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Queue : 0~7>
+BYWORD = <Rate : uint>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    u32             queue_cnt;
+    u32             queue_val;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (queue) {
+                for (queue_cnt = 0; queue_cnt < queue->cnt; queue_cnt++) {
+                    for (queue_val = queue->range[queue_cnt].min; queue_val <= queue->range[queue_cnt].max; queue_val++) {
+                        c.queue_policer[queue_val].enabled = TRUE;
+                        c.queue_policer[queue_val].policer.rate = rate;
+                    }
+                }
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_BUILD_CE) && defined(VTSS_FEATURE_QOS_QUEUE_POLICER)
+
+COMMAND = no qos queue-policer queue <0~7>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: queue-policer
+! 4: queue
+! 5: <queue:0~7>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = queue
+
+HELP =
+HELP =
+HELP = Queue policer configuration
+HELP = Specify queue
+HELP = Specific queue or range
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Queue : 0~7>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+    u32             queue_cnt;
+    u32             queue_val;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (queue) {
+                for (queue_cnt = 0; queue_cnt < queue->cnt; queue_cnt++) {
+                    for (queue_val = queue->range[queue_cnt].min; queue_val <= queue->range[queue_cnt].max; queue_val++) {
+                        c.queue_policer[queue_val].enabled = dc.queue_policer[queue_val].enabled;
+                        c.queue_policer[queue_val].policer.rate = dc.queue_policer[queue_val].policer.rate;
+                    }
+                }
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_SCHEDULER_V2)
+
+COMMAND = qos wrr <1-100> <1-100> <1-100> <1-100> <1-100> <1-100>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: qos
+! 2: wrr
+! 3: <w0:1-100>
+! 4: <w1:1-100>
+! 5: <w2:1-100>
+! 6: <w3:1-100>
+! 7: <w4:1-100>
+! 8: <w5:1-100>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = w0
+CMD_VAR = w1
+CMD_VAR = w2
+CMD_VAR = w3
+CMD_VAR = w4
+CMD_VAR = w5
+
+HELP =
+HELP = Weighted round robin configuration
+HELP = Weight for queue 0
+HELP = Weight for queue 1
+HELP = Weight for queue 2
+HELP = Weight for queue 3
+HELP = Weight for queue 4
+HELP = Weight for queue 5
+
+BYWORD =
+BYWORD =
+BYWORD = <W0 : 1-100>
+BYWORD = <W1 : 1-100>
+BYWORD = <W2 : 1-100>
+BYWORD = <W3 : 1-100>
+BYWORD = <W4 : 1-100>
+BYWORD = <W5 : 1-100>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.dwrr_enable = TRUE;
+            c.queue_pct[0] = w0;
+            c.queue_pct[1] = w1;
+            c.queue_pct[2] = w2;
+            c.queue_pct[3] = w3;
+            c.queue_pct[4] = w4;
+            c.queue_pct[5] = w5;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_SCHEDULER_V2)
+
+COMMAND = no qos wrr
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: wrr
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP =
+HELP = Weighted round robin configuration
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.dwrr_enable = dc.dwrr_enable;
+            c.queue_pct[0] = dc.queue_pct[0];
+            c.queue_pct[1] = dc.queue_pct[1];
+            c.queue_pct[2] = dc.queue_pct[2];
+            c.queue_pct[3] = dc.queue_pct[3];
+            c.queue_pct[4] = dc.queue_pct[4];
+            c.queue_pct[5] = dc.queue_pct[5];
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = qos shaper <uint>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+RUNTIME =
+RUNTIME = QOS_ICLI_runtime_rate
+
+! 1: qos
+! 2: shaper
+! 3: <rate:uint>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = rate
+
+HELP =
+HELP = Shaper configuration
+HELP = Shaper rate in kbps
+
+BYWORD =
+BYWORD =
+BYWORD = <Rate : uint>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.shaper_status = TRUE;
+            c.shaper_rate = rate;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = no qos shaper
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: shaper
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP =
+HELP = Shaper configuration
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.shaper_status = dc.shaper_status;
+            c.shaper_rate = dc.shaper_rate;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_EGRESS_QUEUE_SHAPERS)
+
+COMMAND = qos queue-shaper queue <0~7> <uint> [ excess ]
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = QOS_ICLI_runtime_rate
+
+! 1: qos
+! 2: queue-shaper
+! 3: queue
+! 4: <queue:0~7>
+! 5: <rate:uint>
+! 6: excess
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = queue
+CMD_VAR = rate
+CMD_VAR = has_excess
+
+HELP =
+HELP = Queue shaper configuration
+HELP = Specify queue
+HELP = Specific queue or range
+HELP = Shaper rate in kbps
+HELP = Allow use of excess bandwidth
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Queue : 0~7>
+BYWORD = <Rate : uint>
+BYWORD = <Excess : option>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    u32             queue_cnt;
+    u32             queue_val;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (queue) {
+                for (queue_cnt = 0; queue_cnt < queue->cnt; queue_cnt++) {
+                    for (queue_val = queue->range[queue_cnt].min; queue_val <= queue->range[queue_cnt].max; queue_val++) {
+                        c.queue_shaper[queue_val].enable = TRUE;
+                        c.queue_shaper[queue_val].rate = rate;
+                        c.excess_enable[queue_val] = has_excess;
+                    }
+                }
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_EGRESS_QUEUE_SHAPERS)
+
+COMMAND = no qos queue-shaper queue <0~7>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: queue-shaper
+! 4: queue
+! 5: <queue:0~7>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = queue
+
+HELP =
+HELP =
+HELP = Queue shaper configuration
+HELP = Specify queue
+HELP = Specific queue or range
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Queue : 0~7>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+    u32             queue_cnt;
+    u32             queue_val;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (queue) {
+                for (queue_cnt = 0; queue_cnt < queue->cnt; queue_cnt++) {
+                    for (queue_val = queue->range[queue_cnt].min; queue_val <= queue->range[queue_cnt].max; queue_val++) {
+                        c.queue_shaper[queue_val] = dc.queue_shaper[queue_val];
+                        c.excess_enable[queue_val] = dc.excess_enable[queue_val];
+                    }
+                }
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_TAG_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = qos tag-remark { pcp <0-7> dei <0-1> | mapped }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+
+! 1: qos
+! 2: tag-remark
+! 3: pcp
+! 4: <pcp:0-7>
+! 5: dei
+! 6: <dei:0-1>
+! 7: mapped
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_pcp
+CMD_VAR = pcp
+CMD_VAR =
+CMD_VAR = dei
+CMD_VAR = has_mapped
+
+HELP =
+HELP = Tag remarking configuration
+HELP = Specify default PCP
+HELP = Specific PCP
+HELP = Specify default DEI
+HELP = Specific DEI
+HELP = Used mapped values (cos,dpl -> pcp,dei)
+
+BYWORD =
+BYWORD =
+BYWORD = <Pcp : option>
+BYWORD = <Pcp : 0-7>
+BYWORD =
+BYWORD = <Dei : 0-1>
+BYWORD = <Mapped : option>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (has_pcp) {
+                c.tag_remark_mode = VTSS_TAG_REMARK_MODE_DEFAULT;
+                c.tag_default_pcp = pcp;
+                c.tag_default_dei = dei;
+            } else if (has_mapped) {
+                c.tag_remark_mode = VTSS_TAG_REMARK_MODE_MAPPED;
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_TAG_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = no qos tag-remark
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: tag-remark
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP =
+HELP = Tag remarking configuration
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.tag_remark_mode = dc.tag_remark_mode;
+            c.tag_default_pcp = dc.tag_default_pcp;
+            c.tag_default_dei = dc.tag_default_dei;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_TAG_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = qos map cos-tag cos <0~7> dpl <0~1> pcp <0-7> dei <0-1>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: qos
+! 2: map
+! 3: cos-tag
+! 4: cos
+! 5: <cos:0~7>
+! 6: dpl
+! 7: <dpl:0~1>
+! 8: pcp
+! 9: <pcp:0-7>
+! 10: dei
+! 11: <dei:0-1>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = cos
+CMD_VAR =
+CMD_VAR = dpl
+CMD_VAR =
+CMD_VAR = pcp
+CMD_VAR =
+CMD_VAR = dei
+
+HELP =
+HELP = QoS Map/Table configuration
+HELP = Map for cos to tag configuration
+HELP = Specify class of service
+HELP = Specific class of service or range
+HELP = Specify drop precedence level
+HELP = Specific drop precedence level or range
+HELP = Specify PCP (Priority Code Point)
+HELP = Specific PCP
+HELP = Specify DEI (Drop Eligible Indicator)
+HELP = Specific DEI
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Cos : 0~7>
+BYWORD =
+BYWORD = <Dpl : 0~1>
+BYWORD =
+BYWORD = <Pcp : 0-7>
+BYWORD =
+BYWORD = <Dei : 0-1>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    u32             cos_cnt;
+    u32             cos_val;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (cos) {
+                for (cos_cnt = 0; cos_cnt < cos->cnt; cos_cnt++) {
+                    for (cos_val = cos->range[cos_cnt].min; cos_val <= cos->range[cos_cnt].max; cos_val++) {
+                        u32 dpl_cnt;
+                        u32 dpl_val;
+                        if (dpl) {
+                            for (dpl_cnt = 0; dpl_cnt < dpl->cnt; dpl_cnt++) {
+                                for (dpl_val = dpl->range[dpl_cnt].min; dpl_val <= dpl->range[dpl_cnt].max; dpl_val++) {
+                                    c.tag_pcp_map[cos_val][dpl_val] = pcp;
+                                    c.tag_dei_map[cos_val][dpl_val] = dei;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_TAG_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = no qos map cos-tag cos <0~7> dpl <0~1>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: cos-tag
+! 5: cos
+! 6: <cos:0~7>
+! 7: dpl
+! 8: <dpl:0~1>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = cos
+CMD_VAR =
+CMD_VAR = dpl
+
+HELP =
+HELP =
+HELP =
+HELP = Map for cos to tag configuration
+HELP = Specify class of service
+HELP = Specific class of service or range
+HELP = Specify drop precedence level
+HELP = Specific drop precedence level or range
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Cos : 0~7>
+BYWORD =
+BYWORD = <Dpl : 0~1>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+    u32             cos_cnt;
+    u32             cos_val;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (cos) {
+                for (cos_cnt = 0; cos_cnt < cos->cnt; cos_cnt++) {
+                    for (cos_val = cos->range[cos_cnt].min; cos_val <= cos->range[cos_cnt].max; cos_val++) {
+                        u32 dpl_cnt;
+                        u32 dpl_val;
+                        if (dpl) {
+                            for (dpl_cnt = 0; dpl_cnt < dpl->cnt; dpl_cnt++) {
+                                for (dpl_val = dpl->range[dpl_cnt].min; dpl_val <= dpl->range[dpl_cnt].max; dpl_val++) {
+                                    c.tag_pcp_map[cos_val][dpl_val] = dc.tag_pcp_map[cos_val][dpl_val];
+                                    c.tag_dei_map[cos_val][dpl_val] = dc.tag_dei_map[cos_val][dpl_val];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = qos dscp-translate
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+NO_FORM_DOC_CMD_DESC    =
+NO_FORM_DOC_CMD_DEFAULT =
+NO_FORM_DOC_CMD_USAGE   =
+NO_FORM_DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: qos
+! 2: dscp-translate
+
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP = DSCP ingress translation
+
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.dscp_translate = TRUE;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.dscp_translate = dc.dscp_translate;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = qos dscp-classify { zero | selected | any }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: qos
+! 2: dscp-classify
+! 3: zero
+! 4: selected
+! 5: any
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_zero
+CMD_VAR = has_selected
+CMD_VAR = has_any
+
+HELP =
+HELP = DSCP ingress classification
+HELP = Classify to new DSCP if DSCP is 0
+HELP = Classify to new DSCP if classify is enabled for specific DSCP value in global dscp-classify map
+HELP = Classify to new DSCP always
+
+BYWORD =
+BYWORD =
+BYWORD = <Zero : option>
+BYWORD = <Selected : option>
+BYWORD = <Any : option>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (has_zero) {
+                c.dscp_imode = VTSS_DSCP_MODE_ZERO;
+            } else if (has_selected) {
+                c.dscp_imode = VTSS_DSCP_MODE_SEL;
+            } else if (has_any) {
+                c.dscp_imode = VTSS_DSCP_MODE_ALL;
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = no qos dscp-classify
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: dscp-classify
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP =
+HELP = DSCP ingress classification
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.dscp_imode = dc.dscp_imode;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = qos dscp-remark { rewrite | remap | remap-dp }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = QOS_ICLI_runtime_remark
+RUNTIME = QOS_ICLI_runtime_remark_dpa
+
+! 1: qos
+! 2: dscp-remark
+! 3: rewrite
+! 4: remap
+! 5: remap-dp
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_rewrite
+CMD_VAR = has_remap
+CMD_VAR = has_remap_dp
+
+HELP =
+HELP = DSCP egress remarking
+HELP = Rewrite DSCP field with classified DSCP value (no translation)
+HELP =
+HELP =
+
+BYWORD =
+BYWORD =
+BYWORD = <Rewrite : option>
+BYWORD = <Remap : option>
+BYWORD = <RemapDp : option>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (has_rewrite) {
+                c.dscp_emode = VTSS_DSCP_EMODE_REMARK;
+            } else if (has_remap) {
+                c.dscp_emode = VTSS_DSCP_EMODE_REMAP;
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+            } else if (has_remap_dp) {
+                c.dscp_emode = VTSS_DSCP_EMODE_REMAP_DPA;
+#endif /* VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE */
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) && (defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE))
+
+COMMAND = no qos dscp-remark
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: dscp-remark
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP =
+HELP =
+HELP = DSCP egress remarking
+
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.dscp_emode = dc.dscp_emode;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_JR_STORM_POLICERS)
+
+COMMAND = qos storm { unicast | broadcast | unknown } <100-13200000> [ fps ]
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME =
+RUNTIME = QOS_ICLI_runtime_fps
+
+! 1: qos
+! 2: storm
+! 3: unicast
+! 4: broadcast
+! 5: unknown
+! 6: <rate:100-13200000>
+! 7: fps
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_unicast
+CMD_VAR = has_broadcast
+CMD_VAR = has_unknown
+CMD_VAR = rate
+CMD_VAR = has_fps
+
+HELP =
+HELP = ##HELP_QOS_STORM
+HELP = Police unicast frames
+HELP = Police broadcast frames
+HELP = Police unknown (flooded) frames
+HELP = Policer rate (default kbps)
+HELP = Rate is fps
+
+BYWORD =
+BYWORD =
+BYWORD = <Unicast : option>
+BYWORD = <Broadcast : option>
+BYWORD = <Unknown : option>
+BYWORD = <Rate : 100-13200000>
+BYWORD = <Fps : option>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    uint            p = QOS_STORM_POLICER_UNICAST;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (has_unicast) {
+                p = QOS_STORM_POLICER_UNICAST;
+            } else if (has_broadcast) {
+                p = QOS_STORM_POLICER_BROADCAST;
+            } else if (has_unknown) {
+                p = QOS_STORM_POLICER_UNKNOWN;
+            }
+
+            c.port_policer[p].enabled = TRUE;
+            c.port_policer[p].policer.rate = rate;
+#if defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS)
+            c.port_policer_ext[p].frame_rate = has_fps;
+#endif /* VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS */
+
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_SW_OPTION_JR_STORM_POLICERS)
+
+COMMAND = no qos storm { unicast | broadcast | unknown }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME =
+
+! 1: no
+! 2: qos
+! 3: storm
+! 4: unicast
+! 5: broadcast
+! 6: unknown
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = has_unicast
+CMD_VAR = has_broadcast
+CMD_VAR = has_unknown
+
+HELP =
+HELP =
+HELP = ##HELP_QOS_STORM
+HELP = Police unicast frames
+HELP = Police broadcast frames
+HELP = Police unknown (flooded) frames
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <Unicast : option>
+BYWORD = <Broadcast : option>
+BYWORD = <Unknown : option>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+    uint            p = QOS_STORM_POLICER_UNICAST;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (has_unicast) {
+                p = QOS_STORM_POLICER_UNICAST;
+            } else if (has_broadcast) {
+                p = QOS_STORM_POLICER_BROADCAST;
+            } else if (has_unknown) {
+                p = QOS_STORM_POLICER_UNKNOWN;
+            }
+
+            c.port_policer[p].enabled = dc.port_policer[p].enabled;
+            c.port_policer[p].policer.rate = dc.port_policer[p].policer.rate;
+#if defined(VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS)
+            c.port_policer_ext[p].frame_rate = dc.port_policer_ext[p].frame_rate;
+#endif /* VTSS_FEATURE_QOS_PORT_POLICER_EXT_FPS */
+
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QCL_DMAC_DIP) || defined(VTSS_ARCH_SERVAL)
+
+COMMAND = qos qce { [ addr { source | destination } ] [ key { double-tag | normal | ip-addr | mac-ip-addr } ] }*1
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! qos
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qce
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_QOS_QCE
+BYWORD  =
+
+! addr
+CMD_VAR = has_addr
+RUNTIME = QOS_ICLI_runtime_dmac_dip
+HELP    = Setup address match mode
+BYWORD  = addr : Option
+
+! source
+CMD_VAR = has_source
+RUNTIME =
+HELP    = Match SMAC and SIP (default)
+BYWORD  = source : Option
+
+! destination
+CMD_VAR = has_destination
+RUNTIME =
+HELP    = Match DMAC and DIP
+BYWORD  = destination : Option
+
+! key
+CMD_VAR = has_key
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Setup ingress lookup key type
+BYWORD  = key : Option
+
+! double-tag
+CMD_VAR = has_double_tag
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match outer tag, inner tag, IP protocol, DSCP and DPORT
+BYWORD  = double_tag : Option
+
+! normal
+CMD_VAR = has_normal
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match outer tag, SMAC/DMAC, IP protocol, DSCP, SIP/DIP, SPORT and DPORT (default)
+BYWORD  = normal : Option
+
+! ip-addr
+CMD_VAR = has_ip_addr
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match outer tag, SMAC/DMAC, IP protocol, DSCP, SIP and DIP
+BYWORD  = ip_addr : Option
+
+! mac-ip-addr
+CMD_VAR = has_mac_ip_addr
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Match outer tag, inner tag, SMAC, DMAC, IP protocol, DSCP, SIP, DIP, SPORT and DPORT
+BYWORD  = mac_ip_addr : Option
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+#if defined(VTSS_FEATURE_QCL_DMAC_DIP)
+            if (has_addr) {
+                c.dmac_dip = has_destination;
+            }
+#endif
+#if defined(VTSS_ARCH_SERVAL)
+            if (has_key) {
+                if (has_double_tag) {
+                    c.key_type = VTSS_VCAP_KEY_TYPE_DOUBLE_TAG;
+                } else if (has_ip_addr) {
+                    c.key_type = VTSS_VCAP_KEY_TYPE_IP_ADDR;
+                } else if (has_mac_ip_addr) {
+                    c.key_type = VTSS_VCAP_KEY_TYPE_MAC_IP_ADDR;
+                } else {
+                    c.key_type = VTSS_VCAP_KEY_TYPE_NORMAL;
+                }
+            }
+#endif
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QCL_DMAC_DIP) || defined(VTSS_ARCH_SERVAL)
+
+COMMAND = no qos qce { [ addr ] [ key ] }*1
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qos
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qce
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_QOS_QCE
+BYWORD  =
+
+! addr
+CMD_VAR = has_addr
+RUNTIME = QOS_ICLI_runtime_dmac_dip
+HELP    = Reset address match mode to SMAC and SIP
+BYWORD  = addr : Option
+
+! key
+CMD_VAR = has_key
+RUNTIME = QOS_ICLI_runtime_serval
+HELP    = Reset ingress lookup key type to normal
+BYWORD  = key : Option
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+#if defined(VTSS_FEATURE_QCL_DMAC_DIP)
+            if (has_addr) {
+                c.dmac_dip = dc.dmac_dip;
+            }
+#endif
+#if defined(VTSS_ARCH_SERVAL)
+            if (has_key) {
+                c.key_type = dc.key_type;
+            }
+#endif
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_EGRESS_SHAPERS_DLB)
+
+COMMAND = debug qos shaper cir { <100-3300000> [ cbs <4096-258048> ] } { [ eir <100-3300000> [ ebs <4096-258048> ] ] }
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! debug
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qos
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_QOS
+BYWORD  =
+
+! shaper
+CMD_VAR =
+RUNTIME =
+HELP    = Shaper configuration
+BYWORD  =
+
+! cir
+CMD_VAR =
+RUNTIME =
+HELP    = Committed Information Rate
+BYWORD  =
+
+! <100-3300000>
+CMD_VAR = cir
+RUNTIME =
+HELP    = Rate in kbps
+BYWORD  = <Cir : 100-3300000>
+
+! cbs
+CMD_VAR = has_cbs
+RUNTIME =
+HELP    = Committed Burst Size (Default 4096 bytes)
+BYWORD  = cbs : Option
+
+! <4096-258048>
+CMD_VAR = cbs
+RUNTIME =
+HELP    = Burst size in bytes
+BYWORD  = <Cbs : 4096-258048>
+
+! eir
+CMD_VAR = has_eir
+RUNTIME =
+HELP    = Excess Information Rate
+BYWORD  = eir : Option
+
+! <100-3300000>
+CMD_VAR = eir
+RUNTIME =
+HELP    = Rate in kbps
+BYWORD  = <Eir : 100-3300000>
+
+! ebs
+CMD_VAR = has_ebs
+RUNTIME =
+HELP    = Excess Burst Size (Default 4096 bytes)
+BYWORD  = ebs : Option
+
+! <4096-258048>
+CMD_VAR = ebs
+RUNTIME =
+HELP    = Burst size in bytes
+BYWORD  = <Ebs : 4096-258048>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.shaper_status = TRUE;
+            c.shaper_rate   = cir;
+            c.shaper_cbs    = has_cbs ? cbs : QOS_BURSTSIZE_DEF;
+            if (has_eir) {
+                c.shaper_dlb = TRUE;
+                c.shaper_eir = eir;
+                c.shaper_ebs = has_ebs ? ebs : QOS_BURSTSIZE_DEF;
+            } else {
+                c.shaper_dlb = FALSE;
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_EGRESS_SHAPERS_DLB)
+
+COMMAND = no debug qos shaper
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! debug
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qos
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_QOS
+BYWORD  =
+
+! shaper
+CMD_VAR =
+RUNTIME =
+HELP    = Shaper configuration
+BYWORD  =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            c.shaper_status = dc.shaper_status;
+            c.shaper_rate   = dc.shaper_rate;
+            c.shaper_cbs    = dc.shaper_cbs;
+            c.shaper_dlb    = dc.shaper_dlb;
+            c.shaper_cbs    = dc.shaper_cbs;
+            c.shaper_ebs    = dc.shaper_ebs;
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_EGRESS_SHAPERS_DLB)
+
+COMMAND = debug qos queue-shaper queue <0~7> { cir <100-3300000> [ cbs <4096-258048> ] } { [ eir <100-3300000> [ ebs <4096-258048> ] ] } [ excess ]
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! debug
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qos
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! queue-shaper
+CMD_VAR =
+RUNTIME =
+HELP    = Queue shaper configuration
+BYWORD  =
+
+! queue
+CMD_VAR =
+RUNTIME =
+HELP    = Specify queue
+BYWORD  =
+
+! <0~7>
+CMD_VAR = queue
+RUNTIME =
+HELP    = Specific queue or range
+BYWORD  = <Queue : 0~7>
+
+! cir
+CMD_VAR =
+RUNTIME =
+HELP    = Committed Information Rate
+BYWORD  =
+
+! <100-3300000>
+CMD_VAR = cir
+RUNTIME =
+HELP    = Rate in kbps
+BYWORD  = <Cir : 100-3300000>
+
+! cbs
+CMD_VAR = has_cbs
+RUNTIME =
+HELP    = Committed Burst Size
+BYWORD  = cbs : Option
+
+! <4096-258048>
+CMD_VAR = cbs
+RUNTIME =
+HELP    = Burst size in bytes (Default 4096 bytes)
+BYWORD  = <Cbs : 4096-258048>
+
+! eir
+CMD_VAR = has_eir
+RUNTIME =
+HELP    = Excess Information Rate
+BYWORD  = eir : Option
+
+! <100-3300000>
+CMD_VAR = eir
+RUNTIME =
+HELP    = Rate in kbps
+BYWORD  = <Eir : 100-3300000>
+
+! ebs
+CMD_VAR = has_ebs
+RUNTIME =
+HELP    = Excess Burst Size (Default 4096 bytes)
+BYWORD  = ebs : Option
+
+! <4096-258048>
+CMD_VAR = ebs
+RUNTIME =
+HELP    = Burst size in bytes
+BYWORD  = <Ebs : 4096-258048>
+
+! excess
+CMD_VAR = has_excess
+RUNTIME =
+HELP    = Allow use of excess bandwidth
+BYWORD  = excess : Option
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    u32             queue_cnt;
+    u32             queue_val;
+VARIABLE_END
+
+CODE_BEGIN
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (queue) {
+                for (queue_cnt = 0; queue_cnt < queue->cnt; queue_cnt++) {
+                    for (queue_val = queue->range[queue_cnt].min; queue_val <= queue->range[queue_cnt].max; queue_val++) {
+                        c.queue_shaper[queue_val].enable = TRUE;
+                        c.queue_shaper[queue_val].rate   = cir;
+                        c.queue_shaper[queue_val].cbs    = has_cbs ? cbs : QOS_BURSTSIZE_DEF;
+                        if (has_eir) {
+                            c.queue_shaper[queue_val].dlb = TRUE;
+                            c.queue_shaper[queue_val].eir = eir;
+                            c.queue_shaper[queue_val].ebs = has_ebs ? ebs : QOS_BURSTSIZE_DEF;
+                        } else {
+                            c.queue_shaper[queue_val].dlb = FALSE;
+                        }
+                        c.excess_enable[queue_val] = has_excess;
+                    }
+                }
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_EGRESS_SHAPERS_DLB)
+
+COMMAND = no debug qos queue-shaper queue <0~7>
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+! no
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! debug
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qos
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! queue-shaper
+CMD_VAR =
+RUNTIME =
+HELP    = Queue shaper configuration
+BYWORD  =
+
+! queue
+CMD_VAR =
+RUNTIME =
+HELP    = Specify queue
+BYWORD  =
+
+! <0~7>
+CMD_VAR = queue
+RUNTIME =
+HELP    = Specific queue or range
+BYWORD  = <Queue : 0~7>
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    qos_port_conf_t c;
+    qos_port_conf_t dc;
+    u32             queue_cnt;
+    u32             queue_val;
+VARIABLE_END
+
+CODE_BEGIN
+    if (qos_port_conf_get_default(&dc) != VTSS_OK) {
+        return ICLI_RC_ERROR;
+    }
+    (void) icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, plist)) {
+        (void) icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, plist)) {
+            if (qos_port_conf_get(sit.isid, pit.iport, &c) != VTSS_OK) {
+                continue;
+            }
+            if (queue) {
+                for (queue_cnt = 0; queue_cnt < queue->cnt; queue_cnt++) {
+                    for (queue_val = queue->range[queue_cnt].min; queue_val <= queue->range[queue_cnt].max; queue_val++) {
+                        c.queue_shaper[queue_val] = dc.queue_shaper[queue_val];
+                        c.excess_enable[queue_val] = dc.excess_enable[queue_val];
+                    }
+                }
+            }
+            (void) qos_port_conf_set(sit.isid, pit.iport, &c);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_QOS_EGRESS_SHAPERS_DLB)
+
+COMMAND = debug show qos shapers
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+! debug
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! show
+CMD_VAR =
+RUNTIME =
+HELP    = Show running system information
+BYWORD  =
+
+! qos
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_QOS
+BYWORD  =
+
+! shapers
+CMD_VAR =
+RUNTIME =
+HELP    = Shaper configuration
+BYWORD  =
+
+VARIABLE_BEGIN
+    switch_iter_t   sit;
+    port_iter_t     pit;
+    char            buf[128];
+    qos_port_conf_t c;
+VARIABLE_END
+
+CODE_BEGIN
+
+    (void)icli_switch_iter_init(&sit);
+    while (icli_switch_iter_getnext(&sit, NULL)) {
+        (void)icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+        while (icli_port_iter_getnext(&pit, NULL)) {
+            IC_RC(qos_port_conf_get(sit.isid, pit.iport, &c));
+            ICLI_PRINTF("interface %s\n", icli_port_info_txt(sit.usid, pit.uport, buf));
+            ICLI_PRINTF(" qos shaper: %s, cir: %u, cbs: %u", icli_bool_txt(c.shaper_status), c.shaper_rate, c.shaper_cbs);
+            if (c.shaper_dlb) {
+                ICLI_PRINTF(", eir: %u, ebs: %u", c.shaper_eir, c.shaper_ebs);
+            }
+            ICLI_PRINTF("\n");
+
+#ifdef VTSS_FEATURE_QOS_EGRESS_QUEUE_SHAPERS
+            {
+                int i;
+                for (i = 0; i < QOS_PORT_QUEUE_CNT; i++) {
+                    ICLI_PRINTF(" qos queue-shaper queue %d: %s, cir: %u, cbs: %u", i, icli_bool_txt(c.queue_shaper[i].enable), c.queue_shaper[i].rate, c.queue_shaper[i].cbs);
+                    if (c.queue_shaper[i].dlb) {
+                        ICLI_PRINTF(", eir: %u, ebs: %u", c.queue_shaper[i].eir, c.queue_shaper[i].ebs);
+                    }
+                    ICLI_PRINTF(", excess: %s\n", icli_bool_txt(c.excess_enable[i]));
+                }
+            }
+#endif /* VTSS_FEATURE_QOS_EGRESS_QUEUE_SHAPERS */
+        }
+    }
+    ICLI_PRINTF("\n");
+
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = defined(VTSS_FEATURE_VSTAX_V2)
+
+COMMAND = debug qos cmef [ { enable | disable } ]
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+! debug
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qos
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_QOS
+BYWORD  =
+
+! cmef
+CMD_VAR =
+RUNTIME =
+HELP    = Set or show the Congestion Management mode
+BYWORD  =
+
+! enable
+CMD_VAR = has_enable
+RUNTIME =
+HELP    = Enable CMEF
+BYWORD  = enable : Option
+
+! disable
+CMD_VAR = has_disable
+RUNTIME =
+HELP    = Disable CMEF
+BYWORD  = disable : Option
+
+VARIABLE_BEGIN
+    qos_conf_t conf;
+VARIABLE_END
+
+CODE_BEGIN
+    IC_RC(qos_conf_get(&conf));
+    if (has_enable || has_disable) {
+        conf.cmef_disable = has_disable;
+        (void) qos_conf_set(&conf);
+    } else {
+        ICLI_PRINTF("Congestion Management: %s\n", icli_bool_txt(!conf.cmef_disable));
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = debug qos registrations [ clear ]
+
+DOC_CMD_DESC    =
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   =
+DOC_CMD_EXAMPLE =
+
+FUNC_NAME =
+FUNC_REUSE =
+
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+PROPERTY  =
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR =
+
+! debug
+CMD_VAR =
+RUNTIME =
+HELP    =
+BYWORD  =
+
+! qos
+CMD_VAR =
+RUNTIME =
+HELP    = ##HELP_QOS
+BYWORD  =
+
+! registrations
+CMD_VAR =
+RUNTIME =
+HELP    = Show or clear QoS module registrations
+BYWORD  =
+
+! clear
+CMD_VAR = has_clear
+RUNTIME =
+HELP    = Clear max callback time
+BYWORD  = clear : Option
+
+VARIABLE_BEGIN
+    qos_port_conf_change_reg_t reg;
+    BOOL                       first = TRUE;
+VARIABLE_END
+
+CODE_BEGIN
+    reg.module_id = VTSS_MODULE_ID_NONE;
+    while (qos_port_conf_change_reg_get(&reg, has_clear) == VTSS_OK) {
+        if (first) {
+            first = FALSE;
+            icli_header(session_id, "QoS Port Conficuration Change Registrations", 1);
+            icli_table_header(session_id, "Type    Module           Max Callback [msec]");
+        }
+        ICLI_PRINTF("%-6s  %-15.15s  %llu\n", reg.global ? "Global" : "Local", vtss_module_names[reg.module_id], VTSS_OS_TICK2MSEC(reg.max_ticks));
+    }
+    if (!has_clear && first) {
+        ICLI_PRINTF("No registrations found!\n");
+    }
+CODE_END
+
+CMD_END
+

@@ -1,0 +1,426 @@
+# ====================================================================
+#
+#      hal_mips_vcoreiii.cdl
+#
+#      VCore-III board HAL package configuration data
+#
+# ====================================================================
+## ####ECOSGPLCOPYRIGHTBEGIN####                                            
+## -------------------------------------------                              
+## This file is part of eCos, the Embedded Configurable Operating System.   
+## Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+##
+## eCos is free software; you can redistribute it and/or modify it under    
+## the terms of the GNU General Public License as published by the Free     
+## Software Foundation; either version 2 or (at your option) any later      
+## version.                                                                 
+##
+## eCos is distributed in the hope that it will be useful, but WITHOUT      
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or    
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License    
+## for more details.                                                        
+##
+## You should have received a copy of the GNU General Public License        
+## along with eCos; if not, write to the Free Software Foundation, Inc.,    
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.            
+##
+## As a special exception, if other files instantiate templates or use      
+## macros or inline functions from this file, or you compile this file      
+## and link it with other works to produce a work based on this file,       
+## this file does not by itself cause the resulting work to be covered by   
+## the GNU General Public License. However the source code for this file    
+## must still be made available in accordance with section (3) of the GNU   
+## General Public License v2.                                               
+##
+## This exception does not invalidate any other reasons why a work based    
+## on this file might be covered by the GNU General Public License.         
+## -------------------------------------------                              
+## ####ECOSGPLCOPYRIGHTEND####                                              
+# ====================================================================
+######DESCRIPTIONBEGIN####
+#
+# Author(s):      Rene Schipp von Branitz Nielsen   
+# Original data:  
+# Contributors:   
+# Date:           2009-05-27
+#
+#####DESCRIPTIONEND####
+#
+# ====================================================================
+
+cdl_package CYGPKG_HAL_MIPS_VCOREIII {
+    display  "VCore-III evaluation board"
+    parent        CYGPKG_HAL_MIPS
+    # Currently no generic support for "24KEc". Use 4Kc instead.
+    requires      { ((CYGHWR_HAL_MIPS_MIPS32_CORE == "4Kc") && CYGPKG_HAL_MIPS_MIPS32) }
+    include_dir   cyg/hal
+    description   "
+           The VCore-III HAL package should be used when targetting the
+           actual hardware."
+
+    compile       hal_diag.c platform.S plf_misc.c plf_io.c plf_intr.c ser16c550c.c
+
+    implements    CYGINT_HAL_DEBUG_GDB_STUBS
+    implements    CYGINT_HAL_DEBUG_GDB_STUBS_BREAK
+    implements    CYGINT_HAL_VIRTUAL_VECTOR_SUPPORT
+    implements    CYGINT_HAL_VIRTUAL_VECTOR_COMM_BAUD_SUPPORT
+    implements    CYGINT_PROFILE_HAL_TIMER
+    implements    CYGINT_PROFILE_HAL_MCOUNT
+
+    cdl_option CYGBLD_HAL_TARGET_H {
+        display       "Variant header"
+        flavor        data
+    no_define
+    calculated { CYGPKG_HAL_MIPS_MIPS32 ? "<pkgconf/hal_mips_mips32.h>" : \
+                                          "<pkgconf/hal_mips_mips64.h>" }
+    define -file system.h CYGBLD_HAL_TARGET_H
+        description   "Variant header."
+
+        define_proc {
+            puts $::cdl_system_header "#define CYGBLD_HAL_PLATFORM_H <pkgconf/hal_mips_vcoreiii.h>"
+            puts $::cdl_system_header ""
+            puts $::cdl_system_header "/* Make sure we get the CORE type definitions for HAL_PLATFORM_CPU */"
+            puts $::cdl_system_header "#include CYGBLD_HAL_TARGET_H"
+            puts $::cdl_system_header "#define HAL_PLATFORM_BOARD    \"VCore-III\""
+            puts $::cdl_system_header "#define HAL_PLATFORM_EXTRA    __Xstr(CYG_HAL_VCOREIII_CHIPTYPE)"
+            puts $::cdl_system_header ""
+            puts $::cdl_system_header "#define HAL_PLATFORM_CPU    \"MIPS32 24KEc\""
+            puts $::cdl_system_header ""
+        }
+    }
+
+    cdl_component CYG_HAL_VCOREIII_CHIPTYPE {
+        display       "VCore-III chip type"
+        flavor        data
+        legal_values  {"JAGUAR" "LUTON26"}
+        default_value {"JAGUAR"}
+        description   "The VCore-III chip type."
+
+        cdl_option CYGNUM_HAL_MIPS_VCOREIII_MEMORY_16BIT {
+            display    "Whether the DDR2 memory interface is 16bit (or 8)"
+            calculated { CYG_HAL_VCOREIII_CHIPTYPE == "JAGUAR" }
+        }
+
+        cdl_component CYG_HAL_MIPS_VCOREIII_DUAL_JAGUAR {
+            display       "Support Dual Jaguar1 configuration"
+            flavor        bool
+            default_value 0
+            requires      { CYG_HAL_VCOREIII_CHIPTYPE == "JAGUAR"}
+            description   "
+                This option enables probing for a second Jaguar1 device.
+                As such, the configuration supports both single and 
+                dual-device hardware boards."
+
+            cdl_option CYGNUM_HAL_MIPS_VCOREIII_DUAL_JAGUAR_SECONDARY_CS {
+                display       "Chip select of secondary Jaguar1 device on PI"
+                flavor        data
+                default_value 3
+                legal_values  0 to 3
+                description   "
+                    This is the chip select number of the secondary device on PI"
+            }
+        }
+
+        cdl_option CYGNUM_HAL_MIPS_VCOREIII_AHB_CLOCK {
+            display       "Peripheral bus speed"
+            flavor        data
+            default_value { "208333333" }
+            legal_values  { "125000000" "208333333" }
+            description   "
+                This is the AMBA/AHB bus frequency, in MHz"
+        }
+
+    }
+
+    cdl_option CYGNUM_HAL_MIPS_VCOREIII_DDR_SIZE {
+        display       "DDR RAM size"
+        flavor        data
+        default_value { "0x08000000" }
+        legal_values  { "0x04000000" "0x08000000" (CYG_HAL_VCOREIII_CHIPTYPE == "JAGUAR" ? "0x10000000" : "")}
+        description   "
+            The system DDR2 RAM size (in bytes). 64M/128M/256M are valid values (256M only on Jaguar)."
+    }
+
+    cdl_option CYGPKG_HAL_MIPS_VCOREIII_TESTS {
+            display "VCore-III tests"
+            flavor  data
+            no_define
+            calculated { "tests/tick tests/isr tests/m25pxx_test tests/memparam" }
+            description   "
+                This option specifies the set of tests for the VCore-III HAL."
+    }
+
+    cdl_component CYG_HAL_STARTUP {
+        display       "Startup type"
+        flavor        data
+        legal_values  {"RAM" "ROM" "ROMRAM" "RAMBOOT"}
+        default_value {"RAM"}
+        no_define
+        define -file system.h CYG_HAL_STARTUP
+        description   "
+           When targetting the VCore-III board it is possible to build
+           the system for either RAM bootstrap or ROM bootstrap."
+    }
+
+    cdl_option CYGNUM_HAL_VIRTUAL_VECTOR_COMM_CHANNELS {
+        display      "Number of communication channels on the board"
+        flavor       data
+        calculated   1
+    }
+
+    cdl_option CYGNUM_HAL_VIRTUAL_VECTOR_DEBUG_CHANNEL {
+        display          "Debug serial port"
+        flavor data
+        calculated   0
+        description      "
+           There is only one serial port. This option
+           chooses which port will be used to connect to a host
+           running GDB."
+    }
+
+    cdl_option CYGNUM_HAL_VIRTUAL_VECTOR_CONSOLE_CHANNEL {
+       display          "Diagnostic serial port"
+       flavor data
+       calculated    0
+       description      "
+          There is only one serial port.  This option
+          chooses which port will be used for diagnostic output."
+    }
+
+    cdl_option CYGNUM_HAL_VIRTUAL_VECTOR_CHANNELS_DEFAULT_BAUD {
+        display       "Default baud rate used for serial port"
+        flavor        data
+        legal_values  9600 19200 38400 115200
+        default_value 115200
+        define        CYGNUM_HAL_VIRTUAL_VECTOR_CONSOLE_CHANNEL_BAUD
+        description   "
+            This option selects the baud rate used for the serial port."
+    }
+
+    # The "-o file" is a workaround for CR100958 - without it the
+    # output file would end up in the source directory under CygWin.
+    # n.b. grep does not behave itself under win32
+    make -priority 1 {
+        <PREFIX>/include/cyg/hal/plf_defs.inc : <PACKAGE>/src/plf_mk_defs.c
+        $(CC) $(CFLAGS) $(INCLUDE_PATH) -Wp,-MD,plf_defs.tmp -o plf_mk_defs.tmp -S $<
+        fgrep .equ plf_mk_defs.tmp | sed s/#// > $@
+        @echo $@ ": \\" > $(notdir $@).deps
+        @tail -n +2 plf_defs.tmp >> $(notdir $@).deps
+        @echo >> $(notdir $@).deps
+        @rm plf_defs.tmp plf_mk_defs.tmp
+    }
+
+    cdl_option CYGNUM_HAL_ARM_VCOREIII_TIMER_CLOCK {
+        display       "System Clock (SwC and timers)"
+        flavor        data
+        calculated    { 250000000 }
+        description   "
+            This is the Switch Core and timer frequency"
+    }
+
+    cdl_option CYGNUM_HAL_ARM_VCOREIII_TIMER_DIVIDER {
+        display       "Timer clock prescaler"
+        flavor        data
+        default_value 250
+        description   "
+            How many clock cycles produce a timer tick.
+            By default, the divider value generates a timer tick every 1 us (1000 KHz).
+            The timer tick frequency is TIMER_CLOCK/(TIMER_DIVIDER).
+            Must NOT be set below 0.1us!"
+    }
+
+    # Real-time clock/counter specifics
+    cdl_component CYGNUM_HAL_RTC_CONSTANTS {
+        display       "Real-time clock constants"
+        flavor        none
+        no_define
+
+        cdl_option CYGNUM_HAL_RTC_NUMERATOR {
+            display       "Real-time clock numerator"
+            flavor        data
+            default_value 1000000000
+        }
+        cdl_option CYGNUM_HAL_RTC_DENOMINATOR {
+            display       "Real-time clock denominator"
+            flavor        data
+            default_value 100
+        }
+        cdl_option CYGNUM_HAL_RTC_PERIOD {
+            display       "Real-time clock period = Timer ticks / RTC period"
+            flavor        data
+            default_value  ((CYGNUM_HAL_ARM_VCOREIII_TIMER_CLOCK/(CYGNUM_HAL_ARM_VCOREIII_TIMER_DIVIDER)/CYGNUM_HAL_RTC_DENOMINATOR))
+        }
+    }
+
+    cdl_option CYG_HAL_TIMER_ADJUSTMENT_SUPPORT {
+        display       "Supports adjusting the realtime clock period"
+        flavor        bool
+        requires      CYGPKG_KERNEL
+        default_value CYGPKG_KERNEL
+        description "
+            Set to 1 to enable the hal_clock_set_adjtimer function that can be used to
+            adjust the timer period (relative to the default period in PPM).
+            Set to 0 to disable the hal_clock_set_adjtimer."
+    }
+
+    cdl_option CYG_HAL_IRQCOUNT_SUPPORT {
+        display       "Support interrupt counting"
+        flavor        bool
+        requires      CYGPKG_KERNEL
+        default_value CYGPKG_KERNEL
+        description "
+            Set to 1 to enable hal_irqcount_read() and hal_irqcount_clear() interfaces 
+            to diagnose interrupt statistics."
+    }
+
+    cdl_option CYG_HAL_TIMER_SUPPORT {
+        display       "Support alternate timers"
+        flavor        bool
+        requires      CYGPKG_KERNEL
+        default_value CYGPKG_KERNEL
+        description "
+            Set to 1 to enable hal_timer_xxx() interfaces 
+            to control timers from the application."
+    }
+
+    cdl_component CYGHWR_MEMORY_LAYOUT {
+        display "Memory layout"
+        flavor data
+        no_define
+        calculated { (CYG_HAL_STARTUP == "RAM" ||  \
+                       CYG_HAL_STARTUP == "RAMBOOT" ) ? "mips_vcoreiii_ram" : \
+                     CYG_HAL_STARTUP == "ROM" ? "mips_vcoreiii_rom" : \
+	                                        "mips_vcoreiii_romram" }
+
+        cdl_option CYGHWR_MEMORY_LAYOUT_LDI {
+            display "Memory layout linker script fragment"
+            flavor data
+            no_define
+            define -file system.h CYGHWR_MEMORY_LAYOUT_LDI
+            calculated { CYG_HAL_STARTUP == "RAM" ? "<pkgconf/mlt_mips_vcoreiii_ram.ldi>" : \
+                         CYG_HAL_STARTUP == "RAMBOOT" ? "<pkgconf/mlt_mips_vcoreiii_ram.ldi>" : \
+                         CYG_HAL_STARTUP == "ROM" ? "<pkgconf/mlt_mips_vcoreiii_rom.ldi>" : \
+                          "<pkgconf/mlt_mips_vcoreiii_romram.ldi>" }
+        }
+
+        cdl_option CYGHWR_MEMORY_LAYOUT_H {
+            display "Memory layout header file"
+            flavor data
+            no_define
+            define -file system.h CYGHWR_MEMORY_LAYOUT_H
+            calculated { (CYG_HAL_STARTUP == "RAM" ||  \
+                         CYG_HAL_STARTUP == "RAMBOOT" ) ? "<pkgconf/mlt_mips_vcoreiii_ram.h>" : \
+                         CYG_HAL_STARTUP == "ROM" ? "<pkgconf/mlt_mips_vcoreiii_rom.h>" : \
+                                                    "<pkgconf/mlt_mips_vcoreiii_romram.h>" }
+        }
+    }
+
+    cdl_option CYGSEM_HAL_USE_ROM_MONITOR {
+        display       "Work with a ROM monitor"
+        flavor        booldata
+        legal_values  { "Generic" "GDB_stubs" }
+        default_value { CYG_HAL_STARTUP == "RAM" ? "GDB_stubs" : 0 }
+        parent        CYGPKG_HAL_ROM_MONITOR
+        requires      { CYG_HAL_STARTUP == "RAM" }
+        description   "
+            Support can be enabled for three different varieties of ROM monitor.
+            This support changes various eCos semantics such as the encoding
+            of diagnostic output, or the overriding of hardware interrupt
+            vectors.
+            Firstly there is \"Generic\" support which prevents the HAL
+            from overriding the hardware vectors that it does not use, to
+            instead allow an installed ROM monitor to handle them. This is
+            the most basic support which is likely to be common to most
+            implementations of ROM monitor.
+            \"GDB_stubs\" provides support when GDB stubs are
+            included in the ROM monitor or boot ROM."
+    }
+
+    cdl_option CYGSEM_HAL_ROM_MONITOR {
+        display       "Behave as a ROM monitor"
+        flavor        bool
+        default_value 0
+        parent        CYGPKG_HAL_ROM_MONITOR
+        requires      { CYG_HAL_STARTUP == "ROMRAM" || CYG_HAL_STARTUP == "ROM" || CYG_HAL_STARTUP == "RAMBOOT" }
+        description   "
+            Enable this option if this program is to be used as a ROM monitor,
+            i.e. applications will be loaded into RAM on the board, and this
+            ROM monitor may process exceptions or interrupts generated from the
+            application. This enables features such as utilizing a separate
+            interrupt stack when exceptions are generated."
+    }
+
+    cdl_option CYGSEM_HAL_OXCO {
+        display       "Initialize OXCO PLL 100MHz"
+        flavor        bool
+        default_value 0
+        parent        CYGPKG_HAL_ROM_MONITOR
+        requires      { CYG_HAL_STARTUP == "ROMRAM" || CYG_HAL_STARTUP == "ROM" || CYG_HAL_STARTUP == "RAMBOOT" }
+        description   "
+            Enable special OXCO setup."
+    }
+
+    cdl_component CYGPKG_REDBOOT_HAL_OPTIONS {
+        display       "Redboot HAL options"
+        flavor        none
+        no_define
+        parent        CYGPKG_REDBOOT
+        active_if     CYGPKG_REDBOOT
+        description   "
+            This option lists the target's requirements for a valid Redboot
+            configuration."
+
+        cdl_option CYGBLD_BUILD_REDBOOT_BIN {
+            display       "Build Redboot ROM binary image"
+            active_if     CYGBLD_BUILD_REDBOOT
+            default_value 1
+            no_define
+            description "This option enables the conversion of the Redboot ELF
+                         image to a binary image suitable for ROM programming."
+    
+            compile -library=libextras.a
+    
+            make -priority 325 {
+                <PREFIX>/bin/redboot.bin : <PREFIX>/bin/redboot.elf
+                $(OBJCOPY) --strip-all $< $(@:.bin=.img)
+                $(OBJCOPY) -O binary $< $(@)
+             }
+        }
+
+            cdl_option CYGBLD_BUILD_POST {
+                    display         "Build VCORE-III Power-On-Self-Test"
+                    default_value   1
+                    parent          CYGPKG_REDBOOT_HAL_OPTIONS
+                    active_if       CYGBLD_BUILD_REDBOOT_BIN
+                    no_define
+                    description     "Enabling this option will include a POST
+                    command (called 'diag') in the RedBoot image."
+
+                    compile -library=libextras.a \
+                            vcoreiii_diag.c vcoreiii_diag_custom.c vcoreiii_misc.S
+            }
+
+        cdl_option CYGNUM_REDBOOT_PERSIST_DATA_LENGTH {
+            display       "Length of reserved data area"
+            flavor        data
+            default_value 4096
+            description   "
+                          The size of a reserved memory area, which
+                          can be set aside for special cross-boot
+                          functions (exception data etc.) The area is
+                          reserved by redboot, but not written. The 
+                          existence of the area can be queried by the 
+                          CYGACC_CALL_IF_GET_PERSIST_DATA HAL if"
+        }
+
+        cdl_option CYGSEM_HAL_VIRTUAL_VECTOR_PERSIST_DATA_CLAIM {
+            display       "Claim persist data virtual vectors"
+            default_value { CYGSEM_HAL_VIRTUAL_VECTOR_INIT_WHOLE_TABLE \
+                            || CYGSEM_HAL_VIRTUAL_VECTOR_CLAIM_DEFAULT }
+            description   "
+                This option will cause the persist data buffer get
+                virtual vector to be claimed."
+        }
+
+    }
+}

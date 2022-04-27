@@ -1,0 +1,427 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DHCP Server Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript" src="lib/deviceid.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_dhcp_server_mode.htm";
+
+var reqObject;
+
+var vlan_frag;
+var vlan_id          = 0;
+var vlan_cnt         = 0;
+var vlan_static_cnt  = 0;
+var vlan_add_max_cnt = 8;
+
+var tr_id_prefix = "vlan_tr_";
+
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = Array(0, 1);
+
+var delete_style_width = "6em";
+var txt_style_width    = "10em";
+var input_style_width  = "4em";
+
+function CreateRangeTableHeader( frag )
+{
+    var tr;
+
+    tr = CreateStyledElement("tr", "config_header");
+
+    addTextHeaderCell(tr, "Delete",     "hdrc");
+    addTextHeaderCell(tr, "VLAN Range", "hdrc");
+    addTextHeaderCell(tr, "Mode",       "hdrc");
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRangeRow( frag, id, index, values, maxLen )
+{
+    var tr, td;
+
+    tr = CreateStyledElement("tr", index % 2 ? "config_even" : "config_odd");
+
+    // Delete
+    //if ( values.length > 1 ) {
+    //    td = addCheckBoxCell(tr, 0, "c", id + "_delete_check_" + values[0] + "_" + values[1]);
+    //} else {
+    //    td = addCheckBoxCell(tr, 0, "c", id + "_delete_check_" + values[0]);
+    //}
+    td = addTextCell(tr, " ", "cl");
+    td.style.width = delete_style_width;
+
+    // Range
+    if ( values.length > 1 ) {
+        td = addTextCell(tr, values[0] + " - " + values[1], "cl");
+    } else {
+        td = addTextCell(tr, values[0], "cl");
+    }
+    td.style.width = txt_style_width;
+
+    // Mode
+    td = addTextCell(tr, "Enabled", "cl");
+    td.style.width = "6em";
+
+    // Add row to fragment
+    frag.appendChild( tr );
+}
+
+function processUpdate( req, ref )
+{
+    var i, n, configData, vlan_list, tbody;
+
+    if ( req.responseText === null ) {
+        return;
+    }
+
+    if ( reqObject != req ) {
+        reqObject = req;
+    }
+
+    //
+    //  Format: <global_mode>|<vlan_list>
+    //      <global_mode>   : 0 - disabled, 1 - enabled
+    //      <vlan_list>     : 1,3,5-9,1000
+    //
+
+    // get mode and list
+    configData = req.responseText.split("|");
+
+	// Global Mode
+    UpdateIdSelect("global_mode", oTMode, oVMode, parseInt(configData[0], 10));
+
+    // VLAN Enabled Setting
+    vlan_frag = document.createDocumentFragment();
+
+    // create header
+    CreateRangeTableHeader( vlan_frag );
+
+	// <vlan_list>
+    vlan_list = configData[1].split(",");
+    for( i = 0, n = 0; i < vlan_list.length; i++ ) {
+        if ( vlan_list[i] ) {
+            addRangeRow(vlan_frag, "vlan", ++n, vlan_list[i].split("-"), 4);
+        }
+    }
+    vlan_id         = 0;
+    vlan_cnt        = 0;
+    vlan_static_cnt = n;
+
+    // Add Frag to table body
+    tbody = document.getElementById("vlanData");
+    clearChildNodes( tbody );
+    if ( ! tbody.appendChild(vlan_frag) ) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    processUpdate(reqObject, "");
+}
+
+function requestUpdate()
+{
+    loadXMLDoc("/config/dhcp_server_mode", processUpdate, "");
+}
+
+function checkForm( form )
+{
+    var     i, fld_low, fld_high;
+
+    // check format
+    for ( i = 1; i <= vlan_add_max_cnt; i++ ) {
+        fld_low = document.getElementById("vlan_low_" + i);
+        if ( fld_low === null ) {
+            continue;
+        }
+
+        if ( fld_low.value !== "" ) {
+            if ( ! isInt(fld_low.value) ) {
+                GiveAlert("Invalid VLAN ID, "+fld_low.value+". VLAN ID must be an interger.", fld_low);
+                return false;
+            }
+        }
+
+        fld_high = document.getElementById("vlan_high_" + i);
+        if ( fld_high.value !== "" ) {
+            if ( ! isInt(fld_high.value) ) {
+                GiveAlert("Invalid VLAN ID, "+fld_high.value+". VLAN ID must be an interger.", fld_high);
+                return false;
+            }
+        }
+
+        if ( fld_low.value === "" && fld_high.value === "" ) {
+            continue;
+        }
+
+        if ( fld_low.value === "" && fld_high.value !== "" ) {
+            fld_low.value = fld_high.value;
+        }
+
+        if ( fld_low.value !== "" && fld_high.value === "" ) {
+            fld_high.value = fld_low.value;
+        }
+
+        if ( fld_low.value < 1 || fld_low.value > 4095 ) {
+            GiveAlert("Invalid VLAN ID, "+fld_low.value+". VLAN valid range is 1 to 4095.", fld_low);
+            return false;
+        }
+
+        if ( fld_high.value < 1 || fld_high.value > 4095 ) {
+            GiveAlert("Invalid VLAN ID, "+fld_high.value+". VLAN valid range is 1 to 4095.", fld_high);
+            return false;
+        }
+
+        if ( parseInt(fld_low.value, 10) > parseInt(fld_high.value, 10) ) {
+            GiveAlert("Low VLAN "+fld_low.value+" can not be larger than high VLAN "+fld_high.value+".", fld_low);
+            return false;
+        }
+    }
+
+    return true; // Feed the chickens and go home
+}
+
+//
+//  free index get
+//  if 0, it means no free entry
+//
+function freeIndexGet( title, id_prefix, current_cnt, max_cnt )
+{
+    var i, fld;
+
+    // check current count
+    if ( current_cnt >= max_cnt ) {
+        alert("The maximum number of " + title + " is " + max_cnt + ".");
+        return 0;
+    }
+
+    // find free index
+    for ( i = 1; i <= max_cnt; i++ ) {
+        fld = document.getElementById(id_prefix + i);
+        if ( fld === null ) {
+            break;
+        }
+    }
+
+    if ( i > max_cnt ) {
+        // no free index
+        return 0;
+    } else {
+        return i;
+    }
+}
+
+function rowDelete( tr )
+{
+    var i, next_i, deleted_id, fld, next_fld;
+
+    if ( vlan_cnt == 1 ) {
+        vlan_cnt--;
+        clearChildNodes( tr );
+        document.getElementById('vlanData').deleteRow(tr.rowIndex);
+        return;
+    }
+
+    deleted_id = tr.rowIndex - vlan_static_cnt;
+    for ( i = deleted_id; i < vlan_add_max_cnt; i++ ) {
+        next_i = i + 1;
+
+        // update low
+        next_fld = document.getElementById("vlan_low_" + next_i);
+        if ( next_fld === null ) {
+            break;
+        }
+        UpdateIdValue("vlan_low_" + i, next_fld.value);
+
+        // update high
+        next_fld = document.getElementById("vlan_high_" + next_i);
+        if ( next_fld === null ) {
+            break;
+        }
+        UpdateIdValue("vlan_high_" + i, next_fld.value);
+
+        // update mode
+        next_fld = document.getElementById("vlan_mode_" + next_i);
+        if ( next_fld === null ) {
+            break;
+        }
+        UpdateIdSelect("vlan_mode_" + i, oTMode, oVMode, parseInt(next_fld.value, 10));
+    }
+
+    tr = document.getElementById(tr_id_prefix + i);
+    if ( tr === null ) {
+        alert("Can not delete row " + tr_id_prefix + i);
+        return;
+    }
+
+    vlan_cnt--;
+    clearChildNodes( tr );
+    document.getElementById('vlanData').deleteRow(tr.rowIndex);
+}
+
+function vlanRangeAdd()
+{
+    var tr, td, button, tbody, range_low, range_high, dash_text, button_id_prefix;
+    var row_index;
+
+    // set button ID prefix
+    button_id_prefix = "vlan_delete_button_";
+
+    // get free index
+    vlan_id = freeIndexGet("adding VLAN range", "vlan_low_", vlan_cnt, vlan_add_max_cnt);
+
+    // full
+    if ( vlan_id === 0 ) {
+        return;
+    }
+
+    // increase count
+    vlan_cnt++;
+
+    // create a row
+    tr = CreateStyledElement("tr");
+    tr.id = tr_id_prefix + vlan_id;
+
+    // Delete button
+    button = document.createElement('input');
+    button.onclick = function() {
+        rowDelete( tr );
+    };
+    //button.id    = button_id_prefix + vlan_id;
+    button.type  = "button";
+    button.value = " Delete ";
+    
+    td = CreateTd("c");
+    addCell(tr, td, button);
+
+    // Range
+    td = CreateTd("cl");
+    range_low = document.createElement('input');
+    range_low.id = range_low.name = "vlan_low_" + vlan_id;
+    range_low.setAttribute("maxLength", 4);
+    range_low.style.width = input_style_width;
+
+    dash_text = document.createTextNode(" - ");
+
+    range_high = document.createElement('input');
+    range_high.id = range_high.name = "vlan_high_" + vlan_id;
+    range_high.setAttribute("maxLength", 4);
+    range_high.style.width = input_style_width;
+
+    td.appendChild(range_low);
+    td.appendChild(dash_text);
+    td.appendChild(range_high);
+    tr.appendChild(td);
+
+    // Mode
+    td = addSelectCell(tr, oTMode, oVMode, 1, "cl", "vlan_mode_" + vlan_id);
+    //td.style.width = txt_style_width;
+
+    // Add row to fragment
+    vlan_frag.appendChild( tr );
+
+    // Add Frag to table body
+    tbody = document.getElementById("vlanData");
+    if ( ! tbody.appendChild(vlan_frag) ) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/dhcp_server_mode" onsubmit="return checkForm(this);">
+
+<h1>DHCP Server Mode Configuration</h1>
+
+<h2>Global Mode</h2>
+
+<table summary="Configuration" cellspacing="0" class="config">
+ <tr class="config">
+  <td class="param_label">Mode</td>
+  <td class="cl"><select id="global_mode" name="global_mode"><option value=0>Disabled</option><option value=1>Enabled</option></select></td>
+ </tr>
+</table>
+
+<br>
+
+<h2>VLAN Mode</h2>
+
+<table id="vlanTable" summary="DHCP Server Configuration" cellspacing="0" class="config">
+ <tbody id="vlanData">
+ </tbody>
+</table>
+
+<p>
+<!--
+    vtss_appl\web\html\lib\ajax.js changeForm() defines id's to change format
+    automatically when privilege is not met. So, we can use these id's but not
+    need to create new id by ourselves.
+-->
+<input type="button" id="addNewEntry" value="Add VLAN Range" onclick="vlanRangeAdd();">
+</p>
+
+<br>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+<!--
+    When no input data and press Save button, the page will display "The webpage cannot be found"
+    because "400 Bad Request".
+    So, to avoid no any input data when no checkbox is checked and no new range is added,
+    this dummy will be sent.
+-->
+<input type="hidden" name="dummy">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

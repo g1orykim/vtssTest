@@ -1,0 +1,54 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_web := $(DIR_APPL)/web
+DIR_html := $(DIR_web)/html
+
+OBJECTS_web_main := web.o
+OBJECTS_web := $(OBJECTS_web_main) web_content.o
+
+$(OBJECTS_web_main): %.o: $(DIR_web)/%.c
+	$(call compile_c, $@, $<)
+
+INCLUDES += -I$(DIR_web)
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_html)
+
+HTML_MENU_OPTIONS := $(DEFINES)
+
+web_content.c: always
+	$(call what,Generating Web HTML menu)
+	$(Q)CPP="$(COMPILER_PREFIX)cpp" perl -w $(DIR_html)/htmlmenu.pl $(HTML_MENU_OPTIONS) $(DIR_html)/menu_default.txt > $(DIR_html)/navbar.htm
+	$(call what,Generating Web HTML content)
+	$(Q)perl -w $(DIR_html)/package_files.pl -v -o $@ $(WEB_CONTENT)
+
+# Lint files
+LINT_FILES_web += $(DIR_web)/web.c
+
+# Tidy files
+TIDY_FILES_web += $(DIR_web)/html/*.htm $(DIR_web)/html/help/*.htm
+

@@ -1,0 +1,38 @@
+! The purpose of this file is to do very basic sanity testing of the ICLI
+! configuration commands.
+!
+! The file can be uploaded to a target and merged with running-config.
+
+! Ports must be tag-aware and not members of VLAN 1. No STP is allowed.
+interface GigabitEthernet 1/2-3
+ switchport hybrid allowed vlan none
+ switchport hybrid port-type c-port
+ switchport mode hybrid
+ no spanning-tree
+
+mep 1 down domain port flow 2 level 0 interface GigabitEthernet 1/2
+mep 1 vid 3001
+mep 1 peer-mep-id 1 mac 00-01-C1-00-B6-F2
+mep 1 cc 0 fr10s
+mep 1 aps 0 raps
+
+mep 2 down domain port flow 3 level 0 interface GigabitEthernet 1/3
+mep 2 mep-id 2
+mep 2 vid 3001
+mep 2 peer-mep-id 2 mac 00-01-C1-00-B6-F3
+mep 2 cc 0 fr10s
+mep 2 aps 0 raps
+
+erps 1 major port0 interface GigabitEthernet 1/2 port1 interface GigabitEthernet 1/3
+erps 1 mep port0 sf 1 aps 1 port1 sf 2 aps 2
+erps 1 rpl owner port0
+erps 1 vlan 10,11
+erps 1 version 2
+erps 1 holdoff 200
+erps 1 guard 300
+erps 1 revertive 5
+
+do show erps 1
+do show erps 1 detail
+do show erps 1 statistics
+do clear erps 1 statistics

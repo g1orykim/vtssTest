@@ -1,0 +1,232 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DHCP Relay Statistics Declined</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+var timerID;
+
+var binding_ip;
+var style_width = "6em";
+
+// Help page macic
+var help_page = "/help/help_dhcp_server_stat_binding_data.htm";
+
+var pageArgs = searchArgs( window.location.search );
+if ( pageArgs.binding_ip ) {
+    binding_ip = pageArgs.binding_ip;
+}
+
+function selectUpdate( selConf )
+{
+    var sel, frag, i, opt;
+
+    sel = document.getElementById("binding_select");
+    clearChildNodes( sel );
+
+    frag = document.createDocumentFragment();
+
+    for ( i = 0; i < selConf.length; i++ ) {
+        opt = document.createElement("option");
+        opt.appendChild( document.createTextNode( unescape(selConf[i]) ) );
+        opt.setAttribute("value", selConf[i]);
+        if ( binding_ip == selConf[i] ) {
+            opt.setAttribute("selected", true);
+        }
+        opt.style.width = style_width;
+        frag.appendChild(opt);
+    }
+    sel.appendChild(frag);
+}
+
+function dataUpdate( frag, title, v, i )
+{
+    var tr;
+
+    tr = CreateStyledElement("tr", i % 2 ? "display_even" : "display_odd");
+    addTextCell( tr, title, "displaytext");
+    addTextCell( tr, v, "cl" );
+    frag.appendChild(tr);
+}
+
+function addRow( frag, v )
+{
+    var i;
+
+    i = 0;
+
+    dataUpdate( frag, "IP",              unescape(v[i++]), i );
+    dataUpdate( frag, "Type",            unescape(v[i++]), i );
+    dataUpdate( frag, "State",           unescape(v[i++]), i );
+    dataUpdate( frag, "Pool Name",       unescape(v[i++]), i );
+    dataUpdate( frag, "Server ID",       unescape(v[i++]), i );
+    dataUpdate( frag, "VLAN",            unescape(v[i++]), i );
+    dataUpdate( frag, "Subnet Mask",     unescape(v[i++]), i );
+    dataUpdate( frag, "Client ID Type",  unescape(v[i++]), i );
+    dataUpdate( frag, "Client ID Value", unescape(v[i++]), i );
+    dataUpdate( frag, "MAC Address",     unescape(v[i++]), i );
+    dataUpdate( frag, "Lease Time",      unescape(v[i++]), i );
+    dataUpdate( frag, "Will Expired in", unescape(v[i++]), i );
+}
+
+function processUpdate( req, ref )
+{
+    var configData, oTName, names, i, frag, tbody;
+
+    if ( req.responseText === null || req.responseText === "" ) {
+        // the binding does not exist now, redirect to binding page
+        document.location.href = "dhcp_server_stat_binding.htm";
+        return;
+    }
+
+    //
+    //  Format: <binding ip list>|<binding data>
+    //
+    //      <binding ip list> : ip1,ip2,...
+    //      <binding data>    : ip, state, type, pool name, server id,
+    //                          vid, client id type, client id value,
+    //                          hardware addr, lease, expire time
+    //
+
+    // binding IP's and data
+    configData = req.responseText.split("|");
+
+    // binding IP select
+    oTName = Array();
+    names  = configData[0].split(",");
+
+    for ( i = 0; i < names.length; i++ ) {
+        if ( names[i] ) {
+            oTName[oTName.length] = names[i];
+        }
+    }
+    selectUpdate( oTName );
+
+    // binding data
+    frag = document.createDocumentFragment();
+    addRow(frag, configData[1].split(","));
+
+    // Add Frag to table body
+    tbody = document.getElementById("binding_data");
+    clearChildNodes( tbody );
+
+    if ( ! tbody.appendChild(frag) ) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+
+    // Update the timer
+    autorefresh = document.getElementById("autorefresh");
+    if ( autorefresh.checked ) {
+        if ( timerID ) {
+            clearTimeout(timerID);
+        }
+        timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+    }
+    document.getElementById("update").style.visibility = "hidden";
+}
+
+function bindingSelect()
+{
+    var sel;
+
+    sel = document.getElementById("binding_select");
+    binding_ip = sel.options[sel.selectedIndex].value;
+    requestUpdate();
+}
+
+function requestUpdate()
+{
+    loadXMLDoc("/stat/dhcp_server_binding_data?binding_ip=" + binding_ip, processUpdate, "");
+    document.getElementById("update").style.visibility = "visible";
+}
+
+function chkRefresh( fld )
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+        }
+        timerID = null;
+    } else {
+        requestUpdate();
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<div class="refreshbar">
+ <form action="#">
+  <label for="autorefresh">Auto-refresh</label>
+  <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+  <input type="button" value="Refresh" onclick="requestUpdate(); this.blur();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<h1>DHCP Server Binding IP Data</h1>
+
+<h2>Binding</h2>
+<table id="selConfName" class="config" cellspacing="0" summary="Configuration Name">
+<tbody>
+<tr class="config">
+<td class="param_label">IP</td>
+<td class="cl">
+  <select id="binding_select" onchange="bindingSelect();">
+  </select>
+</td>
+</tr>
+</tbody>
+</table>
+
+<h2>Binding IP Data</h2>
+<table id="bindingDataTable" summary="DHCP Server Binding IP Data" cellspacing="0" class="display">
+    <tbody id="binding_data">
+    </tbody>
+</table>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

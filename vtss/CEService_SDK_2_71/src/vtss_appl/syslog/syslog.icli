@@ -1,0 +1,824 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_SYSLOG)
+
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "syslog_api.h"
+#include "misc_api.h"
+#include "msg_api.h"    //msg_switch_exists()
+#include "topo_api.h"   //topo_usid2isid(), topo_isid2usid()
+INCLUDE_END
+
+FUNCTION_BEGIN
+
+#define ICLI_SESSION_CTRL_C_CHECK_CNT   100
+#define ICLI_SESSION_CTRL_C_WAIT        100     /* 0.1 secs */
+
+
+typedef enum {
+    SYS_MODE_CMD,
+    SYS_HOST_CMD,
+    SYS_LEVEL_CMD,
+    SYS_CMD_END
+}SYSLOG_ICLI_system_cmd_t;
+
+
+static BOOL SYSLOG_ICLI_runtime_has_stackable(u32                session_id,
+                                              icli_runtime_ask_t ask,
+                                              icli_runtime_t     *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_SWITCH_STACKABLE) && VTSS_SWITCH_STACKABLE
+        runtime->present = TRUE;
+#else
+        runtime->present = FALSE;
+#endif /* VTSS_SWITCH_STACKABLE */
+        return TRUE;
+    default :
+        break;
+    }
+    return FALSE;
+}
+
+static i32 SYSLOG_ICLI_system_set(u32 session_id, SYSLOG_ICLI_system_cmd_t cmd, void* var, void* len)
+{
+    syslog_conf_t conf;
+
+    ICLI_RC_CHECK(syslog_mgmt_conf_get(&conf), "%% Failed to get syslog configuration.\n");
+
+    switch (cmd) {
+        case SYS_MODE_CMD:
+        {
+            BOOL  original_mode;
+            original_mode = conf.server_mode;
+            conf.server_mode = *(BOOL*)var;
+            if (conf.server_mode != original_mode) {
+                ICLI_RC_CHECK(syslog_mgmt_conf_set(&conf), "%% Failed to set syslog configuration.\n");
+            }
+            break;
+        }
+        case SYS_HOST_CMD:
+        {
+            i8 tmp[VTSS_SYS_INPUT_HOSTNAME_LEN + 1];
+            strcpy(tmp, conf.syslog_server);
+            strcpy(conf.syslog_server, var);
+            if (strcmp(tmp, conf.syslog_server)) {
+                ICLI_RC_CHECK(syslog_mgmt_conf_set(&conf), "%% Failed to set syslog configuration.\n");
+            }
+            break;
+        }
+        case SYS_LEVEL_CMD:
+        {
+            syslog_lvl_t       tmp;
+            tmp = conf.syslog_level;
+            conf.syslog_level = *(syslog_lvl_t*)var;
+            if (conf.syslog_level != tmp) {
+                ICLI_RC_CHECK(syslog_mgmt_conf_set(&conf), "%% Failed to set syslog configuration.\n");
+            }
+            break;
+        }
+        default:
+            ICLI_PRINTF("undkown cmd %d\n", cmd);
+            break;
+    }
+
+    return ICLI_RC_OK;
+}
+
+static void SYSLOG_ICLI_conf_show(u32 session_id)
+{
+    syslog_conf_t       conf;
+
+    (void) syslog_mgmt_conf_get(&conf);
+    ICLI_PRINTF("Switch logging host mode is %s\n", icli_bool_txt(conf.server_mode));
+    ICLI_PRINTF("Switch logging host address is %s\n", conf.syslog_server[0] == '\0' ? "null" : conf.syslog_server);
+    ICLI_PRINTF("Switch logging level is %s\n\n", syslog_lvl_to_string(conf.syslog_level, TRUE));
+}
+
+static void SYSLOG_ICLI_entry_show(u32 session_id, vtss_usid_t usid, u32 log_id, BOOL info, BOOL warning, BOOL error, BOOL display_conf)
+{
+    syslog_ram_entry_t  entry;
+    syslog_ram_stat_t   stat;
+    u32                 total;
+    syslog_lvl_t        lvl;
+    BOOL                bool_rc, exact = (log_id == 0) ? FALSE : TRUE, first = TRUE;
+    int                 i;
+    vtss_usid_t         usid_idx, usid_idx_start, usid_idx_end;
+    vtss_isid_t         isid;
+    u32                 entry_cnt = 0;
+
+    if (usid != VTSS_USID_END) {
+        usid_idx_start = usid_idx_end = usid;
+        if (!icli_cmd_switch_exist(session_id, usid, TRUE, TRUE)) {
+            return;
+        }
+    } else {
+        usid_idx_start = VTSS_USID_START;
+        usid_idx_end = VTSS_USID_END - 1;
+    }
+
+    if (display_conf) {
+        SYSLOG_ICLI_conf_show(session_id);
+    }
+
+    for (usid_idx = usid_idx_start; usid_idx <= usid_idx_end; usid_idx++) {
+        isid = topo_usid2isid(usid_idx);
+        if (!icli_cmd_switch_exist(session_id, usid_idx, usid != VTSS_USID_END ? TRUE : FALSE, usid != VTSS_USID_END ? TRUE : FALSE)) {
+            continue;
+        }
+        if (FALSE == exact) {
+            if (syslog_ram_stat_get(isid, &stat) == VTSS_OK) {
+                ICLI_PRINTF("Number of entries on Switch %u:\n", usid_idx);
+                for (total = 0, lvl = 0; lvl < SYSLOG_LVL_ALL; lvl++) {
+                    total += stat.count[lvl];
+                    ICLI_PRINTF("%-7s: %u\n", syslog_lvl_to_string(lvl, FALSE), stat.count[lvl]);
+                }
+                ICLI_PRINTF("%-7s: %u\n\n", "All", total);
+            }
+
+        }
+
+        entry.id = exact ? log_id : 0;
+        while (TRUE ==  (bool_rc = syslog_ram_get(isid, exact ? FALSE : TRUE, entry.id, SYSLOG_LVL_ALL, VTSS_MODULE_ID_NONE, &entry))) {
+            if (exact || (info && entry.lvl == SYSLOG_LVL_INFO) || (warning && entry.lvl == SYSLOG_LVL_WARNING) || (error && entry.lvl == SYSLOG_LVL_ERROR)) {
+                /* The summary message length is limited to 35 characters or one line */
+                if (TRUE == first) {
+                    ICLI_PRINTF("ID    Level   Time                       Message\n");
+                    ICLI_PRINTF("----  ------  -------------------------  -----------------------------\n");
+                }
+
+                for (i = 0; i < 35; i++) {
+                    if (entry.msg[i] == '\n') {
+                        entry.msg[i] = '\0';
+                        break;
+                    }
+                }
+                if (i == 35) {
+                    strcpy(&entry.msg[i], " ...");
+                }
+                ICLI_PRINTF("%4u  %-7s %s  %s\n",
+                        entry.id,
+                        syslog_lvl_to_string(entry.lvl, FALSE),
+                        misc_time2str(entry.time),
+                        entry.msg);
+
+                first = FALSE;
+            }
+
+            if (TRUE == exact) {
+                break;
+            }
+        }
+
+        if (first == FALSE) {
+            ICLI_PRINTF("\n");
+        } else if (exact && log_id && bool_rc == FALSE) {
+            ICLI_PRINTF("Cannot find syslog ID %u on Switch %u.\n", log_id, usid_idx);
+        }
+
+        /* Check if break condition (ctrl+c) occured */
+        if (((++entry_cnt % ICLI_SESSION_CTRL_C_CHECK_CNT) == 0) &&
+            icli_session_ctrl_c_get(session_id, ICLI_SESSION_CTRL_C_WAIT) == ICLI_RC_OK) {
+            break;
+        }
+    }
+}
+
+static void SYSLOG_ICLI_entry_show_detail(u32 session_id, vtss_usid_t usid, u32 log_id)
+{
+    syslog_ram_entry_t  entry;
+    BOOL                bool_rc, first = TRUE;
+    vtss_usid_t         usid_idx, usid_idx_start, usid_idx_end;
+    vtss_isid_t         isid;
+
+    if (usid != VTSS_USID_END) {
+        usid_idx_start = usid_idx_end = usid;
+        if (!icli_cmd_switch_exist(session_id, usid, TRUE, TRUE)) {
+            return;
+        }
+    } else {
+        usid_idx_start = VTSS_USID_START;
+        usid_idx_end = VTSS_USID_END - 1;
+    }
+
+    for (usid_idx = usid_idx_start; usid_idx <= usid_idx_end; usid_idx++) {
+        isid = topo_usid2isid(usid_idx);
+        if (!icli_cmd_switch_exist(session_id, usid_idx, usid != VTSS_USID_END ? TRUE : FALSE, usid != VTSS_USID_END ? TRUE : FALSE)) {
+            continue;
+        }
+        entry.id = log_id;
+        if ((bool_rc = syslog_ram_get(isid, FALSE, entry.id, SYSLOG_LVL_ALL, VTSS_MODULE_ID_NONE, &entry))) {
+            if (!first) {
+                ICLI_PRINTF("\n");
+            }
+            first = FALSE;
+
+            /* Detailed information */
+            ICLI_PRINTF("Switch : %d\n", usid_idx);
+            ICLI_PRINTF("ID     : %d\n", entry.id);
+            ICLI_PRINTF("Level  : %s\n", syslog_lvl_to_string(entry.lvl, FALSE));
+            ICLI_PRINTF("Time   : %s\n", misc_time2str(entry.time));
+            ICLI_PRINTF("Message:\n%s\n", entry.msg);
+        }
+
+        if (log_id && bool_rc == FALSE) {
+            ICLI_PRINTF("Cannot find syslog ID %u on Switch %u.\n", log_id, usid_idx);
+        }
+
+        /* Check if break condition (ctrl+c) occured */
+        if (icli_session_ctrl_c_get(session_id, ICLI_SESSION_CTRL_C_WAIT) == ICLI_RC_OK) {
+            break;
+        }
+    }
+}
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_LOGGING        = Syslog
+HELP_ON             = Enable syslog server
+HELP_HOST           = host
+HELP_LEVEL          = level
+HELP_LEVEL_INFO     = Information
+HELP_LEVEL_WARNING  = Warning
+HELP_LEVEL_ERROR    = Error
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show logging [ info ] [ warning ] [ error ]  [ switch <switch_list> ]
+
+DOC_CMD_DESC    = Use the show logging privileged EXEC command without \
+                  keywords to display the logging configuration, or \
+                  particularly the logging message summary for the logging level.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Expressions are case sensitive. For example, if you enter | exclude output, the lines that contain output do not appear, but the lines that contain Output appear.
+DOC_CMD_EXAMPLE = This is an example of output from the show logging command:
+DOC_CMD_EXAMPLE = Switch# show logging
+DOC_CMD_EXAMPLE = Switch logging host mode is disabled
+DOC_CMD_EXAMPLE = Switch logging host address is null
+DOC_CMD_EXAMPLE = Switch logging level is information
+DOC_CMD_EXAMPLE = Number of entries:
+DOC_CMD_EXAMPLE = Info   : 2
+DOC_CMD_EXAMPLE = Warning: 0
+DOC_CMD_EXAMPLE = Error  : 0
+DOC_CMD_EXAMPLE = All    : 2
+DOC_CMD_EXAMPLE = ID    Level   Time                       Message
+DOC_CMD_EXAMPLE = ----  ------  -------------------------  -------
+DOC_CMD_EXAMPLE =    1  Info    1970-01-01T00:00:03+00:00  Switch just made a cold boot.
+DOC_CMD_EXAMPLE =    2  Info    1970-01-01T00:00:09+00:00  Link up on switch 1, port 3
+
+FUNC_NAME = icli_logging_summary
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = SYSLOG_ICLI_runtime_has_stackable
+RUNTIME = SYSLOG_ICLI_runtime_has_stackable
+
+! 1: show
+! 2: logging
+! 3: info
+! 4: warning
+! 5: error
+! 6: switch
+! 7: switch_list
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_info
+CMD_VAR = has_warning
+CMD_VAR = has_error
+CMD_VAR = has_switch
+CMD_VAR = switch_list
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##HELP_LOGGING
+HELP = ##HELP_LEVEL_INFO
+HELP = ##HELP_LEVEL_WARNING
+HELP = ##HELP_LEVEL_ERROR
+HELP = ##ICLI_HELP_SWITCH
+HELP = ##ICLI_HELP_SWITCH_LIST
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <switch_list>
+
+VARIABLE_BEGIN
+
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_switch) {
+        u32 i, j;
+
+        for (i = 0; i < switch_list->cnt; i++) {
+            for (j = switch_list->range[i].min; j <= switch_list->range[i].max; j++) {
+                if (has_info == FALSE && has_warning == FALSE && has_error == FALSE) {
+                    SYSLOG_ICLI_entry_show(session_id, (vtss_usid_t)j, 0, TRUE, TRUE, TRUE, TRUE);
+                } else {
+                    SYSLOG_ICLI_entry_show(session_id, (vtss_usid_t)j, 0, has_info, has_warning, has_error, TRUE);
+                }
+            }
+        }
+    } else {
+        if (has_info == FALSE && has_warning == FALSE && has_error == FALSE) {
+            SYSLOG_ICLI_entry_show(session_id, VTSS_USID_END, 0, TRUE, TRUE, TRUE, TRUE);
+        } else {
+            SYSLOG_ICLI_entry_show(session_id, VTSS_USID_END, 0, has_info, has_warning, has_error, TRUE);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show logging <1-4294967295> [ switch <switch_list> ]
+
+DOC_CMD_DESC    = Use the show logging privileged EXEC command with logging ID \
+                  to display the detail logging message.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Display the detail logging message.
+DOC_CMD_EXAMPLE = This is an example of output from the show logging ID 1 command:
+DOC_CMD_EXAMPLE = Switch# show logging 1
+DOC_CMD_EXAMPLE = Switch : 1
+DOC_CMD_EXAMPLE = ID     : 5
+DOC_CMD_EXAMPLE = Level  : Info
+DOC_CMD_EXAMPLE = Time   : 1970-01-01T00:00:59+00:00
+DOC_CMD_EXAMPLE = Message:
+DOC_CMD_EXAMPLE = Frame of 473 bytes received on port 13
+DOC_CMD_EXAMPLE = MAC:
+DOC_CMD_EXAMPLE =   Destination: 00-01-c1-00-4b-c0
+DOC_CMD_EXAMPLE =   Source     : 68-b5-99-f9-63-1f
+DOC_CMD_EXAMPLE =   Type/Length: 0x0800
+DOC_CMD_EXAMPLE =   VLAN ID    : 1
+DOC_CMD_EXAMPLE = Frame Dump:
+DOC_CMD_EXAMPLE = 0000: 00 01 C1 00 4B C0 68 B5-99 F9 63 1F 08 00 45 00
+DOC_CMD_EXAMPLE = 0010: 01 CB 7F B3 40 00 80 06-FC 95 0A 09 34 67 0A 09
+DOC_CMD_EXAMPLE = 0020: 34 6B DC 03 00 50 E3 DD-C8 8D EB 62 07 0C 50 18
+DOC_CMD_EXAMPLE = 0030: 00 FA 95 C7 00 00 47 45-54 20 2F 61 63 6C 2E 68
+DOC_CMD_EXAMPLE = 0040: 74 6D 20 48 54 54 50 2F-31 2E 31 0D 0A 48 6F 73
+
+FUNC_NAME = icli_logging_detail
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = SYSLOG_ICLI_runtime_has_stackable
+RUNTIME = SYSLOG_ICLI_runtime_has_stackable
+
+! 1: show
+! 2: logging
+! 3: <log_id:1-4294967295>
+! 4: switch
+! 5: <switch_list>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = log_id
+CMD_VAR = has_switch
+CMD_VAR = switch_list
+
+HELP = ##ICLI_HELP_SHOW
+HELP = ##HELP_LOGGING
+HELP = Logging ID
+HELP = ##ICLI_HELP_SWITCH
+HELP = ##ICLI_HELP_SWITCH_LIST
+
+BYWORD = 
+BYWORD = 
+BYWORD = <logging_id: 1-4294967295>
+BYWORD = 
+BYWORD = <switch_list>
+
+VARIABLE_BEGIN
+
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_switch) {
+        u32 i, j;
+
+        for (i = 0; i < switch_list->cnt; i++) {
+            for (j = switch_list->range[i].min; j <= switch_list->range[i].max; j++) {
+                SYSLOG_ICLI_entry_show_detail(session_id, (vtss_usid_t)j, log_id);
+            }
+        }
+    } else {
+        SYSLOG_ICLI_entry_show_detail(session_id, VTSS_USID_END, log_id);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG =
+
+COMMAND = clear logging [ info ] [ warning ] [ error ] [ switch <switch_list> ]
+
+DOC_CMD_DESC    = Use the clear logging privileged EXEC \
+                  command to clear the logging message.
+DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use this command without keywords to clear all logging messages, particularly the logging message for the logging level.
+DOC_CMD_EXAMPLE = This example shows how to clear the logging message of error level:
+DOC_CMD_EXAMPLE = Switch# clear logging warning
+DOC_CMD_EXAMPLE = You can verify that the information was deleted by entering the show logging privileged EXEC command.
+
+FUNC_NAME = icli_logging_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = SYSLOG_ICLI_runtime_has_stackable
+RUNTIME = SYSLOG_ICLI_runtime_has_stackable
+
+! 1: clear
+! 2: logging
+! 3: info
+! 4: warning
+! 5: error
+! 6: switch
+! 7: switch_list
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_info
+CMD_VAR = has_warning
+CMD_VAR = has_error
+CMD_VAR = has_switch
+CMD_VAR = switch_list
+
+HELP = ##ICLI_HELP_CLEAR
+HELP = ##HELP_LOGGING
+HELP = ##HELP_LEVEL_INFO
+HELP = ##HELP_LEVEL_WARNING
+HELP = ##HELP_LEVEL_ERROR
+HELP = ##ICLI_HELP_SWITCH
+HELP = ##ICLI_HELP_SWITCH_LIST
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD = <switch_list>
+
+VARIABLE_BEGIN
+    vtss_isid_t isid;
+VARIABLE_END
+
+CODE_BEGIN
+
+    if (has_switch) {
+        u32 i, j;
+
+        //Omit non-existing switches from the switch range database and display the alert message on ICLI session
+        (void)icli_cmd_switch_range_exist(session_id, switch_list, TRUE, TRUE);
+
+        for (i = 0; i < switch_list->cnt; i++) {
+            for (j = switch_list->range[i].min; j <= switch_list->range[i].max; j++) {
+                isid = topo_usid2isid((vtss_isid_t)j);
+                if ((!has_info && !has_warning && !has_error) || (has_info && has_warning && has_error)) {
+                    syslog_ram_clear(isid, SYSLOG_LVL_ALL);
+                    continue;
+                }
+        
+                syslog_ram_clear(isid, has_info ? SYSLOG_LVL_INFO : has_warning ? SYSLOG_LVL_WARNING : SYSLOG_LVL_ERROR);
+            }
+        }
+    } else {
+        vtss_usid_t usid_idx;
+
+        for (usid_idx = VTSS_USID_START; usid_idx < VTSS_USID_END; usid_idx++) {
+            isid = topo_usid2isid(usid_idx);
+            if (!icli_cmd_switch_exist(session_id, usid_idx, FALSE, FALSE)) {
+                continue;
+            }
+        
+            if ((!has_info && !has_warning && !has_error) || (has_info && has_warning && has_error)) {
+                syslog_ram_clear(isid, SYSLOG_LVL_ALL);
+                continue;
+            }
+        
+            syslog_ram_clear(isid, has_info ? SYSLOG_LVL_INFO : has_warning ? SYSLOG_LVL_WARNING : SYSLOG_LVL_ERROR);
+        }
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = logging on
+
+DOC_CMD_DESC    = Use the logging on global configuration command to \
+                  enable the logging server. Use the no form of this \
+                  command to disable the logging server.
+DOC_CMD_DEFAULT = The logging server is disabled.
+DOC_CMD_USAGE   = Enable the logging server.
+DOC_CMD_EXAMPLE = This example shows how to enable the logging server:
+DOC_CMD_EXAMPLE = Switch(config)# logging on
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show logging privileged EXEC command.
+
+NO_FORM_DOC_CMD_DESC    = Use the no logging on global configuration command to \
+                          disable the logging server.
+NO_FORM_DOC_CMD_DEFAULT = The logging is disabled.
+NO_FORM_DOC_CMD_USAGE   = Disable the logging server.
+NO_FORM_DOC_CMD_EXAMPLE = This example shows how to disable the logging server:
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# no logging on
+NO_FORM_DOC_CMD_EXAMPLE = You can verify your settings by entering the show logging privileged EXEC command.
+
+FUNC_NAME = icli_logging_server_mode
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: logging
+! 2: on
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##HELP_LOGGING
+HELP = ##HELP_ON
+
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    BOOL mode = TRUE;
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+    BOOL mode = FALSE;
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    (void) SYSLOG_ICLI_system_set(session_id, SYS_MODE_CMD, &mode, NULL);
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    (void) SYSLOG_ICLI_system_set(session_id, SYS_MODE_CMD, &mode, NULL);
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = logging host { <ipv4_ucast> | <hostname> }
+
+DOC_CMD_DESC    = Use the logging host global configuration command \
+                  to configure the host address of logging server.
+DOC_CMD_DEFAULT = The logging host address is null.
+DOC_CMD_USAGE   = Configure the host address of logging server. If the switch provide DNS feature, it also can be a host name.
+DOC_CMD_EXAMPLE = This example shows how to configure the host address of logging server:
+DOC_CMD_EXAMPLE = Switch(config)# logging host 192.168.2.1
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show logging privileged EXEC command.
+
+FUNC_NAME = icli_logging_server_addr
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: logging
+! 2: host
+! 3: <ipv4_ucast>
+! 4: <word45>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_ipv4_ucast
+CMD_VAR = v_word45
+
+HELP = ##HELP_LOGGING
+HELP = ##HELP_HOST
+HELP = IP address of the log server
+HELP = Donain name of the log server
+
+BYWORD = 
+BYWORD =
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+    i8 hostname[VTSS_SYS_INPUT_HOSTNAME_LEN + 1];
+    i8 tmp[VTSS_SYS_INPUT_HOSTNAME_LEN + 1];
+VARIABLE_END
+
+CODE_BEGIN
+    if (v_ipv4_ucast != 0) {
+        sprintf(hostname, "%s", misc_ipv4_txt(v_ipv4_ucast, tmp));
+    } else if (v_word45 != NULL && VTSS_OK == misc_str_is_hostname(v_word45)) {
+        strcpy(hostname, v_word45);
+    } else {
+        ICLI_PRINTF("Invalid parameter:%s\n", v_word45);
+        return 1;
+    }
+    (void) SYSLOG_ICLI_system_set(session_id, SYS_HOST_CMD, hostname, NULL);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no logging host
+
+DOC_CMD_DESC    = Use the no logging host global configuration command \
+                  to clear the host address of logging server.
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = Clear the host address of logging server.
+DOC_CMD_EXAMPLE = This example shows how to clear the host address of logging server:
+DOC_CMD_EXAMPLE = Switch(config)# no logging host
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show logging privileged EXEC command.
+
+FUNC_NAME = icli_logging_server_addr_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: logging
+! 3: host
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = ##ICLI_HELP_NO
+HELP = ##HELP_LOGGING
+HELP = ##HELP_HOST
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    (void) SYSLOG_ICLI_system_set(session_id, SYS_HOST_CMD, "", NULL);
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = logging level { info | warning | error }
+
+DOC_CMD_DESC    = Use the logging level global configuration command \
+                  to configure what level of message will send to logging server.
+DOC_CMD_DEFAULT = logging level is information.
+DOC_CMD_USAGE   = Configure the logging level that if a logging message level is less or equal than the configured value, it will send to logging server.
+DOC_CMD_EXAMPLE = This example shows how to configure logging error level:
+DOC_CMD_EXAMPLE = Switch(config)# logging level error
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show logging privileged EXEC command.
+
+FUNC_NAME = icli_logging_level
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: logging
+! 2: level
+! 3: info
+! 4: warning
+! 5: error
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_info
+CMD_VAR = has_warning
+CMD_VAR = has_error
+
+HELP = ##HELP_LOGGING
+HELP = ##HELP_LEVEL
+HELP = ##HELP_LEVEL_INFO
+HELP = ##HELP_LEVEL_WARNING
+HELP = ##HELP_LEVEL_ERROR
+
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+BYWORD =
+
+VARIABLE_BEGIN
+    syslog_lvl_t       lvl;
+
+VARIABLE_END
+
+CODE_BEGIN
+    lvl = has_info ? SYSLOG_LVL_INFO : has_warning ? SYSLOG_LVL_WARNING : has_error ? SYSLOG_LVL_ERROR : -1;
+    (void) SYSLOG_ICLI_system_set(session_id, SYS_LEVEL_CMD, &lvl, NULL);
+CODE_END
+
+CMD_END
+

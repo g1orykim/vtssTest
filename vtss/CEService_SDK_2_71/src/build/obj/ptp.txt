@@ -1,0 +1,68 @@
+no ptp <clockinst> 
+no ptp <clockinst> announce { interval | timeout } 
+no ptp <clockinst> clk 
+no ptp <clockinst> delay-asymmetry 
+no ptp <clockinst> delay-mechanism 
+no ptp <clockinst> delay-req interval 
+no ptp <clockinst> domain 
+no ptp <clockinst> egress-latency 
+no ptp <clockinst> filter 
+no ptp <clockinst> ho 
+no ptp <clockinst> ingress-latency 
+no ptp <clockinst> log 
+no ptp <clockinst> mode { boundary | e2etransparent | p2ptransparent | master | slave } 
+no ptp <clockinst> priority1 
+no ptp <clockinst> priority2 
+no ptp <clockinst> servo ad 
+no ptp <clockinst> servo ai 
+no ptp <clockinst> servo ap 
+no ptp <clockinst> servo displaystates 
+no ptp <clockinst> sync-interval 
+no ptp <clockinst> uni <idx> 
+no ptp <clockinst> wireless mode interface ( <port_type> [ <v_port_type_list> ] ) 
+no ptp ext 
+no ptp ms-pdv 
+no ptp pps-delay 
+no ptp pps-sync 
+no ptp ref-clock 
+no ptp rs422 
+ptp <clockinst> [ internal ] 
+ptp <clockinst> announce { [ interval <interval> ] [ timeout <timeout> ] }*1 
+ptp <clockinst> clk sync <threshold> ap <ap> 
+ptp <clockinst> delay-asymmetry <delay_asymmetry> 
+ptp <clockinst> delay-mechanism { e2e | p2p } 
+ptp <clockinst> delay-req interval <interval> 
+ptp <clockinst> domain <domain> 
+ptp <clockinst> egress-latency <egress_latency> 
+ptp <clockinst> filter [ delay <delay> ] [ period <period> ] [ dist <dist> ] 
+ptp <clockinst> ho [ filter <ho_filter> ] [ adj-threshold <adj_threshold> ] 
+ptp <clockinst> ingress-latency <ingress_latency> 
+ptp <clockinst> local-clock { update | ratio <ratio> } 
+ptp <clockinst> log <debug_mode> 
+ptp <clockinst> mode { boundary | e2etransparent | p2ptransparent | master | slave } [ onestep | twostep ] [ ethernet | ip4multi | ip4unicast | oam | onepps ] [ oneway | twoway ] [ id <v_clock_id> ] [ vid <vid> [ <prio> ] [ tag ] ] [ mep <mep_id> ] 
+ptp <clockinst> priority1 <priority1> 
+ptp <clockinst> priority2 <priority2> 
+ptp <clockinst> servo ad <ad> 
+ptp <clockinst> servo ai <ai> 
+ptp <clockinst> servo ap <ap> 
+ptp <clockinst> servo displaystates 
+ptp <clockinst> slave-cfg [ stable-offset <stable_offset> ] [ offset-ok <offset_ok> ] [ offset-fail <offset_fail> ] 
+ptp <clockinst> sync-interval <interval> 
+ptp <clockinst> time-property [ utc-offset <utc_offset> ] [ valid ] [ leap-59 | leap-61 ] [ time-traceable ] [ freq-traceable ] [ ptptimescale ] [ time-source <time_source> ] 
+ptp <clockinst> uni <idx> [ duration <duration> ] <ip> 
+ptp <clockinst> wireless delay <base_delay> [ <incr_delay> ] interface ( <port_type> [ <v_port_type_list> ] ) 
+ptp <clockinst> wireless mode interface ( <port_type> [ <v_port_type_list> ] ) 
+ptp <clockinst> wireless pre-notification interface ( <port_type> [ <v_port_type_list> ] ) 
+ptp ext [ output | input ] [ ext <clockfreq> ] [ vcxo ] 
+ptp ms-pdv [ one-hz ] [ min-phase <min_phase> ] [ apr <apr> ] 
+ptp pps-delay { { auto master-port interface <port_type> <v_port_type_id> } | { man cable-delay <cable_delay> } } 
+ptp pps-sync { main-auto | main-man | sub } [ pps-phase <pps_phase> ] [ cable-asy <cable_asy> ] [ ser-man | ser-auto ] 
+ptp ref-clock { mhz125 | mhz156p25 | mhz250 } 
+ptp rs422 { main-auto | main-man | sub } [ pps-delay <pps_delay> ] { ser | { pim interface <port_type> <v_port_type_id> } } 
+ptp tc-internal [ mode <mode> ] 
+show ptp <clockinst> local-clock 
+show ptp <clockinst> slave-cfg 
+show ptp <clockinst> slave-table-unicast 
+show ptp <clockinst> { default | current | parent | time-property | filter | servo | clk | ho | uni | master-table-unicast | slave | { { port-state | port-ds | wireless | foreign-master-record } [ interface ( <port_type> [ <v_port_type_list> ] ) ] } } 
+show ptp ext 
+show ptp rs422 

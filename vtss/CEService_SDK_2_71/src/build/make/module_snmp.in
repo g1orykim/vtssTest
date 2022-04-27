@@ -1,0 +1,166 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files Location
+DIR_snmp     := $(DIR_APPL)/snmp/platform
+DIR_ucd_snmp := $(DIR_APPL)/snmp/base/ucd_snmp
+
+# Web content generation
+WEB_CONTENT += $(DIR_APPL)/snmp/platform/html
+
+# Module platform objects
+OBJECTS_vtss_snmp       := mibContextTable.o sysORTable.o snmp_mib_redefine.o rfc1213_mib2.o rfc4188_bridge.o rfc3635_etherlike.o rfc3411_framework.o rfc3412_mpd.o
+OBJECTS_ucd_snmp        := ucd_snmp_callout.o ucd_snmp_sysORTable.o ucd_snmp_ieee8021QBridgeMib.o ucd_snmp_ieee8021BridgeMib.o
+OBJECTS_ucd_snmp_mib2   := ucd_snmp_rfc1213_mib2.o
+OBJECTS_ucd_snmp_snmpv3 := ucd_snmp_rfc3411_framework.o ucd_snmp_rfc3412_mpd.o
+
+# Built-in ICLI
+$(eval $(call add_icli,$(foreach m, snmp,$(DIR_snmp)/$(m).icli)))
+$(eval $(call add_icli,$(foreach m, trap,$(DIR_snmp)/$(m).icli)))
+
+ifeq ($(filter rmon,$(MODULES)),rmon)
+  OBJECTS_vtss_snmp     += rfc2819_rmon.o
+  OBJECTS_ucd_snmp_rmon := ucd_snmp_rfc2819_rmon.o
+endif
+
+ifeq ($(filter smon,$(MODULES)),smon)
+  OBJECTS_vtss_snmp += rfc2613_smon.o
+endif
+
+ifeq ($(filter lldp,$(MODULES)),lldp)
+  OBJECTS_vtss_snmp += dot1ab_lldp.o
+endif
+
+ifeq ($(filter smb_snmp,$(MODULES)),smb_snmp)
+  OBJECTS_vtss_snmp += rfc2863_ifmib.o rfc4133_entity.o rfc3636_mau.o rfc2674_q_bridge.o rfc4363_p_bridge.o
+  OBJECTS_vtss_snmp += ieee8021QBridgeMib.o ieee8021BridgeMib.o
+  OBJECTS_vtss_snmp += rfc3414_usm.o rfc3415_vacm.o
+  OBJECTS_ucd_snmp_snmpv3 += ucd_snmp_rfc3414_usm.o ucd_snmp_rfc3415_vacm.o
+  ifeq ($(filter dot1x,$(MODULES)),dot1x)
+    OBJECTS_vtss_snmp += ieee8021x_mib.o
+  endif
+  ifeq ($(filter dot1x_acct,$(MODULES)),dot1x_acct)
+    OBJECTS_vtss_snmp += rfc4670_radiusclient.o
+  endif
+  ifeq ($(filter eth_link_oam,$(MODULES)),eth_link_oam)
+    OBJECTS_vtss_snmp += dot3OamMIB.o
+  endif
+  ifeq ($(filter ipmc,$(MODULES)),ipmc)
+    OBJECTS_vtss_snmp += mgmdMIBObjects.o
+  endif
+  ifeq ($(filter lacp,$(MODULES)),lacp)
+    OBJECTS_vtss_snmp += ieee8023_lag_mib.o
+  endif
+  ifeq ($(filter mstp,$(MODULES)),mstp)
+    OBJECTS_vtss_snmp += ieee8021MstpMib.o
+    OBJECTS_ucd_snmp += ucd_snmp_ieee8021MstpMib.o
+  endif
+  ifeq ($(filter radius,$(MODULES)),radius)
+    OBJECTS_vtss_snmp += rfc4668_radiusclient.o
+  endif
+endif
+
+ifeq ($(filter ip2,$(MODULES)),ip2)
+  OBJECTS_vtss_snmp += rfc4292_ip_forward.o
+  OBJECTS_vtss_snmp += rfc4293_ip.o
+endif
+
+# Add lldpXMedMIB.o if we have lldp_med or poe
+ifeq ($(filter lldp,$(MODULES)),lldp)
+ifneq ($(filter lldp_med poe,$(MODULES)),)
+     OBJECTS_vtss_snmp += lldpXMedMIB.o
+endif
+endif
+
+ifeq ($(filter poe,$(MODULES)),poe)
+     OBJECTS_vtss_snmp += powerEthernetMIB.o
+endif
+
+OBJECTS_vtss_snmp += vtss_snmp.o ifIndex.o dot1Port.o inet_address.o \
+$(if $(MODULE_VCLI),snmp_cli.o) \
+$(if $(MODULE_WEB),snmp_web.o) \
+$(if $(MODULE_CONF_XML),snmp_xml.o) \
+$(if $(MODULE_ICFG),snmp_icfg.o) \
+$(if $(MODULE_ICFG),trap_icfg.o)
+
+# Compiler rules
+$(OBJECTS_vtss_snmp): %.o: $(DIR_snmp)/%.c
+	$(call compile_c, $@, $<, -D_KERNEL=1)
+
+$(OBJECTS_ucd_snmp): %.o: $(DIR_ucd_snmp)/%.c
+	$(call compile_c, $@, $<, -D_KERNEL=1)
+
+$(OBJECTS_ucd_snmp_mib2): %.o: $(DIR_ucd_snmp)/mibII/%.c
+	$(call compile_c, $@, $<, -D_KERNEL=1)
+
+$(OBJECTS_ucd_snmp_rmon): %.o: $(DIR_ucd_snmp)/Rmon/%.c
+	$(call compile_c, $@, $<, -D_KERNEL=1)
+
+$(OBJECTS_ucd_snmp_snmpv3): %.o: $(DIR_ucd_snmp)/snmpv3/%.c
+	$(call compile_c, $@, $<, -D_KERNEL=1)
+
+# Total list of objects
+OBJECTS_snmp := $(OBJECTS_vtss_snmp)
+OBJECTS_snmp += $(OBJECTS_ucd_snmp)
+OBJECTS_snmp += $(OBJECTS_ucd_snmp_mib2)
+OBJECTS_snmp += $(OBJECTS_ucd_snmp_rmon)
+OBJECTS_snmp += $(OBJECTS_ucd_snmp_snmpv3)
+
+# Include files
+INCLUDES += -I$(DIR_snmp)
+INCLUDES += -I$(DIR_ucd_snmp) -I$(DIR_ucd_snmp)/mibII -I$(DIR_ucd_snmp)/Rmon -I$(DIR_ucd_snmp)/snmpv3
+
+# Lint files
+TEMP_LINT_FILES_snmp := $(addprefix $(DIR_snmp)/,$(OBJECTS_vtss_snmp:.o=.c))
+
+# Filter out files that (currently) aren't lintable.
+LINT_FILES_snmp := $(filter-out $(DIR_snmp)/rfc1213_mib2.c                          \
+                                $(DIR_snmp)/dot3OamMIB.c                            \
+                                $(DIR_snmp)/rfc2819_rmon.c                          \
+                                $(DIR_snmp)/dot1ab_lldp.c                           \
+                                $(DIR_snmp)/ieee8023_lag_mib.c                      \
+                                $(DIR_snmp)/rfc2613_smon.c                          \
+                                $(DIR_snmp)/rfc2863_ifmib.c                         \
+                                $(DIR_snmp)/rfc3635_etherlike.c                     \
+                                $(DIR_snmp)/rfc3636_mau.c                           \
+                                $(DIR_snmp)/rfc4133_entity.c                        \
+                                $(DIR_snmp)/rfc4668_radiusclient.c                  \
+                                $(DIR_snmp)/rfc4670_radiusclient.c                  \
+                                $(DIR_snmp)/ieee8021x_mib.c                         \
+                                ,$(TEMP_LINT_FILES_snmp))
+
+LINT_FILES_snmp += $(if $(MODULE_ICFG),$(DIR_snmp)/snmp_icfg.c)
+LINT_FILES_snmp += $(if $(MODULE_ICFG),$(DIR_snmp)/trap_icfg.c)
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_snmp += $(DIR_snmp)/*.c $(DIR_snmp)/*.h
+
+# Tidy files
+TIDY_FILES_snmp += $(DIR_snmp)/html/*.htm $(DIR_snmp)/html/help/*.htm
+
+# JSLINT files
+JSLINT_FILES_snmp += $(TIDY_FILES_snmp)
+

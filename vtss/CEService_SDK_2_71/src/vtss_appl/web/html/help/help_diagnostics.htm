@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Diagnostics Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="../lib/config.js"></script>
+</head>
+
+<body onload="document.getElementById('pingLenMin').innerHTML=configPingLenMin; document.getElementById('pingLenMax').innerHTML=configPingLenMax; document.getElementById('pingCntMin').innerHTML=configPingCntMin; document.getElementById('pingCntMax').innerHTML=configPingCntMax; document.getElementById('pingIntervalMin').innerHTML=configPingIntervalMin; document.getElementById('pingIntervalMax').innerHTML=configPingIntervalMax;">
+<h1>Diagnostics Help</h1>
+
+<h2><a name="ping">Ping</a></h2>
+
+<p>This page allows you to issue <a href="glossary.htm#icmp" class="glossary">ICMP</a> <a href="glossary.htm#ping" class="glossary">PING</a> packets to troubleshoot <a href="glossary.htm#ip" class="glossary">IP</a> connectivity issues.</p>
+
+<p>After you press <input type="button" value=" Start ">, ICMP packets are transmitted, and the sequence number and round trip time are displayed upon reception of a reply. 
+   The amount of data received inside of an IP packet of type ICMP ECHO_REPLY will always be 8 bytes more than the requested data space(the ICMP header).
+   The page refreshes automatically until responses to all packets are received, or until a timeout occurs.</p>
+
+<pre>
+PING server 10.10.132.20, 56 bytes of data.
+64 bytes from 10.10.132.20: icmp_seq=0, time=0ms
+64 bytes from 10.10.132.20: icmp_seq=1, time=0ms
+64 bytes from 10.10.132.20: icmp_seq=2, time=0ms
+64 bytes from 10.10.132.20: icmp_seq=3, time=0ms
+64 bytes from 10.10.132.20: icmp_seq=4, time=0ms
+Sent 5 packets, received 5 OK, 0 bad
+</pre>
+<h2 class="has_eth_link_oam"><a name ="oammib">Link OAM MIB Retrieval</a></h2>
+<p class="has_eth_link_oam">This page allows you to retrieve the local or remote OAM MIB variable data on a particular port. Select the appropriate radio button and enter the port number of the switch to retrieve the content of interest.  Click on <input type="button" value="Start"> to retrieve the content. Click on <input type="button" value="New Retrieval"> to retrieve another content of interest.</p>
+
+<h2 class="has_ipv6"><a name="ping6">Ping6</a></h2>
+
+<p class="has_ipv6">This page allows you to issue ICMPv6 PING packets to troubleshoot IPv6 connectivity issues.</p>
+
+<p class="has_ipv6">After you press <input type="button" value=" Start ">, ICMPv6 packets are transmitted, and the sequence number and round trip time are displayed upon reception of a reply.  The page refreshes automatically until responses to all packets are received, or until a timeout occurs.</p>
+
+<pre class="has_ipv6">
+PING6 server ff02::2, 56 bytes of data.
+64 bytes from fe80::219:5bff:fe2f:b47: icmp_seq=0, time=10ms
+64 bytes from fe80::215:58ff:feed:69dd: icmp_seq=0, time=10ms
+64 bytes from fe80::219:5bff:fe2f:b47: icmp_seq=1, time=0ms
+64 bytes from fe80::215:58ff:feed:69dd: icmp_seq=1, time=0ms
+64 bytes from fe80::219:5bff:fe2f:b47: icmp_seq=2, time=0ms
+64 bytes from fe80::215:58ff:feed:69dd: icmp_seq=2, time=0ms
+64 bytes from fe80::219:5bff:fe2f:b47: icmp_seq=3, time=0ms
+64 bytes from fe80::215:58ff:feed:69dd: icmp_seq=3, time=0ms
+64 bytes from fe80::219:5bff:fe2f:b47: icmp_seq=4, time=0ms
+64 bytes from fe80::215:58ff:feed:69dd: icmp_seq=4, time=0ms
+Sent 5 packets, received 10 OK, 0 bad
+</pre>
+
+<p>You can configure the following properties of the issued ICMP packets:</p>
+
+<dl>
+ <dt>IP Address</dt>
+ <dd>
+ The destination IP Address.
+ </dd>
+
+ <dt>Ping Length</dt>
+ <dd>
+ The payload size of the ICMP packet. Values range from <span id="pingLenMin">2</span> bytes to <span id="pingLenMax">1452</span> bytes.
+ </dd>
+
+ <dt>Ping Count</dt>
+ <dd>
+ The count of the ICMP packet. Values range from <span id="pingCntMin">1</span> time to <span id="pingCntMax">60</span> times.
+ </dd>
+
+ <dt>Ping Interval</dt>
+ <dd>
+ The interval of the ICMP packet. Values range from <span id="pingIntervalMin">1</span> second to <span id="pingIntervalMax">30</span> seconds.
+ </dd>
+
+ <dt>Egress Interface (Only for IPv6)</dt>
+ <dd>
+ The VLAN ID (VID) of the specific egress IPv6 interface which ICMP packet goes.<br/>
+ The given VID ranges from 1 to 4094 and will be effective only when the corresponding IPv6 interface is valid.<br/>
+ When the egress interface is not given, PING6 finds the best match interface for destination.<br/>
+ Do not specify egress interface for loopback address.<br/>
+ Do specify egress interface for link-local or multicast address.<br/>
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Start ">: Click to start transmitting ICMP packets.</p>
+<p><input type="button" value=" New Ping ">: Click to re-start diagnostics with PING.</p>
+
+</body>
+</html>

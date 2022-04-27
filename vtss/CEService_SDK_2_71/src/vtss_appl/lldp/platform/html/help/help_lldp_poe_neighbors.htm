@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>LLDP Power Over Ethernet Neighbor Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+    window.addEvent('domready', function() {
+      $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+  });
+ </script>
+</head>
+
+<body>
+<h1>LLDP Power Over Ethernet Neighbor Help</h1>
+
+<p>This page provides a status overview for all <a href="glossary.htm#lldp" class="glossary">LLDP</a> <a href="glossary.htm#PoE" class="glossary">PoE</a> neighbors.
+   The displayed table contains a row for each port on which an <a href="glossary.htm#lldp" class="glossary">LLDP</a> <a href="glossary.htm#PoE" class="glossary">PoE</a> neighbor is detected. The columns hold the following information:
+</p>
+
+<dl>
+ <dt>Local Port</dt>
+ <dd>
+   The port for this switch on which the <a href="glossary.htm#lldp" class="glossary">LLDP</a> frame was received.
+ </dd>
+
+ <dt>Power Type</dt>
+ <dd>
+     The <b>Power Type</b> represents whether the device is a Power Sourcing Entity (PSE) or Power Device (<a href="glossary.htm#PD" class="glossary">PD</a>).
+     <p>If the <b>Power Type</b> is unknown it is represented as "Reserved".</p>
+  </dd>
+
+
+ <dt>Power Source</dt>
+ <dd>
+    <p>The <b>Power Source</b> represents the power source being utilized by a PSE or <a href="glossary.htm#PD" class="glossary">PD</a> device.</p> 
+    <p>If the device is a PSE device it can either run on its Primary Power Source or its Backup Power Source. 
+       If it is unknown whether the PSE device is using its Primary Power Source or its Backup Power Source 
+       it is indicated as "Unknown"  </p> 
+    <p>If the device is a <a href="glossary.htm#PD" class="glossary">PD</a> device it can either run on its local power supply or it can use the PSE as power source. It can also use both its local power supply and the PSE.</p>
+    <p>If it is unknown what power supply the <a href="glossary.htm#PD"
+ class="glossary">PD</a> device is using it is indicated as "Unknown"  </p> 
+ </dd>
+
+ <dt>Power Priority</dt>
+ <dd>
+<p> Power <b>Power Priority</b> represents the priority of the <a href="glossary.htm#PD" class="glossary">PD</a> device, or the power priority associated with the PSE type device's port that is sourcing the power. There are three levels of power priority. The three levels are: Critical, High and Low. </p>
+<p>If the power priority is unknown it is indicated as "Unknown" </p>  
+ </dd>
+
+<dt>Maximum Power</dt>
+ <dd>
+ <p> The <b>Maximum Power</b> Value contains a numerical value that indicates the maximum power in watts required by a <a href="glossary.htm#PD" class="glossary">PD</a> device from a PSE device, or the minimum power a PSE device is capable of sourcing over a maximum length cable based on its current configuration.</p>
+ <p> The maximum allowed value is 102.3 W. If the device indicates value higher than 102.3 W, it is represented as "reserved"</p>
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page.</p>
+</body>
+</html>
+

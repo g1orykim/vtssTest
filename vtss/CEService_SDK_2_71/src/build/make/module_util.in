@@ -1,0 +1,74 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_util := $(DIR_APPL)/util
+DIR_util_avlt := $(DIR_APPL)/util/avlt
+
+OBJECTS_util_core :=
+OBJECTS_util_os :=
+OBJECTS_util_avlt :=
+OBJECTS_util_rowStatus :=
+
+ifneq (,$(findstring -DVTSS_TRACE,$(DEFINES)))
+  OBJECTS_util_core += vtss_trace.o vtss_trace_io.o \
+    $(if $(MODULE_VCLI),vtss_trace_cli.o)
+endif
+
+ifneq (,$(TURNKEY))
+
+  OBJECTS_util_core += vtss_fifo.o vtss_fifo_cp.o vtss_bip_buffer.o vtss_ecos_mutex.o vtss_module_id.o vtss_free_list.o
+  OBJECTS_util_os += os_file.o
+  OBJECTS_util_avlt += vtss_avl_tree.o
+  OBJECTS_util_rowStatus += vtss_rowStatus.o
+endif
+
+OBJECTS_util := $(OBJECTS_util_core) $(OBJECTS_util_os) $(OBJECTS_util_avlt) $(OBJECTS_util_rowStatus)
+
+$(OBJECTS_util_core) $(OBJECTS_util_os): %.o: $(DIR_util)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_util_avlt): %.o: $(DIR_util_avlt)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_util_rowStatus): %.o: $(DIR_util)/%.c
+	$(call compile_c, $@, $<)
+
+INCLUDES += -I$(DIR_util) -I$(DIR_util_avlt)
+
+DEFINES_util := -DVTSS_TRACE_MULTI_THREAD=1
+ifdef TURNKEY
+  DEFINES_util += -DVTSS_SWITCH=1
+endif
+
+vtss_trace.o vtss_trace_io.o vtss_trace_cli.o: DEFINES += $(DEFINES_util)
+
+LINT_FILES_util += $(DIR_util)/vtss_trace_cli.c $(DIR_util)/avlt/vtss_avl_tree.c $(DIR_util)/vtss_rowStatus.c
+
+ifneq (,$(TURNKEY))
+LINT_FILES_util += $(DIR_util)/vtss_bip_buffer.c  $(DIR_util)/os_file.c
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_util := $(DIR_util)/vtss_bip_buffer.c
+VTSS_CODE_STYLE_CHK_FILES := $(DIR_util)/os_file.c
+endif

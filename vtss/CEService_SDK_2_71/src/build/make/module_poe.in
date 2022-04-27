@@ -1,0 +1,75 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_poe := $(DIR_APPL)/poe
+OBJECTS_poe := poe.o poe_custom.o poe_custom_pd63000.o poe_custom_pd690xx.o poe_custom_si3452.o \
+               poe_custom_slus787.o \
+               $(if $(MODULE_VCLI),poe_cli.o) \
+	       $(if $(MODULE_ICLI),poe_icli_functions.o)  \
+               $(if $(MODULE_WEB),poe_web.o) \
+               $(if $(MODULE_CONF_XML),poe_xml.o)
+
+$(OBJECTS_poe): %.o: $(DIR_poe)/%.c
+	$(call compile_c, $@, $<)
+
+#Built-in ICLI
+$(eval $(call add_icli,$(DIR_poe)/poe.icli))
+
+INCLUDES += -I$(DIR_poe)
+
+# Includes the I2C Driver in case that is needed for the PoE card.
+DEFINES += -DVTSS_SW_OPTION_I2C
+
+# Add the line below if the hardware supports backup power suppply.
+#DEFINES += -DVTSS_SW_OPTION_POE_BACKUP_POWER_AVAILABLE=1
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_poe)/html
+
+LINT_FILES_poe += $(addprefix $(DIR_poe)/,poe.c poe_custom.c poe_custom_pd63000.c poe_custom_pd690xx.c \
+                   poe_custom_si3452.c poe_custom_slus787.c poe_cli.c poe_web.c)
+LINT_FILES_poe += $(DIR_poe)/poe_icli_functions.c
+LINT_FILES_poe += $(if $(MODULE_CONF_XML),$(DIR_poe)/poe_xml.c)
+
+# Tidy files
+TIDY_FILES_poe += $(DIR_poe)/html/*.htm $(DIR_poe)/html/help/*.htm
+
+# Code style
+VTSS_CODE_STYLE_CHK_FILES_poe += $(DIR_poe)/poe_cli.c $(DIR_poe)/poe_custom.c $(DIR_poe)/poe_custom_pd690xx_api.h  $(DIR_poe)/poe_custom_si3452.c
+VTSS_CODE_STYLE_CHK_FILES_poe += $(DIR_poe)/poe.h $(DIR_poe)/poe_xml.c $(DIR_poe)/poe_api.h  $(DIR_poe)/poe_cli.h 
+VTSS_CODE_STYLE_CHK_FILES_poe += $(DIR_poe)/poe_custom_pd63000_api.h $(DIR_poe)/poe_custom_pd690xx.c $(DIR_poe)/poe_custom_slus787_api.h 
+VTSS_CODE_STYLE_CHK_FILES_poe += $(DIR_poe)/poe.c $(DIR_poe)/poe_custom_api.h $(DIR_poe)/poe_custom_pd63000.c $(DIR_poe)/poe_custom_si3452_api.h
+VTSS_CODE_STYLE_CHK_FILES_poe += $(DIR_poe)/poe_custom_slus787.c $(DIR_poe)/poe_web.c
+
+
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_poe += $(DIR_poe)/poe_icli_functions.c 
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_poe += $(DIR_poe)/poe_icli_functions.h 
+
+
+# JSlint files
+JSLINT_FILES_poe += $(DIR_poe)/html/*.htm
+JSLINT_FILES_poe += $(DIR_poe)/html/help/*.htm
+

@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2014 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>EVC Port Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>EVC Port Configuration Help</h1>
+<p>This page displays current <a href="glossary.htm#EVC" class="glossary">EVC</a> port configurations.
+   The settings can also be configured here.</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>
+ The logical port for the settings contained in the same row.
+ </dd>
+
+ <dt class="has_arch_serval">Basic Key Type</dt>
+ <dd class="has_arch_serval">
+ The key type specifying the key generated for frames received on the port.
+ The allowed values are:
+ <br><samp>Normal</samp>: Half key, match outer tag, SIP/DIP and SMAC/DMAC.
+ <br><samp>Double Tag</samp>: Quarter key, match inner and outer tag.
+ <br><samp><a href="glossary.htm#ip" class="glossary">IP</a> Address</samp>: Half key, match inner and outer tag, SIP and DIP. For non-IP frames, match outer tag only.
+ <br><samp>MAC and IP Address</samp>: Full key, match inner and outer tag, SMAC, DMAC, SIP and DIP.
+ <br>Filtering on DMAC type (unicast/multicast/broadcast) is supported for any key type.
+ </dd>
+
+ <dt class="has_arch_serval">Basic Address Mode</dt>
+ <dd class="has_arch_serval">
+ The IP/MAC address mode specifying whether the EVC classification must be based on source (SMAC/SIP) or destination (DMAC/DIP) addresses. This parameter is only used when the key type is <samp>Normal</samp>.
+ The allowed values are:
+ <br><samp>Source</samp>: Enable SMAC/SIP matching.
+ <br><samp>Destination</samp>: Enable DMAC/DIP matching.
+ </dd>
+
+ <dt class="has_arch_jaguar_1"><a href="glossary.htm#DEI" class="glossary">DEI</a> Mode</dt>
+ <dd class="has_arch_jaguar_1">
+ The DEI mode for an NNI port determines whether frames transmitted on the port will have the DEI field in the outer tag marked based on the colour of the frame. The allowed values are:
+ <br><samp>Coloured</samp>: The DEI is 1 for yellow frames and 0 for green frames.
+ <br><samp>Fixed</samp>: The DEI value is determined by <a href="glossary.htm#ECE" class="glossary">ECE</a> rules.
+ </dd>
+
+ <dt class="has_arch_luton26">DEI Mode</dt>
+ <dd class="has_arch_luton26">
+ The DEI mode for an NNI port determines whether frames transmitted on the port will have the DEI field in the outer tag marked based on the colour of the frame. The allowed values are:
+ <br><samp>Coloured</samp>: The DEI is 1 for yellow frames and 0 for green frames.
+ <br><samp>Fixed</samp>: The DEI value is determined by ECE rules.
+ </dd>
+
+ <dt class="has_arch_luton26">Tag Mode</dt>
+ <dd class="has_arch_luton26">
+ The tag mode specifying whether the EVC classification must be based on the outer or inner tag. This can be used on NNI ports connected to another service provider, where an outer "tunnel" tag is added together with the inner tag identifying the EVC.
+ The allowed values are:
+ <br><samp>Inner</samp>: Enable inner tag in EVC classification.
+ <br><samp>Outer</samp>: Enable outer tag in EVC classification.
+ </dd>
+
+ <dt class="has_arch_luton26">Address Mode</dt>
+ <dd class="has_arch_luton26">
+ The IP/MAC address mode specifying whether the EVC classification must be based on source (SMAC/SIP) or destination (DMAC/DIP) addresses.
+ The allowed values are:
+ <br><samp>Source</samp>: Enable SMAC/SIP matching.
+ <br><samp>Destination</samp>: Enable DMAC/DIP matching.
+ </dd>
+
+ <dt class="has_arch_serval">Advanced Key Type</dt>
+ <dd class="has_arch_serval">
+ The advanced key type specifying the key generated for the second lookup.
+ The allowed values are:
+ <br><samp>Normal</samp>: Half key, match outer tag, SIP/DIP and SMAC/DMAC.
+ <br><samp>Double Tag</samp>: Quarter key, match inner and outer tag.
+ <br><samp><a href="glossary.htm#ip" class="glossary">IP</a> Address</samp>: Half key, match inner and outer tag, SIP and DIP. For non-IP frames, match outer tag only.
+ <br><samp>MAC and IP Address</samp>: Full key, match inner and outer tag, SMAC, DMAC, SIP and DIP.
+ <br>Filtering on DMAC type (unicast/multicast/broadcast) is supported for any key type.
+ </dd>
+
+ <dt class="has_arch_serval">Advanced Address Mode</dt>
+ <dd class="has_arch_serval">
+ The advanced IP/MAC address mode specifying for the second lookup.
+ This parameter is only used when the key type is <samp>Normal</samp>.
+ The allowed values are:
+ <br><samp>Source</samp>: Enable SMAC/SIP matching.
+ <br><samp>Destination</samp>: Enable DMAC/DIP matching.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

@@ -1,0 +1,78 @@
+# ====================================================================
+#
+#      threadload.cdl
+#
+#      Thread load measurements
+#
+# ====================================================================
+## ####ECOSGPLCOPYRIGHTBEGIN####                                            
+## -------------------------------------------                              
+## This file is part of eCos, the Embedded Configurable Operating System.   
+## Copyright (C) 2002 Free Software Foundation, Inc.                        
+##
+## eCos is free software; you can redistribute it and/or modify it under    
+## the terms of the GNU General Public License as published by the Free     
+## Software Foundation; either version 2 or (at your option) any later      
+## version.                                                                 
+##
+## eCos is distributed in the hope that it will be useful, but WITHOUT      
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or    
+## FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License    
+## for more details.                                                        
+##
+## You should have received a copy of the GNU General Public License        
+## along with eCos; if not, write to the Free Software Foundation, Inc.,    
+## 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.            
+##
+## As a special exception, if other files instantiate templates or use      
+## macros or inline functions from this file, or you compile this file      
+## and link it with other works to produce a work based on this file,       
+## this file does not by itself cause the resulting work to be covered by   
+## the GNU General Public License. However the source code for this file    
+## must still be made available in accordance with section (3) of the GNU   
+## General Public License v2.                                               
+##
+## This exception does not invalidate any other reasons why a work based    
+## on this file might be covered by the GNU General Public License.         
+## -------------------------------------------                              
+## ####ECOSGPLCOPYRIGHTEND####                                              
+# ====================================================================
+######DESCRIPTIONBEGIN####
+#
+# Author(s):      Rene Schipp von Branitz Nielsen
+# Original data:  Rene Schipp von Branitz Nielsen
+# Contributors:
+# Date:           2011-12-16
+#
+#####DESCRIPTIONEND####
+#
+# ====================================================================
+
+cdl_package CYGPKG_THREADLOAD {
+    display       "Measure the CPU load per thread"
+    requires      CYGPKG_KERNEL
+    requires      !CYGPKG_KERNEL_SMP_SUPPORT
+    include_dir   cyg/threadload
+    
+    compile threadload.cxx
+    description "
+       This package measures the CPU load per thread over the last
+       one and 10 seconds. The 10 second values are a running average.
+       By default, cyg_current_time() will be used to provide the time base,
+       but it is highly recommended to have the application override this by
+       defining THREADLOAD_CURRENT_TIME_GET to a function that can return the
+       current time (64-bit, any base) with a much higher precision. The coarser
+       the time base, the less accurate the thread load measurements. The
+       defined function must return a monotonic (i.e. ever increasing) value."
+
+    cdl_option CYGNUM_THREADLOAD_MAX_ID {
+        display "Max Thread ID"
+        flavor  data
+        default_value 128
+        description "
+            Maximum ID of thread to keep an eye on. If your application repeatedly
+            creates and kills threads, this module may not live up to your expectations
+            because it uses an array indexed by the the thread ID."
+    }
+}
+

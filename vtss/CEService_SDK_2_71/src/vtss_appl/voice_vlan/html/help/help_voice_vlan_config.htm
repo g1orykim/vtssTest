@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Voice VLAN Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Voice VLAN Configuration Help</h1>
+
+<h2><a href="glossary.htm#voice_vlan" class="glossary">Voice VLAN</a> Configuration</h2>
+
+<p>The Voice VLAN feature enables voice traffic forwarding on the Voice VLAN,
+   then the switch can classify and schedule network traffic.
+   It is recommended that there be two VLANs on a port - one for voice, one for data. 
+   Before connecting the <a href="glossary.htm#ip" class="glossary">IP</a> device to
+   the switch, the IP phone should configure the 
+   voice <a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a> correctly.
+   It should be configured through its own GUI.
+</p>
+
+<dl>
+ <dt>Mode</dt>
+ <dd>
+ Indicates the Voice VLAN mode operation.
+ We must disable MSTP feature before we enable Voice VLAN.
+ It can avoid the conflict of ingress filtering.
+ Possible modes are:
+ <br><samp>Enabled</samp>: Enable Voice VLAN mode operation.
+ <br><samp>Disabled</samp>: Disable Voice VLAN mode operation.
+ </dd>
+
+ <dt>VLAN ID</dt>
+ <dd>
+ Indicates the Voice VLAN ID. It should be a unique VLAN ID in the system and cannot equal each port PVID.
+ It is a conflict in configuration if the value equals management VID, MVR VID, PVID etc.
+ The allowed range is <samp>1</samp> to <samp>4095</samp>.
+ </dd>
+
+ <dt>Aging Time</dt>
+ <dd>
+ Indicates the Voice VLAN secure learning aging time. The allowed range is <samp>10</samp> to <samp>10000000</samp> seconds.
+ It is used when security mode or auto detect mode is enabled. In other cases, it will be based on hardware aging time. The actual
+ aging time will be situated between the [age_time; 2 * age_time] interval. 
+ </dd>
+
+ <dt class="hasClassVoiceVlan">Traffic Class</dt>
+ <dd class="hasClassVoiceVlan">
+ Indicates the Voice VLAN traffic class. All traffic on the Voice VLAN will apply this class.
+ </dd>
+
+ <dt>Port Mode</dt>
+ <dd>
+ Indicates the Voice VLAN port mode.
+ Possible port modes are:
+ <br><samp>Disabled</samp>: Disjoin from Voice VLAN.
+ <br><samp>Auto</samp>: Enable auto detect mode. It detects whether there is VoIP phone attached to the specific port and configures the Voice VLAN members automatically.
+ <br><samp>Forced</samp>: Force join to Voice VLAN.
+ </dd>
+
+ <dt>Port Security</dt>
+ <dd>
+ Indicates the Voice VLAN port security mode. When the function is enabled, all non-telephonic MAC addresses in the Voice VLAN will be blocked for 10 seconds. 
+ Possible port modes are:
+ <br><samp>Enabled</samp>: Enable Voice VLAN security mode operation.
+ <br><samp>Disabled</samp>: Disable Voice VLAN security mode operation.
+ </dd>
+
+ <dt class="hasLLDPVoiceVlan">Port Discovery Protocol</dt>
+ <dd class="hasLLDPVoiceVlan">
+ Indicates the Voice VLAN port discovery protocol. It will only work when auto detect mode is enabled.
+ We should enable LLDP feature before configuring discovery protocol to "LLDP" or "Both".
+ Changing the discovery protocol to "OUI" or "LLDP" will restart auto detect process.
+ Possible discovery protocols are:
+ <br><samp><a href="glossary.htm#oui" class="glossary">OUI</a></samp>: Detect telephony device by OUI address.
+ <br><samp><a href="glossary.htm#lldp" class="glossary">LLDP</a></samp>: Detect telephony device by LLDP.
+ <br><samp>Both</samp>: Both OUI and LLDP.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>PTP Clock Monitor Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/dynforms.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+   });
+ </script>
+</head>
+
+<body>
+<h1>PTP Clock Monitor Help</h1>
+
+<p>This page allows the user to inspect the current <a href="glossary.htm#PTP" class="glossary">PTP</a> clock
+settings.</p>
+
+<h2>PTP External Clock Description</h2>
+<dl>
+
+ <dt>One_pps_mode</dt>
+ <dd>Shows the current One_pps_mode configured.</dd>
+ <dd>1. Output  : Enable the 1 pps clock output</dd>
+ <dd>2. Input   : Enable the 1 pps clock input</dd>
+ <dd>3. Disable : Disable the 1 pps clock in/out-put</dd>
+
+ <dt>External Enable</dt>
+ <dd>Shows the current External clock output configuration.</dd>
+ <dd>1. True    : Enable the external clock output</dd>
+ <dd>2. False   : Disable the external clock output</dd>
+
+ <dt>VCXO_Enable</dt>
+ <dd>Shows the current VCXO rate adjustment configuration.</dd>
+ <dd>1. True    : Enable the external VCXO rate adjustment</dd>
+ <dd>2. False   : Disable the external VCXO rate adjustment</dd>
+
+ <dt>Clock Frequency</dt>
+ <dd>Shows the current clock frequency used by the External Clock.</dd>
+ <dd>The possible range of values are 1 - 25000000 (1 - 25MHz)</dd>
+
+</dl>
+
+
+<h2>PTP Clock Description</h2>
+
+<dl>
+
+ <dt>Clock Instance</dt>
+ <dd>
+  Indicates the Instance of a particular Clock Instance [0..3].
+ </dd>
+ <dd>
+  Click on the Clock Instance number to monitor the Clock details.
+ </dd>
+ <dt>Device Type</dt>
+ <dd>
+  Indicates the Type of the Clock Instance. There are five Device Types.
+ </dd>
+ <dd>
+  1. Ord-Bound	- Clock's Device Type is Ordinary-Boundary Clock.
+ </dd>
+ <dd>
+  2. P2p Transp	- Clock's Device Type is Peer to Peer Transparent Clock.
+ </dd>
+ <dd>
+  3. E2e Transp	- Clock's Device Type is End to End Transparent Clock.
+ </dd>
+ <dd>
+  4. Master Only - Clock's Device Type is Master Only.
+ </dd>
+ <dd>
+  5. Slave Only - Clock's Device Type is Slave Only.
+ </dd>
+
+ <dt>Port List</dt>
+ <dd>
+  Shows the ports configured for that Clock Instance.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+</body>
+</html>

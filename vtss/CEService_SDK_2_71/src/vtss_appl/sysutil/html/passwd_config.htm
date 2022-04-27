@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>System Password</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_passwd_config.htm";
+
+function checkForm() {
+    var pass1 = document.getElementById("pass1");
+    var pass2 = document.getElementById("pass2");
+    if (pass1.value != pass2.value) {
+        GiveAlert("Passwords do not match.", pass1);
+        return false;
+    }	
+    if (pass1.value == "") {
+        return confirm("Password is empty.\nDo you want an empty password?");
+    }	
+    return true;
+}
+
+function requestUpdate() {
+    loadXMLDoc("/config/passwd", null, null);
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>System Password</h1>
+
+<form method="POST" action="/config/passwd" onsubmit="return checkForm();">
+
+
+<table summary="System Password" cellspacing="0" class="config">
+ <tr class="config">
+  <td class="param_label"><label for="oldpass">Old Password</label></td>
+  <td class="cl"><input type="password" id="oldpass" name="oldpass" size="15" maxlength="31"></td>
+ </tr>
+ <tr class="config">
+  <td class="param_label"><label for="pass1">New Password</label></td>
+  <td class="cl"><input type="password" id="pass1" name="pass1" size="15" maxlength="31"></td>
+ </tr>
+ <tr class="config">
+    <td class="param_label"><label for="pass2">Confirm New Password</label></td>
+  <td class="cl"><input type="password" id="pass2" name="pass2" size="15" maxlength="31"></td>
+ </tr>
+</table>
+
+<p>
+<input type="submit" value="Save">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

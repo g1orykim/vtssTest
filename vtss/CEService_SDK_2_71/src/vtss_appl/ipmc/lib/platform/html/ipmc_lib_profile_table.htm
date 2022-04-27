@@ -1,0 +1,450 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2013 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>IPMC Profile Table Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+var reqObject;
+var NewPdxArray = Array(); //Store Index
+var OldPdxArray = Array(); //Store MVID
+var oldEntriesNum, newEntriesNum;
+
+var oTMode = Array("Disabled", "Enabled");
+var oVMode = Array(0, 1);
+//  var cfgIpmcLibPftMax = 64;
+//  var cfgIpmcLibChrAscMin = 33;
+//  var cfgIpmcLibChrAscMax = 126;
+//  var cfgIpmcLibChrAscSpc = 32;
+
+
+// Help page magic
+var help_page = "/help/help_ipmc_lib_profile_table.htm";
+
+function checkName(sText)
+{
+    var idx, nmx;
+
+    for (idx = 0; idx < sText.length; idx++) {
+        nmx = sText.charCodeAt(idx);
+        if ((nmx < cfgIpmcLibChrAscMin) || (nmx > cfgIpmcLibChrAscMax)) {
+            return -1;
+        }
+    }
+
+    return 1;
+}
+
+function checkDescription(sText)
+{
+    var idx, nmx;
+
+    for (idx = 0; idx < sText.length; idx++) {
+        nmx = sText.charCodeAt(idx);
+        if ((nmx < cfgIpmcLibChrAscMin) || (nmx > cfgIpmcLibChrAscMax)) {
+            if (nmx !== cfgIpmcLibChrAscSpc) {
+                return -1;
+            }
+        }
+    }
+
+    return 1;
+}
+
+function addImageInline(frag, style, src, text, idx, click)
+{
+    var field = document.createElement('img');
+    var pval = text.split(" ");
+    field.id = pval[pval.length - 1] + "_" + idx;
+    field.src = src;
+    field.border = 0;
+    field.value = idx;
+    if (click) {
+        field.onclick = click;
+    }
+    field.title = field.alt = text;
+    frag.appendChild(field);
+    return field;
+}
+
+function pfRuleEdit()
+{
+    document.location.href = "ipmc_lib_rule_table.htm?CurSidV=" + document.getElementById("submit_sid").value + "&DoPdxOp=1&DynBgnPdx=" + textStrToAsciiStr(this.value);
+}
+
+function pfRuleNavigate()
+{
+    window.open("ipmc_lib_rule_table.htm?CurSidV=" + document.getElementById("submit_sid").value + "&DoPdxOp=0&DynBgnPdx=" + textStrToAsciiStr(this.value), "", "height=480,width=640,top=0,left=0,resizable=1,scrollbars=1");
+}
+
+function CreateTableHeaderProfile(fragEntry)
+{
+    var tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "Delete", "hdrc");
+    addTextHeaderCell(tr, "Profile Name", "hdrc");
+    addTextHeaderCell(tr, "Profile Description", "hdrc");
+    addTextHeaderCell(tr, "Rule", "hdrc", 2);
+    fragEntry.appendChild(tr);  // Add row to fragment
+}
+
+function addRowProfile(index, frag, values)
+{
+    var td, tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var rowIdx, pdxn_val = unescape(values[0]);
+
+    rowIdx = oldEntriesNum;
+    OldPdxArray[oldEntriesNum++] = rowIdx;
+
+    td = addHiddenInputCell(tr, rowIdx, "dummy", "old_ipmcpf_profile_" + rowIdx);
+    td.readOnly = true;
+    td = addHiddenInputCell(tr, pdxn_val, "dummy", "idx_ipmcpf_profile_" + rowIdx);
+    td.readOnly = true;
+
+    /* [state];[profile_name]/[description]|... */
+    addCheckBoxCell(tr, 0, "c", "delete_ipmcpf_profile_" + rowIdx);
+    addTextCell(tr, pdxn_val, "r");
+
+    if (values[1]) {
+        td = addInputCell(tr, unescape(values[1]), "r", "desc_ipmcpf_profile_" + rowIdx, 64, 64);
+    } else {
+        td = addInputCell(tr, "", "r", "desc_ipmcpf_profile_" + rowIdx, 64, 64);
+    }
+
+    // control button
+    var container = document.createElement("td");
+    addImageInline(container, "c", "images/eye.png", "Navigate Profile " + pdxn_val + " Rule", pdxn_val, pfRuleNavigate);
+    tr.appendChild(container);
+    container = document.createElement("td");
+    addImageInline(container, "c", "images/edit.gif", "Edit Profile " + pdxn_val + " Rule", pdxn_val, pfRuleEdit);
+    tr.appendChild(container);
+
+    frag.appendChild(tr);
+}
+
+function procUpdProfileConfig(req, ref)
+{
+    var idx, values;
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    oldEntriesNum = newEntriesNum = 0;
+    if (reqObject !== req) {
+        reqObject = req;
+    }
+
+    /* Table Header */
+    var frag = document.createDocumentFragment();
+    CreateTableHeaderProfile(frag);
+
+    /*
+        Format:
+        [state];[profile_name]/[description]|...;
+    */
+    if (req.responseText) {
+    //if (req) {
+        values = req.responseText.split(";");
+
+        UpdateIdSelect("profile_mode", oTMode, oVMode, parseInt(values[0], 10));
+
+        if (values[1] !== "NoEntries") {
+            var profileEntry = values[1].split("|");
+            for (idx = 0; idx < profileEntry.length; idx++) {
+                addRowProfile(idx, frag, profileEntry[idx].split("/"));
+            }
+        }
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var tbody = document.getElementById("profileData");
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function resetForm()
+{
+    procUpdProfileConfig(reqObject, null);
+}
+
+function addEntryIdx()
+{
+    var i, fld, cnt, idx;
+
+    cnt = idx = 0;
+    for (i = 1; i <= cfgIpmcLibPftMax; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            if (idx === 0) {
+                idx = i;
+            }
+        } else {
+            cnt++;
+        }
+    }
+
+    if (idx) {
+        if ((oldEntriesNum + cnt + 1) > cfgIpmcLibPftMax) {
+            idx = 0;
+        } else {
+            NewPdxArray[newEntriesNum++] = idx;
+        }
+    }
+
+    return idx;
+}
+
+function delEntryIdx(id, trBody)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1], 10);
+
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == NewPdxArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                NewPdxArray[j] = NewPdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    document.getElementById("profileData").removeChild(trBody);
+}
+
+function AddNewRow()
+{
+    var entryIdx = addEntryIdx();
+    if (entryIdx === 0) {
+        alert("The maximum number of entries is " + cfgIpmcLibPftMax);
+        return;
+    }
+
+    // create holder for accumulated tbody elements and text nodes
+    var newRowIndex = oldEntriesNum + entryIdx + 1;    //+1: Header is the first row
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", newRowIndex % 2 ? "config_odd" : "config_even");
+
+    var button = document.createElement('input');
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+
+    addInputCell(tr, "", "r", "new_idx_ipmcpf_profile_" + entryIdx, 16, 16);
+    addInputCell(tr, "", "r", "new_desc_ipmcpf_profile_" + entryIdx, 64, 64);
+
+    // control button
+    var container = document.createElement("td");
+    addImageInline(container, "c", "images/eye_gray.png", "Navigate Profile Rule", "", null);
+    tr.appendChild(container);
+    container = document.createElement("td");
+    addImageInline(container, "c", "images/edit_gray.gif", "Edit Profile Rule", "", null);
+    tr.appendChild(container);
+
+    frag.appendChild(tr);
+
+    button.onclick = function() { delEntryIdx(this.id, tr);};
+
+    var tbody = document.getElementById("profileData");
+    if (!tbody.appendChild(frag)) {
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function checkForm(form)
+{
+    var pdx, idx, i, j, fld, fldChk, matchCnt;
+
+    matchCnt = 0;
+    for (i = 0; i < oldEntriesNum; i++) {
+        pdx = OldPdxArray[i];
+
+        fld = document.getElementById("delete_ipmcpf_profile_" + pdx);
+        if (!fld || fld.checked) {
+            continue;
+        }
+
+        fld = document.getElementById("desc_ipmcpf_profile_" + pdx);
+        if (fld) {
+            if (fld.value !== "") {
+                j = parseInt(checkDescription(fld.value), 10);
+
+                if (j < 0) {
+                    alert("Input character is not allowed in profile description.");
+                    return false;
+                }
+            }
+        }
+
+        matchCnt++;
+    }
+
+    for (i = 0; i < newEntriesNum; i++) {
+        idx = NewPdxArray[i];
+        fld = document.getElementById("new_idx_ipmcpf_profile_" + idx);
+        if (fld) {
+            if (fld.value !== "") {
+                j = parseInt(checkName(fld.value), 10);
+
+                if (j < 0) {
+                    alert(fld.value + " is not a valid profile name.");
+                    return false;
+                }
+            } else {
+                alert("Invalid profile creation!");
+                return false;
+            }
+
+            for (j = 0; j < oldEntriesNum; j++) {
+                pdx = OldPdxArray[j];
+                fldChk = document.getElementById("delete_ipmcpf_profile_" + pdx);
+                if (!fldChk || fldChk.checked) {
+                    continue;
+                }
+
+                if (fld.value == pdx) {
+                    alert("Duplicated profile name: " + pdx);
+                    return false;
+                }
+            }
+
+            fld = document.getElementById("new_desc_ipmcpf_profile_" + idx);
+            if (fld && (fld.value !== "")) {
+                j = parseInt(checkDescription(fld.value), 10);
+
+                if (j < 0) {
+                    alert("Input character is not allowed in profile description.");
+                    return false;
+                }
+            }
+
+            if (matchCnt < cfgIpmcLibPftMax) {
+                matchCnt++;
+            } else {
+                alert("The maximum number of entries is " + cfgIpmcLibPftMax);
+                return false;
+            }
+        } else {
+            alert("Invalid profile creation!");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function requestUpdate()
+{
+    if (SpomNavigationLoading()) {
+        return;    // Bail out, navigation will trigger update
+    }
+
+    /*
+        Format:
+        [state];[profile_name]/[description]|...;
+    */
+    //var req = "1;Vitesse/Hsinchu|Test/Demo_4_Test";
+    //procUpdProfileConfig(req, null);
+    loadXMLDoc(SpomAddSidArg("/config/ipmclib_profile"), procUpdProfileConfig, null);
+
+    SpomUpdateFormSid("submit_sid");
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form method="POST" action="/config/ipmclib_profile" onsubmit="return checkForm(this);">
+
+<h1>IPMC Profile Configurations</h1>
+
+<h2 class="SPOM_only">IPMC Profile Global Setting</h2>
+<table summary="IPMC Profile Global Setting" cellspacing="0" class="config">
+ <tr class="config">
+  <td class="param_label">Global Profile Mode</td>
+  <td class="cl"><select id="profile_mode" name="profile_mode"><option value=0>Disabled</option><option value=1>Enabled</option></select></td>
+ </tr>
+</table>
+
+<p>&nbsp;</p>
+
+<h2>IPMC Profile Table Setting</h2>
+<table id="profileConfig" summary="IPMC Profile Table Setting" cellspacing="0" class="config">
+ <tbody id="profileData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="button" id="addNewEntry" value="Add New IPMC Profile" onclick="AddNewRow();">
+</p>
+
+<p>
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+
+<!-- IE caching bug -->
+<div style="display: none;">
+ <img alt="" src="images/edit.gif">
+ <img alt="" src="images/edit_gray.gif">
+ <img alt="" src="images/eye.png">
+ <img alt="" src="images/eye_gray.png">
+</div>
+
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->
