@@ -1,0 +1,32 @@
+name <vlan_name> 
+no name 
+no switchport access vlan 
+no switchport forbidden vlan 
+no switchport hybrid acceptable-frame-type 
+no switchport hybrid allowed vlan 
+no switchport hybrid egress-tag 
+no switchport hybrid ingress-filtering 
+no switchport hybrid native vlan 
+no switchport hybrid port-type 
+no switchport mode 
+no switchport trunk allowed vlan 
+no switchport trunk native vlan 
+no switchport trunk vlan tag native 
+no vlan { { ethertype s-custom-port } | <vlan_list> } 
+show interface ( <port_type> [ <in_port_list> ] ) switchport [ access | trunk | hybrid ] 
+show switchport forbidden [ { vlan <vid> } | { name <name> } ] 
+show vlan [ id <vlan_list> | name <name> | brief ] 
+show vlan status [ interface ( <port_type> [ <plist> ] ) ] [ combined | admin | nas | mvr | voice-vlan | mstp | erps | vcl | evc | gvrp | all | conflicts ] 
+switchport access vlan <pvid> 
+switchport forbidden vlan { add | remove } <vlan_list> 
+switchport hybrid acceptable-frame-type { all | tagged | untagged } 
+switchport hybrid allowed vlan { all | none | [ add | remove | except ] <vlan_list> } 
+switchport hybrid egress-tag { none | all [ except-native ] } 
+switchport hybrid ingress-filtering 
+switchport hybrid native vlan <pvid> 
+switchport hybrid port-type { unaware | c-port | s-port | s-custom-port } 
+switchport mode { access | trunk | hybrid } 
+switchport trunk allowed vlan { all | none | [ add | remove | except ] <vlan_list> } 
+switchport trunk native vlan <pvid> 
+switchport trunk vlan tag native 
+vlan ethertype s-custom-port <etype> 

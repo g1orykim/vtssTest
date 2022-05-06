@@ -1,0 +1,2063 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<!-- Number of commands
+0031
+-->
+
+<html>
+
+<head>
+<title></title>
+<link href="vtss.css" rel="stylesheet" type="text/css">
+</head>
+
+<body lang=EN-US>
+
+<!-- Title -->
+<div class=Title>
+<p class=NewLine>&nbsp;</p>
+<p class=Title>
+CLI Command Reference Guide
+</p>
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<!-- Reference Link -->
+<div class=RefLink>
+<hr>
+<p class=NewLine>&nbsp;</p>
+
+<p class=RefLink>
+<a href="#cr0008">
+no snmp-server 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0022">
+no snmp-server access &lt;group_name&gt; model { v1 | v2c | v3 | any } level { auth | noauth | priv } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0015">
+no snmp-server community v2c 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0016">
+no snmp-server community v3 &lt;community&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0026">
+no snmp-server contact 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0010">
+no snmp-server engined-id local 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0028">
+no snmp-server location 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0020">
+no snmp-server security-to-group model { v1 | v2c | v3 } name &lt;security_name&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0018">
+no snmp-server user &lt;username&gt; engine-id &lt;engineID&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0012">
+no snmp-server version 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0024">
+no snmp-server view &lt;view_name&gt; &lt;oid_subtree&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0001">
+show snmp 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0005">
+show snmp access [ &lt;group_name&gt; { v1 | v2c | v3 | any } { auth | noauth | priv } ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0002">
+show snmp community v3 [ &lt;community&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0029">
+show snmp mib context 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0030">
+show snmp mib ifmib ifIndex 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0031">
+show snmp mib redefine 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0004">
+show snmp security-to-group [ { v1 | v2c | v3 } &lt;security_name&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0003">
+show snmp user [ &lt;username&gt; &lt;engineID&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0006">
+show snmp view [ &lt;view_name&gt; &lt;oid_subtree&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0007">
+snmp-server 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0021">
+snmp-server access &lt;group_name&gt; model { v1 | v2c | v3 | any } level { auth | noauth | priv } [ read &lt;view_name&gt; ] [ write &lt;write_name&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0013">
+snmp-server community v2c &lt;comm&gt; [ ro | rw ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0014">
+snmp-server community v3 &lt;v3_comm&gt; [ &lt;v_ipv4_addr&gt; &lt;v_ipv4_netmask&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0025">
+snmp-server contact &lt;v_line255&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0009">
+snmp-server engine-id local &lt;engineID&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0027">
+snmp-server location &lt;v_line255&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0019">
+snmp-server security-to-group model { v1 | v2c | v3 } name &lt;security_name&gt; group &lt;group_name&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0017">
+snmp-server user &lt;username&gt; engine-id &lt;engineID&gt; [ { md5 &lt;md5_passwd&gt; | sha &lt;sha_passwd&gt; } [ priv { des | aes } &lt;priv_passwd&gt; ] ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0011">
+snmp-server version { v1 | v2c | v3 } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0023">
+snmp-server view &lt;view_name&gt; &lt;oid_subtree&gt; { include | exclude } 
+</a></p>
+
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0008">
+no snmp-server 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+Enable SNMP server
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+13
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0022">
+no snmp-server access &lt;group_name&gt; model { v1 | v2c | v3 | any } level { auth | noauth | priv } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+access
+</p>
+<p class=CmdSubDesc2>
+access configuration
+</p>
+<p class=CmdSubTitle2>
+&lt;group_name&gt;
+</p>
+<p class=CmdSubDesc2>
+group name
+</p>
+<p class=CmdSubTitle2>
+model
+</p>
+<p class=CmdSubDesc2>
+security model
+</p>
+<p class=CmdSubTitle2>
+v1
+</p>
+<p class=CmdSubDesc2>
+v1 security model
+</p>
+<p class=CmdSubTitle2>
+v2c
+</p>
+<p class=CmdSubDesc2>
+v2c security model
+</p>
+<p class=CmdSubTitle2>
+v3
+</p>
+<p class=CmdSubDesc2>
+v3 security model
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+any security model
+</p>
+<p class=CmdSubTitle2>
+level
+</p>
+<p class=CmdSubDesc2>
+security level
+</p>
+<p class=CmdSubTitle2>
+auth
+</p>
+<p class=CmdSubDesc2>
+authNoPriv Security Level
+</p>
+<p class=CmdSubTitle2>
+noauth
+</p>
+<p class=CmdSubDesc2>
+noAuthNoPriv Security Level
+</p>
+<p class=CmdSubTitle2>
+priv
+</p>
+<p class=CmdSubDesc2>
+authPriv Security Level
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0015">
+no snmp-server community v2c 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+community
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+v2c
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0016">
+no snmp-server community v3 &lt;community&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+community
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+v3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;community&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0026">
+no snmp-server contact 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+contact
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0010">
+no snmp-server engined-id local 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+engined-id
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+local
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0028">
+no snmp-server location 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+location
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0020">
+no snmp-server security-to-group model { v1 | v2c | v3 } name &lt;security_name&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+security-to-group
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+model
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+v1
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+v2c
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+v3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;security_name&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0018">
+no snmp-server user &lt;username&gt; engine-id &lt;engineID&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+user
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;username&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+engine-id
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;engineID&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0012">
+no snmp-server version 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+version
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0024">
+no snmp-server view &lt;view_name&gt; &lt;oid_subtree&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Negate a command or set its defaults
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+view
+</p>
+<p class=CmdSubDesc2>
+MIB view configuration
+</p>
+<p class=CmdSubTitle2>
+&lt;view_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MIB view name
+</p>
+<p class=CmdSubTitle2>
+&lt;oid_subtree&gt;
+</p>
+<p class=CmdSubDesc2>
+MIB view OID
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0001">
+show snmp 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snmp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0005">
+show snmp access [ &lt;group_name&gt; { v1 | v2c | v3 | any } { auth | noauth | priv } ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+Show running system information
+</p>
+<p class=CmdSubTitle2>
+snmp
+</p>
+<p class=CmdSubDesc2>
+Display SNMP configurations
+</p>
+<p class=CmdSubTitle2>
+access
+</p>
+<p class=CmdSubDesc2>
+access configuration
+</p>
+<p class=CmdSubTitle2>
+&lt;group_name&gt;
+</p>
+<p class=CmdSubDesc2>
+group name
+</p>
+<p class=CmdSubTitle2>
+v1
+</p>
+<p class=CmdSubDesc2>
+v1 security model
+</p>
+<p class=CmdSubTitle2>
+v2c
+</p>
+<p class=CmdSubDesc2>
+v2c security model
+</p>
+<p class=CmdSubTitle2>
+v3
+</p>
+<p class=CmdSubDesc2>
+v3 security model
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+any security model
+</p>
+<p class=CmdSubTitle2>
+auth
+</p>
+<p class=CmdSubDesc2>
+authNoPriv Security Level
+</p>
+<p class=CmdSubTitle2>
+noauth
+</p>
+<p class=CmdSubDesc2>
+noAuthNoPriv Security Level
+</p>
+<p class=CmdSubTitle2>
+priv
+</p>
+<p class=CmdSubDesc2>
+authPriv Security Level
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0002">
+show snmp community v3 [ &lt;community&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snmp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+community
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+v3
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;community&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0029">
+show snmp mib context 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+Show running system information
+</p>
+<p class=CmdSubTitle2>
+snmp
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+mib
+</p>
+<p class=CmdSubDesc2>
+MIB(Management Information Base)
+</p>
+<p class=CmdSubTitle2>
+context
+</p>
+<p class=CmdSubDesc2>
+MIB context
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0030">
+show snmp mib ifmib ifIndex 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+Show running system information
+</p>
+<p class=CmdSubTitle2>
+snmp
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+mib
+</p>
+<p class=CmdSubDesc2>
+MIB(Management Information Base)
+</p>
+<p class=CmdSubTitle2>
+ifmib
+</p>
+<p class=CmdSubDesc2>
+IF-MIB
+</p>
+<p class=CmdSubTitle2>
+ifIndex
+</p>
+<p class=CmdSubDesc2>
+The IfIndex that is defined in IF-MIB
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0031">
+show snmp mib redefine 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+Show running system information
+</p>
+<p class=CmdSubTitle2>
+snmp
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+mib
+</p>
+<p class=CmdSubDesc2>
+MIB(Management Information Base)
+</p>
+<p class=CmdSubTitle2>
+redefine
+</p>
+<p class=CmdSubDesc2>
+The different definitions from the standard MIBs
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0004">
+show snmp security-to-group [ { v1 | v2c | v3 } &lt;security_name&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+Show running system information
+</p>
+<p class=CmdSubTitle2>
+snmp
+</p>
+<p class=CmdSubDesc2>
+Display SNMP configurations
+</p>
+<p class=CmdSubTitle2>
+security-to-group
+</p>
+<p class=CmdSubDesc2>
+security-to-group configuration
+</p>
+<p class=CmdSubTitle2>
+v1
+</p>
+<p class=CmdSubDesc2>
+v1 security model
+</p>
+<p class=CmdSubTitle2>
+v2c
+</p>
+<p class=CmdSubDesc2>
+v2c security model
+</p>
+<p class=CmdSubTitle2>
+v3
+</p>
+<p class=CmdSubDesc2>
+v3 security model
+</p>
+<p class=CmdSubTitle2>
+&lt;security_name&gt;
+</p>
+<p class=CmdSubDesc2>
+security group name
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0003">
+show snmp user [ &lt;username&gt; &lt;engineID&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+snmp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+user
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;username&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;engineID&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0006">
+show snmp view [ &lt;view_name&gt; &lt;oid_subtree&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+Show running system information
+</p>
+<p class=CmdSubTitle2>
+snmp
+</p>
+<p class=CmdSubDesc2>
+Display SNMP configurations
+</p>
+<p class=CmdSubTitle2>
+view
+</p>
+<p class=CmdSubDesc2>
+MIB view configuration
+</p>
+<p class=CmdSubTitle2>
+&lt;view_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MIB view name
+</p>
+<p class=CmdSubTitle2>
+&lt;oid_subtree&gt;
+</p>
+<p class=CmdSubDesc2>
+MIB view OID
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0007">
+snmp-server 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+Enable SNMP server
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+13
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0021">
+snmp-server access &lt;group_name&gt; model { v1 | v2c | v3 | any } level { auth | noauth | priv } [ read &lt;view_name&gt; ] [ write &lt;write_name&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+access
+</p>
+<p class=CmdSubDesc2>
+access configuration
+</p>
+<p class=CmdSubTitle2>
+&lt;group_name&gt;
+</p>
+<p class=CmdSubDesc2>
+group name
+</p>
+<p class=CmdSubTitle2>
+model
+</p>
+<p class=CmdSubDesc2>
+security model
+</p>
+<p class=CmdSubTitle2>
+v1
+</p>
+<p class=CmdSubDesc2>
+v1 security model
+</p>
+<p class=CmdSubTitle2>
+v2c
+</p>
+<p class=CmdSubDesc2>
+v2c security model
+</p>
+<p class=CmdSubTitle2>
+v3
+</p>
+<p class=CmdSubDesc2>
+v3 security model
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+any security model
+</p>
+<p class=CmdSubTitle2>
+level
+</p>
+<p class=CmdSubDesc2>
+security level
+</p>
+<p class=CmdSubTitle2>
+auth
+</p>
+<p class=CmdSubDesc2>
+authNoPriv Security Level
+</p>
+<p class=CmdSubTitle2>
+noauth
+</p>
+<p class=CmdSubDesc2>
+noAuthNoPriv Security Level
+</p>
+<p class=CmdSubTitle2>
+priv
+</p>
+<p class=CmdSubDesc2>
+authPriv Security Level
+</p>
+<p class=CmdSubTitle2>
+read
+</p>
+<p class=CmdSubDesc2>
+specify a read view for the group
+</p>
+<p class=CmdSubTitle2>
+&lt;view_name&gt;
+</p>
+<p class=CmdSubDesc2>
+read view name
+</p>
+<p class=CmdSubTitle2>
+write
+</p>
+<p class=CmdSubDesc2>
+specify a write view for the group
+</p>
+<p class=CmdSubTitle2>
+&lt;write_name&gt;
+</p>
+<p class=CmdSubDesc2>
+write view name
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0013">
+snmp-server community v2c &lt;comm&gt; [ ro | rw ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+community
+</p>
+<p class=CmdSubDesc2>
+Set the SNMP community
+</p>
+<p class=CmdSubTitle2>
+v2c
+</p>
+<p class=CmdSubDesc2>
+SNMPv2c
+</p>
+<p class=CmdSubTitle2>
+&lt;comm&gt;
+</p>
+<p class=CmdSubDesc2>
+Community word
+</p>
+<p class=CmdSubTitle2>
+ro
+</p>
+<p class=CmdSubDesc2>
+Read only
+</p>
+<p class=CmdSubTitle2>
+rw
+</p>
+<p class=CmdSubDesc2>
+Read write
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0014">
+snmp-server community v3 &lt;v3_comm&gt; [ &lt;v_ipv4_addr&gt; &lt;v_ipv4_netmask&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+community
+</p>
+<p class=CmdSubDesc2>
+Set the SNMP community
+</p>
+<p class=CmdSubTitle2>
+v3
+</p>
+<p class=CmdSubDesc2>
+SNMPv3
+</p>
+<p class=CmdSubTitle2>
+&lt;v3_comm&gt;
+</p>
+<p class=CmdSubDesc2>
+Community word
+</p>
+<p class=CmdSubTitle2>
+&lt;v_ipv4_addr&gt;
+</p>
+<p class=CmdSubDesc2>
+IPv4 address
+</p>
+<p class=CmdSubTitle2>
+&lt;v_ipv4_netmask&gt;
+</p>
+<p class=CmdSubDesc2>
+IPv4 netmask
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0025">
+snmp-server contact &lt;v_line255&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+Set the SNMP server's configurations
+</p>
+<p class=CmdSubTitle2>
+contact
+</p>
+<p class=CmdSubDesc2>
+Set the SNMP server's contact string
+</p>
+<p class=CmdSubTitle2>
+&lt;v_line255&gt;
+</p>
+<p class=CmdSubDesc2>
+contact string
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0009">
+snmp-server engine-id local &lt;engineID&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+engine-id
+</p>
+<p class=CmdSubDesc2>
+Set SNMP engine ID
+</p>
+<p class=CmdSubTitle2>
+local
+</p>
+<p class=CmdSubDesc2>
+Set SNMP local engine ID
+</p>
+<p class=CmdSubTitle2>
+&lt;engineID&gt;
+</p>
+<p class=CmdSubDesc2>
+local engine ID
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+13
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0027">
+snmp-server location &lt;v_line255&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+Set the SNMP server's configurations
+</p>
+<p class=CmdSubTitle2>
+location
+</p>
+<p class=CmdSubDesc2>
+Set the SNMP server's location string
+</p>
+<p class=CmdSubTitle2>
+&lt;v_line255&gt;
+</p>
+<p class=CmdSubDesc2>
+location string
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0019">
+snmp-server security-to-group model { v1 | v2c | v3 } name &lt;security_name&gt; group &lt;group_name&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+security-to-group
+</p>
+<p class=CmdSubDesc2>
+security-to-group configuration
+</p>
+<p class=CmdSubTitle2>
+model
+</p>
+<p class=CmdSubDesc2>
+security model
+</p>
+<p class=CmdSubTitle2>
+v1
+</p>
+<p class=CmdSubDesc2>
+v1 security model
+</p>
+<p class=CmdSubTitle2>
+v2c
+</p>
+<p class=CmdSubDesc2>
+v2c security model
+</p>
+<p class=CmdSubTitle2>
+v3
+</p>
+<p class=CmdSubDesc2>
+v3 security model
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+security user
+</p>
+<p class=CmdSubTitle2>
+&lt;security_name&gt;
+</p>
+<p class=CmdSubDesc2>
+security user name
+</p>
+<p class=CmdSubTitle2>
+group
+</p>
+<p class=CmdSubDesc2>
+security group
+</p>
+<p class=CmdSubTitle2>
+&lt;group_name&gt;
+</p>
+<p class=CmdSubDesc2>
+security group name
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0017">
+snmp-server user &lt;username&gt; engine-id &lt;engineID&gt; [ { md5 &lt;md5_passwd&gt; | sha &lt;sha_passwd&gt; } [ priv { des | aes } &lt;priv_passwd&gt; ] ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+user
+</p>
+<p class=CmdSubDesc2>
+Set the SNMPv3 user's configurations
+</p>
+<p class=CmdSubTitle2>
+&lt;username&gt;
+</p>
+<p class=CmdSubDesc2>
+Username
+</p>
+<p class=CmdSubTitle2>
+engine-id
+</p>
+<p class=CmdSubDesc2>
+engine ID
+</p>
+<p class=CmdSubTitle2>
+&lt;engineID&gt;
+</p>
+<p class=CmdSubDesc2>
+Engine ID octet string
+</p>
+<p class=CmdSubTitle2>
+md5
+</p>
+<p class=CmdSubDesc2>
+Set MD5 protocol
+</p>
+<p class=CmdSubTitle2>
+&lt;md5_passwd&gt;
+</p>
+<p class=CmdSubDesc2>
+MD5 password
+</p>
+<p class=CmdSubTitle2>
+sha
+</p>
+<p class=CmdSubDesc2>
+Set SHA protocol
+</p>
+<p class=CmdSubTitle2>
+&lt;sha_passwd&gt;
+</p>
+<p class=CmdSubDesc2>
+SHA password
+</p>
+<p class=CmdSubTitle2>
+priv
+</p>
+<p class=CmdSubDesc2>
+Set Privacy
+</p>
+<p class=CmdSubTitle2>
+des
+</p>
+<p class=CmdSubDesc2>
+Set DES protocol
+</p>
+<p class=CmdSubTitle2>
+aes
+</p>
+<p class=CmdSubDesc2>
+Set AES protocol
+</p>
+<p class=CmdSubTitle2>
+&lt;priv_passwd&gt;
+</p>
+<p class=CmdSubDesc2>
+Set privacy password
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0011">
+snmp-server version { v1 | v2c | v3 } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+version
+</p>
+<p class=CmdSubDesc2>
+Set the SNMP server's version
+</p>
+<p class=CmdSubTitle2>
+v1
+</p>
+<p class=CmdSubDesc2>
+SNMPv1
+</p>
+<p class=CmdSubTitle2>
+v2c
+</p>
+<p class=CmdSubDesc2>
+SNMPv2c
+</p>
+<p class=CmdSubTitle2>
+v3
+</p>
+<p class=CmdSubDesc2>
+SNMPv3
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0023">
+snmp-server view &lt;view_name&gt; &lt;oid_subtree&gt; { include | exclude } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+snmp-server
+</p>
+<p class=CmdSubDesc2>
+SNMP(Simple Network Management Protocol)
+</p>
+<p class=CmdSubTitle2>
+view
+</p>
+<p class=CmdSubDesc2>
+MIB view configuration
+</p>
+<p class=CmdSubTitle2>
+&lt;view_name&gt;
+</p>
+<p class=CmdSubDesc2>
+MIB view name
+</p>
+<p class=CmdSubTitle2>
+&lt;oid_subtree&gt;
+</p>
+<p class=CmdSubDesc2>
+MIB view OID
+</p>
+<p class=CmdSubTitle2>
+include
+</p>
+<p class=CmdSubDesc2>
+Ixcluded type from the view
+</p>
+<p class=CmdSubTitle2>
+exclude
+</p>
+<p class=CmdSubDesc2>
+Excluded type from the view
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+</body></html>
+

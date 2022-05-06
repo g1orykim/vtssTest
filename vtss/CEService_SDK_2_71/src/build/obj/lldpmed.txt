@@ -1,0 +1,22 @@
+lldp med datum { wgs84 | nad83-navd88 | nad83-mllw } 
+lldp med fast <v_1_to_10> 
+lldp med location-tlv altitude { meters | floors } <v_word11> 
+lldp med location-tlv civic-addr { country | state | county | city | district | block | street | leading-street-direction | trailing-street-suffix | street-suffix | house-no | house-no-suffix | landmark | additional-info | name | zip-code | building | apartment | floor | room-number | place-type | postal-community-name | p-o-box | additional-code } <v_string250> 
+lldp med location-tlv elin-addr <v_word25> 
+lldp med location-tlv latitude { north | south } <v_word8> 
+lldp med location-tlv longitude { west | east } <v_word9> 
+lldp med media-vlan policy-list <v_range_list> 
+lldp med media-vlan-policy <policy_index> { voice | voice-signaling | guest-voice-signaling | guest-voice | softphone-voice | video-conferencing | streaming-video | video-signaling } { tagged <v_vlan_id> | untagged } [ l2-priority <v_0_to_7> ] [ dscp <v_0_to_63> ] 
+lldp med transmit-tlv [ capabilities ] [ location ] [ network-policy ] 
+no lldp med datum 
+no lldp med fast 
+no lldp med location-tlv altitude 
+no lldp med location-tlv civic-addr { country | state | county | city | district | block | street | leading-street-direction | trailing-street-suffix | street-suffix | house-no | house-no-suffix | landmark | additional-info | name | zip-code | building | apartment | floor | room-number | place-type | postal-community-name | p-o-box | additional-code } 
+no lldp med location-tlv elin-addr 
+no lldp med location-tlv latitude 
+no lldp med location-tlv longitude 
+no lldp med media-vlan policy-list [ <v_range_list> ] 
+no lldp med media-vlan-policy <policies_list> 
+no lldp med transmit-tlv [ capabilities ] [ location ] [ network-policy ] 
+show lldp med media-vlan-policy [ <v_0_to_31> ] 
+show lldp med remote-device [ interface ( <port_type> [ <port_list> ] ) ] 

@@ -1,0 +1,2533 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<!-- Number of commands
+0009
+-->
+
+<html>
+
+<head>
+<title></title>
+<link href="vtss.css" rel="stylesheet" type="text/css">
+</head>
+
+<body lang=EN-US>
+
+<!-- Title -->
+<div class=Title>
+<p class=NewLine>&nbsp;</p>
+<p class=Title>
+CLI Command Reference Guide
+</p>
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<!-- Reference Link -->
+<div class=RefLink>
+<hr>
+<p class=NewLine>&nbsp;</p>
+
+<p class=RefLink>
+<a href="#cr0003">
+clear evc statistics { [ &lt;evc_id&gt; | all ] } [ ece [ &lt;ece_id&gt; ] ] [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0005">
+evc [ update ] &lt;evc_id&gt; { [ vid &lt;evc_vid&gt; ] } [ ivid &lt;ivid&gt; ] [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] [ learning [ disable ] ] [ policer { &lt;policer_id&gt; | none | discard } ] [ inner-tag add { [ type { none | c-tag | s-tag | s-custom-tag } ] [ vid-mode { normal | tunnel } ] [ vid &lt;it_add_vid&gt; ] [ preserve [ disable ] ] [ pcp &lt;it_add_pcp&gt; ] [ dei &lt;it_add_dei&gt; ] } ] [ outer-tag add vid &lt;ot_add_vid&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0009">
+evc [ update ] [ dei { colored | fixed } ] [ tag { inner | outer } ] [ key { double-tag | normal | ip-addr | mac-ip-addr } ] [ key-advanced { double-tag | normal | ip-addr | mac-ip-addr } ] [ addr { source | destination } ] [ addr-advanced { source | destination } ] [ l2cp { [ peer [ &lt;l2cp_peer_list&gt; ] ] [ forward [ &lt;l2cp_forward_list&gt; ] ] [ discard [ &lt;l2cp_discard_list&gt; ] ] } ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0007">
+evc ece [ update ] &lt;ece_id&gt; [ next { &lt;ece_id_next&gt; | last } ] [ lookup { basic | advanced } ] [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] [ smac { &lt;smac&gt; | any } ] [ dmac { &lt;dmac&gt; | unicast | multicast | broadcast | any } ] [ outer-tag { [ match { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { &lt;ot_match_vid&gt; | any } ] [ pcp { &lt;ot_match_pcp&gt; | any } ] [ dei { &lt;ot_match_dei&gt; | any } ] } ] [ add { [ mode { enable | disable } ] [ vid &lt;ot_add_vid&gt; ] [ preserve [ disable ] ] [ pcp-mode { classified | fixed | mapped } ] [ pcp &lt;ot_add_pcp&gt; ] [ dei-mode { classified | fixed | dp } ] [ dei &lt;ot_add_dei&gt; ] } ] } ] [ inner-tag { [ match { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { &lt;it_match_vid&gt; | any } ] [ pcp { &lt;it_match_pcp&gt; | any } ] [ dei { &lt;it_match_dei&gt; | any } ] } ] [ add { [ type { none | c-tag | s-tag | s-custom-tag } ] [ vid &lt;it_add_vid&gt; ] [ preserve [ disable ] ] [ pcp-mode { classified | fixed | mapped } ] [ pcp &lt;it_add_pcp&gt; ] [ dei-mode { classified | fixed | dp } ] [ dei &lt;it_add_dei&gt; ] } ] } ] [ frame-type { any | { ipv4 [ proto { &lt;pr4&gt; | udp | tcp | any } ] [ dscp { &lt;dscp4&gt; | any } ] [ sip { &lt;sip4&gt; | any } ] [ dip { &lt;dip4&gt; | any } ] [ fragment { yes | no | any } ] [ sport { &lt;sp4&gt; | any } ] [ dport { &lt;dp4&gt; | any } ] } | { ipv6 [ proto { &lt;pr6&gt; | udp | tcp | any } ] [ dscp { &lt;dscp6&gt; | any } ] [ sip { &lt;sip6&gt; | any } ] [ dip { &lt;dip6&gt; | any } ] [ sport { &lt;sp6&gt; | any } ] [ dport { &lt;dp6&gt; | any } ] } | { etype [ etype-value { &lt;etype_value&gt; | any } ] [ etype-data { &lt;etype_data&gt; | any } [ &lt;etype_mask&gt; ] ] } | { llc [ dsap { &lt;dsap&gt; | any } ] [ ssap { &lt;ssap&gt; | any } ] [ control { &lt;control&gt; | any } ] [ llc-data { &lt;llc_data&gt; | any } [ &lt;llc_mask&gt; ] ] } | { snap [ oui { &lt;oui&gt; | any } ] [ pid { &lt;pid&gt; | any } ] } | { l2cp { stp | pause | lacp | lamp | loam | dot1x | elmi | pb | pb-gvrp | lldp | gmrp | gvrp | uld | pagp | pvst | cisco-vlan | cdp | vtp | dtp | cisco-stp | cisco-cfm } } } ] [ direction { both | uni-to-nni | nni-to-uni } ] [ rule-type { both | rx | tx } ] [ tx-lookup { vid | pcp-vid | isdx } ] [ l2cp { [ mode { tunnel | peer | forward | discard } ] [ tmac { cisco | custom } ] } ] [ evc { &lt;evc_id&gt; | none } ] [ policer { &lt;policer_id&gt; | none | discard | evc } ] [ pop &lt;pop&gt; ] [ policy &lt;policy_no&gt; ] [ cos { &lt;cos&gt; | disable } ] [ dpl { &lt;dpl&gt; | disable } ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0004">
+evc policer [ update ] &lt;policer_id&gt; [ { enable | disable } ] [ type { mef | single } ] [ mode { coupled | aware | blind } ] [ rate-type { line | data } ] [ cir &lt;cir&gt; ] [ cbs &lt;cbs&gt; ] [ eir &lt;eir&gt; ] [ ebs &lt;ebs&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0006">
+no evc &lt;evc_id&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0008">
+no evc ece &lt;ece_id&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0002">
+show evc statistics { [ &lt;evc_id&gt; | all ] } [ ece [ &lt;ece_id&gt; ] ] [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] [ cos &lt;cos&gt; ] [ green | yellow | red | discard ] [ frames | bytes ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0001">
+show evc { [ &lt;evc_id&gt; | all ] } [ ece [ &lt;ece_id&gt; ] ] 
+</a></p>
+
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0003">
+clear evc statistics { [ &lt;evc_id&gt; | all ] } [ ece [ &lt;ece_id&gt; ] ] [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+clear
+</p>
+<p class=CmdSubDesc2>
+Clear
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+Ethernet Virtual Connections
+</p>
+<p class=CmdSubTitle2>
+statistics
+</p>
+<p class=CmdSubDesc2>
+Statistic counters
+</p>
+<p class=CmdSubTitle2>
+&lt;evc_id&gt;
+</p>
+<p class=CmdSubDesc2>
+EVC identifier
+</p>
+<p class=CmdSubTitle2>
+all
+</p>
+<p class=CmdSubDesc2>
+Process all EVCs
+</p>
+<p class=CmdSubTitle2>
+ece
+</p>
+<p class=CmdSubDesc2>
+EVC Control Entry
+</p>
+<p class=CmdSubTitle2>
+&lt;ece_id&gt;
+</p>
+<p class=CmdSubDesc2>
+ECE idenfifier
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+Interface
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of Port ID, ex, 1/1,3-5;2/2-4,6
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0005">
+evc [ update ] &lt;evc_id&gt; { [ vid &lt;evc_vid&gt; ] } [ ivid &lt;ivid&gt; ] [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] [ learning [ disable ] ] [ policer { &lt;policer_id&gt; | none | discard } ] [ inner-tag add { [ type { none | c-tag | s-tag | s-custom-tag } ] [ vid-mode { normal | tunnel } ] [ vid &lt;it_add_vid&gt; ] [ preserve [ disable ] ] [ pcp &lt;it_add_pcp&gt; ] [ dei &lt;it_add_dei&gt; ] } ] [ outer-tag add vid &lt;ot_add_vid&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+Ethernet Virtual Connections
+</p>
+<p class=CmdSubTitle2>
+update
+</p>
+<p class=CmdSubDesc2>
+Update existing entry
+</p>
+<p class=CmdSubTitle2>
+&lt;evc_id&gt;
+</p>
+<p class=CmdSubDesc2>
+EVC identifier
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+Setup EVC VLAN ID
+</p>
+<p class=CmdSubTitle2>
+&lt;evc_vid&gt;
+</p>
+<p class=CmdSubDesc2>
+EVC VLAN ID
+</p>
+<p class=CmdSubTitle2>
+ivid
+</p>
+<p class=CmdSubDesc2>
+Setup internal EVC VLAN ID
+</p>
+<p class=CmdSubTitle2>
+&lt;ivid&gt;
+</p>
+<p class=CmdSubDesc2>
+Internal VLAN ID
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+Setup NNI
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of Port ID, ex, 1/1,3-5;2/2-4,6
+</p>
+<p class=CmdSubTitle2>
+learning
+</p>
+<p class=CmdSubDesc2>
+Setup learning
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable learning
+</p>
+<p class=CmdSubTitle2>
+policer
+</p>
+<p class=CmdSubDesc2>
+Policer (ingress bandwith profile)
+</p>
+<p class=CmdSubTitle2>
+&lt;policer_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Policer ID
+</p>
+<p class=CmdSubTitle2>
+none
+</p>
+<p class=CmdSubDesc2>
+Map to policer allowing all frames
+</p>
+<p class=CmdSubTitle2>
+discard
+</p>
+<p class=CmdSubDesc2>
+Map to policer discarding all frames
+</p>
+<p class=CmdSubTitle2>
+inner-tag
+</p>
+<p class=CmdSubDesc2>
+Setup inner tag options
+</p>
+<p class=CmdSubTitle2>
+add
+</p>
+<p class=CmdSubDesc2>
+Setup inner tag add properties
+</p>
+<p class=CmdSubTitle2>
+type
+</p>
+<p class=CmdSubDesc2>
+Setup added tag type
+</p>
+<p class=CmdSubTitle2>
+none
+</p>
+<p class=CmdSubDesc2>
+No tag added
+</p>
+<p class=CmdSubTitle2>
+c-tag
+</p>
+<p class=CmdSubDesc2>
+Add C-tag
+</p>
+<p class=CmdSubTitle2>
+s-tag
+</p>
+<p class=CmdSubDesc2>
+Add S-tag
+</p>
+<p class=CmdSubTitle2>
+s-custom-tag
+</p>
+<p class=CmdSubDesc2>
+Add custom S-tag
+</p>
+<p class=CmdSubTitle2>
+vid-mode
+</p>
+<p class=CmdSubDesc2>
+Setup inner tag VLAN ID mode
+</p>
+<p class=CmdSubTitle2>
+normal
+</p>
+<p class=CmdSubDesc2>
+Use EVC VLAN ID in outer tag
+</p>
+<p class=CmdSubTitle2>
+tunnel
+</p>
+<p class=CmdSubDesc2>
+Use EVC VLAN ID in inner tag
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+Setup added tag VLAN ID
+</p>
+<p class=CmdSubTitle2>
+&lt;it_add_vid&gt;
+</p>
+<p class=CmdSubDesc2>
+Added tag VLAN ID
+</p>
+<p class=CmdSubTitle2>
+preserve
+</p>
+<p class=CmdSubDesc2>
+Setup tag PCP/DEI preservation
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable PCP/DEI preservation
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+Setup added tag PCP
+</p>
+<p class=CmdSubTitle2>
+&lt;it_add_pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+Added tag PCP
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+Setup added tag DEI
+</p>
+<p class=CmdSubTitle2>
+&lt;it_add_dei&gt;
+</p>
+<p class=CmdSubDesc2>
+Added tag DEI
+</p>
+<p class=CmdSubTitle2>
+outer-tag
+</p>
+<p class=CmdSubDesc2>
+Setup outer tag options
+</p>
+<p class=CmdSubTitle2>
+add
+</p>
+<p class=CmdSubDesc2>
+Setup outer tag add properties
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+Setup added tag VLAN ID
+</p>
+<p class=CmdSubTitle2>
+&lt;ot_add_vid&gt;
+</p>
+<p class=CmdSubDesc2>
+Added tag VLAN ID
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0009">
+evc [ update ] [ dei { colored | fixed } ] [ tag { inner | outer } ] [ key { double-tag | normal | ip-addr | mac-ip-addr } ] [ key-advanced { double-tag | normal | ip-addr | mac-ip-addr } ] [ addr { source | destination } ] [ addr-advanced { source | destination } ] [ l2cp { [ peer [ &lt;l2cp_peer_list&gt; ] ] [ forward [ &lt;l2cp_forward_list&gt; ] ] [ discard [ &lt;l2cp_discard_list&gt; ] ] } ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+Ethernet Virtual Connections
+</p>
+<p class=CmdSubTitle2>
+update
+</p>
+<p class=CmdSubDesc2>
+Update existing entry
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+Setup DEI mode
+</p>
+<p class=CmdSubTitle2>
+colored
+</p>
+<p class=CmdSubDesc2>
+Allow policer to set DEI
+</p>
+<p class=CmdSubTitle2>
+fixed
+</p>
+<p class=CmdSubDesc2>
+Use classified DEI
+</p>
+<p class=CmdSubTitle2>
+tag
+</p>
+<p class=CmdSubDesc2>
+Setup tag match mode
+</p>
+<p class=CmdSubTitle2>
+inner
+</p>
+<p class=CmdSubDesc2>
+Match inner tag
+</p>
+<p class=CmdSubTitle2>
+outer
+</p>
+<p class=CmdSubDesc2>
+Match outer tag
+</p>
+<p class=CmdSubTitle2>
+key
+</p>
+<p class=CmdSubDesc2>
+Setup basic (first) ingress lookup key type
+</p>
+<p class=CmdSubTitle2>
+double-tag
+</p>
+<p class=CmdSubDesc2>
+Match outer tag, inner tag, IP protocol, DSCP and DPORT
+</p>
+<p class=CmdSubTitle2>
+normal
+</p>
+<p class=CmdSubDesc2>
+Match outer tag, SMAC/DMAC, IP protocol, DSCP, SIP/DIP, SPORT and DPORT
+</p>
+<p class=CmdSubTitle2>
+ip-addr
+</p>
+<p class=CmdSubDesc2>
+Match outer tag, SMAC/DMAC, IP protocol, DSCP, SIP and DIP
+</p>
+<p class=CmdSubTitle2>
+mac-ip-addr
+</p>
+<p class=CmdSubDesc2>
+Match outer tag, inner tag, SMAC, DMAC, IP protocol, DSCP, SIP, DIP, SPORT and DPORT
+</p>
+<p class=CmdSubTitle2>
+key-advanced
+</p>
+<p class=CmdSubDesc2>
+Setup advanced (second) ingress lookup key type
+</p>
+<p class=CmdSubTitle2>
+double-tag
+</p>
+<p class=CmdSubDesc2>
+Match outer tag, inner tag, IP protocol, DSCP and DPORT
+</p>
+<p class=CmdSubTitle2>
+normal
+</p>
+<p class=CmdSubDesc2>
+Match outer tag, SMAC/DMAC, IP protocol, DSCP, SIP/DIP, SPORT and DPORT
+</p>
+<p class=CmdSubTitle2>
+ip-addr
+</p>
+<p class=CmdSubDesc2>
+Match outer tag, SMAC/DMAC, IP protocol, DSCP, SIP and DIP
+</p>
+<p class=CmdSubTitle2>
+mac-ip-addr
+</p>
+<p class=CmdSubDesc2>
+Match outer tag, inner tag, SMAC, DMAC, IP protocol, DSCP, SIP, DIP, SPORT and DPORT
+</p>
+<p class=CmdSubTitle2>
+addr
+</p>
+<p class=CmdSubDesc2>
+Setup address match mode
+</p>
+<p class=CmdSubTitle2>
+source
+</p>
+<p class=CmdSubDesc2>
+Match SMAC and SIP
+</p>
+<p class=CmdSubTitle2>
+destination
+</p>
+<p class=CmdSubDesc2>
+Match DMAC and DIP
+</p>
+<p class=CmdSubTitle2>
+addr-advanced
+</p>
+<p class=CmdSubDesc2>
+Setup advanced (second) ingress lookup address match mode
+</p>
+<p class=CmdSubTitle2>
+source
+</p>
+<p class=CmdSubDesc2>
+Match SMAC and SIP
+</p>
+<p class=CmdSubTitle2>
+destination
+</p>
+<p class=CmdSubDesc2>
+Match DMAC and DIP
+</p>
+<p class=CmdSubTitle2>
+l2cp
+</p>
+<p class=CmdSubDesc2>
+Setup L2CP forwarding
+</p>
+<p class=CmdSubTitle2>
+peer
+</p>
+<p class=CmdSubDesc2>
+Redirect L2CP frames to local protocol entity
+</p>
+<p class=CmdSubTitle2>
+&lt;l2cp_peer_list&gt;
+</p>
+<p class=CmdSubDesc2>
+Select BPDU addresses (0-15) and GARP addresses (16-31)
+</p>
+<p class=CmdSubTitle2>
+forward
+</p>
+<p class=CmdSubDesc2>
+Allow forwarding of L2CP frames
+</p>
+<p class=CmdSubTitle2>
+&lt;l2cp_forward_list&gt;
+</p>
+<p class=CmdSubDesc2>
+Select BPDU addresses (0-15) and GARP addresses (16-31)
+</p>
+<p class=CmdSubTitle2>
+discard
+</p>
+<p class=CmdSubDesc2>
+Discard L2CP frames
+</p>
+<p class=CmdSubTitle2>
+&lt;l2cp_discard_list&gt;
+</p>
+<p class=CmdSubDesc2>
+Select BPDU addresses (0-15) and GARP addresses (16-31)
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0007">
+evc ece [ update ] &lt;ece_id&gt; [ next { &lt;ece_id_next&gt; | last } ] [ lookup { basic | advanced } ] [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] [ smac { &lt;smac&gt; | any } ] [ dmac { &lt;dmac&gt; | unicast | multicast | broadcast | any } ] [ outer-tag { [ match { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { &lt;ot_match_vid&gt; | any } ] [ pcp { &lt;ot_match_pcp&gt; | any } ] [ dei { &lt;ot_match_dei&gt; | any } ] } ] [ add { [ mode { enable | disable } ] [ vid &lt;ot_add_vid&gt; ] [ preserve [ disable ] ] [ pcp-mode { classified | fixed | mapped } ] [ pcp &lt;ot_add_pcp&gt; ] [ dei-mode { classified | fixed | dp } ] [ dei &lt;ot_add_dei&gt; ] } ] } ] [ inner-tag { [ match { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { &lt;it_match_vid&gt; | any } ] [ pcp { &lt;it_match_pcp&gt; | any } ] [ dei { &lt;it_match_dei&gt; | any } ] } ] [ add { [ type { none | c-tag | s-tag | s-custom-tag } ] [ vid &lt;it_add_vid&gt; ] [ preserve [ disable ] ] [ pcp-mode { classified | fixed | mapped } ] [ pcp &lt;it_add_pcp&gt; ] [ dei-mode { classified | fixed | dp } ] [ dei &lt;it_add_dei&gt; ] } ] } ] [ frame-type { any | { ipv4 [ proto { &lt;pr4&gt; | udp | tcp | any } ] [ dscp { &lt;dscp4&gt; | any } ] [ sip { &lt;sip4&gt; | any } ] [ dip { &lt;dip4&gt; | any } ] [ fragment { yes | no | any } ] [ sport { &lt;sp4&gt; | any } ] [ dport { &lt;dp4&gt; | any } ] } | { ipv6 [ proto { &lt;pr6&gt; | udp | tcp | any } ] [ dscp { &lt;dscp6&gt; | any } ] [ sip { &lt;sip6&gt; | any } ] [ dip { &lt;dip6&gt; | any } ] [ sport { &lt;sp6&gt; | any } ] [ dport { &lt;dp6&gt; | any } ] } | { etype [ etype-value { &lt;etype_value&gt; | any } ] [ etype-data { &lt;etype_data&gt; | any } [ &lt;etype_mask&gt; ] ] } | { llc [ dsap { &lt;dsap&gt; | any } ] [ ssap { &lt;ssap&gt; | any } ] [ control { &lt;control&gt; | any } ] [ llc-data { &lt;llc_data&gt; | any } [ &lt;llc_mask&gt; ] ] } | { snap [ oui { &lt;oui&gt; | any } ] [ pid { &lt;pid&gt; | any } ] } | { l2cp { stp | pause | lacp | lamp | loam | dot1x | elmi | pb | pb-gvrp | lldp | gmrp | gvrp | uld | pagp | pvst | cisco-vlan | cdp | vtp | dtp | cisco-stp | cisco-cfm } } } ] [ direction { both | uni-to-nni | nni-to-uni } ] [ rule-type { both | rx | tx } ] [ tx-lookup { vid | pcp-vid | isdx } ] [ l2cp { [ mode { tunnel | peer | forward | discard } ] [ tmac { cisco | custom } ] } ] [ evc { &lt;evc_id&gt; | none } ] [ policer { &lt;policer_id&gt; | none | discard | evc } ] [ pop &lt;pop&gt; ] [ policy &lt;policy_no&gt; ] [ cos { &lt;cos&gt; | disable } ] [ dpl { &lt;dpl&gt; | disable } ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+Ethernet Virtual Connections
+</p>
+<p class=CmdSubTitle2>
+ece
+</p>
+<p class=CmdSubDesc2>
+EVC Control Entry
+</p>
+<p class=CmdSubTitle2>
+update
+</p>
+<p class=CmdSubDesc2>
+Update existing entry
+</p>
+<p class=CmdSubTitle2>
+&lt;ece_id&gt;
+</p>
+<p class=CmdSubDesc2>
+ECE idenfifier
+</p>
+<p class=CmdSubTitle2>
+next
+</p>
+<p class=CmdSubDesc2>
+Setup the ECE ID of the next entry
+</p>
+<p class=CmdSubTitle2>
+&lt;ece_id_next&gt;
+</p>
+<p class=CmdSubDesc2>
+Select ECE ID of an existing entry
+</p>
+<p class=CmdSubTitle2>
+last
+</p>
+<p class=CmdSubDesc2>
+Make the ECE the last entry
+</p>
+<p class=CmdSubTitle2>
+lookup
+</p>
+<p class=CmdSubDesc2>
+Setup the ingress lookup
+</p>
+<p class=CmdSubTitle2>
+basic
+</p>
+<p class=CmdSubDesc2>
+Select basic (first) ingress lookup
+</p>
+<p class=CmdSubTitle2>
+advanced
+</p>
+<p class=CmdSubDesc2>
+Select advanced (second) ingress lookup
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+Setup UNI
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+Port type in Fast, Giga or Tengiga ethernet
+</p>
+<p class=CmdSubTitle2>
+&lt;port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+List of Port ID, ex, 1/1,3-5;2/2-4,6
+</p>
+<p class=CmdSubTitle2>
+smac
+</p>
+<p class=CmdSubDesc2>
+Setup matched SMAC
+</p>
+<p class=CmdSubTitle2>
+&lt;smac&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched SMAC
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any SMAC
+</p>
+<p class=CmdSubTitle2>
+dmac
+</p>
+<p class=CmdSubDesc2>
+Setup matched DMAC
+</p>
+<p class=CmdSubTitle2>
+&lt;dmac&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched DMAC
+</p>
+<p class=CmdSubTitle2>
+unicast
+</p>
+<p class=CmdSubDesc2>
+Match unicast DMAC
+</p>
+<p class=CmdSubTitle2>
+multicast
+</p>
+<p class=CmdSubDesc2>
+Match multicast DMAC
+</p>
+<p class=CmdSubTitle2>
+broadcast
+</p>
+<p class=CmdSubDesc2>
+Match broadcast DMAC
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any DMAC
+</p>
+<p class=CmdSubTitle2>
+outer-tag
+</p>
+<p class=CmdSubDesc2>
+Setup outer tag options
+</p>
+<p class=CmdSubTitle2>
+match
+</p>
+<p class=CmdSubDesc2>
+Setup outer tag match properties
+</p>
+<p class=CmdSubTitle2>
+type
+</p>
+<p class=CmdSubDesc2>
+Setup matched tag type
+</p>
+<p class=CmdSubTitle2>
+untagged
+</p>
+<p class=CmdSubDesc2>
+Match untagged frames
+</p>
+<p class=CmdSubTitle2>
+tagged
+</p>
+<p class=CmdSubDesc2>
+Match tagged frames
+</p>
+<p class=CmdSubTitle2>
+c-tagged
+</p>
+<p class=CmdSubDesc2>
+Match C-tagged frames
+</p>
+<p class=CmdSubTitle2>
+s-tagged
+</p>
+<p class=CmdSubDesc2>
+Match S-tagged frames
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match tagged and untagged frames
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+Setup matched VLAN ID
+</p>
+<p class=CmdSubTitle2>
+&lt;ot_match_vid&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched VLAN ID value/range
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any VLAN ID
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+Setup matched PCP
+</p>
+<p class=CmdSubTitle2>
+&lt;ot_match_pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched PCP value/range
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any PCP
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+Setup matched DEI
+</p>
+<p class=CmdSubTitle2>
+&lt;ot_match_dei&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched DEI
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any DEI
+</p>
+<p class=CmdSubTitle2>
+add
+</p>
+<p class=CmdSubDesc2>
+Setup outer tag add properties
+</p>
+<p class=CmdSubTitle2>
+mode
+</p>
+<p class=CmdSubDesc2>
+Setup NNI-to-UNI outer tag add mode
+</p>
+<p class=CmdSubTitle2>
+enable
+</p>
+<p class=CmdSubDesc2>
+Add tag when forwarding to UNI
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+No tag added when forwarding to UNI
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+Setup added tag VLAN ID
+</p>
+<p class=CmdSubTitle2>
+&lt;ot_add_vid&gt;
+</p>
+<p class=CmdSubDesc2>
+Added tag VLAN ID
+</p>
+<p class=CmdSubTitle2>
+preserve
+</p>
+<p class=CmdSubDesc2>
+Setup tag PCP/DEI preservation
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable PCP/DEI preservation
+</p>
+<p class=CmdSubTitle2>
+pcp-mode
+</p>
+<p class=CmdSubDesc2>
+Setup tag PCP mode
+</p>
+<p class=CmdSubTitle2>
+classified
+</p>
+<p class=CmdSubDesc2>
+Use classified PCP
+</p>
+<p class=CmdSubTitle2>
+fixed
+</p>
+<p class=CmdSubDesc2>
+Use fixed PCP
+</p>
+<p class=CmdSubTitle2>
+mapped
+</p>
+<p class=CmdSubDesc2>
+Use mapped PCP
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+Setup added tag PCP
+</p>
+<p class=CmdSubTitle2>
+&lt;ot_add_pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+Added tag PCP
+</p>
+<p class=CmdSubTitle2>
+dei-mode
+</p>
+<p class=CmdSubDesc2>
+Setup tag DEI mode
+</p>
+<p class=CmdSubTitle2>
+classified
+</p>
+<p class=CmdSubDesc2>
+Use classified DEI
+</p>
+<p class=CmdSubTitle2>
+fixed
+</p>
+<p class=CmdSubDesc2>
+Use fixed DEI
+</p>
+<p class=CmdSubTitle2>
+dp
+</p>
+<p class=CmdSubDesc2>
+Use drop precedence level
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+Setup added tag DEI
+</p>
+<p class=CmdSubTitle2>
+&lt;ot_add_dei&gt;
+</p>
+<p class=CmdSubDesc2>
+Added tag DEI
+</p>
+<p class=CmdSubTitle2>
+inner-tag
+</p>
+<p class=CmdSubDesc2>
+Setup inner tag options
+</p>
+<p class=CmdSubTitle2>
+match
+</p>
+<p class=CmdSubDesc2>
+Setup inner tag match properties
+</p>
+<p class=CmdSubTitle2>
+type
+</p>
+<p class=CmdSubDesc2>
+Setup matched tag type
+</p>
+<p class=CmdSubTitle2>
+untagged
+</p>
+<p class=CmdSubDesc2>
+Match untagged frames
+</p>
+<p class=CmdSubTitle2>
+tagged
+</p>
+<p class=CmdSubDesc2>
+Match tagged frames
+</p>
+<p class=CmdSubTitle2>
+c-tagged
+</p>
+<p class=CmdSubDesc2>
+Match C-tagged frames
+</p>
+<p class=CmdSubTitle2>
+s-tagged
+</p>
+<p class=CmdSubDesc2>
+Match S-tagged frames
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match tagged and untagged frames
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+Setup matched VLAN ID
+</p>
+<p class=CmdSubTitle2>
+&lt;it_match_vid&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched VLAN ID value/range
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any VLAN ID
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+Setup matched PCP
+</p>
+<p class=CmdSubTitle2>
+&lt;it_match_pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched PCP value/range
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any PCP
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+Setup matched DEI
+</p>
+<p class=CmdSubTitle2>
+&lt;it_match_dei&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched DEI
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any DEI
+</p>
+<p class=CmdSubTitle2>
+add
+</p>
+<p class=CmdSubDesc2>
+Setup inner tag add properties
+</p>
+<p class=CmdSubTitle2>
+type
+</p>
+<p class=CmdSubDesc2>
+Setup added tag type
+</p>
+<p class=CmdSubTitle2>
+none
+</p>
+<p class=CmdSubDesc2>
+No tag added
+</p>
+<p class=CmdSubTitle2>
+c-tag
+</p>
+<p class=CmdSubDesc2>
+Add C-tag
+</p>
+<p class=CmdSubTitle2>
+s-tag
+</p>
+<p class=CmdSubDesc2>
+Add S-tag
+</p>
+<p class=CmdSubTitle2>
+s-custom-tag
+</p>
+<p class=CmdSubDesc2>
+Add custom S-tag
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+Setup added tag VLAN ID
+</p>
+<p class=CmdSubTitle2>
+&lt;it_add_vid&gt;
+</p>
+<p class=CmdSubDesc2>
+Added tag VLAN ID
+</p>
+<p class=CmdSubTitle2>
+preserve
+</p>
+<p class=CmdSubDesc2>
+Setup tag PCP/DEI preservation
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable PCP/DEI preservation
+</p>
+<p class=CmdSubTitle2>
+pcp-mode
+</p>
+<p class=CmdSubDesc2>
+Setup tag PCP mode
+</p>
+<p class=CmdSubTitle2>
+classified
+</p>
+<p class=CmdSubDesc2>
+Use classified PCP
+</p>
+<p class=CmdSubTitle2>
+fixed
+</p>
+<p class=CmdSubDesc2>
+Use fixed PCP
+</p>
+<p class=CmdSubTitle2>
+mapped
+</p>
+<p class=CmdSubDesc2>
+Use mapped PCP
+</p>
+<p class=CmdSubTitle2>
+pcp
+</p>
+<p class=CmdSubDesc2>
+Setup added tag PCP
+</p>
+<p class=CmdSubTitle2>
+&lt;it_add_pcp&gt;
+</p>
+<p class=CmdSubDesc2>
+Added tag PCP
+</p>
+<p class=CmdSubTitle2>
+dei-mode
+</p>
+<p class=CmdSubDesc2>
+Setup tag DEI mode
+</p>
+<p class=CmdSubTitle2>
+classified
+</p>
+<p class=CmdSubDesc2>
+Use classified DEI
+</p>
+<p class=CmdSubTitle2>
+fixed
+</p>
+<p class=CmdSubDesc2>
+Use fixed DEI
+</p>
+<p class=CmdSubTitle2>
+dp
+</p>
+<p class=CmdSubDesc2>
+Use drop precedence level
+</p>
+<p class=CmdSubTitle2>
+dei
+</p>
+<p class=CmdSubDesc2>
+Setup added tag DEI
+</p>
+<p class=CmdSubTitle2>
+&lt;it_add_dei&gt;
+</p>
+<p class=CmdSubDesc2>
+Added tag DEI
+</p>
+<p class=CmdSubTitle2>
+frame-type
+</p>
+<p class=CmdSubDesc2>
+Setup matched frame type
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any frame type
+</p>
+<p class=CmdSubTitle2>
+ipv4
+</p>
+<p class=CmdSubDesc2>
+Match IPv4 frames
+</p>
+<p class=CmdSubTitle2>
+proto
+</p>
+<p class=CmdSubDesc2>
+Setup matched IP protocol
+</p>
+<p class=CmdSubTitle2>
+&lt;pr4&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched IP protocol
+</p>
+<p class=CmdSubTitle2>
+udp
+</p>
+<p class=CmdSubDesc2>
+Match UDP frames
+</p>
+<p class=CmdSubTitle2>
+tcp
+</p>
+<p class=CmdSubDesc2>
+Match TCP frames
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any IP protocol
+</p>
+<p class=CmdSubTitle2>
+dscp
+</p>
+<p class=CmdSubDesc2>
+Setup matched DSCP
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp4&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched DSCP value/range
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any DSCP
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+Setup match source IP address
+</p>
+<p class=CmdSubTitle2>
+&lt;sip4&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched source IP address
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any source IP address
+</p>
+<p class=CmdSubTitle2>
+dip
+</p>
+<p class=CmdSubDesc2>
+Setup match destination IP address
+</p>
+<p class=CmdSubTitle2>
+&lt;dip4&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched destination IP address
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any destination IP address
+</p>
+<p class=CmdSubTitle2>
+fragment
+</p>
+<p class=CmdSubDesc2>
+Setup matched IPv4 fragments
+</p>
+<p class=CmdSubTitle2>
+yes
+</p>
+<p class=CmdSubDesc2>
+Match IPv4 fragments
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+Match IPv4 non-fragments
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any IPv4 fragments
+</p>
+<p class=CmdSubTitle2>
+sport
+</p>
+<p class=CmdSubDesc2>
+Setup matched UDP/TCP source port
+</p>
+<p class=CmdSubTitle2>
+&lt;sp4&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched UDP/TCP source port value/range
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any UDP/TCP source port
+</p>
+<p class=CmdSubTitle2>
+dport
+</p>
+<p class=CmdSubDesc2>
+Setup matched UDP/TCP destination port
+</p>
+<p class=CmdSubTitle2>
+&lt;dp4&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched UDP/TCP destination port value/range
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any UDP/TCP destination port
+</p>
+<p class=CmdSubTitle2>
+ipv6
+</p>
+<p class=CmdSubDesc2>
+Match IPv6 frames
+</p>
+<p class=CmdSubTitle2>
+proto
+</p>
+<p class=CmdSubDesc2>
+Setup matched IP protocol
+</p>
+<p class=CmdSubTitle2>
+&lt;pr6&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched IP protocol
+</p>
+<p class=CmdSubTitle2>
+udp
+</p>
+<p class=CmdSubDesc2>
+Match UDP frames
+</p>
+<p class=CmdSubTitle2>
+tcp
+</p>
+<p class=CmdSubDesc2>
+Match TCP frames
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any IP protocol
+</p>
+<p class=CmdSubTitle2>
+dscp
+</p>
+<p class=CmdSubDesc2>
+Setup matched DSCP
+</p>
+<p class=CmdSubTitle2>
+&lt;dscp6&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched DSCP value/range
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any DSCP
+</p>
+<p class=CmdSubTitle2>
+sip
+</p>
+<p class=CmdSubDesc2>
+Setup match source IP address
+</p>
+<p class=CmdSubTitle2>
+&lt;sip6&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched source IP address (32 LSB in IPv4 format)
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any source IP address
+</p>
+<p class=CmdSubTitle2>
+dip
+</p>
+<p class=CmdSubDesc2>
+Setup match destination IP address
+</p>
+<p class=CmdSubTitle2>
+&lt;dip6&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched destination IP address (32 LSB in IPv4 format)
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any destination IP address
+</p>
+<p class=CmdSubTitle2>
+sport
+</p>
+<p class=CmdSubDesc2>
+Setup matched UDP/TCP source port
+</p>
+<p class=CmdSubTitle2>
+&lt;sp6&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched UDP/TCP source port value/range
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any UDP/TCP source port
+</p>
+<p class=CmdSubTitle2>
+dport
+</p>
+<p class=CmdSubDesc2>
+Setup matched UDP/TCP destination port
+</p>
+<p class=CmdSubTitle2>
+&lt;dp6&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched UDP/TCP destination port value/range
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any UDP/TCP destination port
+</p>
+<p class=CmdSubTitle2>
+etype
+</p>
+<p class=CmdSubDesc2>
+Match Ethernet Type frames
+</p>
+<p class=CmdSubTitle2>
+etype-value
+</p>
+<p class=CmdSubDesc2>
+Setup matched Ethernet Type
+</p>
+<p class=CmdSubTitle2>
+&lt;etype_value&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched Ethernet Type
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any Ethernet Type
+</p>
+<p class=CmdSubTitle2>
+etype-data
+</p>
+<p class=CmdSubDesc2>
+Setup matched Ethernet Type data
+</p>
+<p class=CmdSubTitle2>
+&lt;etype_data&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched Ethernet Type data
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any Ethernet Type data
+</p>
+<p class=CmdSubTitle2>
+&lt;etype_mask&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched Ethernet Type data mask
+</p>
+<p class=CmdSubTitle2>
+llc
+</p>
+<p class=CmdSubDesc2>
+Match LLC frames
+</p>
+<p class=CmdSubTitle2>
+dsap
+</p>
+<p class=CmdSubDesc2>
+Setup matched DSAP
+</p>
+<p class=CmdSubTitle2>
+&lt;dsap&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched DSAP
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any DSAP
+</p>
+<p class=CmdSubTitle2>
+ssap
+</p>
+<p class=CmdSubDesc2>
+Setup matched SSAP
+</p>
+<p class=CmdSubTitle2>
+&lt;ssap&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched SSAP
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any SSAP
+</p>
+<p class=CmdSubTitle2>
+control
+</p>
+<p class=CmdSubDesc2>
+Setup matched LLC Control
+</p>
+<p class=CmdSubTitle2>
+&lt;control&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched LLC Control
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any LLC Control
+</p>
+<p class=CmdSubTitle2>
+llc-data
+</p>
+<p class=CmdSubDesc2>
+Setup matched LLC data
+</p>
+<p class=CmdSubTitle2>
+&lt;llc_data&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched LLC data
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any LLC data
+</p>
+<p class=CmdSubTitle2>
+&lt;llc_mask&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched LLC data mask
+</p>
+<p class=CmdSubTitle2>
+snap
+</p>
+<p class=CmdSubDesc2>
+Match SNAP frames
+</p>
+<p class=CmdSubTitle2>
+oui
+</p>
+<p class=CmdSubDesc2>
+Setup matched OUI
+</p>
+<p class=CmdSubTitle2>
+&lt;oui&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched OUI
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any OUI
+</p>
+<p class=CmdSubTitle2>
+pid
+</p>
+<p class=CmdSubDesc2>
+Setup matched PID
+</p>
+<p class=CmdSubTitle2>
+&lt;pid&gt;
+</p>
+<p class=CmdSubDesc2>
+Matched PID
+</p>
+<p class=CmdSubTitle2>
+any
+</p>
+<p class=CmdSubDesc2>
+Match any PID
+</p>
+<p class=CmdSubTitle2>
+l2cp
+</p>
+<p class=CmdSubDesc2>
+Match L2CP frame
+</p>
+<p class=CmdSubTitle2>
+stp
+</p>
+<p class=CmdSubDesc2>
+Match STP frames
+</p>
+<p class=CmdSubTitle2>
+pause
+</p>
+<p class=CmdSubDesc2>
+Match Pause frames
+</p>
+<p class=CmdSubTitle2>
+lacp
+</p>
+<p class=CmdSubDesc2>
+Match LACP frames
+</p>
+<p class=CmdSubTitle2>
+lamp
+</p>
+<p class=CmdSubDesc2>
+Match LAMP frames
+</p>
+<p class=CmdSubTitle2>
+loam
+</p>
+<p class=CmdSubDesc2>
+Match Link OAM frames
+</p>
+<p class=CmdSubTitle2>
+dot1x
+</p>
+<p class=CmdSubDesc2>
+Match 802.1X frames
+</p>
+<p class=CmdSubTitle2>
+elmi
+</p>
+<p class=CmdSubDesc2>
+Match E-LMI frames
+</p>
+<p class=CmdSubTitle2>
+pb
+</p>
+<p class=CmdSubDesc2>
+Match PB frames
+</p>
+<p class=CmdSubTitle2>
+pb-gvrp
+</p>
+<p class=CmdSubDesc2>
+Match PB GVRP frames
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Match LLDP frames
+</p>
+<p class=CmdSubTitle2>
+gmrp
+</p>
+<p class=CmdSubDesc2>
+Match GMRP frames
+</p>
+<p class=CmdSubTitle2>
+gvrp
+</p>
+<p class=CmdSubDesc2>
+Match GVRP frames
+</p>
+<p class=CmdSubTitle2>
+uld
+</p>
+<p class=CmdSubDesc2>
+Match ULD frames
+</p>
+<p class=CmdSubTitle2>
+pagp
+</p>
+<p class=CmdSubDesc2>
+Match PAgP frames
+</p>
+<p class=CmdSubTitle2>
+pvst
+</p>
+<p class=CmdSubDesc2>
+Match PVST frames
+</p>
+<p class=CmdSubTitle2>
+cisco-vlan
+</p>
+<p class=CmdSubDesc2>
+Match Cisco VLAN bridge frames
+</p>
+<p class=CmdSubTitle2>
+cdp
+</p>
+<p class=CmdSubDesc2>
+Match CDP frames
+</p>
+<p class=CmdSubTitle2>
+vtp
+</p>
+<p class=CmdSubDesc2>
+Match VTP frames
+</p>
+<p class=CmdSubTitle2>
+dtp
+</p>
+<p class=CmdSubDesc2>
+Match DTP frames
+</p>
+<p class=CmdSubTitle2>
+cisco-stp
+</p>
+<p class=CmdSubDesc2>
+Match Cisco STP Uplink Fast frames
+</p>
+<p class=CmdSubTitle2>
+cisco-cfm
+</p>
+<p class=CmdSubDesc2>
+Match Cisco CFM frames
+</p>
+<p class=CmdSubTitle2>
+direction
+</p>
+<p class=CmdSubDesc2>
+Setup ECE direction
+</p>
+<p class=CmdSubTitle2>
+both
+</p>
+<p class=CmdSubDesc2>
+Bidirectional traffic flow
+</p>
+<p class=CmdSubTitle2>
+uni-to-nni
+</p>
+<p class=CmdSubDesc2>
+UNI-to-NNI traffic flow
+</p>
+<p class=CmdSubTitle2>
+nni-to-uni
+</p>
+<p class=CmdSubDesc2>
+NNI-to-UNI traffic flow
+</p>
+<p class=CmdSubTitle2>
+rule-type
+</p>
+<p class=CmdSubDesc2>
+Setup ECE rule type
+</p>
+<p class=CmdSubTitle2>
+both
+</p>
+<p class=CmdSubDesc2>
+Ingress and egress rules
+</p>
+<p class=CmdSubTitle2>
+rx
+</p>
+<p class=CmdSubDesc2>
+Ingress rules only
+</p>
+<p class=CmdSubTitle2>
+tx
+</p>
+<p class=CmdSubDesc2>
+Egress rules only
+</p>
+<p class=CmdSubTitle2>
+tx-lookup
+</p>
+<p class=CmdSubDesc2>
+Setup egress lookup key
+</p>
+<p class=CmdSubTitle2>
+vid
+</p>
+<p class=CmdSubDesc2>
+Use VLAN ID as egress lookup key
+</p>
+<p class=CmdSubTitle2>
+pcp-vid
+</p>
+<p class=CmdSubDesc2>
+Use VLAN ID and PCP as egress lookup key
+</p>
+<p class=CmdSubTitle2>
+isdx
+</p>
+<p class=CmdSubDesc2>
+Use ISDX as egress lookup key
+</p>
+<p class=CmdSubTitle2>
+l2cp
+</p>
+<p class=CmdSubDesc2>
+Setup L2CP frame options
+</p>
+<p class=CmdSubTitle2>
+mode
+</p>
+<p class=CmdSubDesc2>
+Setup L2CP mode
+</p>
+<p class=CmdSubTitle2>
+tunnel
+</p>
+<p class=CmdSubDesc2>
+Tunnel L2CP frames
+</p>
+<p class=CmdSubTitle2>
+peer
+</p>
+<p class=CmdSubDesc2>
+Peer L2CP frames
+</p>
+<p class=CmdSubTitle2>
+forward
+</p>
+<p class=CmdSubDesc2>
+Forward L2CP frames
+</p>
+<p class=CmdSubTitle2>
+discard
+</p>
+<p class=CmdSubDesc2>
+Discard L2CP frames
+</p>
+<p class=CmdSubTitle2>
+tmac
+</p>
+<p class=CmdSubDesc2>
+Setup L2CP tunnel DMAC
+</p>
+<p class=CmdSubTitle2>
+cisco
+</p>
+<p class=CmdSubDesc2>
+Use Cisco Generic BPDU Tunneling DMAC
+</p>
+<p class=CmdSubTitle2>
+custom
+</p>
+<p class=CmdSubDesc2>
+Use custom DMAC
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+EVC mapping
+</p>
+<p class=CmdSubTitle2>
+&lt;evc_id&gt;
+</p>
+<p class=CmdSubDesc2>
+EVC identifier
+</p>
+<p class=CmdSubTitle2>
+none
+</p>
+<p class=CmdSubDesc2>
+Map to no EVC ID
+</p>
+<p class=CmdSubTitle2>
+policer
+</p>
+<p class=CmdSubDesc2>
+Policer (ingress bandwith profile)
+</p>
+<p class=CmdSubTitle2>
+&lt;policer_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Policer ID
+</p>
+<p class=CmdSubTitle2>
+none
+</p>
+<p class=CmdSubDesc2>
+Map to policer allowing all frames
+</p>
+<p class=CmdSubTitle2>
+discard
+</p>
+<p class=CmdSubDesc2>
+Map to policer discarding all frames
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+Use policer setup for EVC
+</p>
+<p class=CmdSubTitle2>
+pop
+</p>
+<p class=CmdSubDesc2>
+Setup tag popping
+</p>
+<p class=CmdSubTitle2>
+&lt;pop&gt;
+</p>
+<p class=CmdSubDesc2>
+Number of tags popped
+</p>
+<p class=CmdSubTitle2>
+policy
+</p>
+<p class=CmdSubDesc2>
+Setup ACL policy
+</p>
+<p class=CmdSubTitle2>
+&lt;policy_no&gt;
+</p>
+<p class=CmdSubDesc2>
+ACL policy
+</p>
+<p class=CmdSubTitle2>
+cos
+</p>
+<p class=CmdSubDesc2>
+Setup Class of Service
+</p>
+<p class=CmdSubTitle2>
+&lt;cos&gt;
+</p>
+<p class=CmdSubDesc2>
+Class of Service
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable ECE CoS classification
+</p>
+<p class=CmdSubTitle2>
+dpl
+</p>
+<p class=CmdSubDesc2>
+Setup drop precedence level
+</p>
+<p class=CmdSubTitle2>
+&lt;dpl&gt;
+</p>
+<p class=CmdSubDesc2>
+Drop precedence level
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable ECE DPL classification
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0004">
+evc policer [ update ] &lt;policer_id&gt; [ { enable | disable } ] [ type { mef | single } ] [ mode { coupled | aware | blind } ] [ rate-type { line | data } ] [ cir &lt;cir&gt; ] [ cbs &lt;cbs&gt; ] [ eir &lt;eir&gt; ] [ ebs &lt;ebs&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+Ethernet Virtual Connections
+</p>
+<p class=CmdSubTitle2>
+policer
+</p>
+<p class=CmdSubDesc2>
+Policer (ingress bandwith profile)
+</p>
+<p class=CmdSubTitle2>
+update
+</p>
+<p class=CmdSubDesc2>
+Update existing entry
+</p>
+<p class=CmdSubTitle2>
+&lt;policer_id&gt;
+</p>
+<p class=CmdSubDesc2>
+Policer ID
+</p>
+<p class=CmdSubTitle2>
+enable
+</p>
+<p class=CmdSubDesc2>
+Enable policer
+</p>
+<p class=CmdSubTitle2>
+disable
+</p>
+<p class=CmdSubDesc2>
+Disable policer
+</p>
+<p class=CmdSubTitle2>
+type
+</p>
+<p class=CmdSubDesc2>
+Setup policer type
+</p>
+<p class=CmdSubTitle2>
+mef
+</p>
+<p class=CmdSubDesc2>
+MEF ingress bandwidth profile
+</p>
+<p class=CmdSubTitle2>
+single
+</p>
+<p class=CmdSubDesc2>
+Single bucket policer
+</p>
+<p class=CmdSubTitle2>
+mode
+</p>
+<p class=CmdSubDesc2>
+Setup policer mode
+</p>
+<p class=CmdSubTitle2>
+coupled
+</p>
+<p class=CmdSubDesc2>
+Coupling mode
+</p>
+<p class=CmdSubTitle2>
+aware
+</p>
+<p class=CmdSubDesc2>
+Color-aware mode
+</p>
+<p class=CmdSubTitle2>
+blind
+</p>
+<p class=CmdSubDesc2>
+Color-blind mode
+</p>
+<p class=CmdSubTitle2>
+rate-type
+</p>
+<p class=CmdSubDesc2>
+Setup rate type
+</p>
+<p class=CmdSubTitle2>
+line
+</p>
+<p class=CmdSubDesc2>
+Line rate policing
+</p>
+<p class=CmdSubTitle2>
+data
+</p>
+<p class=CmdSubDesc2>
+Data rate policing
+</p>
+<p class=CmdSubTitle2>
+cir
+</p>
+<p class=CmdSubDesc2>
+Setup CIR
+</p>
+<p class=CmdSubTitle2>
+&lt;cir&gt;
+</p>
+<p class=CmdSubDesc2>
+Committed Information Rate [kbps]
+</p>
+<p class=CmdSubTitle2>
+cbs
+</p>
+<p class=CmdSubDesc2>
+Setup CBS
+</p>
+<p class=CmdSubTitle2>
+&lt;cbs&gt;
+</p>
+<p class=CmdSubDesc2>
+Committed Burst Size [bytes]
+</p>
+<p class=CmdSubTitle2>
+eir
+</p>
+<p class=CmdSubDesc2>
+Setup EIR for MEF policer
+</p>
+<p class=CmdSubTitle2>
+&lt;eir&gt;
+</p>
+<p class=CmdSubDesc2>
+Excess Information Rate [kbps]
+</p>
+<p class=CmdSubTitle2>
+ebs
+</p>
+<p class=CmdSubDesc2>
+Setup EBS for MEF policer
+</p>
+<p class=CmdSubTitle2>
+&lt;ebs&gt;
+</p>
+<p class=CmdSubDesc2>
+Excess Burst Size [bytes]
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0006">
+no evc &lt;evc_id&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;evc_id&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0008">
+no evc ece &lt;ece_id&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ece
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;ece_id&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0002">
+show evc statistics { [ &lt;evc_id&gt; | all ] } [ ece [ &lt;ece_id&gt; ] ] [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] [ cos &lt;cos&gt; ] [ green | yellow | red | discard ] [ frames | bytes ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+statistics
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;evc_id&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+all
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ece
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;ece_id&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+cos
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;cos&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+green
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+yellow
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+red
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+discard
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+frames
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+bytes
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0001">
+show evc { [ &lt;evc_id&gt; | all ] } [ ece [ &lt;ece_id&gt; ] ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+evc
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;evc_id&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+all
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+ece
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;ece_id&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+</body></html>
+

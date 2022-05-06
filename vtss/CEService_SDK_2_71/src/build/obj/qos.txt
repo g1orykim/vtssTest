@@ -1,0 +1,57 @@
+no qos cos 
+no qos dei 
+no qos dpl 
+no qos dscp-classify 
+no qos dscp-remark 
+no qos dscp-translate 
+no qos map cos-dscp <cos> dpl <dpl> 
+no qos map cos-tag cos <cos> dpl <dpl> 
+no qos map dscp-classify { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+no qos map dscp-cos { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+no qos map dscp-egress-translation { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } <dpl> 
+no qos map dscp-ingress-translation { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+no qos map tag-cos pcp <pcp> dei <dei> 
+no qos pcp 
+no qos policer 
+no qos qce <qce_id_range> 
+no qos qce { [ addr ] [ key ] }*1 
+no qos queue-policer queue <queue> 
+no qos queue-shaper queue <queue> 
+no qos shaper 
+no qos storm { unicast | broadcast | unknown } 
+no qos storm { unicast | multicast | broadcast } 
+no qos tag-remark 
+no qos trust dscp 
+no qos trust tag 
+no qos wred queue <queue> 
+no qos wrr 
+qos cos <cos> 
+qos dei <dei> 
+qos dpl <dpl> 
+qos dscp-classify { zero | selected | any } 
+qos dscp-remark { rewrite | remap | remap-dp } 
+qos dscp-translate 
+qos map cos-dscp <cos> dpl <dpl> dscp { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+qos map cos-tag cos <cos> dpl <dpl> pcp <pcp> dei <dei> 
+qos map dscp-classify { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+qos map dscp-cos { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } cos <cos> dpl <dpl> 
+qos map dscp-egress-translation { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } <dpl> to { <dscp_num_tr> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+qos map dscp-ingress-translation { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } to { <dscp_num_tr> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } 
+qos map tag-cos pcp <pcp> dei <dei> cos <cos> dpl <dpl> 
+qos pcp <pcp> 
+qos policer <rate> [ fps ] [ flowcontrol ] 
+qos qce refresh 
+qos qce { [ addr { source | destination } ] [ key { double-tag | normal | ip-addr | mac-ip-addr } ] }*1 
+qos qce { [ update ] } <qce_id> [ { next <qce_id_next> } | last ] [ interface ( <port_type> [ <port_list> ] ) ] [ smac { <smac> | <smac_24> | any } ] [ dmac { <dmac> | unicast | multicast | broadcast | any } ] [ tag { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { <ot_vid> | any } ] [ pcp { <ot_pcp> | any } ] [ dei { <ot_dei> | any } ] }*1 ] [ inner-tag { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { <it_vid> | any } ] [ pcp { <it_pcp> | any } ] [ dei { <it_dei> | any } ] }*1 ] [ frame-type { any | { etype [ { <etype_type> | any } ] } | { llc [ dsap { <llc_dsap> | any } ] [ ssap { <llc_ssap> | any } ] [ control { <llc_control> | any } ] } | { snap [ { <snap_data> | any } ] } | { ipv4 [ proto { <pr4> | tcp | udp | any } ] [ sip { <sip4> | any } ] [ dip { <dip4> | any } ] [ dscp { <dscp4> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | any } ] [ fragment { yes | no | any } ] [ sport { <sp4> | any } ] [ dport { <dp4> | any } ] } | { ipv6 [ proto { <pr6> | tcp | udp | any } ] [ sip { <sip6> | any } ] [ dip { <dip6> | any } ] [ dscp { <dscp6> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | any } ] [ sport { <sp6> | any } ] [ dport { <dp6> | any } ] } } ] [ action { [ cos { <action_cos> | default } ] [ dpl { <action_dpl> | default } ] [ pcp-dei { <action_pcp> <action_dei> | default } ] [ dscp { <action_dscp_dscp> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | default } ] [ policy { <action_policy> | default } ] }*1 ] 
+qos queue-policer queue <queue> <rate> 
+qos queue-shaper queue <queue> <rate> [ excess ] 
+qos shaper <rate> 
+qos storm { unicast | broadcast | unknown } <rate> [ fps ] 
+qos storm { unicast | multicast | broadcast } { { <rate> [ kfps ] } | { 1024 kfps } } 
+qos tag-remark { pcp <pcp> dei <dei> | mapped } 
+qos trust dscp 
+qos trust tag 
+qos wred queue <queue> min-fl <min_fl> max <max> [ fill-level ] 
+qos wred queue <queue> min-th <min_th> mdp-1 <mdp_1> mdp-2 <mdp_2> mdp-3 <mdp_3> 
+qos wrr <w0> <w1> <w2> <w3> <w4> <w5> 
+show qos [ { interface [ ( <port_type> [ <port> ] ) ] } | wred | { maps [ dscp-cos ] [ dscp-ingress-translation ] [ dscp-classify ] [ cos-dscp ] [ dscp-egress-translation ] } | storm | { qce [ <qce> ] } ] 

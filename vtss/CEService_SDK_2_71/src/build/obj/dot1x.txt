@@ -1,0 +1,33 @@
+clear dot1x statistics [ interface ( <port_type> [ <v_port_type_list> ] ) ] 
+dot1x authentication timer inactivity <v_10_to_100000> 
+dot1x authentication timer re-authenticate <v_1_to_3600> 
+dot1x feature { [ guest-vlan ] [ radius-qos ] [ radius-vlan ] }*1 
+dot1x guest-vlan 
+dot1x guest-vlan <value> 
+dot1x guest-vlan supplicant 
+dot1x initialize [ interface ( <port_type> [ <plist> ] ) ] 
+dot1x max-reauth-req <value> 
+dot1x port-control { force-authorized | force-unauthorized | auto | single | multi | mac-based } 
+dot1x radius-qos 
+dot1x radius-vlan 
+dot1x re-authenticate 
+dot1x re-authentication 
+dot1x system-auth-control 
+dot1x timeout quiet-period <v_10_to_1000000> 
+dot1x timeout tx-period <v_1_to_65535> 
+no dot1x authentication timer inactivity 
+no dot1x authentication timer re-authenticate 
+no dot1x feature { [ guest-vlan ] [ radius-qos ] [ radius-vlan ] }*1 
+no dot1x guest-vlan 
+no dot1x guest-vlan 
+no dot1x guest-vlan supplicant 
+no dot1x max-reauth-req 
+no dot1x port-control 
+no dot1x radius-qos 
+no dot1x radius-vlan 
+no dot1x re-authentication 
+no dot1x system-auth-control 
+no dot1x timeout quiet-period 
+no dot1x timeout tx-period 
+show dot1x statistics { eapol | radius | all } [ interface ( <port_type> [ <v_port_type_list> ] ) ] 
+show dot1x status [ interface ( <port_type> [ <v_port_type_list> ] ) ] [ brief ] 

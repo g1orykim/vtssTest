@@ -1,0 +1,47 @@
+clear mep <inst> { lm | dm | tst } 
+mep <inst> [ mip ] { up | down } domain { port | evc | vlan } [ vid <vid> ] flow <flow> level <level> interface <port_type> <port> 
+mep <inst> ais [ fr1s | fr1m ] [ protect ] 
+mep <inst> aps <prio> [ multi | uni ] { laps | { raps [ octet <octet> ] } } 
+mep <inst> cc <prio> [ fr300s | fr100s | fr10s | fr1s | fr6m | fr1m | fr6h ] 
+mep <inst> client domain { evc | vlan } 
+mep <inst> client flow <cflow> level <level> [ ais-prio [ <aisprio> | ais-highest ] ] [ lck-prio [ <lckprio> | lck-highest ] ] 
+mep <inst> dm <prio> [ multi | { uni mep-id <mepid> } ] [ single | dual ] [ rdtrp | flow ] interval <interval> last-n <lastn> 
+mep <inst> dm ns 
+mep <inst> dm overflow-reset 
+mep <inst> dm proprietary 
+mep <inst> dm syncronized 
+mep <inst> lb <prio> [ dei ] [ multi | { uni { { mep-id <mepid> } | { mac <mac> } } } ] count <count> size <size> interval <interval> 
+mep <inst> lck [ fr1s | fr1m ] 
+mep <inst> level <level> 
+mep <inst> lm <prio> [ multi | uni ] [ single | dual ] [ fr10s | fr1s | fr6m | fr1m | fr6h ] [ flr <flr> ] 
+mep <inst> lt <prio> { { mep-id <mepid> } | { mac <mac> } } ttl <ttl> 
+mep <inst> meg-id <megid> { itu | itu-cc | { ieee [ name <name> ] } } 
+mep <inst> mep-id <mepid> 
+mep <inst> peer-mep-id <mepid> [ mac <mac> ] 
+mep <inst> performance-monitoring 
+mep <inst> tst <prio> [ dei ] mep-id <mepid> [ sequence ] [ all-zero | all-one | one-zero ] rate <rate> size <size> 
+mep <inst> tst rx 
+mep <inst> tst tx 
+mep <inst> vid <vid> 
+mep <inst> voe 
+no mep <inst> 
+no mep <inst> ais 
+no mep <inst> aps 
+no mep <inst> cc 
+no mep <inst> client-flow { <cflow> | all } 
+no mep <inst> dm 
+no mep <inst> dm ns 
+no mep <inst> dm overflow-reset 
+no mep <inst> dm proprietary 
+no mep <inst> dm syncronized 
+no mep <inst> lb 
+no mep <inst> lck 
+no mep <inst> lm 
+no mep <inst> lt 
+no mep <inst> peer-mep-id { <mepid> | all } 
+no mep <inst> performance-monitoring 
+no mep <inst> tst rx 
+no mep <inst> tst tx 
+no mep <inst> vid 
+no mep <inst> voe 
+show mep [ <inst> ] [ peer | cc | lm | dm | lt | lb | tst | aps | client | ais | lck ] [ detail ] 

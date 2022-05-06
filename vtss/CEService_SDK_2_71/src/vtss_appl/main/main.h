@@ -33,10 +33,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+<<<<<<< HEAD
 /* compile path modify - Glory
 #include <cyg/kernel/kapi.h>
 */
 #include <kapi.h>
+=======
+#include <cyg/kernel/kapi.h>
+>>>>>>> d7e9a15854a21deab7a9f0650234cf93fe9fe87d
 #include <sys/types.h>
 
 #include "main_types.h"

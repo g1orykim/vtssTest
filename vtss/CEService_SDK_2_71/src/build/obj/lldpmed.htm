@@ -1,0 +1,1808 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<!-- Number of commands
+0022
+-->
+
+<html>
+
+<head>
+<title></title>
+<link href="vtss.css" rel="stylesheet" type="text/css">
+</head>
+
+<body lang=EN-US>
+
+<!-- Title -->
+<div class=Title>
+<p class=NewLine>&nbsp;</p>
+<p class=Title>
+CLI Command Reference Guide
+</p>
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<!-- Reference Link -->
+<div class=RefLink>
+<hr>
+<p class=NewLine>&nbsp;</p>
+
+<p class=RefLink>
+<a href="#cr0015">
+lldp med datum { wgs84 | nad83-navd88 | nad83-mllw } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0017">
+lldp med fast &lt;v_1_to_10&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0007">
+lldp med location-tlv altitude { meters | floors } &lt;v_word11&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0009">
+lldp med location-tlv civic-addr { country | state | county | city | district | block | street | leading-street-direction | trailing-street-suffix | street-suffix | house-no | house-no-suffix | landmark | additional-info | name | zip-code | building | apartment | floor | room-number | place-type | postal-community-name | p-o-box | additional-code } &lt;v_string250&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0011">
+lldp med location-tlv elin-addr &lt;v_word25&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0003">
+lldp med location-tlv latitude { north | south } &lt;v_word8&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0005">
+lldp med location-tlv longitude { west | east } &lt;v_word9&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0021">
+lldp med media-vlan policy-list &lt;v_range_list&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0019">
+lldp med media-vlan-policy &lt;policy_index&gt; { voice | voice-signaling | guest-voice-signaling | guest-voice | softphone-voice | video-conferencing | streaming-video | video-signaling } { tagged &lt;v_vlan_id&gt; | untagged } [ l2-priority &lt;v_0_to_7&gt; ] [ dscp &lt;v_0_to_63&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0013">
+lldp med transmit-tlv [ capabilities ] [ location ] [ network-policy ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0016">
+no lldp med datum 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0018">
+no lldp med fast 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0008">
+no lldp med location-tlv altitude 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0010">
+no lldp med location-tlv civic-addr { country | state | county | city | district | block | street | leading-street-direction | trailing-street-suffix | street-suffix | house-no | house-no-suffix | landmark | additional-info | name | zip-code | building | apartment | floor | room-number | place-type | postal-community-name | p-o-box | additional-code } 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0012">
+no lldp med location-tlv elin-addr 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0004">
+no lldp med location-tlv latitude 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0006">
+no lldp med location-tlv longitude 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0022">
+no lldp med media-vlan policy-list [ &lt;v_range_list&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0020">
+no lldp med media-vlan-policy &lt;policies_list&gt; 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0014">
+no lldp med transmit-tlv [ capabilities ] [ location ] [ network-policy ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0002">
+show lldp med media-vlan-policy [ &lt;v_0_to_31&gt; ] 
+</a></p>
+
+<p class=RefLink>
+<a href="#cr0001">
+show lldp med remote-device [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] 
+</a></p>
+
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0015">
+lldp med datum { wgs84 | nad83-navd88 | nad83-mllw } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+datum
+</p>
+<p class=CmdSubDesc2>
+Datum (geodetic system) type.
+</p>
+<p class=CmdSubTitle2>
+wgs84
+</p>
+<p class=CmdSubDesc2>
+World Geodetic System 1984
+</p>
+<p class=CmdSubTitle2>
+nad83-navd88
+</p>
+<p class=CmdSubDesc2>
+North American vertical datum 1983
+</p>
+<p class=CmdSubTitle2>
+nad83-mllw
+</p>
+<p class=CmdSubDesc2>
+Mean lower low water datum 1983
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0017">
+lldp med fast &lt;v_1_to_10&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+fast
+</p>
+<p class=CmdSubDesc2>
+Number of times to repeat LLDP frame transmission at fast start.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_1_to_10&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0007">
+lldp med location-tlv altitude { meters | floors } &lt;v_word11&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+location-tlv
+</p>
+<p class=CmdSubDesc2>
+LLDP-MED Location Type Length Value parameter.
+</p>
+<p class=CmdSubTitle2>
+altitude
+</p>
+<p class=CmdSubDesc2>
+Altitude parameter.
+</p>
+<p class=CmdSubTitle2>
+meters
+</p>
+<p class=CmdSubDesc2>
+Specify the altitude in meters.
+</p>
+<p class=CmdSubTitle2>
+floors
+</p>
+<p class=CmdSubDesc2>
+Specify the altitude in floor.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_word11&gt;
+</p>
+<p class=CmdSubDesc2>
+Altitude value.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0009">
+lldp med location-tlv civic-addr { country | state | county | city | district | block | street | leading-street-direction | trailing-street-suffix | street-suffix | house-no | house-no-suffix | landmark | additional-info | name | zip-code | building | apartment | floor | room-number | place-type | postal-community-name | p-o-box | additional-code } &lt;v_string250&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+location-tlv
+</p>
+<p class=CmdSubDesc2>
+LLDP-MED Location Type Length Value parameter.
+</p>
+<p class=CmdSubTitle2>
+civic-addr
+</p>
+<p class=CmdSubDesc2>
+Civic address information and postal information
+</p>
+<p class=CmdSubTitle2>
+country
+</p>
+<p class=CmdSubDesc2>
+The two-letter ISO 3166 country code in capital ASCII letters - Example: DK, DE or US.
+</p>
+<p class=CmdSubTitle2>
+state
+</p>
+<p class=CmdSubDesc2>
+National subdivisions (state, canton, region, province, prefecture).
+</p>
+<p class=CmdSubTitle2>
+county
+</p>
+<p class=CmdSubDesc2>
+County, parish, gun (Japan), district.
+</p>
+<p class=CmdSubTitle2>
+city
+</p>
+<p class=CmdSubDesc2>
+City, township, shi (Japan) - Example: Copenhagen.
+</p>
+<p class=CmdSubTitle2>
+district
+</p>
+<p class=CmdSubDesc2>
+City division, borough, city district, ward, chou (Japan).
+</p>
+<p class=CmdSubTitle2>
+block
+</p>
+<p class=CmdSubDesc2>
+Neighborhood, block.
+</p>
+<p class=CmdSubTitle2>
+street
+</p>
+<p class=CmdSubDesc2>
+Street - Example: Poppelvej.
+</p>
+<p class=CmdSubTitle2>
+leading-street-direction
+</p>
+<p class=CmdSubDesc2>
+Leading street direction - Example: N.
+</p>
+<p class=CmdSubTitle2>
+trailing-street-suffix
+</p>
+<p class=CmdSubDesc2>
+Trailing street suffix - Example: SW.
+</p>
+<p class=CmdSubTitle2>
+street-suffix
+</p>
+<p class=CmdSubDesc2>
+Street suffix - Example: Ave, Platz.
+</p>
+<p class=CmdSubTitle2>
+house-no
+</p>
+<p class=CmdSubDesc2>
+House number - Example: 21.
+</p>
+<p class=CmdSubTitle2>
+house-no-suffix
+</p>
+<p class=CmdSubDesc2>
+House number suffix - Example: A, 1/2.
+</p>
+<p class=CmdSubTitle2>
+landmark
+</p>
+<p class=CmdSubDesc2>
+Landmark or vanity address - Example: Columbia University.
+</p>
+<p class=CmdSubTitle2>
+additional-info
+</p>
+<p class=CmdSubDesc2>
+Additional location info - Example: South Wing.
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+Name (residence and office occupant) - Example: Flemming Jahn.
+</p>
+<p class=CmdSubTitle2>
+zip-code
+</p>
+<p class=CmdSubDesc2>
+Postal/zip code - Example: 2791.
+</p>
+<p class=CmdSubTitle2>
+building
+</p>
+<p class=CmdSubDesc2>
+Building (structure) - Example: Low Library.
+</p>
+<p class=CmdSubTitle2>
+apartment
+</p>
+<p class=CmdSubDesc2>
+Unit (Apartment, suite) - Example: Apt 42.
+</p>
+<p class=CmdSubTitle2>
+floor
+</p>
+<p class=CmdSubDesc2>
+Floor - Example: 4.
+</p>
+<p class=CmdSubTitle2>
+room-number
+</p>
+<p class=CmdSubDesc2>
+Room number - Example: 450F.
+</p>
+<p class=CmdSubTitle2>
+place-type
+</p>
+<p class=CmdSubDesc2>
+Place type - Example: Office.
+</p>
+<p class=CmdSubTitle2>
+postal-community-name
+</p>
+<p class=CmdSubDesc2>
+Postal community name - Example: Leonia.
+</p>
+<p class=CmdSubTitle2>
+p-o-box
+</p>
+<p class=CmdSubDesc2>
+Post office box (P.O. BOX) - Example: 12345.
+</p>
+<p class=CmdSubTitle2>
+additional-code
+</p>
+<p class=CmdSubDesc2>
+Additional code - Example: 1320300003.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_string250&gt;
+</p>
+<p class=CmdSubDesc2>
+Value for the corresponding selected civic address.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0011">
+lldp med location-tlv elin-addr &lt;v_word25&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+location-tlv
+</p>
+<p class=CmdSubDesc2>
+LLDP-MED Location Type Length Value parameter.
+</p>
+<p class=CmdSubTitle2>
+elin-addr
+</p>
+<p class=CmdSubDesc2>
+Emergency Location Identification Number, (e.g. E911 and others), such as defined by TIA or NENA.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_word25&gt;
+</p>
+<p class=CmdSubDesc2>
+ELIN value
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0003">
+lldp med location-tlv latitude { north | south } &lt;v_word8&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+location-tlv
+</p>
+<p class=CmdSubDesc2>
+LLDP-MED Location Type Length Value parameter.
+</p>
+<p class=CmdSubTitle2>
+latitude
+</p>
+<p class=CmdSubDesc2>
+Latitude parameter.
+</p>
+<p class=CmdSubTitle2>
+north
+</p>
+<p class=CmdSubDesc2>
+Setting latitude direction to north.
+</p>
+<p class=CmdSubTitle2>
+south
+</p>
+<p class=CmdSubDesc2>
+Setting latitude direction to south.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_word8&gt;
+</p>
+<p class=CmdSubDesc2>
+Latitude degrees (0.0000-90.0000).
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0005">
+lldp med location-tlv longitude { west | east } &lt;v_word9&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+location-tlv
+</p>
+<p class=CmdSubDesc2>
+LLDP-MED Location Type Length Value parameter.
+</p>
+<p class=CmdSubTitle2>
+longitude
+</p>
+<p class=CmdSubDesc2>
+Longitude parameter.
+</p>
+<p class=CmdSubTitle2>
+west
+</p>
+<p class=CmdSubDesc2>
+Setting longitude direction to west.
+</p>
+<p class=CmdSubTitle2>
+east
+</p>
+<p class=CmdSubDesc2>
+Setting longitude direction to east.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_word9&gt;
+</p>
+<p class=CmdSubDesc2>
+Longitude degrees (0.0000-180.0000).
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0021">
+lldp med media-vlan policy-list &lt;v_range_list&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+media-vlan
+</p>
+<p class=CmdSubDesc2>
+Media VLAN assigment.
+</p>
+<p class=CmdSubTitle2>
+policy-list
+</p>
+<p class=CmdSubDesc2>
+Assignment of policies.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_range_list&gt;
+</p>
+<p class=CmdSubDesc2>
+Policies to assign to the interface.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0019">
+lldp med media-vlan-policy &lt;policy_index&gt; { voice | voice-signaling | guest-voice-signaling | guest-voice | softphone-voice | video-conferencing | streaming-video | video-signaling } { tagged &lt;v_vlan_id&gt; | untagged } [ l2-priority &lt;v_0_to_7&gt; ] [ dscp &lt;v_0_to_63&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+media-vlan-policy
+</p>
+<p class=CmdSubDesc2>
+Use the media-vlan-policy to create a policy, which can be assigned to an interface.
+</p>
+<p class=CmdSubTitle2>
+&lt;policy_index&gt;
+</p>
+<p class=CmdSubDesc2>
+Policy id for the policy which is created.
+</p>
+<p class=CmdSubTitle2>
+voice
+</p>
+<p class=CmdSubDesc2>
+Create a voice policy.
+</p>
+<p class=CmdSubTitle2>
+voice-signaling
+</p>
+<p class=CmdSubDesc2>
+Create a voice signaling policy.
+</p>
+<p class=CmdSubTitle2>
+guest-voice-signaling
+</p>
+<p class=CmdSubDesc2>
+Create a guest voice signaling policy.
+</p>
+<p class=CmdSubTitle2>
+guest-voice
+</p>
+<p class=CmdSubDesc2>
+Create a guest voice policy.
+</p>
+<p class=CmdSubTitle2>
+softphone-voice
+</p>
+<p class=CmdSubDesc2>
+Create a softphone voice policy.
+</p>
+<p class=CmdSubTitle2>
+video-conferencing
+</p>
+<p class=CmdSubDesc2>
+Create a video conferencing policy.
+</p>
+<p class=CmdSubTitle2>
+streaming-video
+</p>
+<p class=CmdSubDesc2>
+Create a streaming video policy.
+</p>
+<p class=CmdSubTitle2>
+video-signaling
+</p>
+<p class=CmdSubDesc2>
+Create a video signaling policy.
+</p>
+<p class=CmdSubTitle2>
+tagged
+</p>
+<p class=CmdSubDesc2>
+The policy uses tagged frames.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_vlan_id&gt;
+</p>
+<p class=CmdSubDesc2>
+The VLAN the policy uses tagged frames.
+</p>
+<p class=CmdSubTitle2>
+untagged
+</p>
+<p class=CmdSubDesc2>
+The policy uses un-tagged frames.
+</p>
+<p class=CmdSubTitle2>
+l2-priority
+</p>
+<p class=CmdSubDesc2>
+Layer 2 priority.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_0_to_7&gt;
+</p>
+<p class=CmdSubDesc2>
+Priority 0-7
+</p>
+<p class=CmdSubTitle2>
+dscp
+</p>
+<p class=CmdSubDesc2>
+Differentiated Services Code Point.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_0_to_63&gt;
+</p>
+<p class=CmdSubDesc2>
+DSCP value 0-63.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0013">
+lldp med transmit-tlv [ capabilities ] [ location ] [ network-policy ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+transmit-tlv
+</p>
+<p class=CmdSubDesc2>
+LLDP-MED Location Type Length Value parameter.
+</p>
+<p class=CmdSubTitle2>
+capabilities
+</p>
+<p class=CmdSubDesc2>
+Enable transmission of the optional capabilities TLV.
+</p>
+<p class=CmdSubTitle2>
+location
+</p>
+<p class=CmdSubDesc2>
+Enable transmission of the optional location TLV.
+</p>
+<p class=CmdSubTitle2>
+network-policy
+</p>
+<p class=CmdSubDesc2>
+Enable transmission of the optional network-policy TLV.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0016">
+no lldp med datum 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+No
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+datum
+</p>
+<p class=CmdSubDesc2>
+Set datum to default value.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0018">
+no lldp med fast 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+No
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+fast
+</p>
+<p class=CmdSubDesc2>
+Set fast repeat count to default value.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0008">
+no lldp med location-tlv altitude 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+location-tlv
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+altitude
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0010">
+no lldp med location-tlv civic-addr { country | state | county | city | district | block | street | leading-street-direction | trailing-street-suffix | street-suffix | house-no | house-no-suffix | landmark | additional-info | name | zip-code | building | apartment | floor | room-number | place-type | postal-community-name | p-o-box | additional-code } 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+location-tlv
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+civic-addr
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+country
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+state
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+county
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+city
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+district
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+block
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+street
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+leading-street-direction
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+trailing-street-suffix
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+street-suffix
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+house-no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+house-no-suffix
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+landmark
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+additional-info
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+name
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+zip-code
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+building
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+apartment
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+floor
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+room-number
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+place-type
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+postal-community-name
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+p-o-box
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+additional-code
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0012">
+no lldp med location-tlv elin-addr 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+No
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+location-tlv
+</p>
+<p class=CmdSubDesc2>
+LLDP-MED Location Type Length Value parameter.
+</p>
+<p class=CmdSubTitle2>
+elin-addr
+</p>
+<p class=CmdSubDesc2>
+Set elin address to default value.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0004">
+no lldp med location-tlv latitude 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+location-tlv
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+latitude
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0006">
+no lldp med location-tlv longitude 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+location-tlv
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+longitude
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0022">
+no lldp med media-vlan policy-list [ &lt;v_range_list&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+No
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+media-vlan
+</p>
+<p class=CmdSubDesc2>
+Policies to delete from the interface.
+</p>
+<p class=CmdSubTitle2>
+policy-list
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_range_list&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0020">
+no lldp med media-vlan-policy &lt;policies_list&gt; 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+No
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+Link Layer Discover Protocol.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+Media Endpoint Discovery.
+</p>
+<p class=CmdSubTitle2>
+media-vlan-policy
+</p>
+<p class=CmdSubDesc2>
+Use the media-vlan-policy to create a policy, which can be assigned to an interface.
+</p>
+<p class=CmdSubTitle2>
+&lt;policies_list&gt;
+</p>
+<p class=CmdSubDesc2>
+Policy to delete.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Global Configuration Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0014">
+no lldp med transmit-tlv [ capabilities ] [ location ] [ network-policy ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+no
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+transmit-tlv
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+capabilities
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+location
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+network-policy
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+Port List Interface Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+15
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0002">
+show lldp med media-vlan-policy [ &lt;v_0_to_31&gt; ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+media-vlan-policy
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;v_0_to_31&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+0
+<p class=NewLine>&nbsp;</p>
+</div>
+
+<div class=Command>
+<hr>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdTitle>
+<a name="cr0001">
+show lldp med remote-device [ interface &lt;port_type&gt; [ &lt;port_list&gt; ] ] 
+</a></p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Syntax Description
+</p>
+<p class=CmdSubTitle2>
+show
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+lldp
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+med
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+remote-device
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+interface
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;port_type&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=CmdSubTitle2>
+&lt;port_list&gt;
+</p>
+<p class=CmdSubDesc2>
+None.
+</p>
+<p class=NewLine>&nbsp;</p>
+<p class=CmdSubTitle1>
+Command Mode
+</p>
+<p class=CmdSubDesc1>
+User EXEC Mode
+</p>
+<p class=CmdSubTitle1>
+Privilege level
+</p>
+<p class=CmdSubDesc1>
+0
+<p class=NewLine>&nbsp;</p>
+</div>
+
+</body></html>
+

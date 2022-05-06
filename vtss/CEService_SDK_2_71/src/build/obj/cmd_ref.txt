@@ -1,0 +1,1164 @@
+ disable ] ] [ lookup [ disable ] ]
+aaa authentication login { console | telnet | ssh | http } { { local | radius | tacacs } [ { local | radius | tacacs } [ { local | radius | tacacs } ] ] }
+access management
+access management <access_id> <access_vid> <start_addr> [ to <end_addr> ] { [ web ] [ snmp ] [ telnet ] | all }
+access management <access_id> <access_vid> <start_addr> [ to <end_addr> ] { [ web ] [ snmp ] [ telnet ] | all }
+access-list ace [ update ] <ace_id> [ next { <ace_id_next> | last } ] [ ingress { switch <ingress_switch_id> | switchport { <ingress_switch_port_id> | <ingress_switch_port_list> } | interface { <port_type> <ingress_port_id> | ( <port_type> [ <ingress_port_list> ] ) } | any } ] [ policy <policy> [ policy-bitmask <policy_bitmask> ] ] [ tag { tagged | untagged | any } ] [ vid { <vid> | any } ] [ tag-priority { <tag_priority> | 0-1 | 2-3 | 4-5 | 6-7 | 0-3 | 4-7 | any } ] [ dmac-type { unicast | multicast | broadcast | any } ] [ frame-type { any | etype [ etype-value { <etype_value> | any } ] [ smac { <etype_smac> | any } ] [ dmac { <etype_dmac> | any } ] | arp [ sip { <arp_sip> | any } ] [ dip { <arp_dip> | any } ] [ smac { <arp_smac> | any } ] [ arp-opcode { arp | rarp | other | any } ] [ arp-flag [ arp-request { <arp_flag_request> | any } ] [ arp-smac { <arp_flag_smac> | any } ] [ arp-tmac { <arp_flag_tmac> | any } ] [ arp-len { <arp_flag_len> | any } ] [ arp-ip { <arp_flag_ip> | any } ] [ arp-ether { <arp_flag_ether> | any } ] ] | ipv4 [ sip { <sipv4> | any } ] [ dip { <dipv4> | any } ] [ ip-protocol { <ipv4_protocol> | any } ] [ ip-flag [ ip-ttl { <ip_flag_ttl> | any } ] [ ip-options { <ip_flag_options> | any } ] [ ip-fragment { <ip_flag_fragment> | any } ] ] | ipv4-icmp [ sip { <sipv4_icmp> | any } ] [ dip { <dipv4_icmp> | any } ] [ icmp-type { <icmpv4_type> | any } ] [ icmp-code { <icmpv4_code> | any } ] [ ip-flag [ ip-ttl { <ip_flag_icmp_ttl> | any } ] [ ip-options { <ip_flag_icmp_options> | any } ] [ ip-fragment { <ip_flag_icmp_fragment> | any } ] ] | ipv4-udp [ sip { <sipv4_udp> | any } ] [ dip { <dipv4_udp> | any } ] [ sport { <sportv4_udp_start> [ to <sportv4_udp_end> ] | any } ] [ dport { <dportv4_udp_start> [ to <dportv4_udp_end> ] | any } ] [ ip-flag [ ip-ttl { <ip_flag_udp_ttl> | any } ] [ ip-options { <ip_flag_udp_options> | any } ] [ ip-fragment { <ip_flag_udp_fragment> | any } ] ] | ipv4-tcp [ sip { <sipv4_tcp> | any } ] [ dip { <dipv4_tcp> | any } ] [ sport { <sportv4_tcp_start> [ to <sportv4_tcp_end> ] | any } ] [ dport { <dportv4_tcp_start> [ to <dportv4_tcp_end> ] | any } ] [ ip-flag [ ip-ttl { <ip_flag_tcp_ttl> | any } ] [ ip-options { <ip_flag_tcp_options> | any } ] [ ip-fragment { <ip_flag_tcp_fragment> | any } ] ] [ tcp-flag [ tcp-fin { <tcpv4_flag_fin> | any } ] [ tcp-syn { <tcpv4_flag_syn> | any } ] [ tcp-rst { <tcpv4_flag_rst> | any } ] [ tcp-psh { <tcpv4_flag_psh> | any } ] [ tcp-ack { <tcpv4_flag_ack> | any } ] [ tcp-urg { <tcpv4_flag_urg> | any } ] ] | ipv6 [ next-header { <next_header> | any } ] [ sip { <sipv6> [ sip-bitmask <sipv6_bitmask> ] | any } ] [ hop-limit { <hop_limit> | any } ] | ipv6-icmp [ sip { <sipv6_icmp> [ sip-bitmask <sipv6_bitmask_icmp> ] | any } ] [ icmp-type { <icmpv6_type> | any } ] [ icmp-code { <icmpv6_code> | any } ] [ hop-limit { <hop_limit_icmp> | any } ] | ipv6-udp [ sip { <sipv6_udp> [ sip-bitmask <sipv6_bitmask_udp> ] | any } ] [ sport { <sportv6_udp_start> [ to <sportv6_udp_end> ] | any } ] [ dport { <dportv6_udp_start> [ to <dportv6_udp_end> ] | any } ] [ hop-limit { <hop_limit_udp> | any } ] | ipv6-tcp [ sip { <sipv6_tcp> [ sip-bitmask <sipv6_bitmask_tcp> ] | any } ] [ sport { <sportv6_tcp_start> [ to <sportv6_tcp_end> ] | any } ] [ dport { <dportv6_tcp_start> [ to <dportv6_tcp_end> ] | any } ] [ hop-limit { <hop_limit_tcp> | any } ] [ tcp-flag [ tcp-fin { <tcpv6_flag_fin> | any } ] [ tcp-syn { <tcpv6_flag_syn> | any } ] [ tcp-rst { <tcpv6_flag_rst> | any } ] [ tcp-psh { <tcpv6_flag_psh> | any } ] [ tcp-ack { <tcpv6_flag_ack> | any } ] [ tcp-urg { <tcpv6_flag_urg> | any } ] ] } ] [ action { permit | deny | filter { switchport <filter_switch_port_list> | interface ( <port_type> [ <fliter_port_list> ] ) } } ] [ rate-limiter { <rate_limiter_id> | disable } ] [ evc-policer { <evc_policer_id> | disable } ] [ { redirect | port-copy } { switchport { <redirect_switch_port_id> | <redirect_switch_port_list> } | interface { <port_type> <redirect_port_id> | ( <port_type> [ <redirect_port_list> ] ) } | disable } ] [ mirror [ disable ] ] [ logging [ disable ] ] [ shutdown [
+access-list action { permit | deny }
+access-list evc-policer <evc_policer_id>
+access-list logging
+access-list mirror
+access-list policy <policy_id>
+access-list port-state
+access-list rate-limiter <rate_limiter_id>
+access-list rate-limiter [ <rate_limiter_list> ] { pps <pps_rate> | 100pps <pps100_rate> | kpps <kpps_rate> | 100kbps <kpbs100_rate> }
+access-list shutdown
+access-list { redirect | port-copy } interface { <port_type> <port_type_id> | ( <port_type> [ <port_type_list> ] ) }
+aggregation group <v_uint>
+aggregation mode { [ smac ] [ dmac ] [ ip ] [ port ] }*1
+banner [ motd ] <banner>
+banner exec <banner>
+banner login <banner>
+broadcast <ip>
+clear access management statistics
+clear access-list ace statistics
+clear dot1x statistics [ interface ( <port_type> [ <v_port_type_list> ] ) ]
+clear eps <inst> wtr
+clear erps [ <groups> ] statistics
+clear evc statistics { [ <evc_id> | all ] } [ ece [ <ece_id> ] ] [ interface ( <port_type> [ <port_list> ] ) ]
+clear ip arp
+clear ip dhcp detailed statistics { server | client | snooping | relay | helper | all } [ interface ( <port_type> [ <in_port_list> ] ) ]
+clear ip dhcp relay statistics
+clear ip dhcp server binding <ip>
+clear ip dhcp server binding { automatic | manual | expired }
+clear ip dhcp server statistics
+clear ip dhcp snooping statistics [ interface ( <port_type> [ <in_port_list> ] ) ]
+clear ip igmp snooping [ vlan <v_vlan_list> ] statistics
+clear ip statistics [ system ] [ interface vlan <v_vlan_list> ] [ icmp ] [ icmp-msg <type> ]
+clear ipv6 mld snooping [ vlan <v_vlan_list> ] statistics
+clear ipv6 neighbors
+clear ipv6 statistics [ system ] [ interface vlan <v_vlan_list> ] [ icmp ] [ icmp-msg <type> ]
+clear lacp statistics
+clear link-oam statistics [ interface ( <port_type> [ <plist> ] ) ]
+clear lldp statistics
+clear logging [ info ] [ warning ] [ error ] [ switch <switch_list> ]
+clear mac address-table
+clear mep <inst> { lm | dm | tst }
+clear mvr [ vlan <v_vlan_list> | name <mvr_name> ] statistics
+clear network-clock clk-source <clk_list>
+clear sflow statistics { receiver [ <receiver_index_list> ] | samplers [ interface [ <samplers_list> ] ( <port_type> [ <v_port_type_list> ] ) ] }
+clear spanning-tree { { statistics [ interface ( <port_type> [ <v_port_type_list> ] ) ] } | { detected-protocols [ interface ( <port_type> [ <v_port_type_list_1> ] ) ] } }
+clear statistics [ interface ] ( <port_type> [ <v_port_type_list> ] )
+client-identifier { fqdn <identifier> | mac-address <mac> }
+client-name <host_name>
+clock summer-time <word16> date [ <start_month_var> <start_date_var> <start_year_var> <start_hour_var> <end_month_var> <end_date_var> <end_year_var> <end_hour_var> [ <offset_var> ] ]
+clock summer-time <word16> recurring [ <start_week_var> <start_day_var> <start_month_var> <start_hour_var> <end_week_var> <end_day_var> <end_month_var> <end_hour_var> [ <offset_var> ] ]
+clock timezone <word_var> <hour_var> [ <minute_var> ]
+configure terminal
+copy { startup-config | running-config | <source_path> } { startup-config | running-config | <destination_path> } [ syntax-check ]
+debug prompt <debug_prompt>
+default access-list rate-limiter [ <rate_limiter_list> ]
+default range <entry_name>
+default-router <ip> [ <ip1> [ <ip2> [ <ip3> ] ] ]
+delete <path>
+description <profile_desc>
+dir
+disable [ <new_priv> ]
+dns-server <ip> [ <ip1> [ <ip2> [ <ip3> ] ] ]
+do <command>
+do <command>
+do <command>
+do <command>
+do <command>
+do <command>
+do <command>
+do <command>
+do <command>
+do <command>
+do <command>
+domain-name <domain_name>
+dot1x authentication timer inactivity <v_10_to_100000>
+dot1x authentication timer re-authenticate <v_1_to_3600>
+dot1x feature { [ guest-vlan ] [ radius-qos ] [ radius-vlan ] }*1
+dot1x guest-vlan
+dot1x guest-vlan <value>
+dot1x guest-vlan supplicant
+dot1x initialize [ interface ( <port_type> [ <plist> ] ) ]
+dot1x max-reauth-req <value>
+dot1x port-control { force-authorized | force-unauthorized | auto | single | multi | mac-based }
+dot1x radius-qos
+dot1x radius-vlan
+dot1x re-authenticate
+dot1x re-authentication
+dot1x system-auth-control
+dot1x timeout quiet-period <v_10_to_1000000>
+dot1x timeout tx-period <v_1_to_65535>
+duplex { half | full | auto [ half | full ] }
+editing
+enable [ <new_priv> ]
+enable password [ level <priv> ] <password>
+enable secret { 0 | 5 } [ level <priv> ] <password>
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+eps <inst> 1plus1 { bidirectional | { unidirectional [ aps ] } }
+eps <inst> command { lockout | forced | manualp | manualw | exercise | freeze | lockoutlocal }
+eps <inst> domain { port | evc } architecture { 1plus1 | 1for1 } work-flow { <flow_w> | <port_type> <port_w> } protect-flow { <flow_p> | <port_type> <port_p> }
+eps <inst> holdoff <hold>
+eps <inst> mep-work <mep_w> mep-protect <mep_p> mep-aps <mep_aps>
+eps <inst> revertive { 10s | 30s | 5m | 6m | 7m | 8m | 9m | 10m | 11m | 12m }
+erps <group> command { force | manual | clear } { port0 | port1 }
+erps <group> guard <guard_time_ms>
+erps <group> holdoff <holdoff_time_ms>
+erps <group> major port0 interface <port_type> <port0> port1 interface <port_type> <port1> [ interconnect ]
+erps <group> mep port0 sf <p0_sf> aps <p0_aps> port1 sf <p1_sf> aps <p1_aps>
+erps <group> revertive <wtr_time_minutes>
+erps <group> rpl { owner | neighbor } { port0 | port1 }
+erps <group> sub port0 interface <port_type> <port0> { { port1 interface <port_type> <port1> } | { interconnect <major_ring_id> [ virtual-channel ] } }
+erps <group> topology-change propagate
+erps <group> version { 1 | 2 }
+erps <group> vlan { none | [ add | remove ] <vlans> }
+evc [ update ] <evc_id> { [ vid <evc_vid> ] } [ ivid <ivid> ] [ interface ( <port_type> [ <port_list> ] ) ] [ learning [ disable ] ] [ policer { <policer_id> | none | discard } ] [ inner-tag add { [ type { none | c-tag | s-tag | s-custom-tag } ] [ vid-mode { normal | tunnel } ] [ vid <it_add_vid> ] [ preserve [ disable ] ] [ pcp <it_add_pcp> ] [ dei <it_add_dei> ] }*1 ] [ outer-tag add vid <ot_add_vid> ]
+evc [ update ] [ dei { colored | fixed } ] [ tag { inner | outer } ] [ key { double-tag | normal | ip-addr | mac-ip-addr } ] [ key-advanced { double-tag | normal | ip-addr | mac-ip-addr } ] [ addr { source | destination } ] [ addr-advanced { source | destination } ] [ l2cp { [ peer [ <l2cp_peer_list> ] ] [ forward [ <l2cp_forward_list> ] ] [ discard [ <l2cp_discard_list> ] ] }*1 ]
+evc ece [ update ] <ece_id> [ next { <ece_id_next> | last } ] [ lookup { basic | advanced } ] [ interface ( <port_type> [ <port_list> ] ) ] [ smac { <smac> | any } ] [ dmac { <dmac> | unicast | multicast | broadcast | any } ] [ outer-tag { [ match { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { <ot_match_vid> | any } ] [ pcp { <ot_match_pcp> | any } ] [ dei { <ot_match_dei> | any } ] }*1 ] [ add { [ mode { enable | disable } ] [ vid <ot_add_vid> ] [ preserve [ disable ] ] [ pcp-mode { classified | fixed | mapped } ] [ pcp <ot_add_pcp> ] [ dei-mode { classified | fixed | dp } ] [ dei <ot_add_dei> ] }*1 ] }*1 ] [ inner-tag { [ match { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { <it_match_vid> | any } ] [ pcp { <it_match_pcp> | any } ] [ dei { <it_match_dei> | any } ] }*1 ] [ add { [ type { none | c-tag | s-tag | s-custom-tag } ] [ vid <it_add_vid> ] [ preserve [ disable ] ] [ pcp-mode { classified | fixed | mapped } ] [ pcp <it_add_pcp> ] [ dei-mode { classified | fixed | dp } ] [ dei <it_add_dei> ] }*1 ] }*1 ] [ frame-type { any | { ipv4 [ proto { <pr4> | udp | tcp | any } ] [ dscp { <dscp4> | any } ] [ sip { <sip4> | any } ] [ dip { <dip4> | any } ] [ fragment { yes | no | any } ] [ sport { <sp4> | any } ] [ dport { <dp4> | any } ] } | { ipv6 [ proto { <pr6> | udp | tcp | any } ] [ dscp { <dscp6> | any } ] [ sip { <sip6> | any } ] [ dip { <dip6> | any } ] [ sport { <sp6> | any } ] [ dport { <dp6> | any } ] } | { etype [ etype-value { <etype_value> | any } ] [ etype-data { <etype_data> | any } [ <etype_mask> ] ] } | { llc [ dsap { <dsap> | any } ] [ ssap { <ssap> | any } ] [ control { <control> | any } ] [ llc-data { <llc_data> | any } [ <llc_mask> ] ] } | { snap [ oui { <oui> | any } ] [ pid { <pid> | any } ] } | { l2cp { stp | pause | lacp | lamp | loam | dot1x | elmi | pb | pb-gvrp | lldp | gmrp | gvrp | uld | pagp | pvst | cisco-vlan | cdp | vtp | dtp | cisco-stp | cisco-cfm } } } ] [ direction { both | uni-to-nni | nni-to-uni } ] [ rule-type { both | rx | tx } ] [ tx-lookup { vid | pcp-vid | isdx } ] [ l2cp { [ mode { tunnel | peer | forward | discard } ] [ tmac { cisco | custom } ] }*1 ] [ evc { <evc_id> | none } ] [ policer { <policer_id> | none | discard | evc } ] [ pop <pop> ] [ policy <policy_no> ] [ cos { <cos> | disable } ] [ dpl { <dpl> | disable } ]
+evc policer [ update ] <policer_id> [ { enable | disable } ] [ type { mef | single } ] [ mode { coupled | aware | blind } ] [ rate-type { line | data } ] [ cir <cir> ] [ cbs <cbs> ] [ eir <eir> ] [ ebs <ebs> ]
+excessive-restart
+exec-banner
+exec-timeout <min> [ <sec> ]
+exit
+exit
+exit
+exit
+exit
+exit
+exit
+exit
+exit
+exit
+exit
+firmware swap
+firmware upgrade <tftpserver_path_file>
+flowcontrol { on | off }
+green-ethernet eee
+green-ethernet eee optimize-for-power
+green-ethernet eee urgent-queues [ <urgent_queue_range_list> ]
+green-ethernet energy-detect
+green-ethernet led interval <v_0_to_24> intensity <v_0_to_100>
+green-ethernet led on-event { [ link-change <v_0_to_65535> ] [ error ] }*1
+green-ethernet short-reach
+gvrp
+gvrp
+gvrp join-request vlan <v_vlan_list>
+gvrp leave-request vlan <v_vlan_list>
+gvrp max-vlans <maxvlans>
+gvrp time { [ join-time <jointime> ] [ leave-time <leavetime> ] [ leave-all-time <leavealltime> ] }*1
+hardware-address <mac>
+help
+help
+help
+help
+help
+help
+help
+help
+help
+help
+help
+history size <history_size>
+host <ip> <subnet_mask>
+host <v_ipv6_ucast> [ <udp_port> ] [ traps | informs ]
+host { <v_ipv4_ucast> | <v_word45> } [ <udp_port> ] [ traps | informs ]
+hostname <hostname>
+informs retries <retries> timeout <timeout>
+interface ( <port_type> [ <plist> ] )
+interface vlan <vlist>
+ip address { { <address> <netmask> } | { dhcp [ fallback <fallback_address> <fallback_netmask> [ timeout <fallback_timeout> ] ] } }
+ip arp inspection
+ip arp inspection check-vlan
+ip arp inspection entry interface <port_type> <in_port_type_id> <vlan_var> <mac_var> <ipv4_var>
+ip arp inspection logging { deny | permit | all }
+ip arp inspection translate [ interface <port_type> <in_port_type_id> <vlan_var> <mac_var> <ipv4_var> ]
+ip arp inspection trust
+ip arp inspection vlan <in_vlan_list>
+ip arp inspection vlan <in_vlan_list> logging { deny | permit | all }
+ip dhcp excluded-address <low_ip> [ <high_ip> ]
+ip dhcp pool <pool_name>
+ip dhcp relay
+ip dhcp relay information option
+ip dhcp relay information policy { drop | keep | replace }
+ip dhcp retry interface vlan <vlan_id>
+ip dhcp server
+ip dhcp server
+ip dhcp snooping
+ip dhcp snooping trust
+ip dns proxy
+ip helper-address <v_ipv4_ucast>
+ip http secure-redirect
+ip http secure-server
+ip igmp host-proxy [ leave-proxy ]
+ip igmp snooping
+ip igmp snooping
+ip igmp snooping compatibility { auto | v1 | v2 | v3 }
+ip igmp snooping filter <profile_name>
+ip igmp snooping immediate-leave
+ip igmp snooping last-member-query-interval <ipmc_lmqi>
+ip igmp snooping max-groups <throttling>
+ip igmp snooping mrouter
+ip igmp snooping priority <cos_priority>
+ip igmp snooping querier { election | address <v_ipv4_ucast> }
+ip igmp snooping query-interval <ipmc_qi>
+ip igmp snooping query-max-response-time <ipmc_qri>
+ip igmp snooping robustness-variable <ipmc_rv>
+ip igmp snooping unsolicited-report-interval <ipmc_uri>
+ip igmp snooping vlan <v_vlan_list>
+ip igmp ssm-range <v_ipv4_mcast> <ipv4_prefix_length>
+ip igmp unknown-flooding
+ip name-server { <v_ipv4_ucast> | dhcp [ interface vlan <v_vlan_id> ] }
+ip route <v_ipv4_addr> <v_ipv4_netmask> <v_ipv4_gw>
+ip routing
+ip source binding interface <port_type> <in_port_type_id> <vlan_var> <ipv4_var> <mac_var>
+ip source binding interface <port_type> <in_port_type_id> <vlan_var> <ipv4_var> <mask_var>
+ip ssh
+ip verify source
+ip verify source
+ip verify source limit <cnt_var>
+ip verify source translate
+ipmc profile
+ipmc profile <profile_name>
+ipmc range <entry_name> { <v_ipv4_mcast> [ <v_ipv4_mcast_1> ] | <v_ipv6_mcast> [ <v_ipv6_mcast_1> ] }
+ipv6 address <subnet>
+ipv6 mld host-proxy [ leave-proxy ]
+ipv6 mld snooping
+ipv6 mld snooping
+ipv6 mld snooping compatibility { auto | v1 | v2 }
+ipv6 mld snooping filter <profile_name>
+ipv6 mld snooping immediate-leave
+ipv6 mld snooping last-member-query-interval <ipmc_lmqi>
+ipv6 mld snooping max-groups <throttling>
+ipv6 mld snooping mrouter
+ipv6 mld snooping priority <cos_priority>
+ipv6 mld snooping querier election
+ipv6 mld snooping query-interval <ipmc_qi>
+ipv6 mld snooping query-max-response-time <ipmc_qri>
+ipv6 mld snooping robustness-variable <ipmc_rv>
+ipv6 mld snooping unsolicited-report-interval <ipmc_uri>
+ipv6 mld snooping vlan <v_vlan_list>
+ipv6 mld ssm-range <v_ipv6_mcast> <ipv6_prefix_length>
+ipv6 mld unknown-flooding
+ipv6 mtu <mtubytes>
+ipv6 route <v_ipv6_subnet> { <v_ipv6_ucast> | interface vlan <v_vlan_id> <v_ipv6_addr> }
+lacp
+lacp key { <v_1_to_65535> | auto }
+lacp port-priority <v_1_to_65535>
+lacp role { active | passive }
+lacp system-priority <v_1_to_65535>
+lacp timeout { fast | slow }
+lease { <day> [ <hour> [ <min> ] ] | infinite }
+length <length>
+line { <0~16> | console 0 | vty <0~15> }
+link-oam
+link-oam link-monitor frame { [ window <error_window> ] [ threshold <error_threshold> ] }*1
+link-oam link-monitor frame-seconds { [ window <error_window> ] [ threshold <error_threshold> ] }*1
+link-oam link-monitor supported
+link-oam link-monitor symbol-period { [ window <error_window> ] [ threshold <error_threshold> ] }*1
+link-oam mib-retrieval supported
+link-oam mode { active | passive }
+link-oam remote-loopback supported
+link-oam remote-loopback { start | stop } interface ( <port_type> [ <v_port_type_list> ] )
+link-oam variable-retrieve { local-info | remote-info }
+lldp cdp-aware
+lldp holdtime <val>
+lldp med datum { wgs84 | nad83-navd88 | nad83-mllw }
+lldp med fast <v_1_to_10>
+lldp med location-tlv altitude { meters | floors } <v_word11>
+lldp med location-tlv civic-addr { country | state | county | city | district | block | street | leading-street-direction | trailing-street-suffix | street-suffix | house-no | house-no-suffix | landmark | additional-info | name | zip-code | building | apartment | floor | room-number | place-type | postal-community-name | p-o-box | additional-code } <v_string250>
+lldp med location-tlv elin-addr <v_word25>
+lldp med location-tlv latitude { north | south } <v_word8>
+lldp med location-tlv longitude { west | east } <v_word9>
+lldp med media-vlan policy-list <v_range_list>
+lldp med media-vlan-policy <policy_index> { voice | voice-signaling | guest-voice-signaling | guest-voice | softphone-voice | video-conferencing | streaming-video | video-signaling } { tagged <v_vlan_id> | untagged } [ l2-priority <v_0_to_7> ] [ dscp <v_0_to_63> ]
+lldp med transmit-tlv [ capabilities ] [ location ] [ network-policy ]
+lldp receive
+lldp reinit <val>
+lldp timer <val>
+lldp tlv-select { management-address | port-description | system-capabilities | system-description | system-name }
+lldp transmission-delay <val>
+lldp transmit
+location <location>
+logging host { <v_ipv4_ucast> | <v_word45> }
+logging level { info | warning | error }
+logging on
+logout
+loop-protect
+loop-protect
+loop-protect action { [ shutdown ] [ log ] }*1
+loop-protect shutdown-time <t>
+loop-protect transmit-time <t>
+loop-protect tx-mode
+mac address-table aging-time <v_0_10_to_1000000>
+mac address-table learning [ secure ]
+mac address-table static <v_mac_addr> vlan <v_vlan_id> interface ( <port_type> [ <v_port_type_list> ] )
+media-type { rj45 | sfp | dual }
+mep <inst> [ mip ] { up | down } domain { port | evc | vlan } [ vid <vid> ] flow <flow> level <level> interface <port_type> <port>
+mep <inst> ais [ fr1s | fr1m ] [ protect ]
+mep <inst> aps <prio> [ multi | uni ] { laps | { raps [ octet <octet> ] } }
+mep <inst> cc <prio> [ fr300s | fr100s | fr10s | fr1s | fr6m | fr1m | fr6h ]
+mep <inst> client domain { evc | vlan }
+mep <inst> client flow <cflow> level <level> [ ais-prio [ <aisprio> | ais-highest ] ] [ lck-prio [ <lckprio> | lck-highest ] ]
+mep <inst> dm <prio> [ multi | { uni mep-id <mepid> } ] [ single | dual ] [ rdtrp | flow ] interval <interval> last-n <lastn>
+mep <inst> dm ns
+mep <inst> dm overflow-reset
+mep <inst> dm proprietary
+mep <inst> dm syncronized
+mep <inst> lb <prio> [ dei ] [ multi | { uni { { mep-id <mepid> } | { mac <mac> } } } ] count <count> size <size> interval <interval>
+mep <inst> lck [ fr1s | fr1m ]
+mep <inst> level <level>
+mep <inst> lm <prio> [ multi | uni ] [ single | dual ] [ fr10s | fr1s | fr6m | fr1m | fr6h ] [ flr <flr> ]
+mep <inst> lt <prio> { { mep-id <mepid> } | { mac <mac> } } ttl <ttl>
+mep <inst> meg-id <megid> { itu | itu-cc | { ieee [ name <name> ] } }
+mep <inst> mep-id <mepid>
+mep <inst> peer-mep-id <mepid> [ mac <mac> ]
+mep <inst> performance-monitoring
+mep <inst> tst <prio> [ dei ] mep-id <mepid> [ sequence ] [ all-zero | all-one | one-zero ] rate <rate> size <size>
+mep <inst> tst rx
+mep <inst> tst tx
+mep <inst> vid <vid>
+mep <inst> voe
+monitor destination interface <port_type> <in_port_type>
+monitor source { { interface ( <port_type> [ <v_port_type_list> ] ) } | { cpu [ <cpu_switch_range> ] } } { both | rx | tx }
+more <path>
+motd-banner
+mtu <max_length>
+mvr
+mvr immediate-leave
+mvr name <mvr_name> channel <profile_name>
+mvr name <mvr_name> frame priority <cos_priority>
+mvr name <mvr_name> frame tagged
+mvr name <mvr_name> igmp-address <v_ipv4_ucast>
+mvr name <mvr_name> last-member-query-interval <ipmc_lmqi>
+mvr name <mvr_name> mode { dynamic | compatible }
+mvr name <mvr_name> type { source | receiver }
+mvr vlan <v_vlan_list> [ name <mvr_name> ]
+mvr vlan <v_vlan_list> channel <profile_name>
+mvr vlan <v_vlan_list> frame priority <cos_priority>
+mvr vlan <v_vlan_list> frame tagged
+mvr vlan <v_vlan_list> igmp-address <v_ipv4_ucast>
+mvr vlan <v_vlan_list> last-member-query-interval <ipmc_lmqi>
+mvr vlan <v_vlan_list> mode { dynamic | compatible }
+mvr vlan <v_vlan_list> type { source | receiver }
+name <vlan_name>
+netbios-name-server <ip> [ <ip1> [ <ip2> [ <ip3> ] ] ]
+netbios-node-type { b-node | h-node | m-node | p-node }
+netbios-scope <netbios_scope>
+network <ip> <subnet_mask>
+network-clock clk-source <clk_list> nominate { clk-in | { interface <port_type> <port> } }
+network-clock clk-source <clk_src> aneg-mode { master | slave | forced }
+network-clock clk-source <clk_src> hold-timeout <v_3_to_18>
+network-clock clk-source <clk_src> priority <prio>
+network-clock clk-source <clk_src> ssm-overwrite { prc | ssua | ssub | eec2 | eec1 | dnu }
+network-clock input-source { 1544khz | 2048khz | 10mhz }
+network-clock option { eec1 | eec2 }
+network-clock output-source { 1544khz | 2048khz | 10mhz }
+network-clock selector { { manual clk-source <v_uint> } | selected | nonrevertive | revertive | holdover | freerun }
+network-clock ssm-freerun { prc | ssua | ssub | eec2 | eec1 | dnu | inv }
+network-clock ssm-holdover { prc | ssua | ssub | eec2 | eec1 | dnu | inv }
+network-clock synchronization ssm
+network-clock wait-to-restore <wtr_value>
+nis-domain-name <domain_name>
+nis-server <ip> [ <ip1> [ <ip2> [ <ip3> ] ] ]
+no aaa authentication login { console | telnet | ssh | http }
+no access management
+no access management <access_id_list>
+no access-list ace <ace_list>
+no access-list evc-policer
+no access-list logging
+no access-list mirror
+no access-list policy
+no access-list port-state
+no access-list rate-limiter
+no access-list shutdown
+no access-list { redirect | port-copy }
+no aggregation group
+no aggregation mode
+no banner [ motd ]
+no banner exec
+no banner login
+no broadcast
+no client-identifier
+no client-name
+no clock summer-time
+no clock timezone
+no debug prompt
+no default-router
+no description
+no dns-server
+no domain-name
+no dot1x authentication timer inactivity
+no dot1x authentication timer re-authenticate
+no dot1x feature { [ guest-vlan ] [ radius-qos ] [ radius-vlan ] }*1
+no dot1x guest-vlan
+no dot1x guest-vlan
+no dot1x guest-vlan supplicant
+no dot1x max-reauth-req
+no dot1x port-control
+no dot1x radius-qos
+no dot1x radius-vlan
+no dot1x re-authentication
+no dot1x system-auth-control
+no dot1x timeout quiet-period
+no dot1x timeout tx-period
+no duplex
+no editing
+no enable password [ level <priv> ]
+no enable secret { [ 0 | 5 ] } [ level <priv> ]
+no eps <inst>
+no eps <inst> command
+no eps <inst> holdoff
+no eps <inst> revertive
+no erps <group>
+no erps <group> command [ port0 ] [ port1 ]
+no erps <group> guard
+no erps <group> holdoff
+no erps <group> mep
+no erps <group> revertive
+no erps <group> rpl
+no erps <group> topology-change propagate
+no erps <group> version
+no erps <group> vlan
+no evc <evc_id>
+no evc ece <ece_id>
+no excessive-restart
+no exec-banner
+no exec-timeout
+no flowcontrol
+no green-ethernet eee
+no green-ethernet eee optimize-for-power
+no green-ethernet eee urgent-queues [ <urgent_queue_range_list> ]
+no green-ethernet energy-detect
+no green-ethernet led interval <0~24>
+no green-ethernet led on-event [ link-change ] [ error ]
+no green-ethernet short-reach
+no gvrp
+no gvrp
+no gvrp max-vlans <maxvlans>
+no gvrp time { [ join-time <jointime> ] [ leave-time <leavetime> ] [ leave-all-time <leavealltime> ] }*1
+no hardware-address
+no history size
+no host
+no host
+no hostname
+no informs
+no interface vlan <vlist>
+no ip address
+no ip arp inspection
+no ip arp inspection check-vlan
+no ip arp inspection entry interface <port_type> <in_port_type_id> <vlan_var> <mac_var> <ipv4_var>
+no ip arp inspection logging
+no ip arp inspection trust
+no ip arp inspection vlan <in_vlan_list>
+no ip arp inspection vlan <in_vlan_list> logging
+no ip dhcp excluded-address <low_ip> [ <high_ip> ]
+no ip dhcp pool <pool_name>
+no ip dhcp relay
+no ip dhcp relay information option
+no ip dhcp relay information policy
+no ip dhcp server
+no ip dhcp server
+no ip dhcp snooping
+no ip dhcp snooping trust
+no ip dns proxy
+no ip helper-address
+no ip http secure-redirect
+no ip http secure-server
+no ip igmp host-proxy [ leave-proxy ]
+no ip igmp snooping
+no ip igmp snooping
+no ip igmp snooping compatibility
+no ip igmp snooping filter
+no ip igmp snooping immediate-leave
+no ip igmp snooping last-member-query-interval
+no ip igmp snooping max-groups
+no ip igmp snooping mrouter
+no ip igmp snooping priority
+no ip igmp snooping querier { election | address }
+no ip igmp snooping query-interval
+no ip igmp snooping query-max-response-time
+no ip igmp snooping robustness-variable
+no ip igmp snooping unsolicited-report-interval
+no ip igmp snooping vlan [ <v_vlan_list> ]
+no ip igmp ssm-range
+no ip igmp unknown-flooding
+no ip name-server
+no ip route <v_ipv4_addr> <v_ipv4_netmask> <v_ipv4_gw>
+no ip routing
+no ip source binding interface <port_type> <in_port_type_id> <vlan_var> <ipv4_var> <mac_var>
+no ip source binding interface <port_type> <in_port_type_id> <vlan_var> <ipv4_var> <mask_var>
+no ip ssh
+no ip verify source
+no ip verify source
+no ip verify source limit
+no ipmc profile
+no ipmc profile <profile_name>
+no ipmc range <entry_name>
+no ipv6 address [ <ipv6_subnet> ]
+no ipv6 mld host-proxy [ leave-proxy ]
+no ipv6 mld snooping
+no ipv6 mld snooping
+no ipv6 mld snooping compatibility
+no ipv6 mld snooping filter
+no ipv6 mld snooping immediate-leave
+no ipv6 mld snooping last-member-query-interval
+no ipv6 mld snooping max-groups
+no ipv6 mld snooping mrouter
+no ipv6 mld snooping priority
+no ipv6 mld snooping querier election
+no ipv6 mld snooping query-interval
+no ipv6 mld snooping query-max-response-time
+no ipv6 mld snooping robustness-variable
+no ipv6 mld snooping unsolicited-report-interval
+no ipv6 mld snooping vlan [ <v_vlan_list> ]
+no ipv6 mld ssm-range
+no ipv6 mld unknown-flooding
+no ipv6 mtu
+no ipv6 route <v_ipv6_subnet> { <v_ipv6_ucast> | interface vlan <v_vlan_id> <v_ipv6_addr> }
+no lacp
+no lacp key { <v_1_to_65535> | auto }
+no lacp port-priority <v_1_to_65535>
+no lacp role { active | passive }
+no lacp system-priority <v_1_to_65535>
+no lacp timeout { fast | slow }
+no lease
+no length
+no link-oam
+no link-oam link-monitor frame
+no link-oam link-monitor frame-seconds
+no link-oam link-monitor supported
+no link-oam link-monitor symbol-period
+no link-oam mib-retrieval supported
+no link-oam mode
+no link-oam remote-loopback supported
+no link-oam variable-retrieve
+no lldp cdp-aware
+no lldp holdtime
+no lldp med datum
+no lldp med fast
+no lldp med location-tlv altitude
+no lldp med location-tlv civic-addr { country | state | county | city | district | block | street | leading-street-direction | trailing-street-suffix | street-suffix | house-no | house-no-suffix | landmark | additional-info | name | zip-code | building | apartment | floor | room-number | place-type | postal-community-name | p-o-box | additional-code }
+no lldp med location-tlv elin-addr
+no lldp med location-tlv latitude
+no lldp med location-tlv longitude
+no lldp med media-vlan policy-list [ <v_range_list> ]
+no lldp med media-vlan-policy <policies_list>
+no lldp med transmit-tlv [ capabilities ] [ location ] [ network-policy ]
+no lldp receive
+no lldp reinit
+no lldp timer
+no lldp tlv-select { management-address | port-description | system-capabilities | system-description | system-name }
+no lldp transmission-delay
+no lldp transmit
+no location
+no logging host
+no logging on
+no loop-protect
+no loop-protect
+no loop-protect action
+no loop-protect shutdown-time
+no loop-protect transmit-time
+no loop-protect tx-mode
+no mac address-table aging-time
+no mac address-table aging-time <v_0_10_to_1000000>
+no mac address-table learning [ secure ]
+no mac address-table static <v_mac_addr> vlan <v_vlan_id> interface ( <port_type> [ <v_port_type_list> ] )
+no media-type
+no mep <inst>
+no mep <inst> ais
+no mep <inst> aps
+no mep <inst> cc
+no mep <inst> client-flow { <cflow> | all }
+no mep <inst> dm
+no mep <inst> dm ns
+no mep <inst> dm overflow-reset
+no mep <inst> dm proprietary
+no mep <inst> dm syncronized
+no mep <inst> lb
+no mep <inst> lck
+no mep <inst> lm
+no mep <inst> lt
+no mep <inst> peer-mep-id { <mepid> | all }
+no mep <inst> performance-monitoring
+no mep <inst> tst rx
+no mep <inst> tst tx
+no mep <inst> vid
+no mep <inst> voe
+no monitor destination
+no monitor source { { interface ( <port_type> [ <v_port_type_list> ] ) } | { cpu [ <cpu_switch_range> ] } }
+no motd-banner
+no mtu
+no mvr
+no mvr immediate-leave
+no mvr name <mvr_name> channel
+no mvr name <mvr_name> frame priority
+no mvr name <mvr_name> frame tagged
+no mvr name <mvr_name> igmp-address
+no mvr name <mvr_name> last-member-query-interval
+no mvr name <mvr_name> mode
+no mvr name <mvr_name> type
+no mvr vlan <v_vlan_list>
+no mvr vlan <v_vlan_list> channel
+no mvr vlan <v_vlan_list> frame priority
+no mvr vlan <v_vlan_list> frame tagged
+no mvr vlan <v_vlan_list> igmp-address
+no mvr vlan <v_vlan_list> last-member-query-interval
+no mvr vlan <v_vlan_list> mode
+no mvr vlan <v_vlan_list> type
+no name
+no netbios-name-server
+no netbios-node-type
+no netbios-scope
+no network
+no network-clock clk-source <clk_list> nominate
+no network-clock clk-source <clk_src> aneg-mode
+no network-clock clk-source <clk_src> hold-timeout
+no network-clock clk-source <clk_src> priority
+no network-clock clk-source <clk_src> ssm-overwrite
+no network-clock input-source
+no network-clock option
+no network-clock output-source
+no network-clock selector
+no network-clock ssm-freerun
+no network-clock ssm-holdover
+no network-clock synchronization ssm
+no network-clock wait-to-restore
+no nis-domain-name
+no nis-server
+no ntp
+no ntp server <index_var>
+no ntp-server
+no platform phy failover
+no platform phy instance
+no port-security
+no port-security
+no port-security aging
+no port-security aging time
+no port-security maximum
+no port-security shutdown [ interface ( <port_type> [ <v_port_type_list> ] ) ]
+no port-security violation
+no privilege level
+no privilege { exec | configure | config-vlan | line | interface | if-vlan | ipmc-profile | snmps-host | stp-aggr | dhcp-pool | rfc2544-profile } level <0-15> <cmd>
+no ptp <clockinst>
+no ptp <clockinst> announce { interval | timeout }
+no ptp <clockinst> clk
+no ptp <clockinst> delay-asymmetry
+no ptp <clockinst> delay-mechanism
+no ptp <clockinst> delay-req interval
+no ptp <clockinst> domain
+no ptp <clockinst> egress-latency
+no ptp <clockinst> filter
+no ptp <clockinst> ho
+no ptp <clockinst> ingress-latency
+no ptp <clockinst> log
+no ptp <clockinst> mode { boundary | e2etransparent | p2ptransparent | master | slave }
+no ptp <clockinst> priority1
+no ptp <clockinst> priority2
+no ptp <clockinst> servo ad
+no ptp <clockinst> servo ai
+no ptp <clockinst> servo ap
+no ptp <clockinst> servo displaystates
+no ptp <clockinst> sync-interval
+no ptp <clockinst> uni <idx>
+no ptp <clockinst> wireless mode interface ( <port_type> [ <v_port_type_list> ] )
+no ptp ext
+no ptp ms-pdv
+no ptp pps-delay
+no ptp pps-sync
+no ptp ref-clock
+no ptp rs422
+no pvlan <pvlan_list>
+no pvlan isolation
+no qos cos
+no qos dei
+no qos dpl
+no qos dscp-classify
+no qos dscp-remark
+no qos dscp-translate
+no qos map cos-dscp <cos> dpl <dpl>
+no qos map cos-tag cos <cos> dpl <dpl>
+no qos map dscp-classify { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } }
+no qos map dscp-cos { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } }
+no qos map dscp-egress-translation { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } <dpl>
+no qos map dscp-ingress-translation { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } }
+no qos map tag-cos pcp <pcp> dei <dei>
+no qos pcp
+no qos policer
+no qos qce <qce_id_range>
+no qos qce { [ addr ] [ key ] }*1
+no qos queue-policer queue <queue>
+no qos queue-shaper queue <queue>
+no qos shaper
+no qos storm { unicast | broadcast | unknown }
+no qos storm { unicast | multicast | broadcast }
+no qos tag-remark
+no qos trust dscp
+no qos trust tag
+no qos wred queue <queue>
+no qos wrr
+no radius-server attribute 32
+no radius-server attribute 4
+no radius-server attribute 95
+no radius-server deadtime
+no radius-server host <host_name> [ auth-port <auth_port> ] [ acct-port <acct_port> ]
+no radius-server key
+no radius-server retransmit
+no radius-server timeout
+no range <entry_name>
+no rmon alarm <id>
+no rmon collection history <id>
+no rmon collection stats <id>
+no rmon event <id>
+no sflow [ <sampler_idx_list> ]
+no sflow agent-ip
+no sflow collector-address [ receiver <rcvr_idx_list> ]
+no sflow collector-port [ receiver <rcvr_idx_list> ]
+no sflow counter-poll-interval [ <sampler_idx_list> ]
+no sflow max-datagram-size [ receiver <rcvr_idx_list> ]
+no sflow max-sampling-size [ sampler <sampler_idx_list> ]
+no sflow timeout [ receiver <rcvr_idx_list> ]
+no shutdown
+no shutdown
+no snmp-server
+no snmp-server access <group_name> model { v1 | v2c | v3 | any } level { auth | noauth | priv }
+no snmp-server community v2c
+no snmp-server community v3 <community>
+no snmp-server contact
+no snmp-server engined-id local
+no snmp-server host <conf_name>
+no snmp-server host <conf_name> traps
+no snmp-server location
+no snmp-server security-to-group model { v1 | v2c | v3 } name <security_name>
+no snmp-server trap
+no snmp-server user <username> engine-id <engineID>
+no snmp-server version
+no snmp-server view <view_name> <oid_subtree>
+no spanning-tree
+no spanning-tree
+no spanning-tree auto-edge
+no spanning-tree auto-edge
+no spanning-tree bpdu-guard
+no spanning-tree bpdu-guard
+no spanning-tree edge
+no spanning-tree edge
+no spanning-tree edge bpdu-filter
+no spanning-tree edge bpdu-guard
+no spanning-tree link-type
+no spanning-tree link-type
+no spanning-tree mode
+no spanning-tree mst <instance> cost
+no spanning-tree mst <instance> cost
+no spanning-tree mst <instance> port-priority
+no spanning-tree mst <instance> port-priority
+no spanning-tree mst <instance> priority
+no spanning-tree mst <instance> vlan
+no spanning-tree mst forward-time
+no spanning-tree mst max-age
+no spanning-tree mst max-hops
+no spanning-tree mst name
+no spanning-tree recovery interval
+no spanning-tree restricted-role
+no spanning-tree restricted-role
+no spanning-tree restricted-tcn
+no spanning-tree restricted-tcn
+no spanning-tree transmit hold-count
+no speed
+no switchport access vlan
+no switchport forbidden vlan
+no switchport hybrid acceptable-frame-type
+no switchport hybrid allowed vlan
+no switchport hybrid egress-tag
+no switchport hybrid ingress-filtering
+no switchport hybrid native vlan
+no switchport hybrid port-type
+no switchport mode
+no switchport trunk allowed vlan
+no switchport trunk native vlan
+no switchport trunk vlan tag native
+no switchport vlan ip-subnet id <vce_id_list>
+no switchport vlan mac <mac_addr> vlan <vid>
+no switchport vlan mapping
+no switchport vlan mapping <group> <v_vlan_id_from>
+no switchport vlan protocol group <grp_id> vlan <vid>
+no switchport voice vlan discovery-protocol
+no switchport voice vlan mode
+no switchport voice vlan security
+no tacacs-server deadtime
+no tacacs-server host <host_name> [ port <port> ]
+no tacacs-server key
+no tacacs-server timeout
+no terminal editing
+no terminal exec-timeout
+no terminal history size
+no terminal length
+no terminal width
+no thermal-protect port-prio
+no thermal-protect prio <prio_list>
+no traps
+no upnp
+no upnp advertising-duration
+no upnp ttl
+no username <username>
+no vendor class-identifier <class_id>
+no version
+no vlan protocol { { eth2 { <etype> | arp | ip | ipx | at } } | { snap { <oui> | rfc-1042 | snap-8021h } <pid> } | { llc <dsap> <ssap> } } group <grp_id>
+no vlan { { ethertype s-custom-port } | <vlan_list> }
+no voice vlan
+no voice vlan aging-time
+no voice vlan class
+no voice vlan oui <oui>
+no voice vlan vid
+no web privilege group [ <group_name> ] level
+no width
+ntp
+ntp server <index_var> ip-address { <ipv4_var> | <ipv6_var> | <name_var> }
+ntp server <index_var> ip-address { <ipv4_var> | <name_var> }
+ntp-server <ip> [ <ip1> [ <ip2> [ <ip3> ] ] ]
+password encrypted <encry_password>
+password none
+password unencrypted <password>
+ping ip <v_ip_addr> [ repeat <count> ] [ size <size> ] [ interval <seconds> ]
+ping ipv6 <v_ipv6_addr> [ repeat <count> ] [ size <size> ] [ interval <seconds> ] [ interface vlan <v_vlan_id> ]
+platform phy failover
+platform phy instance default-activate
+platform phy instance restart { cool | warm }
+platform phy instance { 1g | 10g }
+port-security
+port-security
+port-security aging
+port-security aging time <v_10_to_10000000>
+port-security maximum [ <v_1_to_1024> ]
+port-security violation { protect | trap | trap-shutdown | shutdown }
+privilege level <privileged_level>
+privilege { exec | configure | config-vlan | line | interface | if-vlan | ipmc-profile | snmps-host | stp-aggr | dhcp-pool | rfc2544-profile } level <privilege> <cmd>
+ptp <clockinst> [ internal ]
+ptp <clockinst> announce { [ interval <interval> ] [ timeout <timeout> ] }*1
+ptp <clockinst> clk sync <threshold> ap <ap>
+ptp <clockinst> delay-asymmetry <delay_asymmetry>
+ptp <clockinst> delay-mechanism { e2e | p2p }
+ptp <clockinst> delay-req interval <interval>
+ptp <clockinst> domain <domain>
+ptp <clockinst> egress-latency <egress_latency>
+ptp <clockinst> filter [ delay <delay> ] [ period <period> ] [ dist <dist> ]
+ptp <clockinst> ho [ filter <ho_filter> ] [ adj-threshold <adj_threshold> ]
+ptp <clockinst> ingress-latency <ingress_latency>
+ptp <clockinst> local-clock { update | ratio <ratio> }
+ptp <clockinst> log <debug_mode>
+ptp <clockinst> mode { boundary | e2etransparent | p2ptransparent | master | slave } [ onestep | twostep ] [ ethernet | ip4multi | ip4unicast | oam | onepps ] [ oneway | twoway ] [ id <v_clock_id> ] [ vid <vid> [ <prio> ] [ tag ] ] [ mep <mep_id> ]
+ptp <clockinst> priority1 <priority1>
+ptp <clockinst> priority2 <priority2>
+ptp <clockinst> servo ad <ad>
+ptp <clockinst> servo ai <ai>
+ptp <clockinst> servo ap <ap>
+ptp <clockinst> servo displaystates
+ptp <clockinst> slave-cfg [ stable-offset <stable_offset> ] [ offset-ok <offset_ok> ] [ offset-fail <offset_fail> ]
+ptp <clockinst> sync-interval <interval>
+ptp <clockinst> time-property [ utc-offset <utc_offset> ] [ valid ] [ leap-59 | leap-61 ] [ time-traceable ] [ freq-traceable ] [ ptptimescale ] [ time-source <time_source> ]
+ptp <clockinst> uni <idx> [ duration <duration> ] <ip>
+ptp <clockinst> wireless delay <base_delay> [ <incr_delay> ] interface ( <port_type> [ <v_port_type_list> ] )
+ptp <clockinst> wireless mode interface ( <port_type> [ <v_port_type_list> ] )
+ptp <clockinst> wireless pre-notification interface ( <port_type> [ <v_port_type_list> ] )
+ptp ext [ output | input ] [ ext <clockfreq> ] [ vcxo ]
+ptp ms-pdv [ one-hz ] [ min-phase <min_phase> ] [ apr <apr> ]
+ptp pps-delay { { auto master-port interface <port_type> <v_port_type_id> } | { man cable-delay <cable_delay> } }
+ptp pps-sync { main-auto | main-man | sub } [ pps-phase <pps_phase> ] [ cable-asy <cable_asy> ] [ ser-man | ser-auto ]
+ptp ref-clock { mhz125 | mhz156p25 | mhz250 }
+ptp rs422 { main-auto | main-man | sub } [ pps-delay <pps_delay> ] { ser | { pim interface <port_type> <v_port_type_id> } }
+ptp tc-internal [ mode <mode> ]
+pvlan <pvlan_list>
+pvlan isolation
+qos cos <cos>
+qos dei <dei>
+qos dpl <dpl>
+qos dscp-classify { zero | selected | any }
+qos dscp-remark { rewrite | remap | remap-dp }
+qos dscp-translate
+qos map cos-dscp <cos> dpl <dpl> dscp { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } }
+qos map cos-tag cos <cos> dpl <dpl> pcp <pcp> dei <dei>
+qos map dscp-classify { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } }
+qos map dscp-cos { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } cos <cos> dpl <dpl>
+qos map dscp-egress-translation { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } <dpl> to { <dscp_num_tr> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } }
+qos map dscp-ingress-translation { <dscp_num> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } } to { <dscp_num_tr> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } }
+qos map tag-cos pcp <pcp> dei <dei> cos <cos> dpl <dpl>
+qos pcp <pcp>
+qos policer <rate> [ fps ] [ flowcontrol ]
+qos qce refresh
+qos qce { [ addr { source | destination } ] [ key { double-tag | normal | ip-addr | mac-ip-addr } ] }*1
+qos qce { [ update ] } <qce_id> [ { next <qce_id_next> } | last ] [ interface ( <port_type> [ <port_list> ] ) ] [ smac { <smac> | <smac_24> | any } ] [ dmac { <dmac> | unicast | multicast | broadcast | any } ] [ tag { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { <ot_vid> | any } ] [ pcp { <ot_pcp> | any } ] [ dei { <ot_dei> | any } ] }*1 ] [ inner-tag { [ type { untagged | tagged | c-tagged | s-tagged | any } ] [ vid { <it_vid> | any } ] [ pcp { <it_pcp> | any } ] [ dei { <it_dei> | any } ] }*1 ] [ frame-type { any | { etype [ { <etype_type> | any } ] } | { llc [ dsap { <llc_dsap> | any } ] [ ssap { <llc_ssap> | any } ] [ control { <llc_control> | any } ] } | { snap [ { <snap_data> | any } ] } | { ipv4 [ proto { <pr4> | tcp | udp | any } ] [ sip { <sip4> | any } ] [ dip { <dip4> | any } ] [ dscp { <dscp4> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | any } ] [ fragment { yes | no | any } ] [ sport { <sp4> | any } ] [ dport { <dp4> | any } ] } | { ipv6 [ proto { <pr6> | tcp | udp | any } ] [ sip { <sip6> | any } ] [ dip { <dip6> | any } ] [ dscp { <dscp6> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | any } ] [ sport { <sp6> | any } ] [ dport { <dp6> | any } ] } } ] [ action { [ cos { <action_cos> | default } ] [ dpl { <action_dpl> | default } ] [ pcp-dei { <action_pcp> <action_dei> | default } ] [ dscp { <action_dscp_dscp> | { be | af11 | af12 | af13 | af21 | af22 | af23 | af31 | af32 | af33 | af41 | af42 | af43 | cs1 | cs2 | cs3 | cs4 | cs5 | cs6 | cs7 | ef | va } | default } ] [ policy { <action_policy> | default } ] }*1 ]
+qos queue-policer queue <queue> <rate>
+qos queue-shaper queue <queue> <rate> [ excess ]
+qos shaper <rate>
+qos storm { unicast | broadcast | unknown } <rate> [ fps ]
+qos storm { unicast | multicast | broadcast } { { <rate> [ kfps ] } | { 1024 kfps } }
+qos tag-remark { pcp <pcp> dei <dei> | mapped }
+qos trust dscp
+qos trust tag
+qos wred queue <queue> min-fl <min_fl> max <max> [ fill-level ]
+qos wred queue <queue> min-th <min_th> mdp-1 <mdp_1> mdp-2 <mdp_2> mdp-3 <mdp_3>
+qos wrr <w0> <w1> <w2> <w3> <w4> <w5>
+radius-server attribute 32 <id>
+radius-server attribute 4 <ipv4>
+radius-server attribute 95 <ipv6>
+radius-server deadtime <minutes>
+radius-server host <host_name> [ auth-port <auth_port> ] [ acct-port <acct_port> ] [ timeout <seconds> ] [ retransmit <retries> ] [ key <key> ]
+radius-server key <key>
+radius-server retransmit <retries>
+radius-server timeout <seconds>
+range <entry_name> { permit | deny } [ log ] [ next <next_entry> ]
+reload { { { cold | warm } [ sid <usid> ] } | { defaults [ keep-ip ] } }
+rfc2544 profile <profile_name>
+rmon alarm <id> <oid_str> <interval> { absolute | delta } rising-threshold <rising_threshold> [ <rising_event_id> ] falling-threshold <falling_threshold> [ <falling_event_id> ] { [ rising | falling | both ] }
+rmon alarm <id> { ifInOctets | ifInUcastPkts | ifInNUcastPkts | ifInDiscards | ifInErrors | ifInUnknownProtos | ifOutOctets | ifOutUcastPkts | ifOutNUcastPkts | ifOutDiscards | ifOutErrors } <ifIndex> <interval> { absolute | delta } rising-threshold <rising_threshold> [ <rising_event_id> ] falling-threshold <falling_threshold> [ <falling_event_id> ] { [ rising | falling | both ] }
+rmon collection history <id> [ buckets <buckets> ] [ interval <interval> ]
+rmon collection stats <id>
+rmon event <id> [ log ] [ trap <community> ] { [ description <description> ] }
+send { * | <session_list> | console 0 | vty <vty_list> } <message>
+sflow [ <sampler_idx_list> ]
+sflow agent-ip { ipv4 <v_ipv4_addr> | ipv6 <v_ipv6_addr> }
+sflow collector-address [ receiver <rcvr_idx_list> ] [ <host_name> ]
+sflow collector-port [ receiver <rcvr_idx_list> ] <collector_port>
+sflow counter-poll-interval [ sampler <sampler_idx_list> ] [ <poll_interval> ]
+sflow max-datagram-size [ receiver <rcvr_idx_list> ] <datagram_size>
+sflow max-sampling-size [ sampler <sampler_idx_list> ] [ <max_sampling_size> ]
+sflow sampling-rate [ sampler <sampler_idx_list> ] [ <sampling_rate> ]
+sflow timeout [ receiver <rcvr_idx_list> ] <timeout>
+show aaa
+show access management [ statistics | <access_id_list> ]
+show access-list [ interface [ ( <port_type> [ <v_port_type_list> ] ) ] ] [ rate-limiter [ <rate_limiter_list> ] ] [ ace statistics [ <ace_list> ] ]
+show access-list ace-status [ static ] [ link-oam ] [ loop-protect ] [ dhcp ] [ ptp ] [ upnp ] [ arp-inspection ] [ evc ] [ mep ] [ ipmc ] [ ip-source-guard ] [ ip-mgmt ] [ conflicts ] [ switch <switch_list> ]
+show aggregation [ mode ]
+show clock
+show clock detail
+show dot1x statistics { eapol | radius | all } [ interface ( <port_type> [ <v_port_type_list> ] ) ]
+show dot1x status [ interface ( <port_type> [ <v_port_type_list> ] ) ] [ brief ]
+show eps [ <inst> ] [ detail ]
+show erps [ <groups> ] [ detail | statistics ]
+show evc statistics { [ <evc_id> | all ] } [ ece [ <ece_id> ] ] [ interface ( <port_type> [ <port_list> ] ) ] [ cos <cos> ] [ green | yellow | red | discard ] [ frames | bytes ]
+show evc { [ <evc_id> | all ] } [ ece [ <ece_id> ] ]
+show green-ethernet [ interface ( <port_type> [ <port_list> ] ) ]
+show green-ethernet eee [ interface ( <port_type> [ <port_list> ] ) ]
+show green-ethernet energy-detect [ interface ( <port_type> [ <port_list> ] ) ]
+show green-ethernet short-reach [ interface ( <port_type> [ <port_list> ] ) ]
+show history
+show interface ( <port_type> [ <in_port_list> ] ) switchport [ access | trunk | hybrid ]
+show interface ( <port_type> [ <v_port_type_list> ] ) capabilities
+show interface ( <port_type> [ <v_port_type_list> ] ) statistics [ { packets | bytes | errors | discards | filtered | { priority [ <priority_v_0_to_7> ] } } ] [ { up | down } ]
+show interface ( <port_type> [ <v_port_type_list> ] ) status
+show interface ( <port_type> [ <v_port_type_list> ] ) veriphy
+show interface vlan [ <vlist> ]
+show ip arp
+show ip arp inspection [ interface ( <port_type> [ <in_port_type_list> ] ) | vlan <in_vlan_list> ]
+show ip arp inspection entry [ dhcp-snooping | static ] [ interface ( <port_type> [ <in_port_type_list> ] ) ]
+show ip dhcp detailed statistics { server | client | snooping | relay | normal-forward | combined } [ interface ( <port_type> [ <in_port_list> ] ) ]
+show ip dhcp excluded-address
+show ip dhcp pool [ <pool_name> ]
+show ip dhcp relay [ statistics ]
+show ip dhcp server
+show ip dhcp server binding <ip>
+show ip dhcp server binding [ state { allocated | committed | expired } ] [ type { automatic | manual | expired } ]
+show ip dhcp server declined-ip
+show ip dhcp server declined-ip <declined_ip>
+show ip dhcp server statistics
+show ip dhcp snooping [ interface ( <port_type> [ <in_port_list> ] ) ]
+show ip dhcp snooping [ statistics ] [ interface ( <port_type> [ <in_port_list> ] ) ]
+show ip dhcp snooping table
+show ip http server secure status
+show ip igmp snooping [ vlan <v_vlan_list> ] [ group-database [ interface ( <port_type> [ <v_port_type_list> ] ) ] [ sfm-information ] ] [ detail ]
+show ip igmp snooping mrouter [ detail ]
+show ip interface brief
+show ip name-server
+show ip route
+show ip source binding [ dhcp-snooping | static ] [ interface ( <port_type> [ <in_port_type_list> ] ) ]
+show ip ssh
+show ip statistics [ system ] [ interface vlan <v_vlan_list> ] [ icmp ] [ icmp-msg <type> ]
+show ip verify source [ interface ( <port_type> [ <in_port_type_list> ] ) ]
+show ipmc profile [ <profile_name> ] [ detail ]
+show ipmc range [ <entry_name> ]
+show ipv6 interface [ vlan <v_vlan_list> { brief | statistics } ]
+show ipv6 mld snooping [ vlan <v_vlan_list> ] [ group-database [ interface ( <port_type> [ <v_port_type_list> ] ) ] [ sfm-information ] ] [ detail ]
+show ipv6 mld snooping mrouter [ detail ]
+show ipv6 neighbor [ interface vlan <v_vlan_list> ]
+show ipv6 route [ interface vlan <v_vlan_list> ]
+show ipv6 statistics [ system ] [ interface vlan <v_vlan_list> ] [ icmp ] [ icmp-msg <type> ]
+show lacp { internal | statistics | system-id | neighbour }
+show line [ alive ]
+show link-oam { [ status ] [ link-monitor ] [ statistics ] } [ interface ( <port_type> [ <plist> ] ) ]
+show lldp med media-vlan-policy [ <v_0_to_31> ]
+show lldp med remote-device [ interface ( <port_type> [ <port_list> ] ) ]
+show lldp neighbors [ interface ( <port_type> [ <v_port_type_list> ] ) ]
+show lldp statistics [ interface ( <port_type> [ <v_port_type_list> ] ) ]
+show logging <log_id> [ switch <switch_list> ]
+show logging [ info ] [ warning ] [ error ] [ switch <switch_list> ]
+show loop-protect [ interface ( <port_type> [ <plist> ] ) ]
+show mac address-table [ conf | static | aging-time | { { learning | count } [ interface ( <port_type> [ <v_port_type_list> ] ) ] } | { address <v_mac_addr> [ vlan <v_vlan_id> ] } | vlan <v_vlan_id_1> | interface ( <port_type> [ <v_port_type_list_1> ] ) ]
+show mep [ <inst> ] [ peer | cc | lm | dm | lt | lb | tst | aps | client | ais | lck ] [ detail ]
+show mvr [ vlan <v_vlan_list> | name <mvr_name> ] [ group-database [ interface ( <port_type> [ <v_port_type_list> ] ) ] [ sfm-information ] ] [ detail ]
+show network-clock
+show ntp status
+show platform phy [ interface ( <port_type> [ <v_port_type_list> ] ) ]
+show platform phy failover
+show platform phy id [ interface ( <port_type> [ <v_port_type_list> ] ) ]
+show platform phy instance
+show platform phy status [ interface ( <port_type> [ <v_port_type_list> ] ) ]
+show port-security port [ interface ( <port_type> [ <v_port_type_list> ] ) ]
+show port-security switch [ interface ( <port_type> [ <v_port_type_list> ] ) ]
+show privilege
+show ptp <clockinst> local-clock
+show ptp <clockinst> slave-cfg
+show ptp <clockinst> slave-table-unicast
+show ptp <clockinst> { default | current | parent | time-property | filter | servo | clk | ho | uni | master-table-unicast | slave | { { port-state | port-ds | wireless | foreign-master-record } [ interface ( <port_type> [ <v_port_type_list> ] ) ] } }
+show ptp ext
+show ptp rs422
+show pvlan [ <pvlan_list> ]
+show pvlan isolation [ interface ( <port_type> [ <plist> ] ) ]
+show qos [ { interface [ ( <port_type> [ <port> ] ) ] } | wred | { maps [ dscp-cos ] [ dscp-ingress-translation ] [ dscp-classify ] [ cos-dscp ] [ dscp-egress-translation ] } | storm | { qce [ <qce> ] } ]
+show radius-server [ statistics ]
+show rmon alarm [ <id_list> ]
+show rmon event [ <id_list> ]
+show rmon history [ <id_list> ]
+show rmon statistics [ <id_list> ]
+show running-config [ all-defaults ]
+show running-config feature <feature_name> [ all-defaults ]
+show running-config interface ( <port_type> [ <list> ] ) [ all-defaults ]
+show running-config interface vlan <list> [ all-defaults ]
+show running-config line { console | vty } <list> [ all-defaults ]
+show running-config vlan <list> [ all-defaults ]
+show sflow
+show sflow statistics { receiver [ <rcvr_idx_list> ] | samplers [ interface [ <samplers_list> ] ( <port_type> [ <v_port_type_list> ] ) ] }
+show snmp
+show snmp access [ <group_name> { v1 | v2c | v3 | any } { auth | noauth | priv } ]
+show snmp community v3 [ <community> ]
+show snmp host [ <conf_name> ] [ system ] [ switch ] [ interface ] [ aaa ]
+show snmp mib context
+show snmp mib ifmib ifIndex
+show snmp mib redefine
+show snmp security-to-group [ { v1 | v2c | v3 } <security_name> ]
+show snmp user [ <username> <engineID> ]
+show snmp view [ <view_name> <oid_subtree> ]
+show spanning-tree [ summary | active | { interface ( <port_type> [ <v_port_type_list> ] ) } | { detailed [ interface ( <port_type> [ <v_port_type_list_1> ] ) ] } | { mst [ configuration | { <instance> [ interface ( <port_type> [ <v_port_type_list_2> ] ) ] } ] } ]
+show switchport forbidden [ { vlan <vid> } | { name <name> } ]
+show tacacs-server
+show terminal
+show thermal-protect [ interface ( <port_type> [ <port_list> ] ) ]
+show upnp
+show users [ myself ]
+show version
+show version
+show vlan [ id <vlan_list> | name <name> | brief ]
+show vlan ip-subnet [ id <subnet_id> ]
+show vlan mac [ address <mac_addr> ]
+show vlan protocol [ eth2 { <etype> | arp | ip | ipx | at } ] [ snap { <oui> | rfc-1042 | snap-8021h } <pid> ] [ llc <dsap> <ssap> ]
+show vlan status [ interface ( <port_type> [ <plist> ] ) ] [ combined | admin | nas | mvr | voice-vlan | mstp | erps | vcl | evc | gvrp | all | conflicts ]
+show voice vlan [ oui <oui> | interface ( <port_type> [ <port_list> ] ) ]
+show web privilege group [ <group_name> ] level
+shutdown
+shutdown
+snmp-server
+snmp-server access <group_name> model { v1 | v2c | v3 | any } level { auth | noauth | priv } [ read <view_name> ] [ write <write_name> ]
+snmp-server community v2c <comm> [ ro | rw ]
+snmp-server community v3 <v3_comm> [ <v_ipv4_addr> <v_ipv4_netmask> ]
+snmp-server contact <v_line255>
+snmp-server engine-id local <engineID>
+snmp-server host <conf_name>
+snmp-server host <conf_name> traps [ linkup ] [ linkdown ] [ lldp ]
+snmp-server location <v_line255>
+snmp-server security-to-group model { v1 | v2c | v3 } name <security_name> group <group_name>
+snmp-server trap
+snmp-server user <username> engine-id <engineID> [ { md5 <md5_passwd> | sha <sha_passwd> } [ priv { des | aes } <priv_passwd> ] ]
+snmp-server version { v1 | v2c | v3 }
+snmp-server view <view_name> <oid_subtree> { include | exclude }
+spanning-tree
+spanning-tree
+spanning-tree aggregation
+spanning-tree auto-edge
+spanning-tree auto-edge
+spanning-tree bpdu-guard
+spanning-tree bpdu-guard
+spanning-tree edge
+spanning-tree edge
+spanning-tree edge bpdu-filter
+spanning-tree edge bpdu-guard
+spanning-tree link-type { point-to-point | shared | auto }
+spanning-tree link-type { point-to-point | shared | auto }
+spanning-tree mode { stp | rstp | mstp }
+spanning-tree mst <instance> cost { <cost> | auto }
+spanning-tree mst <instance> cost { <cost> | auto }
+spanning-tree mst <instance> port-priority <prio>
+spanning-tree mst <instance> port-priority <prio>
+spanning-tree mst <instance> priority <prio>
+spanning-tree mst <instance> vlan <v_vlan_list>
+spanning-tree mst forward-time <fwdtime>
+spanning-tree mst max-age <maxage> [ forward-time <fwdtime> ]
+spanning-tree mst max-hops <maxhops>
+spanning-tree mst name <name> revision <v_0_to_65535>
+spanning-tree recovery interval <interval>
+spanning-tree restricted-role
+spanning-tree restricted-role
+spanning-tree restricted-tcn
+spanning-tree restricted-tcn
+spanning-tree transmit hold-count <holdcount>
+speed { 10g | 2500 | 1000 | 100 | 10 | auto { [ 10 ] [ 100 ] [ 1000 ] } }
+switchport access vlan <pvid>
+switchport forbidden vlan { add | remove } <vlan_list>
+switchport hybrid acceptable-frame-type { all | tagged | untagged }
+switchport hybrid allowed vlan { all | none | [ add | remove | except ] <vlan_list> }
+switchport hybrid egress-tag { none | all [ except-native ] }
+switchport hybrid ingress-filtering
+switchport hybrid native vlan <pvid>
+switchport hybrid port-type { unaware | c-port | s-port | s-custom-port }
+switchport mode { access | trunk | hybrid }
+switchport trunk allowed vlan { all | none | [ add | remove | except ] <vlan_list> }
+switchport trunk native vlan <pvid>
+switchport trunk vlan tag native
+switchport vlan ip-subnet id <vce_id> <ipv4> vlan <vid>
+switchport vlan mac <mac_addr> vlan <vid>
+switchport vlan mapping <group>
+switchport vlan mapping <group> <vlan_list> <translation_vlan>
+switchport vlan protocol group <grp_id> vlan <vid>
+switchport voice vlan discovery-protocol { oui | lldp | both }
+switchport voice vlan mode { auto | force | disable }
+switchport voice vlan security
+tacacs-server deadtime <minutes>
+tacacs-server host <host_name> [ port <port> ] [ timeout <seconds> ] [ key <key> ]
+tacacs-server key <key>
+tacacs-server timeout <seconds>
+terminal editing
+terminal exec-timeout <min> [ <sec> ]
+terminal help
+terminal history size <history_size>
+terminal length <lines>
+terminal width <width>
+thermal-protect port-prio <prio>
+thermal-protect prio <prio_list> temperature <new_temp>
+traps [ aaa authentication ] [ system [ coldstart ] [ warmstart ] ] [ switch [ stp ] [ rmon ] ]
+upnp
+upnp advertising-duration <v_100_to_86400>
+upnp ttl <v_1_to_255>
+username <username> privilege <priv> password encrypted <encry_password>
+username <username> privilege <priv> password none
+username <username> privilege <priv> password unencrypted <password>
+vendor class-identifier <class_id> specific-info <hexval>
+version { v1 [ <v1_comm> ] | v2 [ <v2_comm> ] | v3 [ probe | engineID <v_word10_to_32> ] [ <securtyname> ] }
+vlan <vlist>
+vlan ethertype s-custom-port <etype>
+vlan protocol { { eth2 { <etype> | arp | ip | ipx | at } } | { snap { <oui> | rfc-1042 | snap-8021h } <pid> } | { llc <dsap> <ssap> } } group <grp_id>
+voice vlan
+voice vlan aging-time <aging_time>
+voice vlan class { <traffic_class> | low | normal | medium | high }
+voice vlan oui <oui> [ description <description> ]
+voice vlan vid <vid>
+web privilege group <group_name> level { [ cro <cro> ] [ crw <crw> ] [ sro <sro> ] [ srw <srw> ] }*1
+width <width>

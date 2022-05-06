@@ -1,0 +1,13 @@
+no rmon alarm <id> 
+no rmon collection history <id> 
+no rmon collection stats <id> 
+no rmon event <id> 
+rmon alarm <id> <oid_str> <interval> { absolute | delta } rising-threshold <rising_threshold> [ <rising_event_id> ] falling-threshold <falling_threshold> [ <falling_event_id> ] { [ rising | falling | both ] } 
+rmon alarm <id> { ifInOctets | ifInUcastPkts | ifInNUcastPkts | ifInDiscards | ifInErrors | ifInUnknownProtos | ifOutOctets | ifOutUcastPkts | ifOutNUcastPkts | ifOutDiscards | ifOutErrors } <ifIndex> <interval> { absolute | delta } rising-threshold <rising_threshold> [ <rising_event_id> ] falling-threshold <falling_threshold> [ <falling_event_id> ] { [ rising | falling | both ] } 
+rmon collection history <id> [ buckets <buckets> ] [ interval <interval> ] 
+rmon collection stats <id> 
+rmon event <id> [ log ] [ trap <community> ] { [ description <description> ] } 
+show rmon alarm [ <id_list> ] 
+show rmon event [ <id_list> ] 
+show rmon history [ <id_list> ] 
+show rmon statistics [ <id_list> ] 

@@ -1,0 +1,12 @@
+clear eps <inst> wtr 
+eps <inst> 1plus1 { bidirectional | { unidirectional [ aps ] } } 
+eps <inst> command { lockout | forced | manualp | manualw | exercise | freeze | lockoutlocal } 
+eps <inst> domain { port | evc } architecture { 1plus1 | 1for1 } work-flow { <flow_w> | <port_type> <port_w> } protect-flow { <flow_p> | <port_type> <port_p> } 
+eps <inst> holdoff <hold> 
+eps <inst> mep-work <mep_w> mep-protect <mep_p> mep-aps <mep_aps> 
+eps <inst> revertive { 10s | 30s | 5m | 6m | 7m | 8m | 9m | 10m | 11m | 12m } 
+no eps <inst> 
+no eps <inst> command 
+no eps <inst> holdoff 
+no eps <inst> revertive 
+show eps [ <inst> ] [ detail ] 
